@@ -9,5 +9,5 @@ compatibility_flags = ["nodejs_compat"]
 [[d1_databases]]
 binding = "DB"
 database_name = "design-md-editor"
-database_id = "00000000-0000-0000-0000-000000000000"
+database_id = "828044ce-9de2-4ddf-b34e-8857c7ed93a4"
 migrations_dir = "migrations"

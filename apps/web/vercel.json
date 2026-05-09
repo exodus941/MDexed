@@ -1,0 +1,12 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://design-md-editor-api.ninienowrin.workers.dev/api/:path*"
+    },
+    {
+      "source": "/p/:id",
+      "destination": "/index.html"
+    }
+  ]
+}
