@@ -1,0 +1,31 @@
+# dependencies
+node_modules/
+
+# build outputs
+dist/
+build/
+.vite/
+
+# Vercel
+.vercel/
+
+# Wrangler / Cloudflare
+.wrangler/
+.dev.vars
+
+# logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+
+# editor
+.idea/
+.vscode/
+*.swp
+
+# env
+.env
+.env.local
+.env.*.local
