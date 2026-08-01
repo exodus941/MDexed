@@ -8,7 +8,8 @@ import { uid } from '../state/schema.js'
 import { RAMP_STEPS, DEFAULT_SHAPE } from '../color/ramp.js'
 import { isValidColor } from '../color/convert.js'
 import ColorPicker from '../ui/ColorPicker.jsx'
-import { SectionHeader, Collapsible, Slider, Toggle, OverrideBadge, ConfirmDelete } from '../ui/controls.jsx'
+import { GRADIENT_TYPES } from '../color/modes.js'
+import { SectionHeader, Collapsible, Slider, NumField, Toggle, OverrideBadge, ConfirmDelete, Banner } from '../ui/controls.jsx'
 
 const PROTECTED_SEEDS = ['accent', 'neutral']
 
@@ -116,6 +117,73 @@ function RampRow({ name, ramp, overrides, onOverride, onResetStep }) {
   )
 }
 
+/* ── Gradients ──
+   Stops reference roles or scale steps, so a gradient follows the palette
+   instead of freezing hex values into it. */
+function GradientRow({ grad, css, options, onChange, onDelete }) {
+  const [open, setOpen] = useState(false)
+  const setStop = (i, patch) => onChange({ ...grad, stops: grad.stops.map((s, j) => j === i ? { ...s, ...patch } : s) })
+
+  return (
+    <div style={{ background: 'var(--surf2)', border: `1px solid ${open ? 'rgba(220,144,85,.35)' : 'var(--bdr)'}`, borderRadius: 9, overflow: 'hidden' }}>
+      <div onClick={() => setOpen(o => !o)} style={{ display: 'grid', gridTemplateColumns: '84px 1fr auto auto', gap: 10, alignItems: 'center', padding: '8px 12px', cursor: 'pointer' }}>
+        <div style={{ height: 26, borderRadius: 5, background: css, border: '1px solid rgba(255,255,255,.08)' }} />
+        <code style={{ fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--text)' }}>{grad.name}</code>
+        <span className="chip">{grad.type}</span>
+        <ConfirmDelete onConfirm={onDelete} title="Remove gradient" />
+      </div>
+      {open && (
+        <div style={{ padding: '12px 14px', borderTop: '1px solid var(--bdr)', background: 'var(--surf)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 11 }}>
+            <div>
+              <label>Name</label>
+              <input value={grad.name} onChange={e => onChange({ ...grad, name: e.target.value.replace(/\s+/g, '-') })}
+                style={{ fontFamily: 'var(--mono)', fontSize: 12 }} />
+            </div>
+            <div>
+              <label>Type</label>
+              <select value={grad.type} onChange={e => onChange({ ...grad, type: e.target.value })} style={{ fontSize: 12, padding: '6px 8px' }}>
+                {GRADIENT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+              </select>
+            </div>
+          </div>
+
+          {grad.type !== 'radial' && (
+            <Slider label="Angle" value={grad.angle ?? 90} onChange={v => onChange({ ...grad, angle: v })}
+              min={0} max={360} step={1} defaultValue={90} format={v => `${Math.round(v)}°`} />
+          )}
+          {grad.type !== 'linear' && (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
+              <NumField label="Centre X" value={grad.cx ?? 50} min={0} max={100} suffix="%" onChange={v => onChange({ ...grad, cx: v })} />
+              <NumField label="Centre Y" value={grad.cy ?? 50} min={0} max={100} suffix="%" onChange={v => onChange({ ...grad, cy: v })} />
+            </div>
+          )}
+
+          <div style={{ fontSize: 11, color: 'var(--muted)', margin: '4px 0 6px' }}>Stops</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+            {grad.stops.map((s, i) => (
+              <div key={i} style={{ display: 'grid', gridTemplateColumns: '18px minmax(0,1fr) 84px 20px', gap: 7, alignItems: 'center' }}>
+                <span className="swatch" style={{ width: 16, height: 16, cursor: 'default', background: /^#/.test(s.color) ? s.color : `var(--c-${s.color}, #888)` }} />
+                <input list="dmd-grad-stops" value={s.color} onChange={e => setStop(i, { color: e.target.value })}
+                  style={{ fontFamily: 'var(--mono)', fontSize: 11, padding: '3px 6px' }} />
+                <NumField value={s.position} min={0} max={100} suffix="%" onChange={v => setStop(i, { position: v })} />
+                <ConfirmDelete size={11} title="Remove stop"
+                  onConfirm={() => onChange({ ...grad, stops: grad.stops.filter((_, j) => j !== i) })} />
+              </div>
+            ))}
+          </div>
+          <datalist id="dmd-grad-stops">{options.map(o => <option key={o} value={o} />)}</datalist>
+          <button className="btn-add" style={{ marginTop: 8 }}
+            onClick={() => onChange({ ...grad, stops: [...grad.stops, { color: 'accent', position: 100 }] })}>
+            + Add stop
+          </button>
+          <code style={{ display: 'block', marginTop: 10, fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--dim)', wordBreak: 'break-all' }}>{css}</code>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function ColorPanel() {
   const { state, derived, set } = useStore()
   const { color } = state
@@ -139,8 +207,23 @@ export default function ColorPanel() {
 
   const stepOverrides = Object.keys(color.stepOverrides ?? {}).length
 
+  const stopOptions = [
+    ...Object.keys(derived.roles.light),
+    ...Object.keys(ramps).flatMap(r => RAMP_STEPS.map(s => `${r}.${s}`)),
+  ]
+  const updGradient = (id, next) => upd(c => ({ ...c, gradients: c.gradients.map(g => g.id === id ? next : g) }), `grad:${id}`)
+  const addGradient = () => upd(c => ({
+    ...c,
+    gradients: [...(c.gradients ?? []), {
+      id: uid(),
+      name: `gradient-${(c.gradients?.length ?? 0) + 1}`,
+      type: 'linear', angle: 90, cx: 50, cy: 50,
+      stops: [{ color: 'accent', position: 0 }, { color: 'accent-subtle', position: 100 }],
+    }],
+  }))
+
   return (
-    <div style={{ maxWidth: 620, display: 'flex', flexDirection: 'column', gap: 10 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       <SectionHeader title="Colour" desc="Pick a few seeds; the scales generate from them. Roles are on the next tab." />
 
       <Collapsible title="Seeds" note={String(color.seeds.length)} defaultOpen>
@@ -192,6 +275,35 @@ export default function ColorPanel() {
           <RampRow key={name} name={name} ramp={ramp} overrides={color.stepOverrides ?? {}}
             onOverride={setStepOverride} onResetStep={resetStep} />
         ))}
+      </Collapsible>
+
+      <Collapsible title="Gradients" note={String(color.gradients?.length ?? 0)}>
+        <Banner tone="info">
+          A gradient is a CSS <em>image</em>, not a colour, so it can't be a <code style={{ fontFamily: 'var(--mono)', fontSize: 10.5 }}>colors</code> token —
+          the spec's map takes colour values. Gradients are written into the Colors section as a table instead, and reach the preview as CSS variables.
+        </Banner>
+        <p className="panel-note" style={{ margin: '10px 0' }}>
+          Stops take a role name (<code style={{ fontFamily: 'var(--mono)', fontSize: 10.5 }}>accent</code>), a scale step
+          (<code style={{ fontFamily: 'var(--mono)', fontSize: 10.5 }}>accent.400</code>) or a literal hex — so a gradient tracks the palette rather than freezing it.
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+          {!color.gradients?.length && (
+            <div style={{ textAlign: 'center', padding: '18px 12px', color: 'var(--dim)', fontSize: 12.5, border: '1px dashed var(--bdr)', borderRadius: 9 }}>
+              No gradients yet.
+            </div>
+          )}
+          {(color.gradients ?? []).map((g, i) => (
+            <GradientRow key={g.id} grad={g} css={derived.gradients[i]?.css ?? 'none'} options={stopOptions}
+              onChange={next => updGradient(g.id, next)}
+              onDelete={() => upd(c => ({ ...c, gradients: c.gradients.filter(x => x.id !== g.id) }))} />
+          ))}
+        </div>
+        <button className="btn-add" onClick={addGradient}>+ Add gradient</button>
+        <p className="panel-note" style={{ marginTop: 10 }}>
+          Gradient <strong>strokes</strong> have no direct CSS property. They need
+          <code style={{ fontFamily: 'var(--mono)', fontSize: 10.5 }}> border-image</code>, or a two-layer background with
+          <code style={{ fontFamily: 'var(--mono)', fontSize: 10.5 }}> background-clip</code>. That technique note is written into the file so an agent doesn't invent one.
+        </p>
       </Collapsible>
 
       <Collapsible title="What gets exported">

@@ -19,10 +19,13 @@ export const COMPONENT_LIBRARY = [
       ghost:     { backgroundColor: 'transparent',      textColor: '{colors.text-muted}', borderColor: 'transparent' },
       danger:    { backgroundColor: '{colors.danger}',  textColor: '{colors.danger-fg}',  borderColor: 'transparent' },
     },
+    /* Each size carries its own gap. A 28px button wants less space between
+       icon and label than a 44px one; the icon-gap token is the default, and
+       these override it per size. */
     sizes: {
-      sm: { height: '28px', padding: '0 {spacing.sm}',  typography: 'caption' },
-      md: { height: '36px', padding: '0 {spacing.md}',  typography: 'button' },
-      lg: { height: '44px', padding: '0 {spacing.lg}',  typography: 'body-md' },
+      sm: { height: '28px', padding: '0 {spacing.sm}',  typography: 'caption',  gap: '{spacing.3xs}' },
+      md: { height: '36px', padding: '0 {spacing.md}',  typography: 'button',   gap: '{spacing.2xs}' },
+      lg: { height: '44px', padding: '0 {spacing.lg}',  typography: 'body-md',  gap: '{spacing.xs}' },
     },
     states: {
       hover:    { primary: { backgroundColor: '{colors.accent-hover}' }, secondary: { backgroundColor: '{colors.bg-subtle}' }, ghost: { backgroundColor: '{colors.accent-subtle}', textColor: '{colors.accent}' }, danger: { backgroundColor: '{colors.danger}' } },

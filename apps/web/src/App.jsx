@@ -307,9 +307,13 @@ function TabStrip({ tabs, active, onSelect, right }) {
   const Chevron = ({ dir }) => (
     <button onClick={() => nudge(dir)} title={dir < 0 ? 'Scroll left' : 'Scroll right'}
       style={{
-        flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-        width: 20, height: '100%', background: 'var(--surf)', border: 'none',
-        cursor: 'pointer', color: 'var(--muted)', padding: 0,
+        flexShrink: 0, display: 'flex', alignItems: 'center',
+        justifyContent: dir < 0 ? 'flex-start' : 'flex-end',
+        width: 38, height: '100%', border: 'none', cursor: 'pointer',
+        color: 'var(--muted)', padding: dir < 0 ? '0 0 0 10px' : '0 10px 0 0',
+        /* Wide hit area, with a fade so tabs slide under it rather than
+           colliding with a hard edge. */
+        background: `linear-gradient(to ${dir < 0 ? 'right' : 'left'}, var(--surf) 55%, transparent)`,
         transition: 'color var(--t) var(--ease)',
       }}>
       <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"
@@ -472,10 +476,13 @@ const TABS = [
 ]
 
 function Shell() {
-  const { state, derived, load, undo, redo, canUndo, canRedo } = useStore()
+  const { state, derived, set, load, undo, redo, canUndo, canRedo } = useStore()
   const [tab, setTab] = useState('colors')
   const [showFile, setShowFile] = useState(false)
   const [showNew, setShowNew] = useState(false)
+  /* Carries a timestamp so clicking the same element twice re-triggers the
+     jump rather than being deduplicated as an unchanged value. */
+  const [inspect, setInspect] = useState(null)
   const [uiSpeed, setUiSpeed] = useState(() => {
     try {
       const saved = parseInt(localStorage.getItem(ANIM_KEY), 10)
@@ -686,11 +693,11 @@ function Shell() {
                 </div>
               } />
             <main style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', padding: '20px 20px 64px' }}>
-              <Panel />
+              <Panel inspect={tab === 'components' ? inspect : null} />
             </main>
           </div>
 
-          <Canvas />
+          <Canvas onInspect={entry => { setInspect({ entry, at: Date.now() }); setTab('components') }} />
         </div>
       </div>
 

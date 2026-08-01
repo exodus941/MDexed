@@ -119,11 +119,13 @@ export const PREVIEW_CSS = `
   height: ${cm('button-sm', 'height', 'auto')};
   padding: ${cm('button-sm', 'padding', `0 ${sp('xs', '8px')}`)};
   font-size: ${cm('button-sm', 'font-size', ft('caption', 'size', '12px'))};
+  gap: ${cm('button-sm', 'gap', cm('button', 'gap', 'var(--icon-gap, 8px)'))};
 }
 .dmd .btn-lg {
   height: ${cm('button-lg', 'height', 'auto')};
   padding: ${cm('button-lg', 'padding', `0 ${sp('lg', '24px')}`)};
   font-size: ${cm('button-lg', 'font-size', ft('body-md', 'size', '16px'))};
+  gap: ${cm('button-lg', 'gap', cm('button', 'gap', 'var(--icon-gap, 8px)'))};
 }
 
 /* ── Form controls ── */

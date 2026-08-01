@@ -5,11 +5,11 @@
    will carry in the file, so the hyphenated flattening the spec requires
    (`button-primary-hover`) is visible while you work rather than a surprise
    at export. */
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useStore } from '../state/store.jsx'
 import { COMPONENT_LIBRARY, COMPONENT_GROUPS } from '../state/components.js'
 import { SPEC_COMPONENT_PROPS } from '../emit/yaml.js'
-import { SectionHeader, Toggle, OverrideBadge, Banner, Collapsible } from '../ui/controls.jsx'
+import { SectionHeader, Toggle, ResetButton, Banner, Collapsible } from '../ui/controls.jsx'
 
 /* Which token group a property should draw from. Offering `{colors.*}` for a
    padding field is noise; offering nothing at all is what made these look like
@@ -36,6 +36,21 @@ function optionsFor(propKey, derived) {
   }
   if (SIZE_PROPS.includes(propKey)) return PX_SUGGESTIONS
   return []
+}
+
+/** Every flattened entry name a component definition will emit. */
+function entriesFor(def, cfg) {
+  const out = def.base ? [def.name] : []
+  for (const v of Object.keys(def.variants ?? {})) out.push(`${def.name}-${v}`)
+  if (cfg.emitSizes !== false) for (const s of Object.keys(def.sizes ?? {})) out.push(`${def.name}-${s}`)
+  if (cfg.emitStates !== false) {
+    for (const [stateName, byVariant] of Object.entries(def.states ?? {})) {
+      for (const variant of Object.keys(byVariant)) {
+        out.push(variant === '_' ? `${def.name}-${stateName}` : `${def.name}-${variant}-${stateName}`)
+      }
+    }
+  }
+  return out
 }
 
 /* Locate the spacing token a slider should drive. Padding is often compound
@@ -91,7 +106,10 @@ function PropRow({ entryName, propKey, defaultValue, override, onSet, onReset, d
 
   return (
     <div style={{ padding: '1px 0' }}>
-      <div style={{ display: 'grid', gridTemplateColumns: '104px 1fr 64px 16px 22px', gap: 7, alignItems: 'center' }}>
+      {/* Fixed row height and an always-present reset button: the row used to
+          grow by a pixel the moment a value was set, because the badge only
+          existed once there was an override. */}
+      <div style={{ display: 'grid', gridTemplateColumns: '128px minmax(0,1fr) 96px 16px 20px', gap: 8, alignItems: 'center', height: 26 }}>
         <code style={{ fontFamily: 'var(--mono)', fontSize: 10.5, color: legal ? 'var(--text-dim)' : 'var(--warn)' }}>{propKey}</code>
 
         <input list={options.length ? listId : undefined}
@@ -129,12 +147,14 @@ function PropRow({ entryName, propKey, defaultValue, override, onSet, onReset, d
           fontSize: 9, lineHeight: '11px', textAlign: 'center', fontWeight: 700,
         }}>!</span>
 
-        <span>{set && <OverrideBadge onReset={() => onReset(key)} />}</span>
+        {/* The orange border already says "overridden", so this is just the
+            way back — dimmed, not hidden, so the row never reflows. */}
+        <ResetButton onClick={() => onReset(key)} disabled={!set} title="Reset to the default value" />
       </div>
 
       {/* Direct control for the values worth nudging by feel rather than typing. */}
       {(spaceTarget || hasSizeSlider) && (
-        <div style={{ display: 'grid', gridTemplateColumns: '104px 1fr', gap: 7, alignItems: 'center', marginTop: 1, marginBottom: 3 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '128px minmax(0,1fr)', gap: 8, alignItems: 'center', marginBottom: 3 }}>
           <span />
           {spaceTarget ? (
             <input type="range" min={0} max={derived.spacing.length - 1} step={1} value={spaceTarget.idx}
@@ -170,10 +190,19 @@ function EntryBlock({ title, entryName, props, overrides, onSet, onReset, derive
   )
 }
 
-function ComponentBlock({ def, cfg, onToggle, onSet, onReset, derived, mode }) {
+function ComponentBlock({ def, cfg, onToggle, onSet, onReset, derived, mode, inspect }) {
   const [open, setOpen] = useState(false)
   const enabled = cfg.enabled[def.name] ?? def.on
   const overrides = cfg.overrides ?? {}
+  const ref = useRef(null)
+
+  /* A click in the gallery opens the owning component and scrolls to it. */
+  const targeted = inspect && entriesFor(def, cfg).includes(inspect.entry)
+  useEffect(() => {
+    if (!targeted) return
+    setOpen(true)
+    ref.current?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+  }, [targeted, inspect?.at])
 
   const entryCount =
     (def.base ? 1 : 0) +
@@ -184,7 +213,12 @@ function ComponentBlock({ def, cfg, onToggle, onSet, onReset, derived, mode }) {
   const touched = Object.keys(overrides).filter(k => k === def.name || k.startsWith(`${def.name}.`) || k.startsWith(`${def.name}-`)).length
 
   return (
-    <div style={{ background: 'var(--surf2)', border: `1px solid ${open ? 'rgba(220,144,85,.35)' : 'var(--bdr)'}`, borderRadius: 9, overflow: 'hidden', opacity: enabled ? 1 : 0.55 }}>
+    <div ref={ref} style={{
+      background: 'var(--surf2)',
+      border: `1px solid ${targeted ? 'var(--accent)' : open ? 'rgba(220,144,85,.35)' : 'var(--bdr)'}`,
+      borderRadius: 9, overflow: 'hidden', opacity: enabled ? 1 : 0.55,
+      transition: 'border-color var(--t) var(--ease)',
+    }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '8px 11px' }}>
         <input type="checkbox" checked={enabled} onChange={e => onToggle(def.name, e.target.checked)}
           style={{ width: 14, height: 14, accentColor: 'var(--accent)', padding: 0, flexShrink: 0 }} />
@@ -217,9 +251,13 @@ function ComponentBlock({ def, cfg, onToggle, onSet, onReset, derived, mode }) {
   )
 }
 
-export default function ComponentsPanel() {
+export default function ComponentsPanel({ inspect }) {
   const { state, derived, set } = useStore()
   const cfg = state.components
+  /* Which group holds the inspected entry, so it can be opened too. */
+  const targetGroup = inspect
+    ? COMPONENT_LIBRARY.find(d => entriesFor(d, cfg).includes(inspect.entry))?.group
+    : null
 
   const upd = (fn, tag) => set(s => ({ ...s, components: fn(s.components) }), tag)
   const onToggle = (name, on) => upd(c => ({ ...c, enabled: { ...c.enabled, [name]: on } }))
@@ -234,7 +272,7 @@ export default function ComponentsPanel() {
     n + c.properties.filter(p => !SPEC_COMPONENT_PROPS.includes(p.key)).length, 0)
 
   return (
-    <div style={{ maxWidth: 580, display: 'flex', flexDirection: 'column', gap: 10 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       <SectionHeader title="Components" desc="Variants, sizes and states, flattened the way the spec expects."
         right={<span className="chip">{derived.components.length} entries</span>} />
 
@@ -262,11 +300,12 @@ export default function ComponentsPanel() {
         const defs = COMPONENT_LIBRARY.filter(d => d.group === group)
         const on = defs.filter(d => cfg.enabled[d.name] ?? d.on).length
         return (
-          <Collapsible key={group} title={group} note={`${on}/${defs.length}`} defaultOpen={group === 'Actions'}>
+          <Collapsible key={`${group}${targetGroup === group ? `:${inspect.at}` : ''}`} title={group}
+            note={`${on}/${defs.length}`} defaultOpen={group === 'Actions' || targetGroup === group}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
               {defs.map(def => (
                 <ComponentBlock key={def.name} def={def} cfg={cfg} onToggle={onToggle} onSet={onSet} onReset={onReset}
-                  derived={derived} mode={state.color.mode} />
+                  derived={derived} mode={state.color.mode} inspect={inspect} />
               ))}
             </div>
           </Collapsible>

@@ -69,7 +69,7 @@ export default function DirectivesPanel() {
   const activeCount = d.antiPatterns.filter(a => a.on).length
 
   return (
-    <div style={{ maxWidth: 580, display: 'flex', flexDirection: 'column', gap: 10 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       <SectionHeader title="Voice & directives" desc="What the agent should aim for, and what it must never do." />
 
       <Collapsible title="Style references" note={String(d.references.length)} defaultOpen>
