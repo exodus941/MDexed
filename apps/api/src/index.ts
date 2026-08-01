@@ -3,6 +3,15 @@ import { cors } from 'hono/cors'
 
 type Bindings = {
   DB: D1Database
+  /* Optional. With a key the official Web Fonts API is used; without one the
+     public metadata endpoint is, which needs no credentials. */
+  GOOGLE_FONTS_API_KEY?: string
+}
+
+type FontFamily = {
+  family: string
+  category: string
+  axes: { tag: string; start: number; end: number; default?: number }[]
 }
 
 type ProjectRow = {
@@ -67,6 +76,81 @@ function rowToReadResponse(row: ProjectRow) {
 app.get('/api/v1/health', (c) =>
   c.json({ ok: true, deployedAt: now() })
 )
+
+/* ── Google Fonts catalogue ──
+   Proxied rather than fetched from the browser: neither upstream sends CORS
+   headers, and proxying lets the response be cached once for everybody
+   instead of per visitor. */
+
+const FONTS_CACHE_KEY = 'https://internal.cache/fonts/v1'
+const FONTS_TTL = 60 * 60 * 24 // a day; the library barely moves
+
+const normaliseCategory = (raw: string): string =>
+  (raw ?? '').toLowerCase().replace(/\s+/g, '-')
+
+/** Official Web Fonts API — requires a key, returns axes when asked for VF. */
+async function fetchOfficial(key: string): Promise<FontFamily[]> {
+  const url = `https://www.googleapis.com/webfonts/v1/webfonts?key=${encodeURIComponent(key)}&capability=VF&sort=popularity`
+  const res = await fetch(url)
+  if (!res.ok) throw new Error(`webfonts api ${res.status}`)
+  const data = (await res.json()) as { items?: any[] }
+  return (data.items ?? []).map((f) => ({
+    family: f.family,
+    category: normaliseCategory(f.category),
+    axes: (f.axes ?? []).map((a: any) => ({ tag: a.tag, start: a.start, end: a.end })),
+  }))
+}
+
+/** Public metadata endpoint. No key, but the body carries an XSSI prefix. */
+async function fetchPublic(): Promise<FontFamily[]> {
+  const res = await fetch('https://fonts.google.com/metadata/fonts')
+  if (!res.ok) throw new Error(`metadata ${res.status}`)
+  const text = (await res.text()).replace(/^\)\]\}'\s*/, '')
+  const data = JSON.parse(text) as { familyMetadataList?: any[] }
+  return (data.familyMetadataList ?? []).map((f) => ({
+    family: f.family,
+    category: normaliseCategory(f.category),
+    axes: (f.axes ?? []).map((a: any) => ({
+      tag: a.tag,
+      start: a.min,
+      end: a.max,
+      default: a.defaultValue,
+    })),
+  }))
+}
+
+app.get('/api/v1/fonts', async (c) => {
+  const cache = caches.default
+  const cached = await cache.match(FONTS_CACHE_KEY)
+  if (cached) return cached
+
+  let families: FontFamily[]
+  let source: string
+  try {
+    if (c.env.GOOGLE_FONTS_API_KEY) {
+      families = await fetchOfficial(c.env.GOOGLE_FONTS_API_KEY)
+      source = 'webfonts-api'
+    } else {
+      families = await fetchPublic()
+      source = 'metadata'
+    }
+  } catch (err) {
+    /* One retry on the keyless path before giving up — the client has its own
+       small fallback list, so a failure here degrades rather than breaks. */
+    try {
+      families = await fetchPublic()
+      source = 'metadata-fallback'
+    } catch {
+      console.error('font catalogue unavailable', err)
+      return c.json({ error: 'Font catalogue unavailable', families: [] }, 502)
+    }
+  }
+
+  const res = c.json({ source, count: families.length, families })
+  res.headers.set('Cache-Control', `public, max-age=${FONTS_TTL}`)
+  c.executionCtx.waitUntil(cache.put(FONTS_CACHE_KEY, res.clone()))
+  return res
+})
 
 app.post('/api/v1/projects', async (c) => {
   const body = (await c.req.json().catch(() => null)) as

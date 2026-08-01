@@ -1,23 +1,31 @@
 /* Application shell: header, macro bar, panel column, preview column.
    All document state lives in the store; this file only wires things together
    and owns cloud sync. */
-import { useState, useRef, useEffect, useMemo } from 'react'
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import { StoreProvider, useStore } from './state/store.jsx'
-import { createInitialState, MACROS, DEFAULT_MACROS } from './state/schema.js'
+import { createInitialState, MACROS, DEFAULT_MACROS, CONTRAST_PAIRS } from './state/schema.js'
+import { PRESETS, applyPreset } from './state/presets.js'
+import { check } from './color/contrast.js'
 import { migrate } from './state/migrate.js'
 import { generateFile, validate } from './emit/designmd.js'
 import { parseFile } from './emit/parse.js'
 import { isValidColor } from './color/convert.js'
 import { APP_CSS } from './ui/theme.js'
-import { Banner } from './ui/controls.jsx'
+import { Banner, ResetButton } from './ui/controls.jsx'
 import Canvas from './preview/Canvas.jsx'
 import ColorPanel from './panels/ColorPanel.jsx'
-import { MetaTab, TypographyTab, KVTab, ComponentsTab, RationaleTab } from './panels/legacy.jsx'
+import RolesPanel from './panels/RolesPanel.jsx'
+import TypographyPanel from './panels/TypographyPanel.jsx'
+import ComponentsPanel from './panels/ComponentsPanel.jsx'
+import DirectivesPanel from './panels/DirectivesPanel.jsx'
+import { LayoutPanel, ShapePanel, DepthPanel, MotionPanel } from './panels/system.jsx'
+import { MetaTab, RationaleTab } from './panels/basics.jsx'
 
 /* ── API ── */
 const API_BASE = '/api/v1'
 const TOKEN_KEY = 'design-md:tokens'
 const DRAFT_KEY = 'design-md:draft'
+const ANIM_KEY = 'design-md:ui-anim'
 
 const getStoredToken = id => {
   try { return JSON.parse(localStorage.getItem(TOKEN_KEY) || '{}')[id] || null } catch { return null }
@@ -47,6 +55,12 @@ const Copy = () => <svg width={13} height={13} viewBox="0 0 24 24" fill="none" s
 const Upload = () => <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>
 const Download = () => <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
 const Undo = ({ flip }) => <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={flip ? { transform: 'scaleX(-1)' } : undefined}><path d="M3 7v6h6" /><path d="M21 17a9 9 0 00-9-9 9 9 0 00-6 2.3L3 13" /></svg>
+const Motion = ({ off }) => (
+  <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3 12h4l3-7 4 14 3-7h4" />
+    {off && <line x1="3" y1="21" x2="21" y2="3" strokeWidth={2.2} />}
+  </svg>
+)
 
 const SyncBadge = ({ status }) => {
   const cfg = {
@@ -62,33 +76,157 @@ const SyncBadge = ({ status }) => {
 }
 
 /* ── Macro bar ──
-   Always visible, above everything. Five sliders that reshape hundreds of
-   tokens — the reason the panels below can stay shallow. */
-function MacroBar() {
-  const { state, set } = useStore()
+   Always visible, above everything. Five multipliers that reshape hundreds of
+   tokens — the reason the panels below can stay shallow.
+
+   Each one shows both the multiplier and what it actually resolves to, and
+   both are typeable: entering `12px` for roundness back-solves the multiplier.
+   A relative number on its own is hard to judge; the concrete value is the one
+   a designer is really choosing. */
+function MacroControl({ macro, value, resolved, onChange }) {
+  const base = DEFAULT_MACROS[macro.key]
+  const changed = Math.abs(value - base) > 1e-9
+  const [draft, setDraft] = useState(null)
+
+  /* Dragging within 3% of the range lands exactly on the default — getting
+     back to baseline shouldn't need a steady hand. */
+  const snap = v => (Math.abs(v - base) <= (macro.max - macro.min) * 0.03 ? base : v)
+
+  const commitResolved = raw => {
+    const n = parseFloat(String(raw).replace(/[^\d.-]/g, ''))
+    setDraft(null)
+    if (!Number.isFinite(n) || !resolved.base) return
+    onChange(Math.max(macro.min, Math.min(macro.max, n / resolved.base)))
+  }
+
+  return (
+    <div style={{ width: 156, flexShrink: 0 }} title={macro.desc}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 3 }}>
+        <span style={{ fontSize: 10.5, color: changed ? 'var(--text)' : 'var(--muted)', flex: 1, whiteSpace: 'nowrap' }}>{macro.label}</span>
+        <ResetButton onClick={() => onChange(base)} disabled={!changed} />
+      </div>
+      <div style={{ display: 'flex', gap: 4, marginBottom: 3 }}>
+        <input className="num" type="number" min={macro.min} max={macro.max} step={0.01} value={value.toFixed(2)}
+          onChange={e => { const n = parseFloat(e.target.value); if (Number.isFinite(n)) onChange(Math.max(macro.min, Math.min(macro.max, n))) }}
+          title="Multiplier"
+          style={{ width: 56, padding: '3px 5px', fontSize: 10.5, color: changed ? 'var(--accent)' : 'var(--muted)' }} />
+        <input
+          value={draft ?? resolved.display}
+          onChange={e => setDraft(e.target.value)}
+          onBlur={e => commitResolved(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur() }}
+          disabled={!resolved.base}
+          title={resolved.hint}
+          style={{
+            flex: 1, minWidth: 0, fontFamily: 'var(--mono)', fontSize: 10.5, padding: '3px 5px',
+            textAlign: 'right', color: 'var(--text-dim)', opacity: resolved.base ? 1 : 0.55,
+          }} />
+      </div>
+      <input type="range" min={macro.min} max={macro.max} step={0.01} value={value}
+        onChange={e => onChange(snap(parseFloat(e.target.value)))}
+        onDoubleClick={() => onChange(base)} />
+    </div>
+  )
+}
+
+/* Editor animation speed. Sits at the far right of the system bar so it lines
+   up above the preview pane, opposite the token macros — it configures the
+   tool, not the design. */
+const UI_ANIM_DEFAULT = 125
+const UI_ANIM_MAX = 1000
+const UI_ANIM_STEP = 125
+
+/* Same three-row shape as the token macros so it sits on the same baseline.
+   The slider moves in 125ms steps; the field takes any value in range, so an
+   odd number is reachable by typing even though dragging won't land on it. */
+function UiSpeedControl({ value, onChange }) {
+  const [draft, setDraft] = useState(null)
+  const changed = value !== UI_ANIM_DEFAULT
+
+  const commit = raw => {
+    setDraft(null)
+    const n = parseFloat(String(raw).replace(/[^\d.]/g, ''))
+    if (Number.isFinite(n)) onChange(Math.max(0, Math.min(UI_ANIM_MAX, Math.round(n))))
+  }
+
+  return (
+    <div style={{ width: 156, flexShrink: 0 }} title="How fast the editor's own panels and controls animate. 0 disables them.">
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 3 }}>
+        <span style={{ fontSize: 10.5, color: changed ? 'var(--text)' : 'var(--muted)', flex: 1, whiteSpace: 'nowrap' }}>UI Animation</span>
+        <ResetButton onClick={() => onChange(UI_ANIM_DEFAULT)} disabled={!changed} />
+      </div>
+      <div style={{ display: 'flex', gap: 4, marginBottom: 3 }}>
+        <input
+          value={draft ?? (value ? `${value}ms` : 'off')}
+          onChange={e => setDraft(e.target.value)}
+          onBlur={e => commit(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur() }}
+          style={{
+            flex: 1, minWidth: 0, fontFamily: 'var(--mono)', fontSize: 10.5, padding: '3px 5px',
+            textAlign: 'right', color: value ? 'var(--text-dim)' : 'var(--dim)',
+          }} />
+      </div>
+      <input type="range" min={0} max={UI_ANIM_MAX} step={UI_ANIM_STEP} value={Math.min(value, UI_ANIM_MAX)}
+        onChange={e => onChange(Number(e.target.value))}
+        onDoubleClick={() => onChange(UI_ANIM_DEFAULT)} />
+    </div>
+  )
+}
+
+function MacroBar({ onOpenContrast, uiSpeed, setUiSpeed }) {
+  const { state, derived, set } = useStore()
   const setMacro = (key, value) => set(s => ({ ...s, macros: { ...s.macros, [key]: value } }), `macro:${key}`)
   const reset = () => set(s => ({ ...s, macros: { ...DEFAULT_MACROS } }))
   const anyChanged = MACROS.some(m => state.macros[m.key] !== DEFAULT_MACROS[m.key])
 
+  /* What each multiplier resolves to in the unit a designer thinks in. */
+  const resolvedFor = key => {
+    const v = state.macros[key]
+    switch (key) {
+      case 'scale':     return { base: state.type.base,  display: `${Math.round(state.type.base * v * 10) / 10}px`, hint: 'Base font size — type a px value' }
+      case 'density':   return { base: state.space.base, display: `${Math.round(state.space.base * v * 10) / 10}px`, hint: 'Base spacing unit — type a px value' }
+      case 'roundness': return { base: state.radius.base, display: `${Math.round(state.radius.base * v * 10) / 10}px`, hint: state.radius.base ? 'Base corner radius — type a px value' : 'Base radius is 0, so there is nothing to scale' }
+      /* Percentage, not pixels: one multiplier drives offset, blur and opacity
+         at once, so there is no single px value it could report. */
+      case 'depth':     return { base: 0.01, display: `${Math.round(v * 100)}%`, hint: 'Shadow strength as a percentage — scales offset, blur and opacity together. 0% removes shadows.' }
+      case 'speed':     return { base: state.motion.durations.normal, display: `${Math.round(state.motion.durations.normal * v)}ms`, hint: 'The `normal` duration — type a value in ms. 0 disables all motion.' }
+      default:          return { base: 1, display: `${v}`, hint: '' }
+    }
+  }
+
+  const failing = CONTRAST_PAIRS.filter(p => {
+    const r = check(derived.roles[state.color.mode][p.fg], derived.roles[state.color.mode][p.bg])
+    return p.ui ? r.ratio < 3 : !r.pass
+  }).length
+
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 18, padding: '9px 20px', borderBottom: '1px solid var(--bdr)', background: 'var(--surf)', flexShrink: 0, overflowX: 'auto' }}>
-      <span style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '.09em', color: 'var(--dim)', whiteSpace: 'nowrap' }}>System</span>
-      {MACROS.map(m => {
-        const v = state.macros[m.key]
-        const changed = v !== DEFAULT_MACROS[m.key]
-        return (
-          <div key={m.key} style={{ minWidth: 118, flexShrink: 0 }} title={m.desc}>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 1 }}>
-              <span style={{ fontSize: 11, color: changed ? 'var(--text)' : 'var(--muted)' }}>{m.label}</span>
-              <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: changed ? 'var(--accent)' : 'var(--dim)', marginLeft: 'auto' }}>{v.toFixed(2)}×</span>
-            </div>
-            <input type="range" min={m.min} max={m.max} step={m.step} value={v}
-              onChange={e => setMacro(m.key, parseFloat(e.target.value))}
-              onDoubleClick={() => setMacro(m.key, DEFAULT_MACROS[m.key])} />
-          </div>
-        )
-      })}
-      <button className="btn-ghost" onClick={reset} disabled={!anyChanged} style={{ padding: '4px 9px', fontSize: 11, flexShrink: 0 }}>Reset</button>
+    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 14, padding: '8px 20px 10px', borderBottom: '1px solid var(--bdr)', background: 'var(--surf)', flexShrink: 0, overflowX: 'auto' }}>
+      <span style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '.09em', color: 'var(--dim)', whiteSpace: 'nowrap', paddingBottom: 4 }}>System</span>
+
+      {MACROS.map(m => (
+        <MacroControl key={m.key} macro={m} value={state.macros[m.key]} resolved={resolvedFor(m.key)}
+          onChange={v => setMacro(m.key, v)} />
+      ))}
+
+      <button onClick={onOpenContrast} title="Open the contrast checker"
+        style={{
+          display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0, cursor: 'pointer',
+          background: failing ? 'rgba(222,92,92,.12)' : 'rgba(90,173,128,.10)',
+          border: `1px solid ${failing ? 'rgba(222,92,92,.35)' : 'rgba(90,173,128,.3)'}`,
+          color: failing ? 'var(--danger)' : 'var(--success)',
+          borderRadius: 6, padding: '5px 9px', fontSize: 11, fontFamily: 'var(--mono)', marginBottom: 1,
+        }}>
+        <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'currentColor' }} />
+        {failing ? `${failing} contrast` : 'Contrast OK'}
+      </button>
+
+      <button className="btn-ghost" onClick={reset} disabled={!anyChanged} style={{ padding: '5px 9px', fontSize: 11, flexShrink: 0, marginBottom: 1 }}>Reset all</button>
+
+      {/* Pushed right so it sits above the preview pane — it tunes the editor,
+          not the design, and the separation should be visible. */}
+      <div style={{ marginLeft: 'auto', paddingLeft: 20, display: 'flex', alignItems: 'flex-end', gap: 14, flexShrink: 0 }}>
+        <UiSpeedControl value={uiSpeed} onChange={setUiSpeed} />
+      </div>
     </div>
   )
 }
@@ -101,8 +239,8 @@ function FileModal({ onClose }) {
   const [copied, setCopied] = useState(false)
 
   return (
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.75)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-      <div onClick={e => e.stopPropagation()} style={{ background: 'var(--surf)', border: '1px solid var(--bdr)', borderRadius: 12, width: '100%', maxWidth: 760, maxHeight: '84vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+    <div onClick={onClose} className="anim-fade" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.75)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+      <div onClick={e => e.stopPropagation()} className="anim-rise" style={{ background: 'var(--surf)', border: '1px solid var(--bdr)', borderRadius: 12, width: '100%', maxWidth: 760, maxHeight: '84vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <div style={{ display: 'flex', alignItems: 'center', padding: '13px 17px', borderBottom: '1px solid var(--bdr)', gap: 10 }}>
           <span style={{ fontFamily: 'var(--display)', fontWeight: 700, fontSize: 15, flex: 1 }}>DESIGN.md</span>
           <span className="chip" style={{ color: report.ok ? 'var(--success)' : 'var(--danger)', borderColor: report.ok ? 'rgba(90,173,128,.3)' : 'rgba(222,92,92,.3)' }}>
@@ -135,21 +273,223 @@ function FileModal({ onClose }) {
   )
 }
 
+/* ── Tab strip ──
+   Same height as the preview pane's surface bar so the two line up across the
+   split. The strip scrolls without a visible scrollbar — chevrons appear only
+   when there's actually something off-screen in that direction. */
+const BAR_H = 42
+
+function TabStrip({ tabs, active, onSelect, right }) {
+  const ref = useRef(null)
+  const [edges, setEdges] = useState({ left: false, right: false })
+
+  const measure = useCallback(() => {
+    const el = ref.current
+    if (!el) return
+    setEdges({
+      left: el.scrollLeft > 2,
+      right: el.scrollLeft + el.clientWidth < el.scrollWidth - 2,
+    })
+  }, [])
+
+  useEffect(() => {
+    measure()
+    const el = ref.current
+    if (!el) return
+    const ro = new ResizeObserver(measure)
+    ro.observe(el)
+    window.addEventListener('resize', measure)
+    return () => { ro.disconnect(); window.removeEventListener('resize', measure) }
+  }, [measure, tabs.length])
+
+  const nudge = dir => ref.current?.scrollBy({ left: dir * 160, behavior: 'smooth' })
+
+  const Chevron = ({ dir }) => (
+    <button onClick={() => nudge(dir)} title={dir < 0 ? 'Scroll left' : 'Scroll right'}
+      style={{
+        flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+        width: 20, height: '100%', background: 'var(--surf)', border: 'none',
+        cursor: 'pointer', color: 'var(--muted)', padding: 0,
+        transition: 'color var(--t) var(--ease)',
+      }}>
+      <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"
+        style={{ transform: dir < 0 ? 'rotate(180deg)' : 'none' }}>
+        <polyline points="9 6 15 12 9 18" />
+      </svg>
+    </button>
+  )
+
+  return (
+    <nav style={{
+      display: 'flex', alignItems: 'stretch', height: BAR_H, flexShrink: 0,
+      borderBottom: '1px solid var(--bdr)', background: 'var(--surf)', paddingRight: 10,
+    }}>
+      {edges.left && <Chevron dir={-1} />}
+      <div ref={ref} className="no-bar" onScroll={measure}
+        style={{ display: 'flex', flex: 1, minWidth: 0, overflowX: 'auto', paddingLeft: edges.left ? 0 : 14 }}>
+        {tabs.map(t => (
+          <button key={t.id} onClick={() => onSelect(t.id)} style={{
+            background: 'none', border: 'none', borderRadius: 0, cursor: 'pointer',
+            padding: '0 11px', fontFamily: 'var(--sans)', fontSize: 12.5, whiteSpace: 'nowrap',
+            color: active === t.id ? 'var(--text)' : 'var(--muted)', fontWeight: active === t.id ? 500 : 400,
+            borderBottom: active === t.id ? '2px solid var(--accent)' : '2px solid transparent',
+            transition: 'color var(--t) var(--ease), border-color var(--t) var(--ease)', marginBottom: -1,
+          }}>{t.label}</button>
+        ))}
+      </div>
+      {edges.right && <Chevron dir={1} />}
+      {right && (
+        <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0, paddingLeft: 10, borderLeft: '1px solid var(--bdr)', marginLeft: 6 }}>
+          {right}
+        </div>
+      )}
+    </nav>
+  )
+}
+
+/* ── Editable title ──
+   Edits stay local until confirmed, so a half-typed name never lands in the
+   document — and the tick/cross only exist while there's something to decide. */
+function TitleField({ name, onCommit }) {
+  const [draft, setDraft] = useState(name)
+  const [editing, setEditing] = useState(false)
+
+  useEffect(() => { if (!editing) setDraft(name) }, [name, editing])
+
+  /* Compare trimmed, or committing " Name " leaves the field permanently dirty
+     because the stored value differs from the draft by whitespace. */
+  const dirty = draft.trim() !== name.trim()
+  const commit = () => {
+    const next = draft.trim() || 'Untitled'
+    onCommit(next)
+    setDraft(next)
+    setEditing(false)
+  }
+  const discard = () => { setDraft(name); setEditing(false) }
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 4, minWidth: 0 }}>
+      <input
+        value={draft}
+        onChange={e => { setDraft(e.target.value); setEditing(true) }}
+        onFocus={() => setEditing(true)}
+        onBlur={() => { if (!dirty) setEditing(false) }}
+        onKeyDown={e => {
+          if (e.key === 'Enter') commit()
+          if (e.key === 'Escape') discard()
+        }}
+        placeholder="Untitled"
+        title="Project name"
+        style={{
+          width: dirty ? 180 : 150, padding: '3px 8px', fontSize: 12,
+          fontFamily: 'var(--mono)', background: 'var(--surf2)',
+          borderColor: dirty ? 'rgba(220,144,85,.45)' : 'var(--bdr)',
+          color: dirty ? 'var(--accent)' : 'var(--muted)',
+          transition: 'width var(--t) var(--ease), border-color var(--t) var(--ease)',
+        }} />
+      {dirty && (
+        /* onMouseDown must be swallowed: pressing the button blurs the input
+           first, and the resulting re-render replaces the node before mouseup
+           lands — so the click never fires. Keeping focus fixes it. */
+        <span className="anim-fade" style={{ display: 'inline-flex', gap: 1 }} onMouseDown={e => e.preventDefault()}>
+          <button className="btn-confirm" onClick={commit} title="Save name (Enter)" style={{ color: 'var(--success)' }}>
+            <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+          </button>
+          <button className="btn-confirm btn-confirm-no" onClick={discard} title="Discard (Esc)">
+            <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round">
+              <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </span>
+      )}
+    </div>
+  )
+}
+
+/* ── New document ──
+   Opening the app used to drop you straight into whatever was last in
+   localStorage with no way out. This is the way out. */
+function NewDocModal({ onClose, onCreate }) {
+  const [name, setName] = useState('')
+  return (
+    <div onClick={onClose} className="anim-fade" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.72)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+      <div onClick={e => e.stopPropagation()} className="anim-rise" style={{ background: 'var(--surf)', border: '1px solid var(--bdr)', borderRadius: 12, width: '100%', maxWidth: 560, maxHeight: '84vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <div style={{ display: 'flex', alignItems: 'center', padding: '13px 17px', borderBottom: '1px solid var(--bdr)' }}>
+          <span style={{ fontFamily: 'var(--display)', fontWeight: 700, fontSize: 15, flex: 1 }}>New design system</span>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', fontSize: 18, padding: '2px 6px', lineHeight: 1 }}>×</button>
+        </div>
+
+        <div style={{ padding: 17, overflowY: 'auto', minHeight: 0 }}>
+          <div style={{ marginBottom: 16 }}>
+            <label>Name</label>
+            <input autoFocus value={name} onChange={e => setName(e.target.value)} placeholder="Untitled system" />
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 3 }}>Start from</div>
+          <p className="panel-note" style={{ marginBottom: 10 }}>
+            This replaces the current document. Anything unsaved to the cloud is lost.
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+            {PRESETS.map(p => (
+              <button key={p.id} onClick={() => onCreate(p.id, name)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 11, padding: '9px 11px', textAlign: 'left',
+                  background: 'var(--surf2)', border: '1px solid var(--bdr)', borderRadius: 9,
+                  cursor: 'pointer', color: 'var(--text)', fontFamily: 'var(--sans)',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(220,144,85,.4)' }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--bdr)' }}>
+                <div style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
+                  {p.swatches.map(c => <div key={c} style={{ width: 16, height: 26, background: c, borderRadius: 3, border: '1px solid rgba(255,255,255,.07)' }} />)}
+                </div>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 500 }}>{p.label}</div>
+                  <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 1 }}>{p.desc}</div>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 /* ── Shell ── */
 const TABS = [
-  { id: 'meta',       label: 'Meta' },
-  { id: 'colors',     label: 'Colour' },
-  { id: 'typography', label: 'Typography' },
-  { id: 'spacing',    label: 'Spacing' },
-  { id: 'rounded',    label: 'Radius' },
-  { id: 'components', label: 'Components' },
-  { id: 'rationale',  label: 'Rationale' },
+  { id: 'meta',       label: 'Meta',       Panel: MetaTab },
+  { id: 'colors',     label: 'Colour',     Panel: ColorPanel },
+  { id: 'roles',      label: 'Roles',      Panel: RolesPanel },
+  { id: 'type',       label: 'Type',       Panel: TypographyPanel },
+  { id: 'layout',     label: 'Layout',     Panel: LayoutPanel },
+  { id: 'shape',      label: 'Shape',      Panel: ShapePanel },
+  { id: 'depth',      label: 'Depth',      Panel: DepthPanel },
+  { id: 'motion',     label: 'Motion',     Panel: MotionPanel },
+  { id: 'components', label: 'Components', Panel: ComponentsPanel },
+  { id: 'directives', label: 'Directives', Panel: DirectivesPanel },
+  { id: 'rationale',  label: 'Rationale',  Panel: RationaleTab },
 ]
 
 function Shell() {
   const { state, derived, load, undo, redo, canUndo, canRedo } = useStore()
   const [tab, setTab] = useState('colors')
   const [showFile, setShowFile] = useState(false)
+  const [showNew, setShowNew] = useState(false)
+  const [uiSpeed, setUiSpeed] = useState(() => {
+    try {
+      const saved = parseInt(localStorage.getItem(ANIM_KEY), 10)
+      return Number.isFinite(saved) && saved >= 0 && saved <= UI_ANIM_MAX ? saved : UI_ANIM_DEFAULT
+    } catch { return UI_ANIM_DEFAULT }
+  })
+
+  /* Drives `--t`, which every editor transition reads. The preview keeps its
+     own durations — those are the user's motion tokens, not the tool's. */
+  useEffect(() => {
+    document.documentElement.style.setProperty('--t', `${uiSpeed}ms`)
+    document.documentElement.classList.toggle('no-anim', uiSpeed === 0)
+    try { localStorage.setItem(ANIM_KEY, String(uiSpeed)) } catch { /* ignore */ }
+  }, [uiSpeed])
   const [notice, setNotice] = useState(null)
   const [projectId, setProjectId] = useState(null)
   const [editToken, setEditToken] = useState(null)
@@ -277,13 +617,7 @@ function Shell() {
 
   const swatches = [derived.roles.light.accent, derived.roles.light.bg, derived.roles.light.surface, derived.roles.light.text, derived.roles.light.success, derived.roles.light.warning, derived.roles.light.danger].filter(isValidColor)
 
-  const Panel = {
-    meta: MetaTab,
-    colors: ColorPanel,
-    typography: TypographyTab,
-    components: ComponentsTab,
-    rationale: RationaleTab,
-  }[tab]
+  const Panel = TABS.find(t => t.id === tab)?.Panel ?? MetaTab
 
   return (
     <>
@@ -296,15 +630,11 @@ function Shell() {
             <span style={{ fontFamily: 'var(--display)', fontWeight: 700, fontSize: 15, letterSpacing: '-0.025em', whiteSpace: 'nowrap' }}>
               design<span style={{ color: 'var(--muted)', fontWeight: 400 }}>.md</span>
             </span>
-            <code className="chip" style={{ maxWidth: 170, overflow: 'hidden', textOverflow: 'ellipsis' }}>{state.meta.name || 'untitled'}</code>
+            <TitleField name={state.meta.name}
+              onCommit={next => set(s => ({ ...s, meta: { ...s.meta, name: next } }), 'meta:name')} />
             <div style={{ display: 'flex', gap: 3, marginLeft: 4 }}>
               {swatches.map((hex, i) => <div key={i} className="swatch" style={{ width: 12, height: 12, background: hex, cursor: 'default' }} />)}
             </div>
-          </div>
-
-          <div style={{ display: 'flex', gap: 3, alignItems: 'center', flexShrink: 0 }}>
-            <button className="btn-ghost" onClick={undo} disabled={!canUndo} title="Undo (Ctrl+Z)" style={{ padding: '6px 8px' }}><Undo /></button>
-            <button className="btn-ghost" onClick={redo} disabled={!canRedo} title="Redo (Ctrl+Shift+Z)" style={{ padding: '6px 8px' }}><Undo flip /></button>
           </div>
 
           <div style={{ display: 'flex', gap: 6, flexShrink: 0, alignItems: 'center' }}>
@@ -321,13 +651,14 @@ function Shell() {
               </button>
             )}
             <input ref={fileRef} type="file" accept=".md,.txt,.markdown" onChange={importFile} style={{ display: 'none' }} />
+            <button className="btn-ghost" onClick={() => setShowNew(true)} style={{ padding: '6px 11px' }}>New</button>
             <button className="btn-ghost" onClick={() => fileRef.current?.click()} style={{ padding: '6px 11px' }}><Upload />Import</button>
             <button className="btn-ghost" onClick={() => setShowFile(true)} style={{ padding: '6px 11px' }}>Preview file</button>
             <button className="btn-primary" onClick={download} style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><Download />Export</button>
           </div>
         </header>
 
-        <MacroBar />
+        <MacroBar onOpenContrast={() => setTab('roles')} uiSpeed={uiSpeed} setUiSpeed={setUiSpeed} />
 
         {notice && (
           <div style={{ padding: '9px 20px', background: 'var(--surf)', borderBottom: '1px solid var(--bdr)', flexShrink: 0 }}>
@@ -335,23 +666,27 @@ function Shell() {
           </div>
         )}
 
-        <div style={{ flex: 1, display: 'grid', gridTemplateColumns: 'minmax(420px, 46%) 1fr', minHeight: 0 }}>
-          <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, borderRight: '1px solid var(--bdr)' }}>
-            <nav style={{ display: 'flex', padding: '0 16px', borderBottom: '1px solid var(--bdr)', background: 'var(--surf)', flexShrink: 0, overflowX: 'auto' }}>
-              {TABS.map(t => (
-                <button key={t.id} onClick={() => setTab(t.id)} style={{
-                  background: 'none', border: 'none', borderRadius: 0, cursor: 'pointer',
-                  padding: '10px 12px', fontFamily: 'var(--sans)', fontSize: 12.5, whiteSpace: 'nowrap',
-                  color: tab === t.id ? 'var(--text)' : 'var(--muted)', fontWeight: tab === t.id ? 500 : 400,
-                  borderBottom: tab === t.id ? '2px solid var(--accent)' : '2px solid transparent',
-                  transition: 'all .12s', marginBottom: -1,
-                }}>{t.label}</button>
-              ))}
-            </nav>
-            <main style={{ flex: 1, overflow: 'auto', padding: '20px 20px 48px' }}>
-              {Panel && <Panel />}
-              {tab === 'spacing' && <KVTab section="spacing" macroKey="density" title="Spacing" desc="Spacing scale for layout, padding and margin" label="Spacing token" valuePh="8px, 1rem…" />}
-              {tab === 'rounded' && <KVTab section="rounded" macroKey="roundness" title="Border radius" desc="Corner radius scale" label="Radius token" valuePh="4px, 0.5rem…" />}
+        {/* Grid items default to min-height:auto, which stops them shrinking
+            below their content — so an overflowing panel pushes the row taller
+            instead of scrolling. minHeight:0 on each child is what makes the
+            `overflow: auto` below actually engage. */}
+        <div style={{ flex: 1, display: 'grid', gridTemplateColumns: 'minmax(420px, 46%) 1fr', minHeight: 0, overflow: 'hidden' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: 0, borderRight: '1px solid var(--bdr)' }}>
+            <TabStrip tabs={TABS} active={tab} onSelect={setTab}
+              right={
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <button className="btn-ghost" onClick={undo} disabled={!canUndo} title="Undo (Ctrl+Z)"
+                    style={{ padding: '5px 9px', gap: 5, color: canUndo ? 'var(--accent)' : undefined, borderColor: canUndo ? 'rgba(220,144,85,.35)' : undefined }}>
+                    <Undo />Undo
+                  </button>
+                  <button className="btn-ghost" onClick={redo} disabled={!canRedo} title="Redo (Ctrl+Shift+Z)"
+                    style={{ padding: '5px 9px', color: canRedo ? 'var(--text-dim)' : undefined }}>
+                    <Undo flip />
+                  </button>
+                </div>
+              } />
+            <main style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', padding: '20px 20px 64px' }}>
+              <Panel />
             </main>
           </div>
 
@@ -360,6 +695,21 @@ function Shell() {
       </div>
 
       {showFile && <FileModal onClose={() => setShowFile(false)} />}
+      {showNew && (
+        <NewDocModal
+          onClose={() => setShowNew(false)}
+          onCreate={(presetId, name) => {
+            const fresh = applyPreset(presetId, createInitialState())
+            load({ ...fresh, meta: { ...fresh.meta, name: name.trim() || fresh.meta.name } })
+            /* A new document is not the old cloud project — detach, or the
+               next autosave would overwrite it. */
+            setProjectId(null); setEditToken(null); setServerVersion(null); setSyncStatus('local')
+            if (window.location.pathname.startsWith('/p/')) window.history.pushState({}, '', '/')
+            try { localStorage.removeItem(DRAFT_KEY) } catch { /* ignore */ }
+            setShowNew(false)
+            setNotice(null)
+          }} />
+      )}
     </>
   )
 }

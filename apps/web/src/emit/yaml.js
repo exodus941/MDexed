@@ -114,7 +114,7 @@ export function emitFrontmatter(state, derived, { omitted = [] } = {}) {
     for (const s of derived.spacing) if (s.name) L.push(`  ${key(s.name)}: ${q(s.value)}`)
   }
 
-  const { kept, dropped } = collectComponents(state.components)
+  const { kept, dropped } = collectComponents(derived.components)
   if (kept.length) {
     L.push('components:')
     for (const c of kept) {

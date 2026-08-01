@@ -6,6 +6,7 @@
    it can't cope, says so and changes nothing. */
 import { load as yamlLoad } from 'js-yaml'
 import { createInitialState, ALL_ROLES, PROSE_SECTIONS, DEFAULT_MACROS, uid } from '../state/schema.js'
+import { migrate } from '../state/migrate.js'
 import { RAMP_STEPS } from '../color/ramp.js'
 import { isValidColor } from '../color/convert.js'
 import { GEN_BLOCK_RE } from './markdown.js'
@@ -132,15 +133,17 @@ export function parseFile(text) {
     prose[key] = raw.replace(GEN_BLOCK_RE, '').trim()
   })
 
-  const state = {
-    ...base,
+  /* Hand off to the v2 → v3 migration rather than duplicating its logic for
+     folding flat token lists into generated scales plus overrides. Imported
+     dimensions are already final, so the macros reset to neutral — applying
+     them again would scale everything a second time. */
+  const { state } = migrate({
+    schemaVersion: 2,
     meta: {
       name: doc.name ?? base.meta.name,
       description: doc.description ?? '',
       version: doc.version ?? 'alpha',
     },
-    /* Imported dimensions are already final. Re-applying macros on top would
-       scale them a second time, so the multipliers reset to neutral. */
     macros: { ...DEFAULT_MACROS },
     color: {
       ...base.color,
@@ -151,18 +154,23 @@ export function parseFile(text) {
       emitRamps: Object.keys(rampSteps).length > 0,
       emitDark: Object.keys(roleOverrides).some(k => k.endsWith(':dark')),
     },
-    typography: typography.length ? typography : base.typography,
+    typography,
     rounded: asArray(doc.rounded, ([name, value]) => ({ id: uid(), name, value: String(value) })),
     spacing: asArray(doc.spacing, ([name, value]) => ({ id: uid(), name, value: String(value) })),
     components,
     prose,
-  }
+  })
 
-  if (!state.rounded.length) state.rounded = base.rounded
-  if (!state.spacing.length) state.spacing = base.spacing
-
-  if (Object.values(state.macros).some(v => v !== 1)) warnings.push('Macro sliders were reset — imported values are treated as the new baseline.')
   if (custom.length) warnings.push(`${custom.length} colour token${custom.length === 1 ? '' : 's'} didn't match a known role or scale and were kept as custom tokens.`)
+  if (components.length) warnings.push(`${components.length} component${components.length === 1 ? '' : 's'} were imported as custom entries rather than mapped onto the built-in set.`)
+
+  /* Component properties outside the spec's legal eight only ever existed in
+     the markdown body, and that content is generated — so it is stripped, not
+     recovered. Say so rather than letting the next export quietly come out
+     thinner than the file that went in. */
+  if (/\*\*Additional component properties\*\*/.test(body)) {
+    warnings.push('Component properties outside the DESIGN.md schema (borders, gaps, shadows) were not recovered — they exist only in the prose layer. Re-exporting will regenerate them from the built-in defaults.')
+  }
 
   return { ok: true, state, warnings, error: null }
 }
