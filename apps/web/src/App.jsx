@@ -55,6 +55,12 @@ const Copy = () => <svg width={13} height={13} viewBox="0 0 24 24" fill="none" s
 const Upload = () => <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>
 const Download = () => <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
 const Undo = ({ flip }) => <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={flip ? { transform: 'scaleX(-1)' } : undefined}><path d="M3 7v6h6" /><path d="M21 17a9 9 0 00-9-9 9 9 0 00-6 2.3L3 13" /></svg>
+const Save = () => (
+  <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+    <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z" />
+    <polyline points="17 21 17 13 7 13 7 21" /><polyline points="7 3 7 8 15 8" />
+  </svg>
+)
 const Motion = ({ off }) => (
   <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
     <path d="M3 12h4l3-7 4 14 3-7h4" />
@@ -273,6 +279,38 @@ function FileModal({ onClose }) {
   )
 }
 
+/* ── Save flash ──
+   Autosave is invisible by nature, which is fine right up until you want to
+   close the tab. A brief confirmation costs nothing and answers the question
+   without needing to be read. */
+function SaveFlash({ savedAt }) {
+  const [shown, setShown] = useState(null)
+
+  useEffect(() => {
+    if (!savedAt) return
+    setShown(savedAt)
+    const t = setTimeout(() => setShown(null), 1600)
+    return () => clearTimeout(t)
+  }, [savedAt])
+
+  if (!shown) return null
+  return (
+    <div className="anim-rise" style={{
+      position: 'fixed', right: 18, bottom: 16, zIndex: 900, pointerEvents: 'none',
+      display: 'flex', alignItems: 'center', gap: 7,
+      background: 'rgba(90,173,128,.14)', border: '1px solid rgba(90,173,128,.35)',
+      color: 'var(--success)', borderRadius: 7, padding: '6px 11px',
+      fontSize: 11.5, fontFamily: 'var(--mono)',
+      boxShadow: '0 6px 20px rgba(0,0,0,.35)',
+    }}>
+      <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round">
+        <polyline points="20 6 9 17 4 12" />
+      </svg>
+      Saved to {shown.where}
+    </div>
+  )
+}
+
 /* ── Tab strip ──
    Same height as the preview pane's surface bar so the two line up across the
    split. The strip scrolls without a visible scrollbar — chevrons appear only
@@ -309,7 +347,7 @@ function TabStrip({ tabs, active, onSelect, right }) {
       style={{
         flexShrink: 0, display: 'flex', alignItems: 'center',
         justifyContent: dir < 0 ? 'flex-start' : 'flex-end',
-        width: 38, height: '100%', border: 'none', cursor: 'pointer',
+        width: 40, height: '100%', border: 'none', cursor: 'pointer',
         color: 'var(--muted)', padding: dir < 0 ? '0 0 0 10px' : '0 10px 0 0',
         /* Wide hit area, with a fade so tabs slide under it rather than
            colliding with a hard edge. */
@@ -505,6 +543,10 @@ function Shell() {
   const [linkCopied, setLinkCopied] = useState(false)
   const isInitialSync = useRef(true)
   const fileRef = useRef(null)
+  const savingRef = useRef(false)
+  const dirtyRef = useRef(false)
+  const [dirty, setDirty] = useState(false)
+  const [savedAt, setSavedAt] = useState(null)
 
   /* Open a shared project from /p/:id */
   useEffect(() => {
@@ -526,6 +568,48 @@ function Shell() {
     }).catch(() => setSyncStatus('offline'))
   }, [load])
 
+  /* ── Persistence ──
+     One path for both destinations so "saved" means one thing. A cloud
+     project PATCHes; anything else writes the local draft. The flash and the
+     manual button both go through here. */
+  const persist = useCallback(async (reason = 'auto') => {
+    if (savingRef.current) return
+    const cloud = projectId && editToken && syncStatus !== 'readonly' && syncStatus !== 'conflict'
+    savingRef.current = true
+    if (cloud) setSyncStatus('saving')
+    try {
+      if (cloud) {
+        const r = await api.update(projectId, editToken, state, serverVersion)
+        if (r.status === 409) { setSyncStatus('conflict'); return false }
+        if (!r.ok) { setSyncStatus('error'); return false }
+        const { version } = await r.json()
+        setServerVersion(version)
+        setSyncStatus('saved')
+      } else {
+        localStorage.setItem(DRAFT_KEY, JSON.stringify(state))
+      }
+      setSavedAt({ at: Date.now(), where: cloud ? 'cloud' : 'this browser', reason })
+      dirtyRef.current = false
+      return true
+    } catch {
+      if (cloud) setSyncStatus('offline')
+      return false
+    } finally {
+      savingRef.current = false
+    }
+  }, [state, projectId, editToken, serverVersion, syncStatus])
+
+  /* Debounced autosave. Cloud writes wait longer than local ones. */
+  useEffect(() => {
+    if (isInitialSync.current) { isInitialSync.current = false; return }
+    if (window.location.pathname.startsWith('/p/') && !projectId) return
+    dirtyRef.current = true
+    setDirty(true)
+    const t = setTimeout(() => { persist('auto').then(ok => ok && setDirty(false)) }, projectId ? 1500 : 600)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state])
+
   /* Local draft, when not viewing a cloud project */
   useEffect(() => {
     if (window.location.pathname.startsWith('/p/')) return
@@ -537,34 +621,6 @@ function Shell() {
       if (warning) setNotice({ tone: 'warn', text: warning })
     } catch { /* corrupt draft — start fresh rather than crash */ }
   }, [load])
-
-  useEffect(() => {
-    if (projectId || window.location.pathname.startsWith('/p/')) return
-    const t = setTimeout(() => {
-      try { localStorage.setItem(DRAFT_KEY, JSON.stringify(state)) } catch { /* quota */ }
-    }, 500)
-    return () => clearTimeout(t)
-  }, [state, projectId])
-
-  /* Debounced cloud autosave */
-  useEffect(() => {
-    if (!projectId || !editToken) return
-    if (syncStatus === 'readonly' || syncStatus === 'conflict') return
-    if (isInitialSync.current) { isInitialSync.current = false; return }
-    setSyncStatus('saving')
-    const t = setTimeout(async () => {
-      try {
-        const r = await api.update(projectId, editToken, state, serverVersion)
-        if (r.status === 409) { setSyncStatus('conflict'); return }
-        if (!r.ok) { setSyncStatus('error'); return }
-        const { version } = await r.json()
-        setServerVersion(version)
-        setSyncStatus('saved')
-      } catch { setSyncStatus('offline') }
-    }, 1500)
-    return () => clearTimeout(t)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state, projectId, editToken])
 
   const saveToCloud = async () => {
     if (projectId) return
@@ -579,6 +635,8 @@ function Shell() {
       try { localStorage.removeItem(DRAFT_KEY) } catch { /* ignore */ }
       window.history.pushState({}, '', `/p/${id}`)
       setSyncStatus('saved')
+      setSavedAt({ at: Date.now(), where: 'cloud', reason: 'create' })
+      setDirty(false)
     } catch {
       setSyncStatus('error')
       setNotice({ tone: 'error', text: 'Could not save to the cloud. Is the API running on localhost:8787?' })
@@ -690,6 +748,12 @@ function Shell() {
                     style={{ padding: '5px 9px', color: canRedo ? 'var(--text-dim)' : undefined }}>
                     <Undo flip />
                   </button>
+                  <button className="btn-ghost" onClick={() => persist('manual').then(ok => ok && setDirty(false))}
+                    title={dirty ? 'Unsaved changes — click to save now' : 'Everything is saved'}
+                    style={{ padding: '5px 9px', gap: 5, color: dirty ? 'var(--warn)' : 'var(--success)', borderColor: dirty ? 'rgba(216,164,65,.35)' : 'var(--bdr)' }}>
+                    <Save />
+                    {dirty && <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'currentColor' }} />}
+                  </button>
                 </div>
               } />
             <main style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', padding: '20px 20px 64px' }}>
@@ -700,6 +764,8 @@ function Shell() {
           <Canvas onInspect={entry => { setInspect({ entry, at: Date.now() }); setTab('components') }} />
         </div>
       </div>
+
+      <SaveFlash savedAt={savedAt} />
 
       {showFile && <FileModal onClose={() => setShowFile(false)} />}
       {showNew && (

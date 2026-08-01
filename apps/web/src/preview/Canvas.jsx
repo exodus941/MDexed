@@ -63,7 +63,8 @@ export default function Canvas({ onInspect }) {
 
       <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'auto', padding: 16 }}>
         <div className="dmd" style={{ ...varsToStyle(vars), borderRadius: 10, border: '1px solid var(--bdr)' }}>
-          <Component onInspect={surface === 'gallery' ? onInspect : undefined} />
+          {/* Every surface is inspectable, not just the gallery. */}
+          <Component onInspect={onInspect} />
         </div>
       </div>
     </div>
