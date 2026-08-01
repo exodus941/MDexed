@@ -10,6 +10,9 @@ import { check } from '../src/color/contrast.js'
 import { TYPE_ROLES } from '../src/type/scale.js'
 import { generateFile, validate } from '../src/emit/designmd.js'
 import { parseFile } from '../src/emit/parse.js'
+import { diffWords, diffStats } from '../src/ai/diff.js'
+import { contextFor, refinePrompt, draftPrompt, systemPrompt } from '../src/ai/prompts.js'
+import { PROSE_SECTIONS } from '../src/state/schema.js'
 
 const line = s => console.log(s)
 let failures = 0
@@ -152,6 +155,42 @@ const broken = parseFile('---\nname: [unclosed\n---\n\n## Overview\nhi')
 assert(!broken.ok && broken.state === null, 'malformed YAML refuses to load rather than wiping state')
 assert(/line \d+/.test(broken.error), 'the error names a line')
 assert(!parseFile('# just a readme\n\nnothing here').ok, 'a file with no frontmatter is rejected')
+
+line('\n- word diff -')
+{
+  /* Shared words carry the rewrite's whitespace, so compare on words alone. */
+  const rejoin = (parts, keep) =>
+    parts.filter(p => keep.includes(p.type)).map(p => p.text).join('').replace(/\s+/g, ' ').trim()
+  const before = 'The accent is reserved for the primary action on a screen.'
+  const after  = 'Reserve the accent for the single primary action on a screen.'
+  const parts  = diffWords(before, after)
+  assert(rejoin(parts, ['same', 'remove']) === before, 'same + removed reconstructs the original')
+  assert(rejoin(parts, ['same', 'add']) === after, 'same + added reconstructs the rewrite')
+  assert(parts.some(p => p.type === 'same' && /screen/.test(p.text)), 'unchanged words are marked same')
+
+  const stats = diffStats(parts)
+  assert(stats.changed && stats.added > 0 && stats.removed > 0, `stats count both sides (+${stats.added} -${stats.removed})`)
+  assert(!diffStats(diffWords(before, before)).changed, 'an identical rewrite reports no change')
+  assert(!diffStats(diffWords('one   two', 'one two')).changed, 'reflowed whitespace alone is not a change')
+  assert(diffWords('', 'brand new text').every(p => p.type === 'add'), 'drafting from empty is all additions')
+  assert(diffWords('abc', '').every(p => p.type === 'remove'), 'clearing is all removals')
+}
+
+line('\n- prompt construction -')
+{
+  assert(/never invent/i.test(systemPrompt()), 'the system prompt forbids inventing tokens')
+  for (const s of PROSE_SECTIONS) {
+    const ctx = contextFor(s.k, state, derived)
+    assert(ctx.length > 0 && !/undefined|\[object/.test(ctx), `${s.k}: context resolves without holes`)
+  }
+  const refine = refinePrompt(PROSE_SECTIONS[1], 'Teal because it is calm.', state, derived)
+  assert(refine.includes('Teal because it is calm.'), 'refine carries the author’s text verbatim')
+  assert(refine.includes(derived.roles.light.accent), 'refine carries the real accent value')
+  const draft = draftPrompt(PROSE_SECTIONS[2], state, derived)
+  assert(draft.includes(state.type.families.display.family), 'draft carries the real display family')
+  const longest = Math.max(...PROSE_SECTIONS.map(s => draftPrompt(s, state, derived).length + systemPrompt().length))
+  assert(longest < 24_000, `the largest prompt stays under the server cap (${longest} chars)`)
+}
 
 line(`\n${failures === 0 ? 'ALL PASS' : `${failures} FAILURE(S)`}\n`)
 process.exit(failures ? 1 : 0)
