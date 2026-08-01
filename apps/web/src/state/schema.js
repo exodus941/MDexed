@@ -186,6 +186,10 @@ export const createInitialState = () => ({
     stepOverrides: {},
     roleOverrides: {},
     custom: [],
+    /* Gradients can't live in the spec's `colors` map — that expects CSS
+       colour values, and a gradient is an image. They're emitted as a table in
+       the Colors section instead, and exposed to the preview as CSS vars. */
+    gradients: [],
     mode: 'light',
     emitRamps: true,
     emitDark: true,

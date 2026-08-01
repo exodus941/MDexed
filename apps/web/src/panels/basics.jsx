@@ -9,7 +9,7 @@ export function MetaTab() {
   const up = (k, v) => set(s => ({ ...s, meta: { ...s.meta, [k]: v } }), `meta:${k}`)
 
   return (
-    <div style={{ maxWidth: 560, display: 'flex', flexDirection: 'column', gap: 10 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       <SectionHeader title="Project" desc="Metadata written into the DESIGN.md frontmatter" />
 
       <Collapsible title="Project info" note={state.meta.name || 'untitled'} defaultOpen>
@@ -64,7 +64,7 @@ export function RationaleTab() {
   const written = PROSE_SECTIONS.filter(s => state.prose[s.k]?.trim()).length
 
   return (
-    <div style={{ maxWidth: 660 }}>
+    <div>
       <SectionHeader title="Design rationale"
         desc="The reasoning behind the tokens. Generated tables are appended to each section automatically — write only the why."
         right={<span className="chip">{written}/{PROSE_SECTIONS.length}</span>} />

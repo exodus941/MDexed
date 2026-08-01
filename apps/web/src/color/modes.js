@@ -37,6 +37,31 @@ export function generateCounterpart(roles, from = 'light') {
   return next
 }
 
+/* ── Gradients ──
+   A gradient is a CSS *image*, not a colour, so it can never be a `colors`
+   token — the spec's map takes colour values. It rides in the markdown body
+   instead, and drives a CSS variable for the preview. */
+export const GRADIENT_TYPES = ['linear', 'radial', 'conic']
+
+/** Resolve a stop's colour, which may be a role name, a scale ref, or a hex. */
+export const resolveStop = (value, roles, resolveRef, ramps) => {
+  if (!value) return '#000000'
+  if (/^#|^rgb|^hsl/.test(value)) return value
+  return roles?.[value] ?? resolveRef?.(value, ramps) ?? '#000000'
+}
+
+export function gradientCss(g, { roles, ramps, resolveRef }) {
+  const stops = (g.stops ?? [])
+    .slice()
+    .sort((a, b) => a.position - b.position)
+    .map(s => `${resolveStop(s.color, roles, resolveRef, ramps)} ${s.position}%`)
+    .join(', ')
+  if (!stops) return 'none'
+  if (g.type === 'radial') return `radial-gradient(circle at ${g.cx ?? 50}% ${g.cy ?? 50}%, ${stops})`
+  if (g.type === 'conic') return `conic-gradient(from ${g.angle ?? 0}deg at ${g.cx ?? 50}% ${g.cy ?? 50}%, ${stops})`
+  return `linear-gradient(${g.angle ?? 90}deg, ${stops})`
+}
+
 /** Role-level overrides pinned to the target mode would defeat generation. */
 export function clearOverridesFor(roleOverrides = {}, mode) {
   return Object.fromEntries(Object.entries(roleOverrides).filter(([k]) => !k.endsWith(`:${mode}`)))

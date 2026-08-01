@@ -2,6 +2,7 @@
    Pure: state in, resolved tokens out. Both the preview and the file emitter
    read from here, which is what guarantees that what you see is what exports. */
 import { buildRamps, resolveRef, RAMP_STEPS } from '../color/ramp.js'
+import { gradientCss } from '../color/modes.js'
 import { parseColor, toRgb255 } from '../color/convert.js'
 import { buildTypeScale } from '../type/scale.js'
 import { stackFor } from '../type/fonts.js'
@@ -80,6 +81,11 @@ export function derive(state) {
     }
   }
 
+  const gradients = (color.gradients ?? []).map(g => ({
+    ...g,
+    css: gradientCss(g, { roles: roles[color.mode], ramps, resolveRef }),
+  }))
+
   /* ── Typography ── */
   const families = Object.fromEntries(
     Object.entries(state.type.families).map(([k, v]) => [k, { ...v, stack: stackFor(v.family, v.category) }])
@@ -141,13 +147,13 @@ export function derive(state) {
   ].map(c => ({ ...c, properties: c.properties.map(p => ({ ...p, value: resolveLiterals(p.value) })) }))
 
   return {
-    ramps, roles, families, typography, spacing, rounded, elevation, motion, components,
+    ramps, roles, families, typography, spacing, rounded, elevation, motion, components, gradients,
     shadowHex, scrimColor,
     layout: state.layout,
     icons: state.icons,
     focus: state.focus,
     states: state.states,
-    cssVars: buildCssVars({ roles, typography, spacing, rounded, elevation, motion, components, focus: state.focus, icons: state.icons, layout: state.layout, elevationCfg: state.elevation }, color.mode),
+    cssVars: buildCssVars({ roles, typography, spacing, rounded, elevation, motion, components, gradients, focus: state.focus, icons: state.icons, layout: state.layout, elevationCfg: state.elevation }, color.mode),
   }
 }
 
@@ -215,6 +221,7 @@ export function buildCssVars(d, mode = 'light') {
   /* Fills blend with what's behind them; borders and shadows can't.
      Read from the config, not `d.elevation` — that holds the shadow levels. */
   vars['--fill-blend'] = d.elevationCfg?.fillBlend ?? 'normal'
+  for (const g of d.gradients ?? []) if (g.name) vars[`--gradient-${g.name}`] = g.css
 
   if (d.components?.length) {
     Object.assign(vars, buildComponentVars(d.components, {

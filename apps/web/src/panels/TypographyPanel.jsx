@@ -129,7 +129,7 @@ export default function TypographyPanel() {
   const generated = derived.typography.filter(x => !x.custom)
 
   return (
-    <div style={{ maxWidth: 640, display: 'flex', flexDirection: 'column', gap: 10 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       <SectionHeader title="Typography" desc="Three families and one modular scale generate every text style."
         right={overrideCount > 0 ? <span className="chip">{overrideCount} overridden</span> : null} />
 

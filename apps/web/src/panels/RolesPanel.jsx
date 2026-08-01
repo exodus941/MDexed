@@ -195,7 +195,7 @@ export default function RolesPanel() {
   }).length
 
   return (
-    <div style={{ maxWidth: 620, display: 'flex', flexDirection: 'column', gap: 10 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       <SectionHeader title="Semantic roles" desc="What each colour is for. This is what the exported file leads with."
         right={overrideCount > 0 ? <span className="chip">{overrideCount} overridden</span> : null} />
 

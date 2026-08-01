@@ -21,6 +21,23 @@ const IconInfo = <><circle cx="12" cy="12" r="9" /><path d="M12 16v-4M12 8h.01" 
 const IconStar = <path d="M12 3l2.6 5.6 6 .8-4.4 4.2 1.1 6.1L12 16.8 6.7 19.7l1.1-6.1L3.4 9.4l6-.8z" />
 const IconFolder = <path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
 
+/* Clicking any sample jumps the left pane to that entry's properties.
+   Alt-click still lets you interact with the control itself. */
+export function inspectProps(entry, onInspect) {
+  if (!onInspect) return {}
+  return {
+    'data-cmp': entry,
+    title: `${entry} — click to edit`,
+    onClickCapture: e => {
+      if (e.altKey) return
+      e.preventDefault()
+      e.stopPropagation()
+      onInspect(entry)
+    },
+    style: { cursor: 'pointer' },
+  }
+}
+
 function Section({ title, note, children }) {
   return (
     <section className="stack-sm" style={{ marginBottom: 'var(--space-lg, 32px)' }}>
@@ -37,24 +54,32 @@ const Label = ({ children }) => (
   <div className="caption" style={{ minWidth: 74, textTransform: 'uppercase', letterSpacing: '.06em' }}>{children}</div>
 )
 
-export default function Gallery() {
+export default function Gallery({ onInspect }) {
+  const ins = entry => inspectProps(entry, onInspect)
   const variants = ['primary', 'secondary', 'ghost', 'danger']
   const states = [
-    { cls: '', label: 'default' },
-    { cls: 'is-hover', label: 'hover' },
-    { cls: 'is-active', label: 'active' },
-    { cls: 'is-disabled', label: 'disabled' },
+    { key: '', cls: '', label: 'default' },
+    { key: 'hover', cls: 'is-hover', label: 'hover' },
+    { key: 'active', cls: 'is-active', label: 'active' },
+    { key: 'disabled', cls: 'is-disabled', label: 'disabled' },
   ]
 
   return (
-    <div style={{ maxWidth: 780 }}>
+    <div style={{ maxWidth: 820 }}>
+      {onInspect && (
+        <p className="caption" style={{ marginBottom: 'var(--space-md, 16px)' }}>
+          Click any element to jump to its properties. Alt-click to interact with it instead.
+        </p>
+      )}
+
       <Section title="Buttons — variants × states" note="Forced states, so every combination is visible at once">
         <div className="stack-sm">
           {variants.map(v => (
             <div className="row" key={v}>
               <Label>{v}</Label>
               {states.map(s => (
-                <button key={s.label} className={`btn btn-${v} ${s.cls}`}>{s.label}</button>
+                <button key={s.label} className={`btn btn-${v} ${s.cls}`}
+                  {...ins(s.key ? `button-${v}-${s.key}` : `button-${v}`)}>{s.label}</button>
               ))}
             </div>
           ))}
@@ -64,11 +89,11 @@ export default function Gallery() {
       <Section title="Buttons — sizes" note="Interactive: hover, click, and tab to see the focus ring">
         <div className="row">
           <Label>live</Label>
-          <button className="btn btn-primary btn-sm">Small</button>
-          <button className="btn btn-primary">Medium</button>
-          <button className="btn btn-primary btn-lg">Large</button>
-          <button className="btn btn-secondary">Secondary</button>
-          <button className="btn btn-ghost">Ghost</button>
+          <button className="btn btn-primary btn-sm" {...ins('button-sm')}>Small</button>
+          <button className="btn btn-primary" {...ins('button-md')}>Medium</button>
+          <button className="btn btn-primary btn-lg" {...ins('button-lg')}>Large</button>
+          <button className="btn btn-secondary" {...ins('button-secondary')}>Secondary</button>
+          <button className="btn btn-ghost" {...ins('button-ghost')}>Ghost</button>
         </div>
       </Section>
 
@@ -76,23 +101,24 @@ export default function Gallery() {
         <div className="stack-sm">
           <div className="row">
             <Label>filled</Label>
-            <button className="btn btn-primary"><Ico d={IconPlus} />New invoice</button>
-            <button className="btn btn-primary">Continue<Ico d={IconArrow} /></button>
-            <button className="btn btn-primary" style={{ padding: 0, width: 'var(--cmp-button-md-height, 36px)' }} title="Add"><Ico d={IconPlus} /></button>
+            <button className="btn btn-primary" {...ins('button-primary')}><Ico d={IconPlus} />New invoice</button>
+            <button className="btn btn-primary" {...ins('button-primary')}>Continue<Ico d={IconArrow} /></button>
+            <button className="btn btn-primary" {...ins('button-md')} style={{ padding: 0, width: 'var(--cmp-button-md-height, 36px)', cursor: 'pointer' }}><Ico d={IconPlus} /></button>
           </div>
           <div className="row">
             <Label>outline</Label>
-            <button className="btn btn-secondary"><Ico d={IconSearch} />Search</button>
-            <button className="btn btn-secondary">Sort<Ico d={IconChevron} /></button>
-            <button className="icon-btn" title="Delete"><Ico d={IconTrash} /></button>
-            <button className="icon-btn" title="Star"><Ico d={IconStar} /></button>
+            <button className="btn btn-secondary" {...ins('button-secondary')}><Ico d={IconSearch} />Search</button>
+            <button className="btn btn-secondary" {...ins('button-secondary')}>Sort<Ico d={IconChevron} /></button>
+            <button className="icon-btn" {...ins('button-secondary')}><Ico d={IconTrash} /></button>
+            <button className="icon-btn" {...ins('button-secondary')}><Ico d={IconStar} /></button>
           </div>
           <div className="row">
             <Label>sizes</Label>
-            <button className="btn btn-primary btn-sm"><Ico d={IconPlus} size="sm" />Small</button>
-            <button className="btn btn-primary"><Ico d={IconPlus} />Medium</button>
-            <button className="btn btn-primary btn-lg"><Ico d={IconPlus} size="lg" />Large</button>
+            <button className="btn btn-primary btn-sm" {...ins('button-sm')}><Ico d={IconPlus} size="sm" />Small</button>
+            <button className="btn btn-primary" {...ins('button-md')}><Ico d={IconPlus} />Medium</button>
+            <button className="btn btn-primary btn-lg" {...ins('button-lg')}><Ico d={IconPlus} size="lg" />Large</button>
           </div>
+          <p className="caption" style={{ marginTop: 4 }}>Each size carries its own icon gap — click one to change it.</p>
         </div>
       </Section>
 
@@ -111,10 +137,10 @@ export default function Gallery() {
 
       <Section title="Inputs" note="Default, focused (click in), invalid, disabled">
         <div className="grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
-          <div className="field"><label className="label">Default</label><input className="input" placeholder="Placeholder text" /></div>
-          <div className="field"><label className="label">Filled</label><input className="input" defaultValue="Northwind Trading" /></div>
-          <div className="field"><label className="label">Invalid</label><input className="input is-invalid" defaultValue="not-an-email" /></div>
-          <div className="field"><label className="label">Disabled</label><input className="input" disabled defaultValue="Locked" /></div>
+          <div className="field" {...ins('input')}><label className="label">Default</label><input className="input" placeholder="Placeholder text" /></div>
+          <div className="field" {...ins('input')}><label className="label">Filled</label><input className="input" defaultValue="Northwind Trading" /></div>
+          <div className="field" {...ins('input-invalid')}><label className="label">Invalid</label><input className="input is-invalid" defaultValue="not-an-email" /></div>
+          <div className="field" {...ins('input-disabled')}><label className="label">Disabled</label><input className="input" disabled defaultValue="Locked" /></div>
         </div>
       </Section>
 
@@ -149,7 +175,7 @@ export default function Gallery() {
       <Section title="Badges and status">
         <div className="row" style={{ flexWrap: 'wrap' }}>
           {['accent', 'success', 'warning', 'danger', 'neutral'].map(k => (
-            <span key={k} className={`badge badge-${k}`}>{k}</span>
+            <span key={k} className={`badge badge-${k}`} {...ins(`badge-${k}`)}>{k}</span>
           ))}
           <span className="with-icon badge badge-success"><Ico d={IconCheck} size="sm" />with icon</span>
           <span className="badge badge-neutral" style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--icon-gap, 8px)' }}>
@@ -204,9 +230,9 @@ export default function Gallery() {
 
       <Section title="Surfaces & elevation" note="flat, raised, overlay, sunken">
         <div className="grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
-          <div className="card card-flat"><div className="caption">flat</div><p className="small" style={{ marginTop: 4 }}>Border only</p></div>
-          <div className="card"><div className="caption">raised</div><p className="small" style={{ marginTop: 4 }}>Cards, panels</p></div>
-          <div className="card card-overlay"><div className="caption">overlay</div><p className="small" style={{ marginTop: 4 }}>Menus, popovers</p></div>
+          <div className="card card-flat" {...ins('card-flat')}><div className="caption">flat</div><p className="small" style={{ marginTop: 4 }}>Border only</p></div>
+          <div className="card" {...ins('card')}><div className="caption">raised</div><p className="small" style={{ marginTop: 4 }}>Cards, panels</p></div>
+          <div className="card card-overlay" {...ins('card-overlay')}><div className="caption">overlay</div><p className="small" style={{ marginTop: 4 }}>Menus, popovers</p></div>
           <div className="well"><div className="caption">sunken</div><p className="small" style={{ marginTop: 4 }}>Wells, insets</p></div>
         </div>
       </Section>

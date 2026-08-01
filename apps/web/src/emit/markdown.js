@@ -75,8 +75,21 @@ function colorsBody(state, derived) {
     return [p.label, `\`${p.fg}\` on \`${p.bg}\``, `${r.ratio}:1`, p.ui ? (r.ratio >= 3 ? 'Pass' : 'Fail') : r.label, `Lc ${r.lc}`]
   }).filter(Boolean)
 
+  /* Gradients are CSS images, not colour values, so they cannot be `colors`
+     tokens. They travel here with their literal CSS. */
+  const gradients = derived.gradients ?? []
+  const gradientBlock = gradients.length ? joinBlocks(
+    '**Gradients**',
+    table(['Token', 'CSS'], gradients.map(g => [`\`--gradient-${g.name}\``, `\`${g.css}\``])),
+    bullets([
+      'Gradients are images, not colours — they are not in the `colors` map above. Apply them as `background-image`.',
+      'For a gradient *stroke*, use `border-image` or a two-layer background with `background-clip: padding-box, border-box`. There is no gradient border property; do not invent one.',
+    ])
+  ) : ''
+
   return joinBlocks(
     roleTable,
+    gradientBlock,
     contrastRows.length && '**Measured contrast** (WCAG ratio and APCA Lc, light mode):',
     contrastRows.length && table(['Pair', 'Tokens', 'Ratio', 'WCAG', 'APCA'], contrastRows),
     bullets([

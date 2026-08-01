@@ -63,7 +63,7 @@ export function LayoutPanel() {
   const setContainer = (name, px) => upd('layout', l => ({ ...l, containers: { ...l.containers, [name]: px } }), `ct:${name}`)
 
   return (
-    <div style={{ maxWidth: 560, display: 'flex', flexDirection: 'column', gap: 10 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       <SectionHeader title="Layout" desc="One spacing scale, one grid. The Density macro moves the whole scale." />
 
       <Collapsible title="Spacing scale" note={`${state.space.base}px base`} defaultOpen>
@@ -122,7 +122,7 @@ export function ShapePanel() {
   const setStates = (k, v) => upd('states', st => ({ ...st, [k]: v }), `states:${k}`)
 
   return (
-    <div style={{ maxWidth: 560, display: 'flex', flexDirection: 'column', gap: 10 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       <SectionHeader title="Shape" desc="Radii, borders, icons and focus — the details agents most often invent." />
 
       <Collapsible title="Corner radius" note={`${state.radius.base}px base`} defaultOpen>
@@ -265,7 +265,7 @@ export function DepthPanel() {
   const roles = derived.roles[mode]
 
   return (
-    <div style={{ maxWidth: 560, display: 'flex', flexDirection: 'column', gap: 10 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       <SectionHeader title="Depth" desc="How surfaces separate from one another." />
 
       <Collapsible title="Elevation" note={state.elevation.strategy} defaultOpen>
@@ -425,7 +425,7 @@ export function MotionPanel() {
   const applyPreset = name => upd('motion', m => ({ ...m, personality: name, ...MOTION_PRESETS[name] }))
 
   return (
-    <div style={{ maxWidth: 560, display: 'flex', flexDirection: 'column', gap: 10 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       <SectionHeader title="Motion" desc="How quickly anything moves, and along what curve." />
 
       <Collapsible title="Durations" note={state.motion.personality} defaultOpen>

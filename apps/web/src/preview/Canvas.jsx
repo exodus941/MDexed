@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { useStore } from '../state/store.jsx'
 import { PREVIEW_CSS, varsToStyle } from './tokens.js'
 import { buildCssVars } from '../state/derive.js'
+import { gradientCss } from '../color/modes.js'
+import { resolveRef } from '../color/ramp.js'
 import Dashboard from './screens/Dashboard.jsx'
 import Form from './screens/Form.jsx'
 import Landing from './screens/Landing.jsx'
@@ -18,7 +20,7 @@ const SURFACES = [
   { id: 'gallery',   label: 'Gallery',   Component: Gallery },
 ]
 
-export default function Canvas() {
+export default function Canvas({ onInspect }) {
   const { state, derived, set } = useStore()
   const [surface, setSurface] = useState('dashboard')
   const mode = state.color.mode
@@ -27,7 +29,12 @@ export default function Canvas() {
 
   /* Rebuild vars for the mode being previewed rather than reusing
      derived.cssVars, so the toggle doesn't have to round-trip through state. */
-  const vars = buildCssVars({ ...derived, elevationCfg: state.elevation }, mode)
+  /* Gradients resolve against the mode being previewed, not the stored one. */
+  const vars = buildCssVars({
+    ...derived,
+    elevationCfg: state.elevation,
+    gradients: derived.gradients.map(g => ({ ...g, css: gradientCss(g, { roles: derived.roles[mode], ramps: derived.ramps, resolveRef }) })),
+  }, mode)
   const { Component } = SURFACES.find(s => s.id === surface) ?? SURFACES[0]
 
   return (
@@ -56,7 +63,7 @@ export default function Canvas() {
 
       <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'auto', padding: 16 }}>
         <div className="dmd" style={{ ...varsToStyle(vars), borderRadius: 10, border: '1px solid var(--bdr)' }}>
-          <Component />
+          <Component onInspect={surface === 'gallery' ? onInspect : undefined} />
         </div>
       </div>
     </div>
