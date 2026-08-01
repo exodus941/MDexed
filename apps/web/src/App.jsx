@@ -288,21 +288,22 @@ function SaveFlash({ savedAt }) {
   const [shown, setShown] = useState(null)
   const [leaving, setLeaving] = useState(false)
 
-  /* Fades both ways at whatever the UI animation control is set to, rather
-     than appearing and vanishing on a hard cut. */
+  /* Two keyframe animations rather than a transition. A transition needs a
+     frame between the start and end states, and the entry animation's `both`
+     fill would pin the final opacity and beat any exit transition anyway. */
   useEffect(() => {
     if (!savedAt) return
     setShown(savedAt)
     setLeaving(false)
     const ms = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--t'), 10) || 0
     const hold = setTimeout(() => setLeaving(true), 1600)
-    const gone = setTimeout(() => setShown(null), 1600 + ms)
+    const gone = setTimeout(() => setShown(null), 1600 + ms + 40)
     return () => { clearTimeout(hold); clearTimeout(gone) }
   }, [savedAt])
 
   if (!shown) return null
   return (
-    <div style={{
+    <div key={shown.at} className={leaving ? 'anim-fall' : 'anim-rise'} style={{
       position: 'fixed', right: 18, bottom: 16, zIndex: 900, pointerEvents: 'none',
       display: 'flex', alignItems: 'center', gap: 7,
       /* Opaque. A translucent confirmation over a dark editor is unreadable. */
@@ -310,10 +311,6 @@ function SaveFlash({ savedAt }) {
       color: '#7fd6a4', borderRadius: 7, padding: '7px 12px',
       fontSize: 11.5, fontFamily: 'var(--mono)',
       boxShadow: '0 8px 24px rgba(0,0,0,.5)',
-      opacity: leaving ? 0 : 1,
-      transform: leaving ? 'translateY(6px)' : 'none',
-      transition: 'opacity var(--t) var(--ease), transform var(--t) var(--ease)',
-      animation: 'dmd-rise var(--t) var(--ease) both',
     }}>
       <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round">
         <polyline points="20 6 9 17 4 12" />
