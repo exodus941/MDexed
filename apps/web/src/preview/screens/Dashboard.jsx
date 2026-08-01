@@ -2,6 +2,7 @@
    whether surfaces, borders, text hierarchy and accent usage hold together
    once they're stacked, which a swatch grid can never tell you. */
 import { inspectProps } from '../inspect.js'
+import { Ico, IconPlus, IconDownload, IconChart, IconFolder, IconBell, IconAlert, IconMore, IconSend } from '../icons.jsx'
 export default function Dashboard({ onInspect }) {
   const ins = entry => inspectProps(entry, onInspect)
   const rows = [
@@ -16,9 +17,9 @@ export default function Dashboard({ onInspect }) {
     <div style={{ display: 'grid', gridTemplateColumns: '180px 1fr', gap: 'var(--space-lg, 32px)', alignItems: 'start' }}>
       <nav className="stack-sm">
         <div className="caption" style={{ textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 4 }}>Workspace</div>
-        <div className="nav-item is-active" {...ins('nav-item-selected')}>Overview</div>
-        {['Accounts', 'Invoices', 'Reports', 'Settings'].map(t => (
-          <div key={t} className="nav-item" {...ins('nav-item')}>{t}</div>
+        <div className="nav-item is-active with-icon" {...ins('nav-item-selected')}><Ico d={IconChart} />Overview</div>
+        {[['Accounts', IconFolder], ['Invoices', IconSend], ['Reports', IconChart], ['Settings', IconMore]].map(([t, icon]) => (
+          <div key={t} className="nav-item with-icon" {...ins('nav-item')}><Ico d={icon} />{t}</div>
         ))}
       </nav>
 
@@ -29,9 +30,25 @@ export default function Dashboard({ onInspect }) {
             <p className="muted small" style={{ marginTop: 4 }}>Fourth quarter, all accounts</p>
           </div>
           <div className="row">
-            <button className="btn btn-secondary btn-sm" {...ins('button-sm')}>Export</button>
-            <button className="btn btn-primary btn-sm" {...ins('button-primary')}>New invoice</button>
+            <button className="btn btn-secondary btn-sm" {...ins('button-sm')}><Ico d={IconDownload} size="sm" />Export</button>
+            <button className="btn btn-primary btn-sm" {...ins('button-primary')}><Ico d={IconPlus} size="sm" />New invoice</button>
+            <button className="icon-btn" {...ins('button-secondary')}><Ico d={IconBell} /></button>
           </div>
+        </div>
+
+        {/* Alerts belong on the screen that would actually raise one. */}
+        <div className="with-icon" {...ins('alert-warning')} style={{
+          alignItems: 'flex-start',
+          background: 'var(--cmp-alert-warning-background-color, var(--c-warning-subtle, #f7efe0))',
+          color: 'var(--cmp-alert-warning-text-color, var(--c-warning, #b8801f))',
+          border: '1px solid var(--cmp-alert-warning-border-color, var(--c-warning, #b8801f))',
+          borderRadius: 'var(--cmp-alert-rounded, var(--radius-md, 8px))',
+          padding: 'var(--cmp-alert-padding, var(--space-xs, 8px) var(--space-sm, 12px))',
+          fontSize: 'var(--cmp-alert-font-size, var(--font-body-sm-size, 14px))',
+        }}>
+          <Ico d={IconAlert} />
+          <span style={{ flex: 1 }}>Two invoices are more than 30 days overdue.</span>
+          <button className="btn btn-ghost btn-sm" {...ins('button-ghost')}>Review</button>
         </div>
 
         <div className="grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>

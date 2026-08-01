@@ -3,23 +3,11 @@
    are visible at once, and as genuinely interactive controls so transitions
    and focus rings can be felt rather than just looked at. */
 
-/* Icons are drawn from the token values so stroke width, size and join style
-   are all live — and every icon+label pair uses the shared gap token. */
-const Ico = ({ d, size = 'md' }) => (
-  <svg className="icon" width={`var(--icon-${size}, 16px)`} height={`var(--icon-${size}, 16px)`}
-    viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
-    {d}
-  </svg>
-)
-const IconPlus = <path d="M12 5v14M5 12h14" />
-const IconChevron = <polyline points="6 9 12 15 18 9" />
-const IconArrow = <><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></>
-const IconSearch = <><circle cx="11" cy="11" r="7" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></>
-const IconTrash = <><polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" /></>
-const IconCheck = <polyline points="20 6 9 17 4 12" />
-const IconInfo = <><circle cx="12" cy="12" r="9" /><path d="M12 16v-4M12 8h.01" /></>
-const IconStar = <path d="M12 3l2.6 5.6 6 .8-4.4 4.2 1.1 6.1L12 16.8 6.7 19.7l1.1-6.1L3.4 9.4l6-.8z" />
-const IconFolder = <path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+import {
+  Ico, Check, Switch,
+  IconPlus, IconChevron, IconArrow, IconSearch, IconTrash, IconCheck,
+  IconInfo, IconStar, IconFolder,
+} from './icons.jsx'
 
 export { inspectProps, cmp, role, type } from './inspect.js'
 import { inspectProps } from './inspect.js'
@@ -127,6 +115,53 @@ export default function Gallery({ onInspect }) {
           <div className="field" {...ins('input')}><label className="label">Filled</label><input className="input" defaultValue="Northwind Trading" /></div>
           <div className="field" {...ins('input-invalid')}><label className="label">Invalid</label><input className="input is-invalid" defaultValue="not-an-email" /></div>
           <div className="field" {...ins('input-disabled')}><label className="label">Disabled</label><input className="input" disabled defaultValue="Locked" /></div>
+        </div>
+      </Section>
+
+      <Section title="Choices" note="Checkbox, switch and select — drawn from tokens, not native widgets">
+        <div className="card stack-sm">
+          <label className="with-icon" style={{ cursor: 'pointer' }} {...ins('checkbox-checked')}>
+            <Check on />Send a copy to my accountant
+          </label>
+          <label className="with-icon" style={{ cursor: 'pointer' }} {...ins('checkbox')}>
+            <Check />Attach a payment link
+          </label>
+          <div className="row" style={{ justifyContent: 'space-between' }} {...ins('switch-checked')}>
+            <span className="small">Automatic reminders</span><Switch on />
+          </div>
+          <div className="row" style={{ justifyContent: 'space-between' }} {...ins('switch')}>
+            <span className="small">Weekly digest</span><Switch />
+          </div>
+          <div className="field" {...ins('select')}>
+            <label className="label">Payment terms</label>
+            <button className="btn btn-secondary" style={{ width: '100%', justifyContent: 'space-between' }}>
+              <span>Net 30</span><Ico d={IconChevron} />
+            </button>
+          </div>
+        </div>
+      </Section>
+
+      <Section title="Tooltip and menu">
+        <div className="row" style={{ alignItems: 'flex-start', gap: 'var(--space-lg, 24px)' }}>
+          <div style={{ position: 'relative', paddingTop: 30 }}>
+            <span {...ins('tooltip')} style={{
+              position: 'absolute', top: 0, left: 0, whiteSpace: 'nowrap',
+              background: 'var(--cmp-tooltip-background-color, var(--c-text, #111))',
+              color: 'var(--cmp-tooltip-text-color, var(--c-text-inverse, #fff))',
+              borderRadius: 'var(--cmp-tooltip-rounded, var(--radius-sm, 4px))',
+              padding: 'var(--cmp-tooltip-padding, 2px 8px)',
+              fontSize: 'var(--cmp-tooltip-font-size, var(--font-caption-size, 12px))',
+              cursor: 'pointer',
+            }}>Copies the invoice link</span>
+            <button className="icon-btn" {...ins('button-secondary')}><Ico d={IconStar} /></button>
+          </div>
+          <div className="card card-overlay" style={{ padding: 4, minWidth: 168 }} {...ins('card-overlay')}>
+            {[['Duplicate', IconPlus], ['Download PDF', IconFolder], ['Delete', IconTrash]].map(([label, icon]) => (
+              <div key={label} className="with-icon nav-item" style={{ width: '100%' }} {...ins('nav-item')}>
+                <Ico d={icon} />{label}
+              </div>
+            ))}
+          </div>
         </div>
       </Section>
 

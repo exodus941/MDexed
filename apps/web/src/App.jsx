@@ -391,7 +391,8 @@ function TabStrip({ tabs, active, onSelect, right }) {
 
         <button onClick={() => setMenuOpen(o => !o)} title="All tabs"
           style={{
-            display: 'flex', alignItems: 'center', padding: '0 6px', background: 'none', border: 'none',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', width: 48,
+            padding: 0, background: 'none', border: 'none',
             cursor: 'pointer', color: menuOpen ? 'var(--accent)' : 'var(--muted)',
             transition: 'color var(--t) var(--ease)',
           }}>

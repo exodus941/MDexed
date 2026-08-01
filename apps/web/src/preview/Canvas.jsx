@@ -10,6 +10,7 @@ import Dashboard from './screens/Dashboard.jsx'
 import Form from './screens/Form.jsx'
 import Landing from './screens/Landing.jsx'
 import Settings from './screens/Settings.jsx'
+import Dialog from './screens/Dialog.jsx'
 import Gallery from './Gallery.jsx'
 
 const SURFACES = [
@@ -17,6 +18,7 @@ const SURFACES = [
   { id: 'landing',   label: 'Landing',   Component: Landing },
   { id: 'form',      label: 'Form',      Component: Form },
   { id: 'settings',  label: 'Settings',  Component: Settings },
+  { id: 'dialog',    label: 'Overlays',  Component: Dialog },
   { id: 'gallery',   label: 'Gallery',   Component: Gallery },
 ]
 

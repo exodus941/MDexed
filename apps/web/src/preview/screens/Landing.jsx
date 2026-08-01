@@ -2,6 +2,7 @@
    accent doing persuasive work rather than utility work — the conditions
    under which a system built for dashboards usually falls apart. */
 import { inspectProps, cmp, role, type } from '../inspect.js'
+import { Ico, IconArrow, IconPlus, IconCheck, IconStar } from '../icons.jsx'
 
 export default function Landing({ onInspect }) {
   const ins = entry => inspectProps(entry, onInspect)
@@ -18,7 +19,7 @@ export default function Landing({ onInspect }) {
         <div className="row">
           <span className="nav-item" {...ins('nav-item')}>Pricing</span>
           <span className="nav-item" {...ins('nav-item')}>Docs</span>
-          <button className="btn btn-primary btn-sm" {...ins('button-sm')}>Start free</button>
+          <button className="btn btn-primary btn-sm" {...ins('button-sm')}><Ico d={IconPlus} size="sm" />Start free</button>
         </div>
       </div>
 
@@ -31,8 +32,8 @@ export default function Landing({ onInspect }) {
           Send an invoice in twenty seconds. Chase it automatically. Reconcile it without opening a spreadsheet.
         </p>
         <div className="row" style={{ marginTop: 'var(--space-sm, 8px)' }}>
-          <button className="btn btn-primary btn-lg" {...ins('button-lg')}>Start free</button>
-          <button className="btn btn-secondary btn-lg" {...ins('button-secondary')}>Book a demo</button>
+          <button className="btn btn-primary btn-lg" {...ins('button-lg')}>Start free<Ico d={IconArrow} size="lg" /></button>
+          <button className="btn btn-secondary btn-lg" {...ins('button-secondary')}><Ico d={IconStar} size="lg" />Book a demo</button>
         </div>
         <p className="caption">No card required · Cancel any time</p>
       </div>
@@ -53,7 +54,7 @@ export default function Landing({ onInspect }) {
       <div className="card card-overlay" {...ins('card-overlay')} style={{ textAlign: 'center', padding: 'var(--space-xl, 32px)', cursor: onInspect ? 'pointer' : undefined }}>
         <h2 {...text('text', 'h2')} style={{ marginBottom: 'var(--space-sm, 8px)', cursor: onInspect ? 'pointer' : undefined }}>Ready when you are</h2>
         <p className="muted" {...text('text-muted', 'body-md')} style={{ marginBottom: 'var(--space-md, 16px)', cursor: onInspect ? 'pointer' : undefined }}>Free for your first ten invoices a month.</p>
-        <button className="btn btn-primary btn-lg" {...ins('button-lg')}>Create an account</button>
+        <button className="btn btn-primary btn-lg" {...ins('button-lg')}><Ico d={IconCheck} size="lg" />Create an account</button>
       </div>
     </div>
   )

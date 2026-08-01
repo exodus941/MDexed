@@ -9,7 +9,7 @@
 import { useState, useMemo } from 'react'
 import { useStore } from '../state/store.jsx'
 import { LOG_LIMIT_DEFAULT, LOG_LIMIT_MAX } from '../state/store.jsx'
-import { CHANGE_CATEGORIES, CATEGORY_BY_ID } from '../state/changelog.js'
+import { CHANGE_CATEGORIES, CATEGORY_BY_ID, canRevert, revertChange } from '../state/changelog.js'
 import { gradientCss } from '../color/modes.js'
 import { resolveRef } from '../color/ramp.js'
 import { SectionHeader, Collapsible, NumField, Banner, ConfirmDelete } from '../ui/controls.jsx'
@@ -126,9 +126,16 @@ function Detail({ detail, ctx }) {
 }
 
 export default function HistoryPanel() {
-  const { log, clearLog, logLimit, setLogLimit, derived, state } = useStore()
+  const { log, clearLog, logLimit, setLogLimit, derived, state, set } = useStore()
   const [active, setActive] = useState(new Set())
   const [query, setQuery] = useState('')
+
+  /* Puts one change back without touching anything else — not an undo, so it
+     works fifty edits later. The revert is itself logged. */
+  const revert = entry => {
+    const updater = revertChange(entry)
+    if (updater) set(updater, `revert:${entry.tag}`)
+  }
 
   /* Gradient snapshots store references; they're resolved for display against
      whatever the palette is now. */
@@ -181,7 +188,11 @@ export default function HistoryPanel() {
           new ones arrive; raise the cap below, or clear it if you no longer need the trail.
         </Banner>
       ) : (
-        <Banner tone="info">Kept locally and never written into the exported file. Clearing it doesn't touch your design.</Banner>
+        <Banner tone="info">
+          Kept locally and never written into the exported file. <strong>Revert</strong> puts a single change back
+          wherever that token stands now, leaving every other edit alone — it isn't an undo, so it still works
+          fifty changes later. Rationale text has no revert: only word counts are recorded, not the prose itself.
+        </Banner>
       )}
 
       <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search changes, tokens and values" style={{ fontSize: 12.5 }} />
@@ -239,7 +250,25 @@ export default function HistoryPanel() {
                     </div>
                     <Detail detail={e.detail} ctx={ctx} />
                   </div>
-                  <span style={{ fontFamily: 'var(--mono)', fontSize: 10.5, color: 'var(--dim)', marginTop: 2 }}>{clock(e.at)}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 1 }}>
+                    {canRevert(e) && (
+                      <button onClick={() => revert(e)} title="Put this one change back, leaving everything else alone"
+                        style={{
+                          display: 'inline-flex', alignItems: 'center', gap: 4, background: 'none',
+                          border: '1px solid var(--bdr)', borderRadius: 5, cursor: 'pointer',
+                          color: 'var(--muted)', padding: '2px 7px', fontSize: 10.5, fontFamily: 'var(--sans)',
+                          transition: 'color var(--t) var(--ease), border-color var(--t) var(--ease)',
+                        }}
+                        onMouseEnter={ev => { ev.currentTarget.style.color = 'var(--accent)'; ev.currentTarget.style.borderColor = 'rgba(220,144,85,.4)' }}
+                        onMouseLeave={ev => { ev.currentTarget.style.color = 'var(--muted)'; ev.currentTarget.style.borderColor = 'var(--bdr)' }}>
+                        <svg width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M3 2v6h6" /><path d="M3.5 12a8.5 8.5 0 1 0 2.5-6L3 8.5" />
+                        </svg>
+                        Revert
+                      </button>
+                    )}
+                    <span style={{ fontFamily: 'var(--mono)', fontSize: 10.5, color: 'var(--dim)' }}>{clock(e.at)}</span>
+                  </div>
                 </div>
               )
             })}

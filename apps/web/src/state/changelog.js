@@ -42,6 +42,10 @@ export function changedKeys(before, after) {
 /* Human phrasing per tag prefix. The suffix is usually the thing's own name,
    which is more useful than any wording we could invent for it. */
 const TAG_LABELS = {
+  revert: t => {
+    const inner = TAG_LABELS[t.split(':')[0]]
+    return `Reverted · ${inner ? inner(t.slice(t.indexOf(':') + 1)) : t}`
+  },
   palette: t => `Palette generated · ${t}`,
   'seed-lock': () => 'Seed lock',
   macro: t => `${cap(t)} macro`,
@@ -119,6 +123,10 @@ export function detailFor(tag, before, after) {
     (from === to ? null : { kind, from, to, subject })
 
   switch (prefix) {
+    /* A revert reports the same shape as the change it undoes — recurse on
+       the original tag so it shows current → restored. */
+    case 'revert':
+      return detailFor(rest, before, after)
     case 'palette': {
       /* The whole palette moved, so the entry carries every seat. */
       const swatches = (after.color?.seeds ?? []).map(s => ({
@@ -191,6 +199,107 @@ export function detailFor(tag, before, after) {
       const words = s => (s ? s.split(/\s+/).length : 0)
       return { kind: 'text', from: `${words(a)} words`, to: `${words(b)} words`, subject: rest }
     }
+    default:
+      return null
+  }
+}
+
+/* ── Reverting a single entry ──
+   Restores just that change's `from` value, wherever the token stands now.
+   Deliberately not an undo: the rest of the document is untouched, so this
+   works even after fifty later edits. */
+
+const setOr = (map = {}, key, value) => {
+  const next = { ...map }
+  if (value === undefined || value === null) delete next[key]
+  else next[key] = value
+  return next
+}
+
+const patch = (s, branch, changes) => ({ ...s, [branch]: { ...s[branch], ...changes } })
+
+/** Entries we can put back. Prose is excluded — see the note in the panel. */
+export const REVERTIBLE = new Set([
+  'seed', 'seed-name', 'seed-lock', 'step', 'role', 'palette', 'grad',
+  'macro', 'sp-ov', 'rd-ov', 'ty-ov', 'comp', 'type', 'dur', 'ease',
+  'elev', 'focus', 'icons', 'icsz', 'states', 'layout', 'shape', 'meta', 'voice',
+])
+
+export const canRevert = entry => {
+  if (!entry?.tag || !entry.detail) return false
+  return REVERTIBLE.has(entry.tag.split(':')[0])
+}
+
+/**
+ * @returns an updater `(state) => state`, or null if the entry can't be undone
+ */
+export function revertChange(entry) {
+  if (!canRevert(entry)) return null
+  const { tag, detail } = entry
+  const colon = tag.indexOf(':')
+  const prefix = colon < 0 ? tag : tag.slice(0, colon)
+  const rest = colon < 0 ? '' : tag.slice(colon + 1)
+  const from = detail.from
+
+  switch (prefix) {
+    case 'seed':
+      return s => patch(s, 'color', { seeds: s.color.seeds.map(x => x.id === rest ? { ...x, hex: from } : x) })
+    case 'seed-name':
+      return s => patch(s, 'color', { seeds: s.color.seeds.map(x => x.id === rest ? { ...x, name: from } : x) })
+    case 'seed-lock':
+      return s => patch(s, 'color', { seeds: s.color.seeds.map(x => x.id === rest ? { ...x, locked: from === 'locked' } : x) })
+    case 'palette':
+      /* Match by name — ids survive, but a name is what the entry displayed. */
+      return s => patch(s, 'color', {
+        seeds: s.color.seeds.map(x => {
+          const was = detail.swatches?.find(w => w.name === x.name)
+          return was?.from ? { ...x, hex: was.from } : x
+        }),
+      })
+    case 'grad':
+      return s => patch(s, 'color', {
+        gradients: from
+          ? s.color.gradients.map(g => (g.id === rest ? { ...g, ...from } : g))
+          : s.color.gradients.filter(g => g.id !== rest),
+      })
+    case 'step':
+      return s => patch(s, 'color', { stepOverrides: setOr(s.color.stepOverrides, rest, from) })
+    case 'role':
+      return s => patch(s, 'color', { roleOverrides: setOr(s.color.roleOverrides, rest, from) })
+    case 'shape':
+      return s => patch(s, 'color', { shape: { ...s.color.shape, [rest]: from } })
+    case 'macro':
+      return s => patch(s, 'macros', { [rest]: from })
+    case 'sp-ov':
+      return s => patch(s, 'space', { overrides: setOr(s.space.overrides, rest, from) })
+    case 'rd-ov':
+      return s => patch(s, 'radius', { overrides: setOr(s.radius.overrides, rest, from) })
+    case 'ty-ov':
+      return s => patch(s, 'type', { overrides: setOr(s.type.overrides, rest, from) })
+    case 'comp':
+      return s => patch(s, 'components', { overrides: setOr(s.components.overrides, rest, from) })
+    case 'type':
+      return s => patch(s, 'type', { [rest]: from })
+    case 'dur':
+      return s => patch(s, 'motion', { durations: { ...s.motion.durations, [rest]: from } })
+    case 'ease':
+      return s => patch(s, 'motion', { easings: { ...s.motion.easings, [rest]: from } })
+    case 'elev':
+      return s => patch(s, 'elevation', { [rest]: from })
+    case 'focus':
+      return s => patch(s, 'focus', { [rest]: from })
+    case 'icons':
+      return s => patch(s, 'icons', { [rest]: from })
+    case 'icsz':
+      return s => patch(s, 'icons', { sizes: { ...s.icons.sizes, [rest]: from } })
+    case 'states':
+      return s => patch(s, 'states', { [rest]: from })
+    case 'layout':
+      return s => patch(s, 'layout', { [rest]: from })
+    case 'meta':
+      return s => patch(s, 'meta', { [rest]: from })
+    case 'voice':
+      return s => patch(s, 'voice', { [rest]: from })
     default:
       return null
   }
