@@ -88,6 +88,98 @@ const FALLBACK_LABEL = {
   macros: 'Macros changed',
 }
 
+/* ── What actually changed ──
+   A log line reading "Colour changed" is no better than no log line. These
+   pull the before and after out of the two documents so an entry can say
+   which token moved and to what. */
+
+const seedById = (s, id) => (s.color?.seeds ?? []).find(x => x.id === id)
+const gradById = (s, id) => (s.color?.gradients ?? []).find(x => x.id === id)
+const at = (obj, path) => path.split('.').reduce((o, k) => o?.[k], obj)
+
+/** Stops carried on a gradient entry, so the log can draw a real preview. */
+const gradientSnapshot = g => g && ({
+  name: g.name, type: g.type, angle: g.angle,
+  stops: (g.stops ?? []).map(s => ({ color: s.color, position: s.position })),
+})
+
+/**
+ * @returns {{ kind, from, to, subject }|null}
+ *   kind: 'colour' | 'gradient' | 'value' | 'text'
+ */
+export function detailFor(tag, before, after) {
+  if (!tag) return null
+  const colon = tag.indexOf(':')
+  const prefix = colon < 0 ? tag : tag.slice(0, colon)
+  const rest = colon < 0 ? '' : tag.slice(colon + 1)
+
+  const pair = (from, to, kind, subject) =>
+    (from === to ? null : { kind, from, to, subject })
+
+  switch (prefix) {
+    case 'seed': {
+      const a = seedById(before, rest), b = seedById(after, rest)
+      return pair(a?.hex, b?.hex, 'colour', b?.name ?? a?.name)
+    }
+    case 'seed-name':
+      return pair(seedById(before, rest)?.name, seedById(after, rest)?.name, 'text', 'Seed name')
+    case 'step':
+      return pair(before.color?.stepOverrides?.[rest], after.color?.stepOverrides?.[rest], 'colour', rest)
+    case 'role':
+      return pair(before.color?.roleOverrides?.[rest], after.color?.roleOverrides?.[rest], 'colour', rest.replace(':', ' · '))
+    case 'grad': {
+      const a = gradById(before, rest), b = gradById(after, rest)
+      if (!b) return null
+      return { kind: 'gradient', from: gradientSnapshot(a), to: gradientSnapshot(b), subject: b.name }
+    }
+    case 'macro':
+      return pair(before.macros?.[rest], after.macros?.[rest], 'value', rest)
+    case 'sp-ov':
+      return pair(before.space?.overrides?.[rest], after.space?.overrides?.[rest], 'value', `spacing.${rest}`)
+    case 'rd-ov':
+      return pair(before.radius?.overrides?.[rest], after.radius?.overrides?.[rest], 'value', `radius.${rest}`)
+    case 'ty-ov':
+      return pair(before.type?.overrides?.[rest], after.type?.overrides?.[rest], 'value', rest)
+    case 'comp':
+      return pair(before.components?.overrides?.[rest], after.components?.overrides?.[rest], 'value', rest)
+    case 'type':
+      return pair(before.type?.[rest], after.type?.[rest], 'value', `type.${rest}`)
+    case 'dur':
+      return pair(before.motion?.durations?.[rest], after.motion?.durations?.[rest], 'value', `${rest} duration`)
+    case 'ease':
+      return pair(before.motion?.easings?.[rest], after.motion?.easings?.[rest], 'text', `${rest} easing`)
+    case 'elev':
+      return pair(at(before, `elevation.${rest}`), at(after, `elevation.${rest}`), 'value', `elevation.${rest}`)
+    case 'focus':
+      return pair(before.focus?.[rest], after.focus?.[rest], 'value', `focus.${rest}`)
+    case 'icons':
+      return pair(before.icons?.[rest], after.icons?.[rest], 'value', `icons.${rest}`)
+    case 'icsz':
+      return pair(before.icons?.sizes?.[rest], after.icons?.sizes?.[rest], 'value', `icon ${rest}`)
+    case 'states':
+      return pair(before.states?.[rest], after.states?.[rest], 'value', `states.${rest}`)
+    case 'layout':
+      return pair(before.layout?.[rest], after.layout?.[rest], 'value', `layout.${rest}`)
+    case 'shape':
+      return pair(before.color?.shape?.[rest], after.color?.shape?.[rest], 'value', `scale ${rest}`)
+    case 'meta':
+      return pair(before.meta?.[rest], after.meta?.[rest], 'text', rest)
+    case 'voice':
+      return pair(before.voice?.[rest], after.voice?.[rest], 'text', rest)
+    case 'space:base':
+    case 'radius:base':
+      return null
+    case 'prose': {
+      const a = (before.prose?.[rest] ?? '').trim(), b = (after.prose?.[rest] ?? '').trim()
+      if (a === b) return null
+      const words = s => (s ? s.split(/\s+/).length : 0)
+      return { kind: 'text', from: `${words(a)} words`, to: `${words(b)} words`, subject: rest }
+    }
+    default:
+      return null
+  }
+}
+
 /**
  * @returns {{ category: string, label: string }}
  */

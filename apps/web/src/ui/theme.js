@@ -68,9 +68,14 @@ label{display:block;font-size:10.5px;font-weight:500;text-transform:uppercase;le
 @keyframes dmd-fade{from{opacity:0}to{opacity:1}}
 @keyframes dmd-pop{from{opacity:0;transform:translateY(-4px) scale(.985)}to{opacity:1;transform:none}}
 @keyframes dmd-rise{from{opacity:0;transform:translateY(8px) scale(.99)}to{opacity:1;transform:none}}
+@keyframes dmd-fall{from{opacity:1;transform:none}to{opacity:0;transform:translateY(8px) scale(.99)}}
 .anim-fade{animation:dmd-fade var(--t) var(--ease) both}
 .anim-pop{animation:dmd-pop var(--t) var(--ease) both}
 .anim-rise{animation:dmd-rise var(--t) var(--ease) both}
+/* Exit as a keyframe rather than a transition: a transition needs a frame to
+   tick between the two states, and rAF is throttled whenever the page isn't
+   compositing — which left the toast stuck invisible. */
+.anim-fall{animation:dmd-fall var(--t) var(--ease) forwards}
 
 .seg,.seg-on{font-family:var(--sans);font-size:12px;cursor:pointer;border:none;border-radius:5px;padding:5px 11px;background:transparent;color:var(--muted);transition:background var(--t) var(--ease),color var(--t) var(--ease);white-space:nowrap}
 .seg:hover{color:var(--text);background:var(--surf3)}

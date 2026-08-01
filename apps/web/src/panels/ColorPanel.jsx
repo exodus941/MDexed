@@ -134,11 +134,62 @@ function RampRow({ name, ramp, overrides, onOverride, onResetStep }) {
   )
 }
 
+/* Swatch grid + picker, opened from a stop's swatch.
+   Scanning 60-odd token names in a dropdown tells you nothing about what the
+   colours look like; a grid does the whole job at a glance. */
+function StopPicker({ value, resolved, groups, onPick, onClose }) {
+  const isLiteral = /^#/.test(value)
+  return (
+    <>
+      <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 60 }} />
+      <div className="anim-pop" style={{
+        position: 'absolute', top: '100%', left: 0, zIndex: 61, width: 292, marginTop: 6,
+        background: 'var(--surf2)', border: '1px solid var(--bdr2)', borderRadius: 9,
+        boxShadow: '0 12px 32px rgba(0,0,0,.55)', padding: 11, maxHeight: 380, overflowY: 'auto',
+      }}>
+        {groups.map(group => (
+          <div key={group.label} style={{ marginBottom: 11 }}>
+            <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--muted)', marginBottom: 5 }}>
+              {group.label}
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(11, 1fr)', gap: 3 }}>
+              {group.items.map(item => (
+                <button key={item.ref} onClick={() => { onPick(item.ref); onClose() }}
+                  title={`${item.ref} — ${item.hex}`}
+                  style={{
+                    aspectRatio: '1', background: item.hex, borderRadius: 3, cursor: 'pointer', padding: 0,
+                    border: value === item.ref ? '2px solid var(--accent)' : '1px solid rgba(255,255,255,.08)',
+                  }} />
+              ))}
+            </div>
+          </div>
+        ))}
+
+        <div style={{ borderTop: '1px solid var(--bdr)', paddingTop: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 8 }}>
+            <span style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--muted)', flex: 1 }}>Custom</span>
+            {!isLiteral && (
+              <button className="btn-ghost" style={{ padding: '3px 8px', fontSize: 10.5 }}
+                onClick={() => onPick(resolved)}>Detach from palette</button>
+            )}
+          </div>
+          {isLiteral
+            ? <ColorPicker value={value} onChange={onPick} compact />
+            : <p className="panel-note" style={{ fontSize: 11 }}>
+                This stop follows <code style={{ fontFamily: 'var(--mono)', fontSize: 10.5 }}>{value}</code> and updates with the palette.
+              </p>}
+        </div>
+      </div>
+    </>
+  )
+}
+
 /* ── Gradients ──
    Stops reference roles or scale steps, so a gradient follows the palette
    instead of freezing hex values into it. */
 function GradientRow({ grad, css, options, resolved, onChange, onDelete }) {
   const [open, setOpen] = useState(false)
+  const [openStop, setOpenStop] = useState(null)
   const setStop = (i, patch) => onChange({ ...grad, stops: grad.stops.map((s, j) => j === i ? { ...s, ...patch } : s) })
 
   return (
@@ -178,36 +229,27 @@ function GradientRow({ grad, css, options, resolved, onChange, onDelete }) {
 
           <div style={{ fontSize: 11, color: 'var(--muted)', margin: '4px 0 6px' }}>Stops</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {grad.stops.map((s, i) => {
-              const manual = /^#/.test(s.color)
-              return (
-                <div key={i} style={{ background: 'var(--surf2)', border: '1px solid var(--bdr)', borderRadius: 7, padding: 8 }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '20px minmax(0,1fr) 78px 20px', gap: 7, alignItems: 'center', marginBottom: manual ? 8 : 0 }}>
-                    <span className="swatch" style={{ width: 18, height: 18, cursor: 'default', background: resolved[i] }} />
-                    {/* A picker for palette colours, so a gradient tracks the
-                        system; "Custom" drops to a literal for one-offs. */}
-                    <select value={manual ? '__custom' : s.color}
-                      onChange={e => setStop(i, { color: e.target.value === '__custom' ? (resolved[i] ?? '#888888') : e.target.value })}
-                      style={{ fontFamily: 'var(--mono)', fontSize: 11, padding: '4px 6px' }}>
-                      <optgroup label="Seeds">
-                        {options.seeds.map(o => <option key={o} value={o}>{o}</option>)}
-                      </optgroup>
-                      <optgroup label="Roles">
-                        {options.roles.map(o => <option key={o} value={o}>{o}</option>)}
-                      </optgroup>
-                      <optgroup label="Scale steps">
-                        {options.steps.map(o => <option key={o} value={o}>{o}</option>)}
-                      </optgroup>
-                      <option value="__custom">Custom…</option>
-                    </select>
-                    <NumField value={s.position} min={0} max={100} suffix="%" onChange={v => setStop(i, { position: v })} />
-                    <ConfirmDelete size={11} title="Remove stop"
-                      onConfirm={() => onChange({ ...grad, stops: grad.stops.filter((_, j) => j !== i) })} />
-                  </div>
-                  {manual && <ColorPicker value={s.color} onChange={hex => setStop(i, { color: hex })} compact />}
+            {grad.stops.map((s, i) => (
+              <div key={i} style={{ background: 'var(--surf2)', border: '1px solid var(--bdr)', borderRadius: 7, padding: 8, position: 'relative' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '26px minmax(0,1fr) 78px 20px', gap: 8, alignItems: 'center' }}>
+                  <button className="swatch" onClick={() => setOpenStop(openStop === i ? null : i)}
+                    title="Choose a colour"
+                    style={{ width: 24, height: 24, background: resolved[i], padding: 0, border: openStop === i ? '2px solid var(--accent)' : '1px solid rgba(255,255,255,.1)' }} />
+                  <code style={{ fontFamily: 'var(--mono)', fontSize: 11, color: /^#/.test(s.color) ? 'var(--muted)' : 'var(--text-dim)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {s.color}
+                    {!/^#/.test(s.color) && <span style={{ color: 'var(--dim)' }}> · {resolved[i]}</span>}
+                  </code>
+                  <NumField value={s.position} min={0} max={100} suffix="%" onChange={v => setStop(i, { position: v })} />
+                  <ConfirmDelete size={11} title="Remove stop"
+                    onConfirm={() => onChange({ ...grad, stops: grad.stops.filter((_, j) => j !== i) })} />
                 </div>
-              )
-            })}
+                {openStop === i && (
+                  <StopPicker value={s.color} resolved={resolved[i]} groups={options}
+                    onPick={colour => setStop(i, { color: colour })}
+                    onClose={() => setOpenStop(null)} />
+                )}
+              </div>
+            ))}
           </div>
           <button className="btn-add" style={{ marginTop: 8 }}
             onClick={() => onChange({ ...grad, stops: [...grad.stops, { color: 'accent', position: 100 }] })}>
@@ -251,15 +293,19 @@ export default function ColorPanel() {
 
   const stepOverrides = Object.keys(color.stepOverrides ?? {}).length
 
-  /* Grouped so a seed — the thing you actually picked — is the first choice,
-     not buried among 55 scale steps. */
-  const stopOptions = {
-    seeds: color.seeds.map(s => `${s.name}.500`),
-    roles: Object.keys(derived.roles[color.mode]),
-    steps: Object.keys(ramps).flatMap(r => RAMP_STEPS.map(s => `${r}.${s}`)),
-  }
   const resolveStopHex = value =>
     /^#/.test(value) ? value : (derived.roles[color.mode][value] ?? resolveRef(value, ramps) ?? '#888888')
+
+  /* Grouped for the swatch grid: seeds first — the colours you actually
+     picked — then roles, then the full scales. */
+  const stopOptions = [
+    { label: 'Seeds', items: color.seeds.map(s => ({ ref: `${s.name}.500`, hex: resolveStopHex(`${s.name}.500`) })) },
+    { label: 'Roles', items: Object.entries(derived.roles[color.mode]).map(([ref, hex]) => ({ ref, hex })) },
+    ...Object.entries(ramps).map(([name, ramp]) => ({
+      label: `${name} scale`,
+      items: RAMP_STEPS.map(step => ({ ref: `${name}.${step}`, hex: ramp.steps[step] })),
+    })),
+  ]
   const updGradient = (id, next) => upd(c => ({ ...c, gradients: c.gradients.map(g => g.id === id ? next : g) }), `grad:${id}`)
   const addGradient = () => upd(c => ({
     ...c,
