@@ -1,11 +1,12 @@
 /* The shape of an editor document.
+
    Only seeds, macros and explicit overrides are stored — every concrete token
    value is computed by derive.js. That keeps saved state small and, more
    importantly, means moving a macro slider retroactively reshapes the whole
    system instead of leaving stale values behind. */
 import { DEFAULT_SHAPE } from '../color/ramp.js'
 
-export const SCHEMA_VERSION = 2
+export const SCHEMA_VERSION = 3
 
 const uid = () => Math.random().toString(36).slice(2, 8)
 
@@ -39,7 +40,7 @@ export const ROLE_GROUPS = [
       { name: 'border-subtle',   desc: 'Hairlines, table rules',     light: 'neutral.200', dark: 'neutral.800' },
       { name: 'border',          desc: 'Default control outline',    light: 'neutral.500', dark: 'neutral.500' },
       { name: 'border-strong',   desc: 'Emphasised outline',         light: 'neutral.600', dark: 'neutral.400' },
-      { name: 'ring',            desc: 'Focus indicator',            light: 'accent.500',  dark: 'accent.400'  },
+      { name: 'ring',            desc: 'Focus indicator',            light: 'accent.600',  dark: 'accent.400'  },
     ],
   },
   {
@@ -72,8 +73,8 @@ export const ROLE_GROUPS = [
 
 export const ALL_ROLES = ROLE_GROUPS.flatMap(g => g.roles)
 
-/* Pairs worth checking for contrast. `large` marks pairs where the content is
-   display-sized, `ui` marks non-text pairs held to the 3:1 bar instead of 4.5. */
+/* Pairs worth checking for contrast. `ui` marks non-text pairs held to the
+   3:1 bar instead of 4.5. */
 export const CONTRAST_PAIRS = [
   { fg: 'text',         bg: 'bg',        label: 'Body on page' },
   { fg: 'text',         bg: 'surface',   label: 'Body on card' },
@@ -97,11 +98,19 @@ const defaultRoles = () =>
    "granular without overwhelming": start here, reach for overrides only when
    a specific token genuinely needs to break the system. */
 export const MACROS = [
-  { key: 'scale',     label: 'Type scale', desc: 'Multiplies every font size',      min: 0.75, max: 1.5,  step: 0.01 },
-  { key: 'density',   label: 'Density',    desc: 'Multiplies every spacing step',   min: 0.6,  max: 1.6,  step: 0.01 },
-  { key: 'roundness', label: 'Roundness',  desc: 'Multiplies every corner radius',  min: 0,    max: 2.5,  step: 0.01 },
-  { key: 'depth',     label: 'Depth',      desc: 'Shadow strength across the board',min: 0,    max: 2,    step: 0.01 },
-  { key: 'speed',     label: 'Motion',     desc: 'Multiplies every duration',       min: 0.4,  max: 2,    step: 0.01 },
+  { key: 'scale',     label: 'Type scale', desc: 'Multiplies every font size',      min: 0.25, max: 2,    step: 0.01 },
+  /* Bottoms out at 0 — every spacing step collapses to zero. Rarely what you
+     want, but it is a legitimate end of the range. */
+  { key: 'density',   label: 'Density',    desc: 'Multiplies every spacing step. 0 removes all spacing.', min: 0, max: 2, step: 0.01 },
+  { key: 'roundness', label: 'Roundness',  desc: 'Multiplies every corner radius',  min: 0,    max: 4,    step: 0.01 },
+  /* Not a pixel value: it scales a shadow's offset, blur *and* opacity
+     together, so a percentage of the designed baseline is the honest unit. */
+  { key: 'depth',     label: 'Depth',      desc: 'Shadow strength — scales offset, blur and opacity together. 100% is the designed baseline; 0% removes shadows entirely.', min: 0, max: 2, step: 0.01 },
+  /* Bottoms out at 0, which zeroes every duration — a legitimate choice for a
+     system that wants no motion at all, not just less of it. */
+  /* Bottoms out at 0 (no motion at all) and tops out at 5×, which puts the
+     `normal` duration at 1000ms — deliberately slow, but a valid choice. */
+  { key: 'speed',     label: 'Motion',     desc: 'Multiplies every duration. 0 disables motion entirely; 5× puts `normal` at 1000ms.', min: 0, max: 5, step: 0.01 },
 ]
 
 export const DEFAULT_MACROS = { scale: 1, density: 1, roundness: 1, depth: 1, speed: 1 }
@@ -119,6 +128,43 @@ export const PROSE_SECTIONS = [
 
 const emptyProse = () => Object.fromEntries(PROSE_SECTIONS.map(s => [s.k, '']))
 
+/* ── Scales ──
+   Stored as multipliers against a base so the whole scale moves together.
+   `full` is a sentinel pill radius, never scaled. */
+export const SPACE_STEPS = [
+  { name: '3xs', mult: 0.5 }, { name: '2xs', mult: 1 }, { name: 'xs', mult: 2 },
+  { name: 'sm', mult: 3 }, { name: 'md', mult: 4 }, { name: 'lg', mult: 6 },
+  { name: 'xl', mult: 8 }, { name: '2xl', mult: 12 }, { name: '3xl', mult: 16 },
+  { name: '4xl', mult: 24 },
+]
+
+export const RADIUS_STEPS = [
+  { name: 'none', mult: 0 }, { name: 'sm', mult: 0.5 }, { name: 'md', mult: 1 },
+  { name: 'lg', mult: 2 }, { name: 'xl', mult: 3 }, { name: 'full', pill: true },
+]
+
+export const ICON_LIBRARIES = ['Lucide', 'Heroicons', 'Phosphor', 'Material Symbols', 'Radix Icons']
+
+/* ── Anti-patterns ──
+   Negative constraints are the instructions models follow most reliably, so
+   these ship as a checklist rather than being left to freeform prose. */
+export const ANTI_PATTERNS = [
+  { id: 'pure-black', text: 'Never use pure black (#000) or pure white (#fff) — use the neutral scale.', on: true },
+  { id: 'extra-colors', text: 'Never introduce a colour that is not defined in this file.', on: true },
+  { id: 'extra-fonts', text: 'Never introduce a third typeface family.', on: true },
+  { id: 'arbitrary-spacing', text: 'Never use spacing values outside the defined scale.', on: true },
+  { id: 'gradient-text', text: 'No gradients on text.', on: false },
+  { id: 'centered-body', text: 'No centred body copy longer than two lines.', on: true },
+  { id: 'shadow-flat', text: 'No shadows on flat surfaces — separate them with borders instead.', on: false },
+  { id: 'animate-layout', text: 'Never animate layout properties; transform and opacity only.', on: true },
+  { id: 'placeholder-label', text: 'Never use a placeholder as a substitute for a label.', on: true },
+  { id: 'color-only', text: 'Never convey meaning through colour alone.', on: true },
+  { id: 'tiny-text', text: 'No text below 12px.', on: true },
+  { id: 'emoji-icons', text: 'No emoji in place of icons.', on: false },
+]
+
+export const FRAMEWORKS = ['React + Tailwind', 'React + CSS variables', 'Plain HTML + CSS', 'Vue + Tailwind', 'Svelte', 'Unspecified']
+
 /* ── Default document ──
    A warm editorial system, deliberately opinionated. Nobody should ever face
    a blank canvas here; tuning something coherent beats assembling from zero. */
@@ -126,47 +172,115 @@ export const createInitialState = () => ({
   schemaVersion: SCHEMA_VERSION,
   meta: { name: 'My Design System', description: '', version: 'alpha' },
   macros: { ...DEFAULT_MACROS },
+
   color: {
     seeds: [
-      { id: 'sd-accent',  name: 'accent',  hex: '#b8422e', desc: 'Primary action and emphasis' },
-      { id: 'sd-neutral', name: 'neutral', hex: '#7a736c', desc: 'Surfaces, text, borders' },
-      { id: 'sd-success', name: 'success', hex: '#3f8f63', desc: 'Confirmation' },
-      { id: 'sd-warning', name: 'warning', hex: '#c08a2e', desc: 'Caution' },
-      { id: 'sd-danger',  name: 'danger',  hex: '#c2453c', desc: 'Destructive and errors' },
+      { id: 'sd-accent',  name: 'accent',  hex: '#0d7a70', desc: 'Primary action and emphasis' },
+      { id: 'sd-neutral', name: 'neutral', hex: '#757980', desc: 'Surfaces, text, borders' },
+      { id: 'sd-success', name: 'success', hex: '#4a8f3c', desc: 'Confirmation' },
+      { id: 'sd-warning', name: 'warning', hex: '#b8801f', desc: 'Caution' },
+      { id: 'sd-danger',  name: 'danger',  hex: '#c0392f', desc: 'Destructive and errors' },
     ],
     shape: { ...DEFAULT_SHAPE },
     roles: defaultRoles(),
-    stepOverrides: {},   // 'accent.600' → '#hex'
-    roleOverrides: {},   // 'accent:light' → '#hex'
-    custom: [],          // preserved verbatim from imported files
+    stepOverrides: {},
+    roleOverrides: {},
+    custom: [],
     mode: 'light',
     emitRamps: true,
     emitDark: true,
   },
-  /* Legacy flat lists — still driving the not-yet-migrated tabs.
-     Phase 2 replaces these with generated scales. */
-  typography: [
-    { id: 't1', name: 'h1',      fontFamily: 'Georgia', fontSize: '48px', fontWeight: '700', lineHeight: '1.1', letterSpacing: '-0.02em', fontFeature: '', fontVariation: '' },
-    { id: 't2', name: 'h2',      fontFamily: 'Georgia', fontSize: '32px', fontWeight: '700', lineHeight: '1.2', letterSpacing: '-0.015em', fontFeature: '', fontVariation: '' },
-    { id: 't3', name: 'h3',      fontFamily: 'Georgia', fontSize: '24px', fontWeight: '600', lineHeight: '1.3', letterSpacing: '-0.01em', fontFeature: '', fontVariation: '' },
-    { id: 't4', name: 'body-md', fontFamily: 'Georgia', fontSize: '16px', fontWeight: '400', lineHeight: '1.6', letterSpacing: '', fontFeature: '', fontVariation: '' },
-    { id: 't5', name: 'body-sm', fontFamily: 'Georgia', fontSize: '14px', fontWeight: '400', lineHeight: '1.55', letterSpacing: '', fontFeature: '', fontVariation: '' },
-    { id: 't6', name: 'caption', fontFamily: 'Georgia', fontSize: '12px', fontWeight: '400', lineHeight: '1.4', letterSpacing: '0.01em', fontFeature: '', fontVariation: '' },
-  ],
-  rounded: [
-    { id: 'r1', name: 'sm', value: '4px' },
-    { id: 'r2', name: 'md', value: '8px' },
-    { id: 'r3', name: 'lg', value: '16px' },
-    { id: 'r4', name: 'full', value: '9999px' },
-  ],
-  spacing: [
-    { id: 's1', name: 'xs', value: '4px' },
-    { id: 's2', name: 'sm', value: '8px' },
-    { id: 's3', name: 'md', value: '16px' },
-    { id: 's4', name: 'lg', value: '32px' },
-    { id: 's5', name: 'xl', value: '64px' },
-  ],
-  components: [],
+
+  type: {
+    families: {
+      display: { family: 'Space Grotesk', category: 'sans-serif' },
+      body:    { family: 'Manrope', category: 'sans-serif' },
+      mono:    { family: 'JetBrains Mono', category: 'monospace' },
+    },
+    base: 16,
+    ratio: 1.25,
+    leading: 1,     // multiplier on the auto line-height curve
+    tracking: 1,    // multiplier on the auto tracking curve
+    measure: 68,    // max line length, ch
+    fluid: { enabled: false, minVw: 360, maxVw: 1280, minRatio: 1.15, minScale: 0.9 },
+    axes: { display: {}, body: {}, mono: {} },
+    features: { display: [], body: ['liga'], mono: ['liga', 'zero'] },
+    overrides: {},
+    custom: [],
+  },
+
+  space: { base: 4, steps: SPACE_STEPS.map(s => ({ ...s })), overrides: {} },
+  radius: { base: 8, steps: RADIUS_STEPS.map(s => ({ ...s })), overrides: {}, nesting: true, borderWidths: { hairline: 1, thick: 2 } },
+
+  layout: {
+    breakpoints: [
+      { name: 'sm', px: 640 }, { name: 'md', px: 768 },
+      { name: 'lg', px: 1024 }, { name: 'xl', px: 1280 }, { name: '2xl', px: 1536 },
+    ],
+    containers: { sm: 600, md: 720, lg: 960, xl: 1140, '2xl': 1320 },
+    columns: 12,
+    gutter: 'lg',
+    maxMeasure: 68,
+  },
+
+  elevation: {
+    strategy: 'shadow',      // shadow | border | tonal
+    tintRole: 'neutral.950',
+    tintStrength: 1,
+    darkStrategy: 'lighten', // dark mode raises surfaces instead of deepening shadows
+    /* Blend mode for shadow and scrim layers. CSS box-shadow can't take one,
+       so this governs scrims/overlays and is emitted as guidance for anything
+       composited — see the Elevation section of the output. */
+    blendMode: 'normal',
+    /* Fills can blend with what sits behind them via mix-blend-mode. Borders
+       cannot — CSS has no border-blend-mode — so there is no control for it. */
+    fillBlend: 'normal',
+    scrim: { color: 'neutral.950', opacity: 0.55, blur: 0 },
+  },
+
+  motion: {
+    personality: 'smooth',   // snappy | smooth | bouncy
+    durations: { instant: 0, fast: 125, normal: 250, slow: 500 },
+    easings: {
+      standard: 'cubic-bezier(0.2, 0, 0, 1)',
+      entrance: 'cubic-bezier(0, 0, 0, 1)',
+      exit:     'cubic-bezier(0.3, 0, 1, 1)',
+      emphasis: 'cubic-bezier(0.3, 0, 0, 1.2)',
+    },
+    reducedMotion: 'crossfade', // crossfade | none
+  },
+
+  /* `gap` is the space between an icon and its label — in buttons, menu items,
+     list rows, anywhere the two pair up. It is one decision, not a per-
+     component one, so it lives with the icons. */
+  icons: { library: 'Lucide', strokeWidth: 1.75, sizes: { sm: 14, md: 16, lg: 20, xl: 24 }, joinStyle: 'round', gap: 'xs' },
+
+  focus: { width: 2, offset: 2, style: 'solid', role: 'ring' },
+
+  states: { disabledOpacity: 0.5, touchTarget: 44, transitionOn: ['background-color', 'border-color', 'color', 'opacity', 'transform'] },
+
+  /* `custom` holds components that came from an imported file or an older
+     document — names the library knows nothing about, emitted verbatim. */
+  components: { enabled: {}, overrides: {}, custom: [], emitStates: true, emitSizes: true },
+
+  voice: {
+    casing: 'sentence',        // sentence | title
+    buttonStyle: 'verb-first', // verb-first | noun
+    errorTone: 'plain',        // plain | apologetic | terse
+    emptyTone: 'helpful',
+    dateFormat: 'D MMM YYYY',
+    numberFormat: '1,234.56',
+    currency: 'GBP',
+  },
+
+  directives: {
+    references: [],
+    antiPatterns: ANTI_PATTERNS.map(a => ({ ...a })),
+    framework: 'React + Tailwind',
+    classNaming: 'utility',
+    notes: '',
+  },
+
   prose: emptyProse(),
 })
 

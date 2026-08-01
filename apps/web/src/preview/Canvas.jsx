@@ -6,11 +6,15 @@ import { PREVIEW_CSS, varsToStyle } from './tokens.js'
 import { buildCssVars } from '../state/derive.js'
 import Dashboard from './screens/Dashboard.jsx'
 import Form from './screens/Form.jsx'
+import Landing from './screens/Landing.jsx'
+import Settings from './screens/Settings.jsx'
 import Gallery from './Gallery.jsx'
 
 const SURFACES = [
   { id: 'dashboard', label: 'Dashboard', Component: Dashboard },
+  { id: 'landing',   label: 'Landing',   Component: Landing },
   { id: 'form',      label: 'Form',      Component: Form },
+  { id: 'settings',  label: 'Settings',  Component: Settings },
   { id: 'gallery',   label: 'Gallery',   Component: Gallery },
 ]
 
@@ -23,15 +27,16 @@ export default function Canvas() {
 
   /* Rebuild vars for the mode being previewed rather than reusing
      derived.cssVars, so the toggle doesn't have to round-trip through state. */
-  const vars = buildCssVars(derived, mode)
+  const vars = buildCssVars({ ...derived, elevationCfg: state.elevation }, mode)
   const { Component } = SURFACES.find(s => s.id === surface) ?? SURFACES[0]
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minWidth: 0, background: 'var(--surf2)' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minWidth: 0, minHeight: 0, background: 'var(--surf2)' }}>
       <style>{PREVIEW_CSS}</style>
 
+      {/* Height matches the editor tab strip so the two bars line up. */}
       <div style={{
-        display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px',
+        display: 'flex', alignItems: 'center', gap: 6, padding: '0 12px', height: 42,
         borderBottom: '1px solid var(--bdr)', background: 'var(--surf)', flexShrink: 0,
       }}>
         {SURFACES.map(s => (
@@ -49,7 +54,7 @@ export default function Canvas() {
         </div>
       </div>
 
-      <div style={{ flex: 1, overflow: 'auto', padding: 16 }}>
+      <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'auto', padding: 16 }}>
         <div className="dmd" style={{ ...varsToStyle(vars), borderRadius: 10, border: '1px solid var(--bdr)' }}>
           <Component />
         </div>

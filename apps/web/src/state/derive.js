@@ -3,9 +3,13 @@
    read from here, which is what guarantees that what you see is what exports. */
 import { buildRamps, resolveRef, RAMP_STEPS } from '../color/ramp.js'
 import { parseColor, toRgb255 } from '../color/convert.js'
+import { buildTypeScale } from '../type/scale.js'
+import { stackFor } from '../type/fonts.js'
+import { expandComponents } from './components.js'
 import { ALL_ROLES } from './schema.js'
 
 const UNIT_RE = /^(-?\d*\.?\d+)\s*([a-z%]*)$/i
+const round = (v, p = 1) => Math.round(v * 10 ** p) / 10 ** p
 
 /** Scale a dimension string by a factor, preserving its unit. */
 export function scaleValue(value, factor, { keepLarge = false } = {}) {
@@ -18,15 +22,14 @@ export function scaleValue(value, factor, { keepLarge = false } = {}) {
   if (keepLarge && Math.abs(n) >= 999) return value
   const scaled = n * factor
   const unit = m[2]
-  const rounded = unit === 'px' ? Math.round(scaled * 10) / 10 : Math.round(scaled * 1000) / 1000
-  return `${rounded}${unit}`
+  return `${unit === 'px' ? round(scaled, 1) : round(scaled, 3)}${unit}`
 }
 
 const rgbaOf = (hex, alpha) => {
   const c = parseColor(hex)
   if (!c) return `rgba(0,0,0,${alpha})`
   const { r, g, b } = toRgb255(c)
-  return `rgba(${r},${g},${b},${Math.round(alpha * 1000) / 1000})`
+  return `rgba(${r},${g},${b},${round(alpha, 3)})`
 }
 
 /* ── Elevation ──
@@ -40,44 +43,27 @@ const ELEVATION_LEVELS = [
   { name: 'modal',   layers: [[0, 8, 16, -4, 0.10], [0, 24, 48, -8, 0.16]] },
 ]
 
-function deriveElevation(shadowHex, depth) {
+function deriveElevation(cfg, shadowHex, depth) {
   const out = {}
+  const strength = depth * (cfg?.tintStrength ?? 1)
   for (const lvl of ELEVATION_LEVELS) {
-    out[lvl.name] = lvl.layers.length === 0
+    /* Border and tonal systems deliberately emit no shadows — the note in the
+       markdown body explains what to use instead. */
+    out[lvl.name] = (cfg?.strategy !== 'shadow' || !lvl.layers.length)
       ? 'none'
       : lvl.layers
           .map(([x, y, blur, spread, a]) =>
-            `${x}px ${Math.round(y * depth * 10) / 10}px ${Math.round(blur * depth * 10) / 10}px ${spread}px ${rgbaOf(shadowHex, Math.min(0.6, a * depth))}`)
+            `${x}px ${round(y * depth)}px ${round(blur * depth)}px ${spread}px ${rgbaOf(shadowHex, Math.min(0.6, a * strength))}`)
           .join(', ')
   }
   return out
 }
 
-/* ── Motion ── */
-const DURATIONS = { instant: 0, fast: 120, normal: 200, slow: 320 }
-export const EASINGS = {
-  standard: 'cubic-bezier(0.2, 0, 0, 1)',
-  entrance: 'cubic-bezier(0, 0, 0, 1)',
-  exit:     'cubic-bezier(0.3, 0, 1, 1)',
-  emphasis: 'cubic-bezier(0.3, 0, 0, 1.2)',
-}
-
-const deriveMotion = speed => ({
-  durations: Object.fromEntries(
-    Object.entries(DURATIONS).map(([k, ms]) => [k, `${Math.round(ms * speed)}ms`])
-  ),
-  easings: { ...EASINGS },
-})
-
-/**
- * @returns resolved ramps, role colours for both modes, macro-scaled scales,
- *          elevation, motion, and a flat CSS custom-property map for preview.
- */
 export function derive(state) {
   const { color, macros } = state
   const m = { scale: 1, density: 1, roundness: 1, depth: 1, speed: 1, ...macros }
 
-  /* Ramps, with any per-step override applied on top of generation. */
+  /* ── Colour ── */
   const ramps = buildRamps(color.seeds, color.shape)
   for (const [ref, hex] of Object.entries(color.stepOverrides ?? {})) {
     const dot = ref.lastIndexOf('.')
@@ -85,7 +71,6 @@ export function derive(state) {
     if (ramps[rampName]?.steps?.[step] != null) ramps[rampName].steps[step] = hex
   }
 
-  /* Roles resolve refs into hex; a role override short-circuits the ref. */
   const roles = { light: {}, dark: {} }
   for (const role of ALL_ROLES) {
     for (const mode of ['light', 'dark']) {
@@ -95,41 +80,147 @@ export function derive(state) {
     }
   }
 
-  /* Macro-scaled legacy scales. A locked token opts out of its macro. */
-  const spacing = state.spacing.map(s =>
-    ({ ...s, value: s.locked ? s.value : scaleValue(s.value, m.density) }))
-  const rounded = state.rounded.map(r =>
-    ({ ...r, value: r.locked ? r.value : scaleValue(r.value, m.roundness, { keepLarge: true }) }))
-  const typography = state.typography.map(t =>
-    ({ ...t, fontSize: t.locked ? t.fontSize : scaleValue(t.fontSize, m.scale) }))
+  /* ── Typography ── */
+  const families = Object.fromEntries(
+    Object.entries(state.type.families).map(([k, v]) => [k, { ...v, stack: stackFor(v.family, v.category) }])
+  )
+  const typography = [
+    ...buildTypeScale({ ...state.type, families }, m.scale),
+    ...(state.type.custom ?? []),
+  ]
 
-  const shadowHex = ramps.neutral?.steps?.[950] ?? '#000000'
-  const elevation = deriveElevation(shadowHex, m.depth)
-  const motion = deriveMotion(m.speed)
+  /* ── Spacing ── */
+  const spacing = state.space.steps.map(s => ({
+    id: `sp-${s.name}`,
+    name: s.name,
+    value: state.space.overrides?.[s.name] ?? `${round(state.space.base * s.mult * m.density, 1)}px`,
+    overridden: state.space.overrides?.[s.name] != null,
+  }))
+
+  /* ── Radius ── */
+  const rounded = state.radius.steps.map(r => ({
+    id: `rd-${r.name}`,
+    name: r.name,
+    value: state.radius.overrides?.[r.name]
+      ?? (r.pill ? '9999px' : `${round(state.radius.base * r.mult * m.roundness, 1)}px`),
+    overridden: state.radius.overrides?.[r.name] != null,
+    pill: !!r.pill,
+  }))
+
+  /* ── Everything else ── */
+  const shadowHex = resolveRef(state.elevation?.tintRole ?? 'neutral.950', ramps) ?? '#000000'
+  const scrimColor = resolveRef(state.elevation?.scrim?.color ?? 'neutral.950', ramps) ?? '#000000'
+  const elevation = deriveElevation(state.elevation, shadowHex, m.depth)
+
+  const motion = {
+    durations: Object.fromEntries(
+      Object.entries(state.motion.durations).map(([k, ms]) => [k, `${Math.round(ms * m.speed)}ms`])
+    ),
+    easings: { ...state.motion.easings },
+    reducedMotion: state.motion.reducedMotion,
+  }
+
+  /* Component defaults reference elevation, focus, states and icons the same
+     way they reference colours — but those aren't token groups in the emitted
+     file, so `{elevation.raised}` would reach an agent unresolved. Flatten
+     them to literals here; `{colors.*}`, `{rounded.*}`, `{spacing.*}` and
+     `{typography.*}` stay as references because those do resolve. */
+  const literals = { elevation, focus: state.focus, states: state.states, icons: state.icons }
+  const resolveLiterals = value => String(value).replace(
+    /\{(elevation|focus|states|icons)\.([a-zA-Z0-9_-]+)\}/g,
+    (match, group, key) => {
+      const v = literals[group]?.[key] ?? literals[group]?.sizes?.[key]
+      if (v == null) return match
+      return typeof v === 'number' && group !== 'states' ? `${v}px` : String(v)
+    }
+  )
+
+  const components = [
+    ...expandComponents(state.components),
+    ...(state.components?.custom ?? []).map(c => ({ ...c, source: 'custom' })),
+  ].map(c => ({ ...c, properties: c.properties.map(p => ({ ...p, value: resolveLiterals(p.value) })) }))
 
   return {
-    ramps, roles, spacing, rounded, typography, elevation, motion,
-    shadowHex,
-    cssVars: buildCssVars({ roles, spacing, rounded, typography, elevation, motion }, color.mode),
+    ramps, roles, families, typography, spacing, rounded, elevation, motion, components,
+    shadowHex, scrimColor,
+    layout: state.layout,
+    icons: state.icons,
+    focus: state.focus,
+    states: state.states,
+    cssVars: buildCssVars({ roles, typography, spacing, rounded, elevation, motion, components, focus: state.focus, icons: state.icons, layout: state.layout, elevationCfg: state.elevation }, color.mode),
   }
 }
 
-/** Flat `--token: value` map. The preview injects this; nothing else styles it. */
-export function buildCssVars({ roles, spacing, rounded, typography, elevation, motion }, mode = 'light') {
+const kebab = s => s.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase()
+
+/* Component entries → CSS variables, so editing `input.padding` actually moves
+   the input in the preview. Without this the matrix only affected the exported
+   file and the preview quietly kept using the raw scales. */
+function buildComponentVars(components = [], { roles, spacing, rounded, typography }) {
+  const spaceBy = Object.fromEntries(spacing.map(s => [s.name, s.value]))
+  const roundBy = Object.fromEntries(rounded.map(r => [r.name, r.value]))
+  const typeBy = Object.fromEntries(typography.map(t => [t.name, t]))
+
+  const resolve = v => String(v)
+    .replace(/\{colors\.([\w-]+)\}/g, (m, k) => roles[k] ?? m)
+    .replace(/\{spacing\.([\w-]+)\}/g, (m, k) => spaceBy[k] ?? m)
+    .replace(/\{rounded\.([\w-]+)\}/g, (m, k) => roundBy[k] ?? m)
+
   const vars = {}
-  for (const [name, hex] of Object.entries(roles[mode] ?? {})) vars[`--c-${name}`] = hex
-  for (const s of spacing) vars[`--space-${s.name}`] = s.value
-  for (const r of rounded) vars[`--radius-${r.name}`] = r.value
-  for (const t of typography) {
+  for (const c of components) {
+    for (const p of c.properties ?? []) {
+      /* A typography reference isn't one value — expand it into the pieces CSS
+         actually needs, since var() can't dereference a token name. */
+      if (p.key === 'typography') {
+        const t = typeBy[p.value]
+        if (!t) continue
+        if (t.fontSize)      vars[`--cmp-${c.name}-font-size`] = t.fontSize
+        if (t.fontWeight)    vars[`--cmp-${c.name}-font-weight`] = t.fontWeight
+        if (t.fontFamily)    vars[`--cmp-${c.name}-font-family`] = t.fontFamily
+        if (t.letterSpacing) vars[`--cmp-${c.name}-tracking`] = t.letterSpacing
+        continue
+      }
+      vars[`--cmp-${c.name}-${kebab(p.key)}`] = resolve(p.value)
+    }
+  }
+  return vars
+}
+
+/** Flat `--token: value` map. The preview injects this; nothing else styles it. */
+export function buildCssVars(d, mode = 'light') {
+  const vars = {}
+  for (const [name, hex] of Object.entries(d.roles?.[mode] ?? {})) vars[`--c-${name}`] = hex
+  for (const s of d.spacing ?? []) vars[`--space-${s.name}`] = s.value
+  for (const r of d.rounded ?? []) vars[`--radius-${r.name}`] = r.value
+  for (const t of d.typography ?? []) {
     if (t.fontFamily)    vars[`--font-${t.name}-family`] = t.fontFamily
     if (t.fontSize)      vars[`--font-${t.name}-size`] = t.fontSize
     if (t.fontWeight)    vars[`--font-${t.name}-weight`] = t.fontWeight
     if (t.lineHeight)    vars[`--font-${t.name}-leading`] = t.lineHeight
     if (t.letterSpacing) vars[`--font-${t.name}-tracking`] = t.letterSpacing
+    if (t.fontFeature)   vars[`--font-${t.name}-features`] = t.fontFeature
   }
-  for (const [name, val] of Object.entries(elevation)) vars[`--shadow-${name}`] = val
-  for (const [name, val] of Object.entries(motion.durations)) vars[`--duration-${name}`] = val
-  for (const [name, val] of Object.entries(motion.easings)) vars[`--ease-${name}`] = val
+  for (const [name, val] of Object.entries(d.elevation ?? {})) vars[`--shadow-${name}`] = val
+  for (const [name, val] of Object.entries(d.motion?.durations ?? {})) vars[`--duration-${name}`] = val
+  for (const [name, val] of Object.entries(d.motion?.easings ?? {})) vars[`--ease-${name}`] = val
+  if (d.focus) {
+    vars['--focus-width'] = `${d.focus.width}px`
+    vars['--focus-offset'] = `${d.focus.offset}px`
+    vars['--focus-style'] = d.focus.style
+  }
+  for (const [name, px] of Object.entries(d.icons?.sizes ?? {})) vars[`--icon-${name}`] = `${px}px`
+  if (d.icons?.strokeWidth != null) vars['--icon-stroke'] = String(d.icons.strokeWidth)
+  if (d.icons?.gap) vars['--icon-gap'] = d.spacing?.find(s => s.name === d.icons.gap)?.value ?? '8px'
+  if (d.layout?.maxMeasure) vars['--measure'] = `${d.layout.maxMeasure}ch`
+  /* Fills blend with what's behind them; borders and shadows can't.
+     Read from the config, not `d.elevation` — that holds the shadow levels. */
+  vars['--fill-blend'] = d.elevationCfg?.fillBlend ?? 'normal'
+
+  if (d.components?.length) {
+    Object.assign(vars, buildComponentVars(d.components, {
+      roles: d.roles?.[mode] ?? {}, spacing: d.spacing ?? [], rounded: d.rounded ?? [], typography: d.typography ?? [],
+    }))
+  }
   return vars
 }
 

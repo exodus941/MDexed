@@ -11,30 +11,68 @@ export const APP_CSS = `
   --text-dim:#c0bebb;
   --accent:#dc9055;--success:#5aad80;--danger:#de5c5c;--warn:#d8a441;
   --display:'Syne',sans-serif;--sans:'DM Sans',sans-serif;--mono:'JetBrains Mono',monospace;
+  /* One duration for the whole editor. Snappier than this reads as jumpy. */
+  --t:125ms;--ease:cubic-bezier(0.2,0,0,1);
+  /* Preview surfaces sit below the page, so a live sample never reads as
+     another input. Deliberately darker than --surf3, which is input fill. */
+  --preview:#08080b;--preview-bdr:#1b1b23;
+}
+/* Toggled from the header. Kills editor chrome motion without touching the
+   preview pane, which is showing the user's own motion tokens. */
+html.no-anim *,html.no-anim *::before,html.no-anim *::after{
+  transition:none!important;animation:none!important;scroll-behavior:auto!important
 }
 body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;line-height:1.5;min-height:100vh}
-::-webkit-scrollbar{width:6px;height:6px}
-::-webkit-scrollbar-track{background:transparent}
-::-webkit-scrollbar-thumb{background:var(--bdr2);border-radius:3px}
-::-webkit-scrollbar-thumb:hover{background:var(--dim)}
+/* Wide enough to grab and dark enough to see. A 6px thumb on a transparent
+   track reads as "no scrollbar", which is worse than no styling at all. */
+*{scrollbar-width:thin;scrollbar-color:#3a3a48 transparent}
+::-webkit-scrollbar{width:11px;height:11px}
+::-webkit-scrollbar-track{background:rgba(0,0,0,.22)}
+::-webkit-scrollbar-thumb{background:#3a3a48;border-radius:6px;border:2px solid transparent;background-clip:content-box;min-height:32px}
+::-webkit-scrollbar-thumb:hover{background:#4d4d5e;background-clip:content-box}
+::-webkit-scrollbar-corner{background:transparent}
 
-input,textarea,select{font-family:var(--sans);font-size:14px;color:var(--text);background:var(--surf3);border:1px solid var(--bdr);border-radius:6px;padding:8px 11px;outline:none;transition:border-color .13s,background .13s;width:100%}
+input,textarea,select{font-family:var(--sans);font-size:14px;color:var(--text);background:var(--surf3);border:1px solid var(--bdr);border-radius:6px;padding:8px 11px;outline:none;transition:border-color var(--t) var(--ease),background var(--t) var(--ease);width:100%}
 input:focus,textarea:focus,select:focus{border-color:var(--accent);background:var(--surf2)}
 textarea{resize:vertical;min-height:90px;font-size:13px;line-height:1.6}
 label{display:block;font-size:10.5px;font-weight:500;text-transform:uppercase;letter-spacing:0.07em;color:var(--muted);margin-bottom:5px}
 
-.btn-primary{font-family:var(--sans);font-size:13px;font-weight:500;cursor:pointer;border:none;border-radius:6px;padding:7px 15px;background:var(--accent);color:#0b0b0e;transition:filter .12s}
+.btn-primary{font-family:var(--sans);font-size:13px;font-weight:500;cursor:pointer;border:none;border-radius:6px;padding:7px 15px;background:var(--accent);color:#0b0b0e;transition:filter var(--t) var(--ease)}
 .btn-primary:hover{filter:brightness(1.1)}
-.btn-ghost{font-family:var(--sans);font-size:13px;font-weight:400;cursor:pointer;border:1px solid var(--bdr);border-radius:6px;padding:7px 13px;background:transparent;color:var(--muted);transition:all .12s;display:inline-flex;align-items:center;gap:5px}
+.btn-ghost{font-family:var(--sans);font-size:13px;font-weight:400;cursor:pointer;border:1px solid var(--bdr);border-radius:6px;padding:7px 13px;background:transparent;color:var(--muted);transition:background var(--t) var(--ease),color var(--t) var(--ease),border-color var(--t) var(--ease);display:inline-flex;align-items:center;gap:5px}
 .btn-ghost:hover{background:var(--surf2);color:var(--text);border-color:var(--bdr2)}
 .btn-ghost:disabled{opacity:.4;cursor:not-allowed}
 .btn-ghost:disabled:hover{background:transparent;color:var(--muted);border-color:var(--bdr)}
-.btn-add{margin-top:8px;width:100%;padding:10px;background:rgba(220,144,85,.07);color:var(--accent);border:1px dashed rgba(220,144,85,.28);border-radius:8px;cursor:pointer;font-size:13px;font-family:var(--sans);transition:background .13s}
+.btn-add{margin-top:8px;width:100%;padding:10px;background:rgba(220,144,85,.07);color:var(--accent);border:1px dashed rgba(220,144,85,.28);border-radius:8px;cursor:pointer;font-size:13px;font-family:var(--sans);transition:background var(--t) var(--ease)}
 .btn-add:hover{background:rgba(220,144,85,.13)}
-.btn-delete{background:none;border:none;cursor:pointer;color:var(--dim);border-radius:4px;transition:color .1s;display:flex;align-items:center;justify-content:center;padding:5px}
+.btn-delete{background:none;border:none;cursor:pointer;color:var(--dim);border-radius:4px;transition:color var(--t) var(--ease);display:flex;align-items:center;justify-content:center;padding:5px}
 .btn-delete:hover{color:var(--danger)}
 
-.seg,.seg-on{font-family:var(--sans);font-size:12px;cursor:pointer;border:none;border-radius:5px;padding:5px 11px;background:transparent;color:var(--muted);transition:all .12s;white-space:nowrap}
+/* Inline delete confirmation: red tick commits, grey cross backs out. */
+.btn-confirm{background:none;border:none;cursor:pointer;border-radius:4px;display:flex;align-items:center;justify-content:center;padding:5px;transition:color var(--t) var(--ease),background var(--t) var(--ease)}
+.btn-confirm-yes{color:var(--danger)}
+.btn-confirm-yes:hover{background:rgba(222,92,92,.15)}
+.btn-confirm-no{color:var(--muted)}
+.btn-confirm-no:hover{color:var(--success);background:rgba(90,173,128,.13)}
+
+/* Live samples. Darker than any input so a preview never reads as a field. */
+.preview-box{background:var(--preview);border:1px solid var(--preview-bdr);border-radius:7px}
+
+/* The tab strip scrolls, but a visible scrollbar inside a 42px bar looks like
+   a rendering fault. Chevrons take over the job. */
+.no-bar{scrollbar-width:none;-ms-overflow-style:none}
+.no-bar::-webkit-scrollbar{display:none;width:0;height:0}
+
+/* Entrances. Overlays and popovers appearing instantly is the last obviously
+   unanimated thing in the editor. */
+@keyframes dmd-fade{from{opacity:0}to{opacity:1}}
+@keyframes dmd-pop{from{opacity:0;transform:translateY(-4px) scale(.985)}to{opacity:1;transform:none}}
+@keyframes dmd-rise{from{opacity:0;transform:translateY(8px) scale(.99)}to{opacity:1;transform:none}}
+.anim-fade{animation:dmd-fade var(--t) var(--ease) both}
+.anim-pop{animation:dmd-pop var(--t) var(--ease) both}
+.anim-rise{animation:dmd-rise var(--t) var(--ease) both}
+
+.seg,.seg-on{font-family:var(--sans);font-size:12px;cursor:pointer;border:none;border-radius:5px;padding:5px 11px;background:transparent;color:var(--muted);transition:background var(--t) var(--ease),color var(--t) var(--ease);white-space:nowrap}
 .seg:hover{color:var(--text);background:var(--surf3)}
 .seg-on{background:var(--surf3);color:var(--text);font-weight:500}
 
@@ -43,7 +81,7 @@ label{display:block;font-size:10.5px;font-weight:500;text-transform:uppercase;le
 /* Range inputs: the macro sliders live or die on these feeling right */
 input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:18px;background:transparent;padding:0;border:none}
 input[type=range]::-webkit-slider-runnable-track{height:3px;border-radius:2px;background:var(--bdr2)}
-input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:13px;height:13px;border-radius:50%;background:var(--accent);margin-top:-5px;cursor:grab;border:none;transition:transform .1s}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:13px;height:13px;border-radius:50%;background:var(--accent);margin-top:-5px;cursor:grab;border:none;transition:transform var(--t) var(--ease)}
 input[type=range]:active::-webkit-slider-thumb{cursor:grabbing;transform:scale(1.15)}
 input[type=range]::-moz-range-track{height:3px;border-radius:2px;background:var(--bdr2)}
 input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;background:var(--accent);border:none;cursor:grab}
@@ -52,7 +90,7 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;bac
 .num::-webkit-outer-spin-button,.num::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 .num[type=number]{-moz-appearance:textfield}
 
-.swatch{border-radius:5px;border:1px solid rgba(255,255,255,.08);cursor:pointer;position:relative;flex-shrink:0;transition:transform .1s}
+.swatch{border-radius:5px;border:1px solid rgba(255,255,255,.08);cursor:pointer;position:relative;flex-shrink:0;transition:transform var(--t) var(--ease)}
 .swatch:hover{transform:scale(1.06);z-index:1}
 
 .panel-note{font-size:12px;color:var(--muted);line-height:1.55}
