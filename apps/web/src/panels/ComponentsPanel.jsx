@@ -30,6 +30,8 @@ function optionsFor(propKey, derived) {
   if (propKey === 'rounded') return derived.rounded.map(r => `{rounded.${r.name}}`)
   if (propKey === 'typography') return derived.typography.map(t => t.name)
   if (propKey === 'boxShadow') return ['none', ...Object.values(derived.elevation).filter(v => v !== 'none')]
+  /* Gradients are the only images a component fill is likely to want. */
+  if (propKey === 'backgroundImage') return ['none', ...(derived.gradients ?? []).map(g => `{gradient.${g.name}}`)]
   if (propKey === 'opacity') return ['1', '0.5', '0.38', '0']
   if (SPACING_PROPS.includes(propKey)) {
     return [...derived.spacing.map(s => `{spacing.${s.name}}`), ...derived.spacing.slice(2, 7).map(s => `0 {spacing.${s.name}}`)]
@@ -76,6 +78,12 @@ function resolveValue(value, derived, mode) {
     if (group === 'spacing') return { kind: 'text', value: derived.spacing.find(s => s.name === key)?.value }
   }
   if (/^#|^rgb|^hsl/.test(str)) return { kind: 'color', value: str }
+  const grad = /^\{gradient\.([\w-]+)\}$/.exec(str)
+  if (grad) {
+    const css = (derived.gradients ?? []).find(g => g.name === grad[1])?.css
+    return css ? { kind: 'gradient', value: css } : null
+  }
+  if (/-gradient\(/.test(str)) return { kind: 'gradient', value: str }
   /* Compound values like `0 {spacing.md}` still resolve, one token at a time. */
   if (str.includes('{')) {
     const out = str.replace(/\{spacing\.([a-zA-Z0-9_-]+)\}/g, (m, k) => derived.spacing.find(s => s.name === k)?.value ?? m)
@@ -132,6 +140,9 @@ function PropRow({ entryName, propKey, defaultValue, override, onSet, onReset, d
               <span className="swatch" style={{ width: 13, height: 13, background: resolved.value, cursor: 'default' }} />
               <code style={{ fontFamily: 'var(--mono)', fontSize: 8.5, color: 'var(--dim)', overflow: 'hidden', textOverflow: 'ellipsis' }}>{resolved.value}</code>
             </>
+          )}
+          {resolved?.kind === 'gradient' && (
+            <span style={{ width: 34, height: 13, borderRadius: 3, background: resolved.value, border: '1px solid rgba(255,255,255,.1)', flexShrink: 0 }} />
           )}
           {resolved?.kind === 'text' && (
             <code style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'var(--dim)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{resolved.value}</code>

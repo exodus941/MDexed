@@ -42,7 +42,8 @@ export const PREVIEW_CSS = `
 
 /* ── Surfaces ── */
 .dmd .card {
-  background: ${cm('card', 'background-color', c('surface', '#fff'))};
+  background-color: ${cm('card', 'background-color', c('surface', '#fff'))};
+  background-image: ${cm('card', 'background-image', 'none')};
   border: 1px solid ${cm('card', 'border-color', c('border-subtle', '#eee'))};
   border-radius: ${cm('card', 'rounded', rd('lg', '16px'))};
   padding: ${cm('card', 'padding', sp('md', '16px'))};
@@ -83,7 +84,8 @@ export const PREVIEW_CSS = `
 /* Filled elements carry the fill blend mode; borders and shadows never do —
    CSS has no equivalent for those. */
 .dmd .btn-primary {
-  background: ${cm('button-primary', 'background-color', c('accent', '#b8422e'))};
+  background-color: ${cm('button-primary', 'background-color', c('accent', '#b8422e'))};
+  background-image: ${cm('button-primary', 'background-image', 'none')};
   color: ${cm('button-primary', 'text-color', c('accent-fg', '#fff'))};
   border-color: ${cm('button-primary', 'border-color', 'transparent')};
   mix-blend-mode: var(--fill-blend, normal);
