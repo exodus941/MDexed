@@ -1,7 +1,7 @@
 /* Forms are where a colour system usually fails first: placeholder against
    field, error against surface, focus ring against page. Kept on screen so
    those pairings can't quietly break. */
-import { inspectProps } from '../Gallery.jsx'
+import { inspectProps } from '../inspect.js'
 export default function Form({ onInspect }) {
   const ins = entry => inspectProps(entry, onInspect)
   return (

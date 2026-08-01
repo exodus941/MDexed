@@ -21,22 +21,8 @@ const IconInfo = <><circle cx="12" cy="12" r="9" /><path d="M12 16v-4M12 8h.01" 
 const IconStar = <path d="M12 3l2.6 5.6 6 .8-4.4 4.2 1.1 6.1L12 16.8 6.7 19.7l1.1-6.1L3.4 9.4l6-.8z" />
 const IconFolder = <path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
 
-/* Clicking any sample jumps the left pane to that entry's properties.
-   Alt-click still lets you interact with the control itself. */
-export function inspectProps(entry, onInspect) {
-  if (!onInspect) return {}
-  return {
-    'data-cmp': entry,
-    title: `${entry} — click to edit`,
-    onClickCapture: e => {
-      if (e.altKey) return
-      e.preventDefault()
-      e.stopPropagation()
-      onInspect(entry)
-    },
-    style: { cursor: 'pointer' },
-  }
-}
+export { inspectProps, cmp, role, type } from './inspect.js'
+import { inspectProps } from './inspect.js'
 
 function Section({ title, note, children }) {
   return (

@@ -4,7 +4,7 @@
    right. It reads the scales generated there and maps them to intent — which
    is the layer the exported file leads with, because `surface-raised` tells an
    agent how to build a card and `neutral-800` doesn't. */
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useStore } from '../state/store.jsx'
 import { ROLE_GROUPS, CONTRAST_PAIRS } from '../state/schema.js'
 import { RAMP_STEPS } from '../color/ramp.js'
@@ -13,8 +13,18 @@ import { generateCounterpart, clearOverridesFor } from '../color/modes.js'
 import ColorPicker from '../ui/ColorPicker.jsx'
 import { SectionHeader, Collapsible, Segmented, OverrideBadge, Banner } from '../ui/controls.jsx'
 
-function RoleRow({ role, roles, refs, ramps, overrides, onSetRef, onOverride, onResetOverride, scope }) {
+function RoleRow({ role, roles, refs, ramps, overrides, onSetRef, onOverride, onResetOverride, scope, inspect }) {
   const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+  const targeted = inspect?.entry === role.name
+
+  useEffect(() => {
+    if (!targeted) return
+    setOpen(true)
+    const id = requestAnimationFrame(() => ref.current?.scrollIntoView({ block: 'center', behavior: 'smooth' }))
+    const t = setTimeout(() => ref.current?.scrollIntoView({ block: 'center' }), 120)
+    return () => { cancelAnimationFrame(id); clearTimeout(t) }
+  }, [targeted, inspect?.at])
   const options = [
     ...Object.keys(ramps).flatMap(r => RAMP_STEPS.map(s => `${r}.${s}`)),
     'white', 'black',
@@ -24,7 +34,11 @@ function RoleRow({ role, roles, refs, ramps, overrides, onSetRef, onOverride, on
   const modes = scope === 'both' ? ['light', 'dark'] : [scope]
 
   return (
-    <div style={{ borderBottom: '1px solid var(--bdr)' }}>
+    <div ref={ref} style={{
+      borderBottom: '1px solid var(--bdr)',
+      ...(targeted && { background: 'rgba(220,144,85,.07)', boxShadow: '0 0 0 1px rgba(220,144,85,.45)', borderRadius: 7 }),
+      transition: 'background var(--t) var(--ease)',
+    }}>
       <div onClick={() => setOpen(o => !o)}
         style={{ display: 'grid', gridTemplateColumns: `1fr ${modes.map(() => '22px').join(' ')}`, gap: 8, alignItems: 'center', padding: '7px 2px', cursor: 'pointer' }}>
         <div style={{ minWidth: 0 }}>
@@ -169,7 +183,7 @@ function ContrastReport({ roles, mode }) {
   )
 }
 
-export default function RolesPanel() {
+export default function RolesPanel({ inspect }) {
   const { state, derived, set } = useStore()
   const { color } = state
   const { ramps, roles } = derived
@@ -188,6 +202,7 @@ export default function RolesPanel() {
     roleOverrides: clearOverridesFor(c.roleOverrides, from === 'light' ? 'dark' : 'light'),
   }))
 
+  const targetGroup = inspect ? ROLE_GROUPS.find(g => g.roles.some(r => r.name === inspect.entry))?.id : null
   const overrideCount = Object.keys(color.roleOverrides ?? {}).length
   const failing = CONTRAST_PAIRS.filter(p => {
     const r = check(roles[color.mode][p.fg], roles[color.mode][p.bg])
@@ -222,7 +237,8 @@ export default function RolesPanel() {
       </Collapsible>
 
       {ROLE_GROUPS.map(group => (
-        <Collapsible key={group.id} title={group.label} note={String(group.roles.length)} defaultOpen={group.id === 'surface'}>
+        <Collapsible key={`${group.id}${targetGroup === group.id ? `:${inspect.at}` : ''}`} title={group.label}
+          note={String(group.roles.length)} defaultOpen={group.id === 'surface' || targetGroup === group.id}>
           <p className="panel-note" style={{ marginBottom: 8 }}>{group.desc}</p>
           <div style={{ display: 'grid', gridTemplateColumns: scope === 'both' ? '1fr 22px 22px' : '1fr 22px', gap: 8, paddingBottom: 3, borderBottom: '1px solid var(--bdr)' }}>
             <span />
@@ -232,7 +248,7 @@ export default function RolesPanel() {
           </div>
           {group.roles.map(role => (
             <RoleRow key={role.name} role={role} roles={roles} refs={color.roles} ramps={ramps}
-              overrides={color.roleOverrides ?? {}} scope={scope}
+              overrides={color.roleOverrides ?? {}} scope={scope} inspect={inspect}
               onSetRef={setRoleRef} onOverride={setRoleOverride} onResetOverride={resetRole} />
           ))}
         </Collapsible>

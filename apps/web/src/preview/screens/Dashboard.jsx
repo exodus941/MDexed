@@ -1,7 +1,7 @@
 /* A realistic composed screen. The point isn't the content — it's seeing
    whether surfaces, borders, text hierarchy and accent usage hold together
    once they're stacked, which a swatch grid can never tell you. */
-import { inspectProps } from '../Gallery.jsx'
+import { inspectProps } from '../inspect.js'
 export default function Dashboard({ onInspect }) {
   const ins = entry => inspectProps(entry, onInspect)
   const rows = [
