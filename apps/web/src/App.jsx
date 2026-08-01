@@ -382,26 +382,25 @@ function TabStrip({ tabs, active, onSelect, right }) {
       borderBottom: '1px solid var(--bdr)', background: 'var(--surf)', paddingRight: 10,
       position: 'relative',
     }}>
+      {/* Name and arrow are one control — the whole thing opens the menu, and
+          the underline spans the full hit area rather than just the label. */}
       <div style={{ display: 'flex', alignItems: 'stretch', flexShrink: 0, paddingLeft: 14 }}>
-        <span style={{
-          display: 'flex', alignItems: 'center', padding: '0 9px', fontFamily: 'var(--sans)',
-          fontSize: 12.5, fontWeight: 500, color: 'var(--text)', whiteSpace: 'nowrap',
-          borderBottom: '2px solid var(--accent)', marginBottom: -1,
-        }}>{activeTab.label}</span>
-
-        <button onClick={() => setMenuOpen(o => !o)} title="All tabs"
+        <button onClick={() => setMenuOpen(o => !o)} title="Switch tab"
           style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center', width: 48,
-            padding: 0, background: 'none', border: 'none',
-            cursor: 'pointer', color: menuOpen ? 'var(--accent)' : 'var(--muted)',
+            display: 'flex', alignItems: 'center', gap: 8, padding: '0 14px 0 9px',
+            background: 'none', border: 'none', cursor: 'pointer',
+            fontFamily: 'var(--sans)', fontSize: 12.5, fontWeight: 500, whiteSpace: 'nowrap',
+            color: menuOpen ? 'var(--accent)' : 'var(--text)',
+            borderBottom: '2px solid var(--accent)', marginBottom: -1,
             transition: 'color var(--t) var(--ease)',
           }}>
+          {activeTab.label}
           <svg width={11} height={11} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"
-            style={{ transform: menuOpen ? 'rotate(180deg)' : 'none', transition: 'transform var(--t) var(--ease)' }}>
+            style={{ transform: menuOpen ? 'rotate(180deg)' : 'none', transition: 'transform var(--t) var(--ease)', opacity: .8 }}>
             <polyline points="6 9 12 15 18 9" />
           </svg>
         </button>
-        <span style={{ alignSelf: 'center', width: 1, height: 18, background: 'var(--bdr)', marginRight: 2 }} />
+        <span style={{ alignSelf: 'center', width: 1, height: 18, background: 'var(--bdr)', margin: '0 2px' }} />
       </div>
 
       {menuOpen && (

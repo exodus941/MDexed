@@ -104,23 +104,27 @@ export function Expand({ open, children }) {
   )
 }
 
-/** Inline search for long lists — sits in a card header beside its count. */
+/**
+ * Inline search for long lists — sits in a card header beside its count.
+ * Deliberately unlike a chip: inset well, pill shape, brighter edge and a
+ * legible magnifier, so an input never reads as a static badge.
+ */
 export function FilterField({ value, onChange, placeholder = 'Filter', width = 128 }) {
   return (
-    <div style={{ position: 'relative', width, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
-      <svg width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round"
-        style={{ position: 'absolute', left: 7, top: '50%', transform: 'translateY(-50%)', color: value ? 'var(--accent)' : 'var(--dim)', pointerEvents: 'none' }}>
+    <div className={`filter-field${value ? ' has-value' : ''}`}
+      style={{ position: 'relative', width, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
+      <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.6} strokeLinecap="round"
+        style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', color: value ? 'var(--accent)' : 'var(--muted)', pointerEvents: 'none' }}>
         <circle cx="11" cy="11" r="7" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
       </svg>
       <input value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
         style={{
-          fontSize: 11, padding: '3px 20px 3px 21px', fontFamily: 'var(--mono)',
-          borderColor: value ? 'rgba(220,144,85,.4)' : 'var(--bdr)',
-          color: value ? 'var(--accent)' : 'var(--muted)',
+          fontSize: 11, padding: '4px 22px 4px 25px', fontFamily: 'var(--sans)',
+          color: value ? 'var(--accent)' : 'var(--text-dim)',
         }} />
       {value && (
         <button onClick={() => onChange('')} title="Clear"
-          style={{ position: 'absolute', right: 4, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', fontSize: 13, lineHeight: 1, padding: 2 }}>×</button>
+          style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', fontSize: 14, lineHeight: 1, padding: 0 }}>×</button>
       )}
     </div>
   )

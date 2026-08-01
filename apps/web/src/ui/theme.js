@@ -2,7 +2,7 @@
    The app is dark and fixed; the thing being designed sits inside it and must
    never inherit any of this. */
 export const APP_CSS = `
-@import url('https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
   --bg:#0b0b0e;--surf:#131318;--surf2:#191920;--surf3:#20202a;
@@ -10,7 +10,7 @@ export const APP_CSS = `
   --text:#e0dedd;--muted:#74727a;--dim:#3e3e4a;
   --text-dim:#c0bebb;
   --accent:#dc9055;--success:#5aad80;--danger:#de5c5c;--warn:#d8a441;
-  --display:'Syne',sans-serif;--sans:'DM Sans',sans-serif;--mono:'JetBrains Mono',monospace;
+  --display:'Plus Jakarta Sans',system-ui,sans-serif;--sans:'Plus Jakarta Sans',system-ui,sans-serif;--mono:'JetBrains Mono',monospace;
   /* One duration for the whole editor. Snappier than this reads as jumpy. */
   --t:125ms;--ease:cubic-bezier(0.2,0,0,1);
   /* Preview surfaces sit below the page, so a live sample never reads as
@@ -82,6 +82,16 @@ label{display:block;font-size:10.5px;font-weight:500;text-transform:uppercase;le
 .seg-on{background:var(--surf3);color:var(--text);font-weight:500}
 
 .chip{font-family:var(--mono);font-size:10.5px;padding:2px 7px;border-radius:4px;background:var(--surf3);border:1px solid var(--bdr);color:var(--muted);white-space:nowrap}
+
+/* A search field must not read as a chip. Chips are flat --surf3 with a dim
+   border; this is inset, brighter-edged and carries a visible magnifier. */
+.filter-field input{
+  background:var(--bg);border:1px solid var(--bdr2);border-radius:999px;
+  box-shadow:inset 0 1px 2px rgba(0,0,0,.35)
+}
+.filter-field input::placeholder{color:var(--dim)}
+.filter-field input:focus{border-color:var(--accent);background:var(--bg)}
+.filter-field.has-value input{border-color:rgba(220,144,85,.55)}
 
 /* Range inputs: the macro sliders live or die on these feeling right */
 input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:18px;background:transparent;padding:0;border:none}
