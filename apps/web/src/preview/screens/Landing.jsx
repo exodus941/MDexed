@@ -14,7 +14,7 @@ export default function Landing({ onInspect }) {
       <div className="row" style={{ justifyContent: 'space-between' }}>
         <div className="row">
           <div className="avatar" {...ins('avatar')}>N</div>
-          <strong style={{ fontSize: 'var(--font-body-md-size, 16px)' }}>Northwind</strong>
+          <strong {...text('text', 'body-md')} style={{ fontSize: 'var(--font-body-md-size, 16px)', cursor: onInspect ? 'pointer' : undefined }}>Northwind</strong>
         </div>
         <div className="row">
           <span className="nav-item" {...ins('nav-item')}>Pricing</span>

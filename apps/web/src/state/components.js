@@ -12,7 +12,9 @@
 export const COMPONENT_LIBRARY = [
   {
     name: 'button', label: 'Button', group: 'Actions', on: true,
-    base: { rounded: '{rounded.md}', typography: 'button', gap: '{spacing.xs}' },
+    /* iconSize is per-component and per-size: a 28px button wants a smaller
+       glyph than a 44px one, and the global icon scale can't express that. */
+    base: { rounded: '{rounded.md}', typography: 'button', gap: '{spacing.xs}', iconSize: '{icons.md}' },
     variants: {
       /* backgroundImage takes a `{gradient.name}` reference. It sits above the
          fill colour when set, and is dropped from the output when 'none'. */
@@ -25,9 +27,9 @@ export const COMPONENT_LIBRARY = [
        icon and label than a 44px one; the icon-gap token is the default, and
        these override it per size. */
     sizes: {
-      sm: { height: '28px', padding: '0 {spacing.sm}',  typography: 'caption',  gap: '{spacing.3xs}' },
-      md: { height: '36px', padding: '0 {spacing.md}',  typography: 'button',   gap: '{spacing.2xs}' },
-      lg: { height: '44px', padding: '0 {spacing.lg}',  typography: 'body-md',  gap: '{spacing.xs}' },
+      sm: { height: '28px', padding: '0 {spacing.sm}',  typography: 'caption',  gap: '{spacing.3xs}', iconSize: '{icons.sm}' },
+      md: { height: '36px', padding: '0 {spacing.md}',  typography: 'button',   gap: '{spacing.2xs}', iconSize: '{icons.md}' },
+      lg: { height: '44px', padding: '0 {spacing.lg}',  typography: 'body-md',  gap: '{spacing.xs}',  iconSize: '{icons.lg}' },
     },
     states: {
       hover:    { primary: { backgroundColor: '{colors.accent-hover}' }, secondary: { backgroundColor: '{colors.bg-subtle}' }, ghost: { backgroundColor: '{colors.accent-subtle}', textColor: '{colors.accent}' }, danger: { backgroundColor: '{colors.danger}' } },
@@ -105,7 +107,7 @@ export const COMPONENT_LIBRARY = [
   },
   {
     name: 'alert', label: 'Alert', group: 'Feedback', on: true,
-    base: { rounded: '{rounded.md}', padding: '{spacing.sm} {spacing.md}', typography: 'body-sm', gap: '{spacing.sm}' },
+    base: { rounded: '{rounded.md}', padding: '{spacing.sm} {spacing.md}', typography: 'body-sm', gap: '{spacing.sm}', iconSize: '{icons.md}' },
     variants: {
       info:    { backgroundColor: '{colors.bg-subtle}',      textColor: '{colors.text}',    borderColor: '{colors.border-subtle}' },
       success: { backgroundColor: '{colors.success-subtle}', textColor: '{colors.success}', borderColor: '{colors.success}' },
@@ -130,7 +132,7 @@ export const COMPONENT_LIBRARY = [
   },
   {
     name: 'nav-item', label: 'Nav item', group: 'Navigation', on: true,
-    base: { rounded: '{rounded.md}', padding: '{spacing.xs} {spacing.sm}', typography: 'body-sm', textColor: '{colors.text-muted}' },
+    base: { rounded: '{rounded.md}', padding: '{spacing.xs} {spacing.sm}', typography: 'body-sm', textColor: '{colors.text-muted}', gap: '{spacing.2xs}', iconSize: '{icons.md}' },
     states: {
       hover:    { _: { backgroundColor: '{colors.bg-subtle}', textColor: '{colors.text}' } },
       selected: { _: { backgroundColor: '{colors.accent-subtle}', textColor: '{colors.accent}' } },

@@ -30,6 +30,11 @@ export const PREVIEW_CSS = `
   transition: background var(--duration-normal, 200ms) var(--ease-standard, ease);
 }
 .dmd *, .dmd *::before, .dmd *::after { box-sizing: border-box; }
+/* Disabled controls swallow pointer events entirely, so a click on one never
+   reaches the wrapper that knows where to send you. In the preview nothing is
+   really interactive anyway — the click is for inspection. */
+.dmd [disabled], .dmd .is-disabled { pointer-events: none; }
+.dmd [data-cmp] [disabled], .dmd [data-cmp] .is-disabled { pointer-events: none; }
 .dmd h1, .dmd h2, .dmd h3 { margin: 0; }
 .dmd h1 { font-family: ${ft('h1', 'family', 'inherit')}; font-size: ${ft('h1', 'size', '48px')}; font-weight: ${ft('h1', 'weight', '700')}; line-height: ${ft('h1', 'leading', '1.1')}; letter-spacing: ${ft('h1', 'tracking', 'normal')}; }
 .dmd h2 { font-family: ${ft('h2', 'family', 'inherit')}; font-size: ${ft('h2', 'size', '32px')}; font-weight: ${ft('h2', 'weight', '700')}; line-height: ${ft('h2', 'leading', '1.2')}; letter-spacing: ${ft('h2', 'tracking', 'normal')}; }
@@ -183,6 +188,12 @@ export const PREVIEW_CSS = `
 /* Icon + label pairings, wherever they appear. One gap token governs them all. */
 .dmd .with-icon { display: inline-flex; align-items: center; gap: var(--icon-gap, 8px); }
 .dmd .icon { flex-shrink: 0; }
+/* Per-component icon sizing overrides the global scale, so a small button can
+   carry a smaller glyph than a large one. */
+.dmd .btn .icon { width: ${cm('button-md', 'icon-size', cm('button', 'icon-size', 'var(--icon-md, 16px)'))}; height: ${cm('button-md', 'icon-size', cm('button', 'icon-size', 'var(--icon-md, 16px)'))}; }
+.dmd .btn-sm .icon { width: ${cm('button-sm', 'icon-size', 'var(--icon-sm, 14px)')}; height: ${cm('button-sm', 'icon-size', 'var(--icon-sm, 14px)')}; }
+.dmd .btn-lg .icon { width: ${cm('button-lg', 'icon-size', 'var(--icon-lg, 20px)')}; height: ${cm('button-lg', 'icon-size', 'var(--icon-lg, 20px)')}; }
+.dmd .nav-item .icon { width: ${cm('nav-item', 'icon-size', 'var(--icon-md, 16px)')}; height: ${cm('nav-item', 'icon-size', 'var(--icon-md, 16px)')}; }
 .dmd svg { stroke-width: var(--icon-stroke, 1.75); }
 .dmd .icon-btn {
   display: inline-flex; align-items: center; justify-content: center;

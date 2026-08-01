@@ -77,6 +77,55 @@ export function Collapsible({ title, note, children, defaultOpen = false, right 
   )
 }
 
+/**
+ * Animated show/hide for anything that isn't a full Collapsible — expanded
+ * rows, inline editors, selected-step panels. Conditional rendering alone
+ * pops; this gives the same 0fr→1fr height transition and unmounts after.
+ */
+export function Expand({ open, children }) {
+  const [mounted, setMounted] = useState(open)
+
+  useEffect(() => {
+    if (open) { setMounted(true); return }
+    const ms = uiDuration()
+    if (!ms) { setMounted(false); return }
+    const t = setTimeout(() => setMounted(false), ms)
+    return () => clearTimeout(t)
+  }, [open])
+
+  return (
+    <div style={{
+      display: 'grid',
+      gridTemplateRows: open ? '1fr' : '0fr',
+      transition: 'grid-template-rows var(--t) var(--ease)',
+    }}>
+      <div style={{ overflow: 'hidden', minHeight: 0 }}>{mounted && children}</div>
+    </div>
+  )
+}
+
+/** Inline search for long lists — sits in a card header beside its count. */
+export function FilterField({ value, onChange, placeholder = 'Filter', width = 128 }) {
+  return (
+    <div style={{ position: 'relative', width, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
+      <svg width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round"
+        style={{ position: 'absolute', left: 7, top: '50%', transform: 'translateY(-50%)', color: value ? 'var(--accent)' : 'var(--dim)', pointerEvents: 'none' }}>
+        <circle cx="11" cy="11" r="7" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+      </svg>
+      <input value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
+        style={{
+          fontSize: 11, padding: '3px 20px 3px 21px', fontFamily: 'var(--mono)',
+          borderColor: value ? 'rgba(220,144,85,.4)' : 'var(--bdr)',
+          color: value ? 'var(--accent)' : 'var(--muted)',
+        }} />
+      {value && (
+        <button onClick={() => onChange('')} title="Clear"
+          style={{ position: 'absolute', right: 4, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', fontSize: 13, lineHeight: 1, padding: 2 }}>×</button>
+      )}
+    </div>
+  )
+}
+
 /** Circular-arrow reset. Dimmed rather than hidden, so the control never shifts. */
 export function ResetButton({ onClick, disabled, title = 'Reset to default' }) {
   return (
