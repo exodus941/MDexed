@@ -1,6 +1,6 @@
-/* The component matrix.
+﻿/* The component matrix.
 
-   Nothing here is stored until you change it — the library supplies defaults
+   Nothing here is stored until you change it â€” the library supplies defaults
    and only edits are persisted. Entries are shown under the exact name they
    will carry in the file, so the hyphenated flattening the spec requires
    (`button-primary-hover`) is visible while you work rather than a surprise
@@ -9,7 +9,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useStore } from '../state/store.jsx'
 import { COMPONENT_LIBRARY, COMPONENT_GROUPS } from '../state/components.js'
 import { SPEC_COMPONENT_PROPS } from '../emit/yaml.js'
-import { SectionHeader, Toggle, ResetButton, Banner, Collapsible } from '../ui/controls.jsx'
+import { SectionHeader, Toggle, ResetButton, Banner, Collapsible, Expand, FilterField } from '../ui/controls.jsx'
 
 /* Which token group a property should draw from. Offering `{colors.*}` for a
    padding field is noise; offering nothing at all is what made these look like
@@ -17,11 +17,12 @@ import { SectionHeader, Toggle, ResetButton, Banner, Collapsible } from '../ui/c
 const COLOR_PROPS = ['backgroundColor', 'textColor', 'borderColor', 'outlineColor', 'fill', 'stroke']
 /* Spacing steps are the right vocabulary for gaps between things. */
 const SPACING_PROPS = ['padding', 'gap', 'margin']
-/* Dimensions are not spacing steps — a control's height is its own decision,
+/* Dimensions are not spacing steps â€” a control's height is its own decision,
    so these get plain pixel values rather than `{spacing.*}` references. */
-const SIZE_PROPS = ['height', 'width', 'size', 'minHeight', 'maxHeight', 'outlineOffset']
+const SIZE_PROPS = ['height', 'width', 'size', 'minHeight', 'maxHeight', 'outlineOffset', 'iconSize']
 
 const PX_SUGGESTIONS = ['20px', '24px', '28px', '32px', '36px', '40px', '44px', '48px', '56px', '64px']
+const ICON_SUGGESTIONS = ['{icons.sm}', '{icons.md}', '{icons.lg}', '{icons.xl}', '12px', '14px', '16px', '18px', '20px', '24px']
 
 function optionsFor(propKey, derived) {
   if (COLOR_PROPS.includes(propKey)) {
@@ -36,6 +37,7 @@ function optionsFor(propKey, derived) {
   if (SPACING_PROPS.includes(propKey)) {
     return [...derived.spacing.map(s => `{spacing.${s.name}}`), ...derived.spacing.slice(2, 7).map(s => `0 {spacing.${s.name}}`)]
   }
+  if (propKey === 'iconSize') return ICON_SUGGESTIONS
   if (SIZE_PROPS.includes(propKey)) return PX_SUGGESTIONS
   return []
 }
@@ -84,6 +86,11 @@ function resolveValue(value, derived, mode) {
     return css ? { kind: 'gradient', value: css } : null
   }
   if (/-gradient\(/.test(str)) return { kind: 'gradient', value: str }
+  const icon = /^\{icons\.([\w-]+)\}$/.exec(str)
+  if (icon) {
+    const px = derived.icons?.sizes?.[icon[1]]
+    return px != null ? { kind: 'text', value: `${px}px` } : null
+  }
   /* Compound values like `0 {spacing.md}` still resolve, one token at a time. */
   if (str.includes('{')) {
     const out = str.replace(/\{spacing\.([a-zA-Z0-9_-]+)\}/g, (m, k) => derived.spacing.find(s => s.name === k)?.value ?? m)
@@ -159,7 +166,7 @@ function PropRow({ entryName, propKey, defaultValue, override, onSet, onReset, d
         }}>!</span>
 
         {/* The orange border already says "overridden", so this is just the
-            way back — dimmed, not hidden, so the row never reflows. */}
+            way back â€” dimmed, not hidden, so the row never reflows. */}
         <ResetButton onClick={() => onReset(key)} disabled={!set} title="Reset to the default value" />
       </div>
 
@@ -170,7 +177,7 @@ function PropRow({ entryName, propKey, defaultValue, override, onSet, onReset, d
           {spaceTarget ? (
             <input type="range" min={0} max={derived.spacing.length - 1} step={1} value={spaceTarget.idx}
               onChange={e => nudgeSpacing(Number(e.target.value))}
-              title={`Spacing step — ${derived.spacing[spaceTarget.idx]?.name}`}
+              title={`Spacing step â€” ${derived.spacing[spaceTarget.idx]?.name}`}
               style={{ height: 13 }} />
           ) : (
             <input type="range" min={0} max={80} step={1} value={sizePx}
@@ -183,9 +190,16 @@ function PropRow({ entryName, propKey, defaultValue, override, onSet, onReset, d
   )
 }
 
-function EntryBlock({ title, entryName, props, overrides, onSet, onReset, derived, mode, inspect }) {
+/** Keep a property if the entry name, the key or the value matches. */
+const matches = (query, entryName, key, value) => {
+  if (!query) return true
+  const q = query.toLowerCase()
+  return entryName.toLowerCase().includes(q) || key.toLowerCase().includes(q) || String(value).toLowerCase().includes(q)
+}
+
+function EntryBlock({ title, entryName, props, overrides, onSet, onReset, derived, mode, inspect, query }) {
   const ref = useRef(null)
-  /* The jump targets the exact entry — clicking a small button lands on
+  /* The jump targets the exact entry â€” clicking a small button lands on
      `button-sm`, not merely somewhere inside Button. */
   const targeted = inspect?.entry === entryName
 
@@ -193,8 +207,14 @@ function EntryBlock({ title, entryName, props, overrides, onSet, onReset, derive
     if (!targeted) return
     /* One frame, so the accordion has laid out before we measure. */
     const id = requestAnimationFrame(() => ref.current?.scrollIntoView({ block: 'center', behavior: 'smooth' }))
-    return () => cancelAnimationFrame(id)
+    const t = setTimeout(() => ref.current?.scrollIntoView({ block: 'center' }), 140)
+    return () => { cancelAnimationFrame(id); clearTimeout(t) }
   }, [targeted, inspect?.at])
+
+  /* Filtered after the hooks â€” an early return above them would change the
+     hook order between renders. */
+  const shown = Object.entries(props).filter(([k, v]) => matches(query, entryName, k, overrides[`${entryName}.${k}`] ?? v))
+  if (!shown.length) return null
 
   return (
     <div ref={ref} style={{
@@ -212,7 +232,7 @@ function EntryBlock({ title, entryName, props, overrides, onSet, onReset, derive
         {targeted && <span className="chip" style={{ color: 'var(--accent)', borderColor: 'rgba(220,144,85,.4)' }}>from preview</span>}
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-        {Object.entries(props).map(([k, v]) => (
+        {shown.map(([k, v]) => (
           <PropRow key={k} entryName={entryName} propKey={k} defaultValue={String(v)}
             override={overrides[`${entryName}.${k}`]} onSet={onSet} onReset={onReset}
             derived={derived} mode={mode} />
@@ -224,13 +244,14 @@ function EntryBlock({ title, entryName, props, overrides, onSet, onReset, derive
 
 function ComponentBlock({ def, cfg, onToggle, onSet, onReset, derived, mode, inspect }) {
   const [open, setOpen] = useState(false)
+  const [query, setQuery] = useState('')
   const enabled = cfg.enabled[def.name] ?? def.on
   const overrides = cfg.overrides ?? {}
   const ref = useRef(null)
 
   /* A click in the gallery opens the owning component and scrolls to it. */
   const targeted = inspect && entriesFor(def, cfg).includes(inspect.entry)
-  /* Only opens the component — the matching EntryBlock does the scrolling, so
+  /* Only opens the component â€” the matching EntryBlock does the scrolling, so
      the view lands on the exact entry rather than the top of the block. */
   useEffect(() => { if (targeted) setOpen(true) }, [targeted, inspect?.at])
 
@@ -253,30 +274,38 @@ function ComponentBlock({ def, cfg, onToggle, onSet, onReset, derived, mode, ins
         <input type="checkbox" checked={enabled} onChange={e => onToggle(def.name, e.target.checked)}
           style={{ width: 14, height: 14, accentColor: 'var(--accent)', padding: 0, flexShrink: 0 }} />
         <button onClick={() => setOpen(o => !o)} disabled={!enabled}
-          style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', cursor: enabled ? 'pointer' : 'default', color: 'var(--text)', textAlign: 'left', padding: 0, fontFamily: 'var(--sans)' }}>
+          style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', cursor: enabled ? 'pointer' : 'default', color: 'var(--text)', textAlign: 'left', padding: 0, fontFamily: 'var(--sans)', minWidth: 0 }}>
           <span style={{ fontSize: 13, flex: 1 }}>{def.label}</span>
           {touched > 0 && <span className="chip" style={{ color: 'var(--accent)' }}>{touched}</span>}
           <span className="chip">{entryCount}</span>
         </button>
+        {/* Search within the component: a Button expands to 15 entries and
+            scrolling for `gap` is a waste of a scroll wheel. */}
+        {open && enabled && <FilterField value={query} onChange={setQuery} placeholder="gap, colourâ€¦" width={124} />}
       </div>
-      {open && enabled && (
+      <Expand open={open && enabled}>
         <div style={{ padding: '11px 13px', borderTop: '1px solid var(--bdr)', background: 'var(--surf2)' }}>
-          {def.base && <EntryBlock entryName={def.name} title="base" props={def.base} overrides={overrides} onSet={onSet} onReset={onReset} derived={derived} mode={mode} inspect={inspect} />}
+          {query && (
+            <div style={{ fontSize: 10.5, color: 'var(--muted)', marginBottom: 8 }}>
+              Showing properties matching <code style={{ fontFamily: 'var(--mono)', color: 'var(--accent)' }}>{query}</code>
+            </div>
+          )}
+          {def.base && <EntryBlock entryName={def.name} title="base" props={def.base} overrides={overrides} onSet={onSet} onReset={onReset} derived={derived} mode={mode} inspect={inspect} query={query} />}
           {Object.entries(def.variants ?? {}).map(([v, props]) => (
-            <EntryBlock key={v} entryName={`${def.name}-${v}`} title="variant" props={props} overrides={overrides} onSet={onSet} onReset={onReset} derived={derived} mode={mode} inspect={inspect} />
+            <EntryBlock key={v} entryName={`${def.name}-${v}`} title="variant" props={props} overrides={overrides} onSet={onSet} onReset={onReset} derived={derived} mode={mode} inspect={inspect} query={query} />
           ))}
           {cfg.emitSizes && Object.entries(def.sizes ?? {}).map(([s, props]) => (
-            <EntryBlock key={s} entryName={`${def.name}-${s}`} title="size" props={props} overrides={overrides} onSet={onSet} onReset={onReset} derived={derived} mode={mode} inspect={inspect} />
+            <EntryBlock key={s} entryName={`${def.name}-${s}`} title="size" props={props} overrides={overrides} onSet={onSet} onReset={onReset} derived={derived} mode={mode} inspect={inspect} query={query} />
           ))}
           {cfg.emitStates && Object.entries(def.states ?? {}).flatMap(([stateName, byVariant]) =>
             Object.entries(byVariant).map(([variant, props]) => (
               <EntryBlock key={`${stateName}-${variant}`}
                 entryName={variant === '_' ? `${def.name}-${stateName}` : `${def.name}-${variant}-${stateName}`}
-                title="state" props={props} overrides={overrides} onSet={onSet} onReset={onReset} derived={derived} mode={mode} inspect={inspect} />
+                title="state" props={props} overrides={overrides} onSet={onSet} onReset={onReset} derived={derived} mode={mode} inspect={inspect} query={query} />
             ))
           )}
         </div>
-      )}
+      </Expand>
     </div>
   )
 }
@@ -315,7 +344,7 @@ export default function ComponentsPanel({ inspect }) {
         A property marked with this isn't one of the eight the DESIGN.md schema allows
         (<code style={{ fontFamily: 'var(--mono)', fontSize: 10.5 }}>{SPEC_COMPONENT_PROPS.join(', ')}</code>),
         so it can't sit in the YAML frontmatter. It's written into the Components section of the file as a table
-        instead — it still reaches the agent and is applied the same way, it just travels in a different part of
+        instead â€” it still reaches the agent and is applied the same way, it just travels in a different part of
         the file. {proseOnly} propert{proseOnly === 1 ? 'y is' : 'ies are'} taking that route right now.
       </Banner>
 
@@ -349,7 +378,7 @@ export default function ComponentsPanel({ inspect }) {
             <div key={c.name} style={{ marginBottom: 8 }}>
               <code style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--text-dim)' }}>{c.name}</code>
               <div style={{ fontSize: 10.5, color: 'var(--dim)', fontFamily: 'var(--mono)', marginTop: 2 }}>
-                {c.properties.map(p => `${p.key}: ${p.value}`).join(' · ')}
+                {c.properties.map(p => `${p.key}: ${p.value}`).join(' Â· ')}
               </div>
             </div>
           ))}

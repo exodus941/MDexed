@@ -11,7 +11,7 @@ import { generatePalette, HARMONIES } from '../color/palette.js'
 import { isValidColor } from '../color/convert.js'
 import ColorPicker from '../ui/ColorPicker.jsx'
 import { GRADIENT_TYPES } from '../color/modes.js'
-import { SectionHeader, Collapsible, Slider, NumField, Toggle, OverrideBadge, ConfirmDelete, Banner } from '../ui/controls.jsx'
+import { SectionHeader, Collapsible, Expand, Slider, NumField, Toggle, OverrideBadge, ConfirmDelete, Banner } from '../ui/controls.jsx'
 
 const PROTECTED_SEEDS = ['accent', 'neutral']
 
@@ -60,7 +60,7 @@ function SeedRow({ seed, ramps, onChange, onRename, onDelete, onLock, open, onTo
           ? <ConfirmDelete onConfirm={onDelete} title="Remove seed" />
           : <span style={{ width: 23 }} />}
       </div>
-      {open && (
+      <Expand open={open}>
         <div style={{ padding: '12px 14px', borderTop: '1px solid var(--bdr)', background: 'var(--surf)' }}>
           <div style={{ marginBottom: 10 }}>
             <label>Seed name</label>
@@ -80,7 +80,7 @@ function SeedRow({ seed, ramps, onChange, onRename, onDelete, onLock, open, onTo
             </div>
           )}
         </div>
-      )}
+      </Expand>
     </div>
   )
 }
@@ -121,16 +121,16 @@ function RampRow({ name, ramp, overrides, onOverride, onResetStep }) {
         ))}
       </div>
 
-      {selected != null && (
+      <Expand open={selected != null}>
         <div style={{ marginTop: 10, padding: 12, background: 'var(--surf2)', border: '1px solid var(--bdr)', borderRadius: 8 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 9 }}>
             <code style={{ fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--text)', flex: 1 }}>{name}-{selected}</code>
             {overrides[selectedKey] != null && <OverrideBadge onReset={() => onResetStep(selectedKey)} title="Reset to the generated value" />}
             <button className="btn-ghost" style={{ padding: '3px 8px', fontSize: 11 }} onClick={() => setSelected(null)}>Close</button>
           </div>
-          <ColorPicker value={ramp.steps[selected]} onChange={hex => onOverride(selectedKey, hex)} compact />
+          {selected != null && <ColorPicker value={ramp.steps[selected]} onChange={hex => onOverride(selectedKey, hex)} compact />}
         </div>
-      )}
+      </Expand>
     </div>
   )
 }
@@ -177,7 +177,8 @@ function StopPicker({ value, resolved, groups, anchor, onPick, onClose }) {
           </p>
         </div>
 
-        <div style={{ borderLeft: '1px solid var(--bdr)', paddingLeft: 12, maxHeight: 300, overflowY: 'auto' }}>
+        {/* paddingRight keeps the swatches off the scrollbar. */}
+        <div style={{ borderLeft: '1px solid var(--bdr)', paddingLeft: 12, paddingRight: 10, maxHeight: 300, overflowY: 'auto' }}>
           {groups.map(group => (
             <div key={group.label} style={{ marginBottom: 10 }}>
               <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--muted)', marginBottom: 5 }}>
@@ -245,7 +246,7 @@ function GradientRow({ grad, css, options, resolved, onChange, onDelete }) {
         <span className="chip">{grad.type}</span>
         <ConfirmDelete onConfirm={onDelete} title="Remove gradient" />
       </div>
-      {open && (
+      <Expand open={open}>
         <div style={{ padding: '12px 14px', borderTop: '1px solid var(--bdr)', background: 'var(--surf)' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 11 }}>
             <div>
@@ -323,7 +324,7 @@ function GradientRow({ grad, css, options, resolved, onChange, onDelete }) {
           </button>
           <code style={{ display: 'block', marginTop: 10, fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--dim)', wordBreak: 'break-all' }}>{css}</code>
         </div>
-      )}
+      </Expand>
     </div>
   )
 }

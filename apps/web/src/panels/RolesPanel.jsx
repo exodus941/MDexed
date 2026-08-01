@@ -11,7 +11,7 @@ import { RAMP_STEPS } from '../color/ramp.js'
 import { check } from '../color/contrast.js'
 import { generateCounterpart, clearOverridesFor } from '../color/modes.js'
 import ColorPicker from '../ui/ColorPicker.jsx'
-import { SectionHeader, Collapsible, Segmented, OverrideBadge, Banner } from '../ui/controls.jsx'
+import { SectionHeader, Collapsible, Expand, Segmented, OverrideBadge, Banner, FilterField } from '../ui/controls.jsx'
 
 function RoleRow({ role, roles, refs, ramps, overrides, onSetRef, onOverride, onResetOverride, scope, inspect }) {
   const [open, setOpen] = useState(false)
@@ -55,7 +55,7 @@ function RoleRow({ role, roles, refs, ramps, overrides, onSetRef, onOverride, on
         ))}
       </div>
 
-      {open && (
+      <Expand open={open}>
         <div style={{ padding: '4px 0 14px', display: 'grid', gridTemplateColumns: modes.length === 1 ? '1fr' : '1fr 1fr', gap: 14 }}>
           {modes.map(mode => {
             const key = `${role.name}:${mode}`
@@ -76,7 +76,7 @@ function RoleRow({ role, roles, refs, ramps, overrides, onSetRef, onOverride, on
             )
           })}
         </div>
-      )}
+      </Expand>
     </div>
   )
 }

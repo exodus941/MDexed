@@ -1,15 +1,18 @@
 /* Forms are where a colour system usually fails first: placeholder against
    field, error against surface, focus ring against page. Kept on screen so
    those pairings can't quietly break. */
-import { inspectProps } from '../inspect.js'
+import { inspectProps, role, type } from '../inspect.js'
 import { Ico, Check, Switch, IconCheck, IconX, IconTrash, IconChevron, IconCalendar } from '../icons.jsx'
 export default function Form({ onInspect }) {
   const ins = entry => inspectProps(entry, onInspect)
+  const text = (roleName, typeName) => inspectProps([role(roleName), type(typeName)], onInspect)
   return (
     <div style={{ maxWidth: 620, margin: '0 auto' }} className="stack">
       <div>
-        <h2>Account settings</h2>
-        <p className="muted small" style={{ marginTop: 4 }}>These details appear on invoices and receipts.</p>
+        <h2 {...text('text', 'h2')}>Account settings</h2>
+        <p className="muted small" {...text('text-muted', 'body-sm')} style={{ marginTop: 4, cursor: onInspect ? 'pointer' : undefined }}>
+          These details appear on invoices and receipts.
+        </p>
       </div>
 
       <div className="card stack" {...ins('card')}>
