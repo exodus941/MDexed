@@ -172,12 +172,33 @@ function PropRow({ entryName, propKey, defaultValue, override, onSet, onReset, d
   )
 }
 
-function EntryBlock({ title, entryName, props, overrides, onSet, onReset, derived, mode }) {
+function EntryBlock({ title, entryName, props, overrides, onSet, onReset, derived, mode, inspect }) {
+  const ref = useRef(null)
+  /* The jump targets the exact entry — clicking a small button lands on
+     `button-sm`, not merely somewhere inside Button. */
+  const targeted = inspect?.entry === entryName
+
+  useEffect(() => {
+    if (!targeted) return
+    /* One frame, so the accordion has laid out before we measure. */
+    const id = requestAnimationFrame(() => ref.current?.scrollIntoView({ block: 'center', behavior: 'smooth' }))
+    return () => cancelAnimationFrame(id)
+  }, [targeted, inspect?.at])
+
   return (
-    <div style={{ marginBottom: 10 }}>
+    <div ref={ref} style={{
+      marginBottom: 10,
+      ...(targeted && {
+        background: 'rgba(220,144,85,.07)',
+        boxShadow: '0 0 0 1px rgba(220,144,85,.45)',
+        borderRadius: 7, padding: '7px 8px', margin: '0 -8px 10px',
+      }),
+      transition: 'background var(--t) var(--ease), box-shadow var(--t) var(--ease)',
+    }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 4 }}>
         <code style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--accent)' }}>{entryName}</code>
         {title && <span style={{ fontSize: 10, color: 'var(--dim)' }}>{title}</span>}
+        {targeted && <span className="chip" style={{ color: 'var(--accent)', borderColor: 'rgba(220,144,85,.4)' }}>from preview</span>}
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
         {Object.entries(props).map(([k, v]) => (
@@ -198,11 +219,9 @@ function ComponentBlock({ def, cfg, onToggle, onSet, onReset, derived, mode, ins
 
   /* A click in the gallery opens the owning component and scrolls to it. */
   const targeted = inspect && entriesFor(def, cfg).includes(inspect.entry)
-  useEffect(() => {
-    if (!targeted) return
-    setOpen(true)
-    ref.current?.scrollIntoView({ block: 'center', behavior: 'smooth' })
-  }, [targeted, inspect?.at])
+  /* Only opens the component — the matching EntryBlock does the scrolling, so
+     the view lands on the exact entry rather than the top of the block. */
+  useEffect(() => { if (targeted) setOpen(true) }, [targeted, inspect?.at])
 
   const entryCount =
     (def.base ? 1 : 0) +
@@ -231,18 +250,18 @@ function ComponentBlock({ def, cfg, onToggle, onSet, onReset, derived, mode, ins
       </div>
       {open && enabled && (
         <div style={{ padding: '11px 13px', borderTop: '1px solid var(--bdr)', background: 'var(--surf2)' }}>
-          {def.base && <EntryBlock entryName={def.name} title="base" props={def.base} overrides={overrides} onSet={onSet} onReset={onReset} derived={derived} mode={mode} />}
+          {def.base && <EntryBlock entryName={def.name} title="base" props={def.base} overrides={overrides} onSet={onSet} onReset={onReset} derived={derived} mode={mode} inspect={inspect} />}
           {Object.entries(def.variants ?? {}).map(([v, props]) => (
-            <EntryBlock key={v} entryName={`${def.name}-${v}`} title="variant" props={props} overrides={overrides} onSet={onSet} onReset={onReset} derived={derived} mode={mode} />
+            <EntryBlock key={v} entryName={`${def.name}-${v}`} title="variant" props={props} overrides={overrides} onSet={onSet} onReset={onReset} derived={derived} mode={mode} inspect={inspect} />
           ))}
           {cfg.emitSizes && Object.entries(def.sizes ?? {}).map(([s, props]) => (
-            <EntryBlock key={s} entryName={`${def.name}-${s}`} title="size" props={props} overrides={overrides} onSet={onSet} onReset={onReset} derived={derived} mode={mode} />
+            <EntryBlock key={s} entryName={`${def.name}-${s}`} title="size" props={props} overrides={overrides} onSet={onSet} onReset={onReset} derived={derived} mode={mode} inspect={inspect} />
           ))}
           {cfg.emitStates && Object.entries(def.states ?? {}).flatMap(([stateName, byVariant]) =>
             Object.entries(byVariant).map(([variant, props]) => (
               <EntryBlock key={`${stateName}-${variant}`}
                 entryName={variant === '_' ? `${def.name}-${stateName}` : `${def.name}-${variant}-${stateName}`}
-                title="state" props={props} overrides={overrides} onSet={onSet} onReset={onReset} derived={derived} mode={mode} />
+                title="state" props={props} overrides={overrides} onSet={onSet} onReset={onReset} derived={derived} mode={mode} inspect={inspect} />
             ))
           )}
         </div>
