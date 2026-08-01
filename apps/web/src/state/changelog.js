@@ -46,6 +46,12 @@ const TAG_LABELS = {
     const inner = TAG_LABELS[t.split(':')[0]]
     return `Reverted · ${inner ? inner(t.slice(t.indexOf(':') + 1)) : t}`
   },
+  /* Wraps the tag of whatever the model rewrote, so the log distinguishes
+     prose you typed from prose you accepted. */
+  ai: t => {
+    const inner = TAG_LABELS[t.split(':')[0]]
+    return `AI rewrite · ${inner ? inner(t.slice(t.indexOf(':') + 1)) : t}`
+  },
   palette: t => `Palette generated · ${t}`,
   'seed-lock': () => 'Seed lock',
   macro: t => `${cap(t)} macro`,
@@ -126,6 +132,7 @@ export function detailFor(tag, before, after) {
     /* A revert reports the same shape as the change it undoes — recurse on
        the original tag so it shows current → restored. */
     case 'revert':
+    case 'ai':
       return detailFor(rest, before, after)
     case 'palette': {
       /* The whole palette moved, so the entry carries every seat. */

@@ -6,6 +6,11 @@ type Bindings = {
   /* Optional. With a key the official Web Fonts API is used; without one the
      public metadata endpoint is, which needs no credentials. */
   GOOGLE_FONTS_API_KEY?: string
+  /* Required for the AI endpoints. Set with:
+       wrangler secret put OPENROUTER_API_KEY
+     Locally, put it in apps/api/.dev.vars (gitignored). It is read only here
+     and never sent to the browser. */
+  OPENROUTER_API_KEY?: string
 }
 
 type FontFamily = {
@@ -150,6 +155,177 @@ app.get('/api/v1/fonts', async (c) => {
   res.headers.set('Cache-Control', `public, max-age=${FONTS_TTL}`)
   c.executionCtx.waitUntil(cache.put(FONTS_CACHE_KEY, res.clone()))
   return res
+})
+
+/* ── AI proxy ──
+   Every call goes through here so the OpenRouter key stays server-side. The
+   browser never sees it, and a build of the client contains no credential. */
+
+const OPENROUTER = 'https://openrouter.ai/api/v1'
+/* Bump the version when the filter or the shape of a model entry changes —
+   otherwise the hour-long cache keeps serving the old list. */
+const MODELS_CACHE_KEY = 'https://internal.cache/or-models/v4'
+const MAX_PROMPT_CHARS = 24_000
+
+const isFree = (m: any) =>
+  m?.pricing && Number(m.pricing.prompt) === 0 && Number(m.pricing.completion) === 0
+
+/* The free catalogue includes image and audio generators. Several of them list
+   text among their outputs (Lyria is `text+image->text+audio`), so "includes
+   text" isn't enough — the output has to be text and nothing else. Image input
+   is fine; we just never send any. */
+const isTextChat = (m: any) => {
+  const arch = m?.architecture ?? {}
+  const inputs: string[] = arch.input_modalities ?? []
+  const outputs: string[] = arch.output_modalities ?? []
+  if (outputs.length) return inputs.includes('text') && outputs.length === 1 && outputs[0] === 'text'
+  return typeof arch.modality !== 'string' || arch.modality.endsWith('->text')
+}
+
+/* Never let the browser cache this. The Worker cache already throttles the
+   upstream call, and a browser copy would keep reporting "no key" for an hour
+   after someone actually added one. */
+const modelsResponse = (c: any, models: unknown, configured: boolean) => {
+  const out = c.json({ models, configured })
+  out.headers.set('Cache-Control', 'no-store')
+  return out
+}
+
+/** Free models only. The catalogue is public, so this needs no key. */
+app.get('/api/v1/ai/models', async (c) => {
+  const configured = !!c.env.OPENROUTER_API_KEY
+  const cache = caches.default
+
+  /* Only the catalogue is cached. `configured` is answered fresh every time —
+     baking it into the cached body would mean adding a key had no visible
+     effect for an hour. */
+  const cached = await cache.match(MODELS_CACHE_KEY)
+  if (cached) {
+    const models = await cached.json()
+    return modelsResponse(c, models, configured)
+  }
+
+  try {
+    const res = await fetch(`${OPENROUTER}/models`)
+    if (!res.ok) throw new Error(`models ${res.status}`)
+    const data = (await res.json()) as { data?: any[] }
+
+    const models = (data.data ?? [])
+      .filter((m) => isFree(m) && isTextChat(m))
+      .map((m) => ({
+        id: m.id,
+        name: m.name ?? m.id,
+        context: m.context_length ?? null,
+      }))
+      /* Longest context first — prose refinement sends the whole section
+         plus the token tables around it. */
+      .sort((a, b) => (b.context ?? 0) - (a.context ?? 0))
+
+    const entry = new Response(JSON.stringify(models), {
+      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=3600' },
+    })
+    c.executionCtx.waitUntil(cache.put(MODELS_CACHE_KEY, entry))
+    return modelsResponse(c, models, configured)
+  } catch (err) {
+    console.error('model list unavailable', err)
+    return c.json({ models: [], configured, error: 'Model list unavailable' }, 502)
+  }
+})
+
+/**
+ * Streams a completion back as plain text deltas, so the client doesn't have
+ * to parse SSE. Returns 503 with `needsKey` when no secret is configured,
+ * which the UI turns into setup instructions rather than an error.
+ */
+app.post('/api/v1/ai/complete', async (c) => {
+  const key = c.env.OPENROUTER_API_KEY
+  if (!key) {
+    return c.json({
+      error: 'No OpenRouter key is configured on the server.',
+      needsKey: true,
+    }, 503)
+  }
+
+  const body = (await c.req.json().catch(() => null)) as
+    | { model?: string; system?: string; prompt?: string }
+    | null
+  if (!body?.model || !body?.prompt) {
+    return c.json({ error: 'model and prompt are required' }, 400)
+  }
+  if (body.prompt.length + (body.system?.length ?? 0) > MAX_PROMPT_CHARS) {
+    return c.json({ error: 'Prompt is too large' }, 413)
+  }
+
+  const upstream = await fetch(`${OPENROUTER}/chat/completions`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${key}`,
+      'Content-Type': 'application/json',
+      'HTTP-Referer': new URL(c.req.url).origin,
+      'X-Title': 'design.md editor',
+    },
+    body: JSON.stringify({
+      model: body.model,
+      stream: true,
+      messages: [
+        ...(body.system ? [{ role: 'system', content: body.system }] : []),
+        { role: 'user', content: body.prompt },
+      ],
+    }),
+  })
+
+  if (!upstream.ok || !upstream.body) {
+    const detail = await upstream.text().catch(() => '')
+    /* Rate limits are the common case on the free tier — pass the status
+       through so the client can say something useful. */
+    return c.json({
+      error: upstream.status === 429
+        ? 'That model is rate-limited right now. Try another, or wait a moment.'
+        : `The model call failed (${upstream.status}).`,
+      detail: detail.slice(0, 400),
+    }, upstream.status === 429 ? 429 : 502)
+  }
+
+  /* Unwrap SSE into plain text so the client is a single reader loop. */
+  const { readable, writable } = new TransformStream()
+  const writer = writable.getWriter()
+  const encoder = new TextEncoder()
+  const decoder = new TextDecoder()
+
+  c.executionCtx.waitUntil((async () => {
+    const reader = upstream.body!.getReader()
+    let buffer = ''
+    try {
+      for (;;) {
+        const { done, value } = await reader.read()
+        if (done) break
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n')
+        buffer = lines.pop() ?? ''
+        for (const line of lines) {
+          if (!line.startsWith('data:')) continue
+          const payload = line.slice(5).trim()
+          if (!payload || payload === '[DONE]') continue
+          try {
+            const delta = JSON.parse(payload)?.choices?.[0]?.delta?.content
+            if (delta) await writer.write(encoder.encode(delta))
+          } catch { /* keep-alive comments and partial frames */ }
+        }
+      }
+    } catch (err) {
+      console.error('stream failed', err)
+    } finally {
+      await writer.close().catch(() => {})
+    }
+  })())
+
+  return new Response(readable, {
+    headers: {
+      'Content-Type': 'text/plain; charset=utf-8',
+      'Cache-Control': 'no-store',
+      'X-Accel-Buffering': 'no',
+    },
+  })
 })
 
 app.post('/api/v1/projects', async (c) => {

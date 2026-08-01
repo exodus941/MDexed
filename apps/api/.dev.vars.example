@@ -1,0 +1,5 @@
+# Copy to `.dev.vars` (gitignored) to enable the AI panel locally.
+# Free key: https://openrouter.ai/keys
+# In production this is a Worker secret: `wrangler secret put OPENROUTER_API_KEY`.
+# Either way it stays server-side — the browser never receives it.
+OPENROUTER_API_KEY=

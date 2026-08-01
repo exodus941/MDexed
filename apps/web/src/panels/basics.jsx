@@ -3,6 +3,7 @@ import { useStore } from '../state/store.jsx'
 import { PROSE_SECTIONS } from '../state/schema.js'
 import { PRESETS, applyPreset } from '../state/presets.js'
 import { SectionHeader, Collapsible, Banner } from '../ui/controls.jsx'
+import { AiProvider, AiHeader, SectionAi } from '../ai/ui.jsx'
 
 export function MetaTab() {
   const { state, set, load } = useStore()
@@ -59,12 +60,12 @@ export function MetaTab() {
 }
 
 export function RationaleTab() {
-  const { state, set } = useStore()
-  const up = (k, v) => set(s => ({ ...s, prose: { ...s.prose, [k]: v } }), `prose:${k}`)
+  const { state, derived, set } = useStore()
+  const up = (k, v, tag) => set(s => ({ ...s, prose: { ...s.prose, [k]: v } }), tag ?? `prose:${k}`)
   const written = PROSE_SECTIONS.filter(s => state.prose[s.k]?.trim()).length
 
   return (
-    <div>
+    <AiProvider>
       <SectionHeader title="Design rationale"
         desc="The reasoning behind the tokens. Generated tables are appended to each section automatically — write only the why."
         right={<span className="chip">{written}/{PROSE_SECTIONS.length}</span>} />
@@ -73,6 +74,7 @@ export function RationaleTab() {
           This is what separates a DESIGN.md from a token dump. An agent given reasons makes better choices in the gaps between your tokens.
         </Banner>
       </div>
+      <AiHeader />
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         {PROSE_SECTIONS.map((s, i) => (
           <Collapsible key={s.k} title={s.label} defaultOpen={i === 0}
@@ -80,9 +82,11 @@ export function RationaleTab() {
             <p className="panel-note" style={{ marginBottom: 7 }}>{s.desc}</p>
             <textarea value={state.prose[s.k]} onChange={e => up(s.k, e.target.value)}
               placeholder={`Explain your ${s.label.toLowerCase()} decisions…`} style={{ minHeight: 86 }} />
+            <SectionAi section={s} text={state.prose[s.k] ?? ''} state={state} derived={derived}
+              onApply={v => up(s.k, v, `ai:prose:${s.k}`)} />
           </Collapsible>
         ))}
       </div>
-    </div>
+    </AiProvider>
   )
 }
