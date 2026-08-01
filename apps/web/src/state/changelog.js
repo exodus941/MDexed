@@ -42,6 +42,8 @@ export function changedKeys(before, after) {
 /* Human phrasing per tag prefix. The suffix is usually the thing's own name,
    which is more useful than any wording we could invent for it. */
 const TAG_LABELS = {
+  palette: t => `Palette generated · ${t}`,
+  'seed-lock': () => 'Seed lock',
   macro: t => `${cap(t)} macro`,
   mode: () => 'Preview mode',
   seed: () => 'Seed colour',
@@ -117,6 +119,20 @@ export function detailFor(tag, before, after) {
     (from === to ? null : { kind, from, to, subject })
 
   switch (prefix) {
+    case 'palette': {
+      /* The whole palette moved, so the entry carries every seat. */
+      const swatches = (after.color?.seeds ?? []).map(s => ({
+        name: s.name,
+        to: s.hex,
+        from: seedById(before, s.id)?.hex,
+        locked: !!s.locked,
+      }))
+      return { kind: 'palette', swatches, subject: rest }
+    }
+    case 'seed-lock': {
+      const s = seedById(after, rest)
+      return { kind: 'text', from: s?.locked ? 'unlocked' : 'locked', to: s?.locked ? 'locked' : 'unlocked', subject: s?.name }
+    }
     case 'seed': {
       const a = seedById(before, rest), b = seedById(after, rest)
       return pair(a?.hex, b?.hex, 'colour', b?.name ?? a?.name)

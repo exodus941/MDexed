@@ -329,6 +329,7 @@ const BAR_H = 42
 function TabStrip({ tabs, active, onSelect, right }) {
   const ref = useRef(null)
   const [edges, setEdges] = useState({ left: false, right: false })
+  const [menuOpen, setMenuOpen] = useState(false)
 
   const measure = useCallback(() => {
     const el = ref.current
@@ -347,7 +348,7 @@ function TabStrip({ tabs, active, onSelect, right }) {
     ro.observe(el)
     window.addEventListener('resize', measure)
     return () => { ro.disconnect(); window.removeEventListener('resize', measure) }
-  }, [measure, tabs.length])
+  }, [measure, tabs.length, active])
 
   const nudge = dir => ref.current?.scrollBy({ left: dir * 160, behavior: 'smooth' })
 
@@ -370,22 +371,75 @@ function TabStrip({ tabs, active, onSelect, right }) {
     </button>
   )
 
+  /* The active tab is pinned at the left with a menu beside it, so it never
+     scrolls out of sight; the rest queue up to its right. */
+  const activeTab = tabs.find(t => t.id === active) ?? tabs[0]
+  const rest = tabs.filter(t => t.id !== active)
+
   return (
     <nav style={{
       display: 'flex', alignItems: 'stretch', height: BAR_H, flexShrink: 0,
       borderBottom: '1px solid var(--bdr)', background: 'var(--surf)', paddingRight: 10,
+      position: 'relative',
     }}>
+      <div style={{ display: 'flex', alignItems: 'stretch', flexShrink: 0, paddingLeft: 14 }}>
+        <span style={{
+          display: 'flex', alignItems: 'center', padding: '0 9px', fontFamily: 'var(--sans)',
+          fontSize: 12.5, fontWeight: 500, color: 'var(--text)', whiteSpace: 'nowrap',
+          borderBottom: '2px solid var(--accent)', marginBottom: -1,
+        }}>{activeTab.label}</span>
+
+        <button onClick={() => setMenuOpen(o => !o)} title="All tabs"
+          style={{
+            display: 'flex', alignItems: 'center', padding: '0 6px', background: 'none', border: 'none',
+            cursor: 'pointer', color: menuOpen ? 'var(--accent)' : 'var(--muted)',
+            transition: 'color var(--t) var(--ease)',
+          }}>
+          <svg width={11} height={11} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"
+            style={{ transform: menuOpen ? 'rotate(180deg)' : 'none', transition: 'transform var(--t) var(--ease)' }}>
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </button>
+        <span style={{ alignSelf: 'center', width: 1, height: 18, background: 'var(--bdr)', marginRight: 2 }} />
+      </div>
+
+      {menuOpen && (
+        <>
+          <div onClick={() => setMenuOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 70 }} />
+          <div className="anim-pop" style={{
+            position: 'absolute', top: BAR_H - 2, left: 10, zIndex: 71, minWidth: 176,
+            background: 'var(--surf2)', border: '1px solid var(--bdr2)', borderRadius: 9,
+            boxShadow: '0 12px 32px rgba(0,0,0,.55)', padding: 5,
+          }}>
+            {tabs.map(t => (
+              <button key={t.id} onClick={() => { onSelect(t.id); setMenuOpen(false) }}
+                style={{
+                  display: 'block', width: '100%', textAlign: 'left', background: t.id === active ? 'var(--surf3)' : 'none',
+                  border: 'none', cursor: 'pointer', fontFamily: 'var(--sans)', fontSize: 12.5,
+                  color: t.id === active ? 'var(--accent)' : 'var(--text)', padding: '6px 9px', borderRadius: 6,
+                }}
+                onMouseEnter={e => { if (t.id !== active) e.currentTarget.style.background = 'var(--surf3)' }}
+                onMouseLeave={e => { if (t.id !== active) e.currentTarget.style.background = 'none' }}>
+                {t.label}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+
       {edges.left && <Chevron dir={-1} />}
       <div ref={ref} className="no-bar" onScroll={measure}
-        style={{ display: 'flex', flex: 1, minWidth: 0, overflowX: 'auto', paddingLeft: edges.left ? 0 : 14 }}>
-        {tabs.map(t => (
+        style={{ display: 'flex', flex: 1, minWidth: 0, overflowX: 'auto' }}>
+        {rest.map(t => (
           <button key={t.id} onClick={() => onSelect(t.id)} style={{
             background: 'none', border: 'none', borderRadius: 0, cursor: 'pointer',
             padding: '0 11px', fontFamily: 'var(--sans)', fontSize: 12.5, whiteSpace: 'nowrap',
-            color: active === t.id ? 'var(--text)' : 'var(--muted)', fontWeight: active === t.id ? 500 : 400,
-            borderBottom: active === t.id ? '2px solid var(--accent)' : '2px solid transparent',
-            transition: 'color var(--t) var(--ease), border-color var(--t) var(--ease)', marginBottom: -1,
-          }}>{t.label}</button>
+            color: 'var(--muted)', fontWeight: 400,
+            borderBottom: '2px solid transparent',
+            transition: 'color var(--t) var(--ease)', marginBottom: -1,
+          }}
+            onMouseEnter={e => { e.currentTarget.style.color = 'var(--text)' }}
+            onMouseLeave={e => { e.currentTarget.style.color = 'var(--muted)' }}>{t.label}</button>
         ))}
       </div>
       {edges.right && <Chevron dir={1} />}
@@ -789,11 +843,16 @@ function Shell() {
                 </div>
               } />
             <main style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', padding: '20px 20px 64px' }}>
-              <Panel inspect={tab === 'components' ? inspect : null} />
+              <Panel inspect={inspect?.kind === ({ components: 'component', roles: 'role', type: 'type' }[tab]) ? inspect : null} />
             </main>
           </div>
 
-          <Canvas onInspect={entry => { setInspect({ entry, at: Date.now() }); setTab('components') }} />
+          {/* Route by target kind: components, colour roles and text styles
+              each live on their own tab. */}
+          <Canvas onInspect={t => {
+            setInspect({ entry: t.target, kind: t.kind, at: Date.now() })
+            setTab({ component: 'components', role: 'roles', type: 'type' }[t.kind] ?? 'components')
+          }} />
         </div>
       </div>
 

@@ -86,6 +86,26 @@ function Detail({ detail, ctx }) {
     )
   }
 
+  if (detail.kind === 'palette') {
+    return (
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 5 }}>
+        {detail.swatches.map(s => (
+          <div key={s.name} style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+              {s.from && <Swatch hex={s.from} size={11} />}
+              {s.from && s.from !== s.to && <Arrow />}
+              {s.from !== s.to && <Swatch hex={s.to} />}
+            </div>
+            <span style={{ fontSize: 9, color: s.locked ? 'var(--accent)' : 'var(--dim)', fontFamily: 'var(--mono)' }}>
+              {s.locked ? '🔒 ' : ''}{s.name}
+            </span>
+            <span style={{ fontSize: 8.5, color: 'var(--dim)', fontFamily: 'var(--mono)' }}>{s.to}</span>
+          </div>
+        ))}
+      </div>
+    )
+  }
+
   if (detail.kind === 'colour') {
     return (
       <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginTop: 4 }}>
@@ -148,7 +168,7 @@ export default function HistoryPanel() {
     return next
   })
 
-  const nearLimit = log.length >= logLimit * 0.85
+  const nearLimit = log.length >= logLimit * 0.875
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -157,8 +177,8 @@ export default function HistoryPanel() {
 
       {nearLimit ? (
         <Banner tone="warn">
-          The log is at {log.length} of {logLimit} entries. Older entries are being dropped as new ones arrive —
-          raise the cap below, or clear it if you no longer need the trail.
+          The log is at {log.length} of {logLimit} entries — past seven eighths of the cap. Older entries drop off as
+          new ones arrive; raise the cap below, or clear it if you no longer need the trail.
         </Banner>
       ) : (
         <Banner tone="info">Kept locally and never written into the exported file. Clearing it doesn't touch your design.</Banner>

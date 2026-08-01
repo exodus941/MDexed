@@ -2,7 +2,8 @@
 
    Semantic roles used to live here too, but they're 27 rows deep and the panel
    became unreadable. They have their own tab now and read from these scales. */
-import { useState } from 'react'
+import { useState, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { useStore } from '../state/store.jsx'
 import { uid } from '../state/schema.js'
 import { RAMP_STEPS, DEFAULT_SHAPE, resolveRef } from '../color/ramp.js'
@@ -135,52 +136,69 @@ function RampRow({ name, ramp, overrides, onOverride, onResetStep }) {
 }
 
 /* Swatch grid + picker, opened from a stop's swatch.
-   Scanning 60-odd token names in a dropdown tells you nothing about what the
-   colours look like; a grid does the whole job at a glance. */
-function StopPicker({ value, resolved, groups, onPick, onClose }) {
+
+   Rendered into a portal: inside the card it was clipped by the panel's
+   overflow and crammed into its own scrollbar. The custom picker sits at the
+   top, because a gradient that deliberately ignores the palette is a normal
+   thing to want and shouldn't be the last thing you find. */
+function StopPicker({ value, resolved, groups, anchor, onPick, onClose }) {
   const isLiteral = /^#/.test(value)
-  return (
+  const rect = anchor?.getBoundingClientRect()
+  const width = 340
+  const left = rect ? Math.min(Math.max(10, rect.left), window.innerWidth - width - 10) : 40
+  /* Flip above the swatch when there isn't room below. */
+  const below = rect ? window.innerHeight - rect.bottom : 0
+  const openUp = below < 430 && rect && rect.top > below
+
+  return createPortal(
     <>
-      <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 60 }} />
+      <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 2000 }} />
       <div className="anim-pop" style={{
-        position: 'absolute', top: '100%', left: 0, zIndex: 61, width: 292, marginTop: 6,
-        background: 'var(--surf2)', border: '1px solid var(--bdr2)', borderRadius: 9,
-        boxShadow: '0 12px 32px rgba(0,0,0,.55)', padding: 11, maxHeight: 380, overflowY: 'auto',
+        position: 'fixed', left,
+        ...(openUp ? { bottom: window.innerHeight - rect.top + 8 } : { top: (rect?.bottom ?? 0) + 8 }),
+        zIndex: 2001, width,
+        background: 'var(--surf2)', border: '1px solid var(--bdr2)', borderRadius: 10,
+        boxShadow: '0 18px 44px rgba(0,0,0,.6)', padding: 12,
+        maxHeight: 'min(560px, 78vh)', overflowY: 'auto',
       }}>
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 8 }}>
+            <span style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--muted)', flex: 1 }}>
+              Custom colour
+            </span>
+            {!isLiteral && (
+              <span className="chip">following <code style={{ fontFamily: 'var(--mono)', fontSize: 10 }}>{value}</code></span>
+            )}
+          </div>
+          {/* Always available — editing it detaches the stop from the palette. */}
+          <ColorPicker value={isLiteral ? value : resolved} onChange={onPick} compact />
+          {!isLiteral && (
+            <p className="panel-note" style={{ fontSize: 10.5, marginTop: 6 }}>
+              Adjusting this pins the stop to a literal colour; it will stop tracking the palette.
+            </p>
+          )}
+        </div>
+
         {groups.map(group => (
-          <div key={group.label} style={{ marginBottom: 11 }}>
-            <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--muted)', marginBottom: 5 }}>
+          <div key={group.label} style={{ marginBottom: 11, borderTop: '1px solid var(--bdr)', paddingTop: 10 }}>
+            <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--muted)', marginBottom: 6 }}>
               {group.label}
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(11, 1fr)', gap: 3 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(11, 1fr)', gap: 4 }}>
               {group.items.map(item => (
                 <button key={item.ref} onClick={() => { onPick(item.ref); onClose() }}
                   title={`${item.ref} — ${item.hex}`}
                   style={{
-                    aspectRatio: '1', background: item.hex, borderRadius: 3, cursor: 'pointer', padding: 0,
+                    aspectRatio: '1', background: item.hex, borderRadius: 4, cursor: 'pointer', padding: 0,
                     border: value === item.ref ? '2px solid var(--accent)' : '1px solid rgba(255,255,255,.08)',
                   }} />
               ))}
             </div>
           </div>
         ))}
-
-        <div style={{ borderTop: '1px solid var(--bdr)', paddingTop: 10 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 8 }}>
-            <span style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--muted)', flex: 1 }}>Custom</span>
-            {!isLiteral && (
-              <button className="btn-ghost" style={{ padding: '3px 8px', fontSize: 10.5 }}
-                onClick={() => onPick(resolved)}>Detach from palette</button>
-            )}
-          </div>
-          {isLiteral
-            ? <ColorPicker value={value} onChange={onPick} compact />
-            : <p className="panel-note" style={{ fontSize: 11 }}>
-                This stop follows <code style={{ fontFamily: 'var(--mono)', fontSize: 10.5 }}>{value}</code> and updates with the palette.
-              </p>}
-        </div>
       </div>
-    </>
+    </>,
+    document.body
   )
 }
 
@@ -190,13 +208,40 @@ function StopPicker({ value, resolved, groups, onPick, onClose }) {
 function GradientRow({ grad, css, options, resolved, onChange, onDelete }) {
   const [open, setOpen] = useState(false)
   const [openStop, setOpenStop] = useState(null)
+  const [dragging, setDragging] = useState(null)
+  const [dragOver, setDragOver] = useState(null)
+  const swatchRefs = useRef([])
   const setStop = (i, patch) => onChange({ ...grad, stops: grad.stops.map((s, j) => j === i ? { ...s, ...patch } : s) })
+
+  const reorder = (from, to) => {
+    if (from == null || to == null || from === to) return
+    const next = [...grad.stops]
+    const [moved] = next.splice(from, 1)
+    next.splice(to, 0, moved)
+    onChange({ ...grad, stops: next })
+  }
+
+  /* Reversing means mirroring the positions as well as the order, or the
+     colours swap but the distribution doesn't. */
+  const reverse = () => onChange({
+    ...grad,
+    stops: [...grad.stops].reverse().map(s => ({ ...s, position: 100 - s.position })),
+  })
 
   return (
     <div style={{ background: 'var(--surf2)', border: `1px solid ${open ? 'rgba(220,144,85,.35)' : 'var(--bdr)'}`, borderRadius: 9, overflow: 'hidden' }}>
-      <div onClick={() => setOpen(o => !o)} style={{ display: 'grid', gridTemplateColumns: '84px 1fr auto auto', gap: 10, alignItems: 'center', padding: '8px 12px', cursor: 'pointer' }}>
+      <div onClick={() => setOpen(o => !o)} style={{ display: 'grid', gridTemplateColumns: '84px 1fr auto auto auto', gap: 10, alignItems: 'center', padding: '8px 12px', cursor: 'pointer' }}>
         <div style={{ height: 26, borderRadius: 5, background: css, border: '1px solid rgba(255,255,255,.08)' }} />
         <code style={{ fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--text)' }}>{grad.name}</code>
+        <button onClick={e => { e.stopPropagation(); reverse() }} title="Reverse the gradient"
+          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', padding: 3, display: 'flex' }}
+          onMouseEnter={e => { e.currentTarget.style.color = 'var(--accent)' }}
+          onMouseLeave={e => { e.currentTarget.style.color = 'var(--muted)' }}>
+          <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="17 2 21 6 17 10" /><path d="M21 6H9a4 4 0 00-4 4" />
+            <polyline points="7 22 3 18 7 14" /><path d="M3 18h12a4 4 0 004-4" />
+          </svg>
+        </button>
         <span className="chip">{grad.type}</span>
         <ConfirmDelete onConfirm={onDelete} title="Remove gradient" />
       </div>
@@ -230,9 +275,30 @@ function GradientRow({ grad, css, options, resolved, onChange, onDelete }) {
           <div style={{ fontSize: 11, color: 'var(--muted)', margin: '4px 0 6px' }}>Stops</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {grad.stops.map((s, i) => (
-              <div key={i} style={{ background: 'var(--surf2)', border: '1px solid var(--bdr)', borderRadius: 7, padding: 8, position: 'relative' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '26px minmax(0,1fr) 78px 20px', gap: 8, alignItems: 'center' }}>
-                  <button className="swatch" onClick={() => setOpenStop(openStop === i ? null : i)}
+              <div key={i}
+                draggable
+                onDragStart={e => { setDragging(i); e.dataTransfer.effectAllowed = 'move' }}
+                onDragOver={e => { e.preventDefault(); if (dragging != null && dragging !== i) setDragOver(i) }}
+                onDragLeave={() => setDragOver(o => (o === i ? null : o))}
+                onDrop={e => { e.preventDefault(); reorder(dragging, i); setDragging(null); setDragOver(null) }}
+                onDragEnd={() => { setDragging(null); setDragOver(null) }}
+                style={{
+                  background: 'var(--surf2)', borderRadius: 7, padding: 8, position: 'relative',
+                  border: `1px solid ${dragOver === i ? 'var(--accent)' : 'var(--bdr)'}`,
+                  opacity: dragging === i ? 0.45 : 1,
+                  transition: 'border-color var(--t) var(--ease), opacity var(--t) var(--ease)',
+                }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '14px 26px minmax(0,1fr) 78px 20px', gap: 8, alignItems: 'center' }}>
+                  {/* Drag handle — stop order is the gradient's order. */}
+                  <span title="Drag to reorder" style={{ cursor: 'grab', color: 'var(--dim)', display: 'flex' }}>
+                    <svg width={11} height={11} viewBox="0 0 24 24" fill="currentColor">
+                      <circle cx="9" cy="6" r="1.6" /><circle cx="15" cy="6" r="1.6" />
+                      <circle cx="9" cy="12" r="1.6" /><circle cx="15" cy="12" r="1.6" />
+                      <circle cx="9" cy="18" r="1.6" /><circle cx="15" cy="18" r="1.6" />
+                    </svg>
+                  </span>
+                  <button className="swatch" ref={el => { swatchRefs.current[i] = el }}
+                    onClick={() => setOpenStop(openStop === i ? null : i)}
                     title="Choose a colour"
                     style={{ width: 24, height: 24, background: resolved[i], padding: 0, border: openStop === i ? '2px solid var(--accent)' : '1px solid rgba(255,255,255,.1)' }} />
                   <code style={{ fontFamily: 'var(--mono)', fontSize: 11, color: /^#/.test(s.color) ? 'var(--muted)' : 'var(--text-dim)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -244,7 +310,7 @@ function GradientRow({ grad, css, options, resolved, onChange, onDelete }) {
                     onConfirm={() => onChange({ ...grad, stops: grad.stops.filter((_, j) => j !== i) })} />
                 </div>
                 {openStop === i && (
-                  <StopPicker value={s.color} resolved={resolved[i]} groups={options}
+                  <StopPicker value={s.color} resolved={resolved[i]} groups={options} anchor={swatchRefs.current[i]}
                     onPick={colour => setStop(i, { color: colour })}
                     onClose={() => setOpenStop(null)} />
                 )}
@@ -280,11 +346,14 @@ export default function ColorPanel() {
     setOpenSeed(id)
   }
 
-  const toggleLock = id => upd(c => ({ ...c, seeds: c.seeds.map(s => s.id === id ? { ...s, locked: !s.locked } : s) }))
+  const toggleLock = id => upd(c => ({ ...c, seeds: c.seeds.map(s => s.id === id ? { ...s, locked: !s.locked } : s) }), `seed-lock:${id}`)
+  /* Tagged, so the log records it as a palette generation rather than an
+     anonymous colour edit — and so the entry can carry the whole before/after
+     palette rather than a single hex. */
   const roll = () => upd(c => {
     const next = generatePalette(c.seeds, harmony)
     return { ...c, seeds: c.seeds.map(s => next[s.id] ? { ...s, hex: next[s.id] } : s) }
-  })
+  }, `palette:${harmony}`)
   const lockedCount = color.seeds.filter(s => s.locked).length
 
   const setShape = (key, value) => upd(c => ({ ...c, shape: { ...c.shape, [key]: value } }), `shape:${key}`)

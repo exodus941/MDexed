@@ -3,7 +3,7 @@
    Sizes, leading and tracking are all generated. The per-token editors exist
    for the cases where a scale genuinely shouldn't win, and anything you touch
    is marked so you can see at a glance how far the system has been bent. */
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { useStore } from '../state/store.jsx'
 import { RATIOS, OPENTYPE_FEATURES } from '../type/scale.js'
 import { loadDocumentFonts, stackFor } from '../type/fonts.js'
@@ -48,7 +48,17 @@ function FeatureToggles({ enabled, onToggle }) {
   )
 }
 
-function TokenRow({ token, overrides, onOverride, onReset, families }) {
+function TokenRow({ token, overrides, onOverride, onReset, families, inspect }) {
+  const rowRef = useRef(null)
+  const targeted = inspect?.entry === token.name
+
+  useEffect(() => {
+    if (!targeted) return
+    const id = requestAnimationFrame(() => rowRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' }))
+    const t = setTimeout(() => rowRef.current?.scrollIntoView({ block: 'center' }), 120)
+    return () => { cancelAnimationFrame(id); clearTimeout(t) }
+  }, [targeted, inspect?.at])
+
   const fields = [
     { k: 'fontSize', label: 'Size' },
     { k: 'fontWeight', label: 'Weight' },
@@ -59,7 +69,11 @@ function TokenRow({ token, overrides, onOverride, onReset, families }) {
   const stack = families[token.family]?.stack ?? 'inherit'
 
   return (
-    <div style={{ borderBottom: '1px solid var(--bdr)', padding: '8px 0' }}>
+    <div ref={rowRef} style={{
+      borderBottom: '1px solid var(--bdr)', padding: '8px 0',
+      ...(targeted && { background: 'rgba(220,144,85,.07)', boxShadow: '0 0 0 1px rgba(220,144,85,.45)', borderRadius: 7, padding: '8px' }),
+      transition: 'background var(--t) var(--ease)',
+    }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 9, marginBottom: 6 }}>
         <code style={{ fontFamily: 'var(--mono)', fontSize: 11.5, color: 'var(--text)', minWidth: 64 }}>{token.name}</code>
         <span className="preview-box"
@@ -94,7 +108,7 @@ function TokenRow({ token, overrides, onOverride, onReset, families }) {
   )
 }
 
-export default function TypographyPanel() {
+export default function TypographyPanel({ inspect }) {
   const { state, derived, set } = useStore()
   const t = state.type
   const { families: catalog, loading } = useFontCatalog()
@@ -205,13 +219,13 @@ export default function TypographyPanel() {
         )}
       </Collapsible>
 
-      <Collapsible title="Generated styles" note={String(generated.length)} defaultOpen>
+      <Collapsible key={inspect ? `gen:${inspect.at}` : 'gen'} title="Generated styles" note={String(generated.length)} defaultOpen>
         <p className="panel-note" style={{ marginBottom: 8 }}>Type in any field to override it.</p>
         {loading && <Banner tone="info">Loading the font catalogue…</Banner>}
         <div>
           {generated.map(token => (
             <TokenRow key={token.name} token={token} overrides={t.overrides ?? {}} families={derived.families}
-              onOverride={setOverride} onReset={resetToken} />
+              onOverride={setOverride} onReset={resetToken} inspect={inspect} />
           ))}
         </div>
       </Collapsible>

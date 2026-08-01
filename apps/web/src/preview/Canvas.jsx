@@ -20,9 +20,47 @@ const SURFACES = [
   { id: 'gallery',   label: 'Gallery',   Component: Gallery },
 ]
 
+/* When an element resolves to more than one place — a heading has both a
+   colour role and a text style — ask rather than guess. */
+function TargetMenu({ menu, onPick, onClose }) {
+  if (!menu) return null
+  return (
+    <>
+      <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 800 }} />
+      <div className="anim-pop" style={{
+        position: 'fixed', left: Math.min(menu.x, window.innerWidth - 260), top: menu.y + 8, zIndex: 801,
+        background: 'var(--surf2)', border: '1px solid var(--bdr2)', borderRadius: 9,
+        boxShadow: '0 12px 32px rgba(0,0,0,.55)', padding: 5, minWidth: 226,
+      }}>
+        <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--muted)', padding: '5px 8px 6px' }}>
+          Edit what?
+        </div>
+        {menu.targets.map(t => (
+          <button key={`${t.kind}:${t.target}`} onClick={() => { onPick(t); onClose() }}
+            style={{
+              display: 'block', width: '100%', textAlign: 'left', background: 'none', border: 'none',
+              cursor: 'pointer', color: 'var(--text)', fontFamily: 'var(--sans)', fontSize: 12.5,
+              padding: '7px 8px', borderRadius: 6,
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'var(--surf3)' }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'none' }}>
+            {t.label}
+          </button>
+        ))}
+      </div>
+    </>
+  )
+}
+
 export default function Canvas({ onInspect }) {
   const { state, derived, set } = useStore()
   const [surface, setSurface] = useState('dashboard')
+  const [menu, setMenu] = useState(null)
+
+  const handleInspect = (targets, e) => {
+    if (targets.length === 1) { onInspect?.(targets[0]); return }
+    setMenu({ x: e.clientX, y: e.clientY, targets })
+  }
   const mode = state.color.mode
 
   const setMode = next => set(s => ({ ...s, color: { ...s.color, mode: next } }), 'preview-mode')
@@ -64,9 +102,11 @@ export default function Canvas({ onInspect }) {
       <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'auto', padding: 16 }}>
         <div className="dmd" style={{ ...varsToStyle(vars), borderRadius: 10, border: '1px solid var(--bdr)' }}>
           {/* Every surface is inspectable, not just the gallery. */}
-          <Component onInspect={onInspect} />
+          <Component onInspect={onInspect ? handleInspect : undefined} />
         </div>
       </div>
+
+      <TargetMenu menu={menu} onClose={() => setMenu(null)} onPick={t => onInspect?.(t)} />
     </div>
   )
 }
