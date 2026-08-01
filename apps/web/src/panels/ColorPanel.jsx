@@ -144,11 +144,12 @@ function RampRow({ name, ramp, overrides, onOverride, onResetStep }) {
 function StopPicker({ value, resolved, groups, anchor, onPick, onClose }) {
   const isLiteral = /^#/.test(value)
   const rect = anchor?.getBoundingClientRect()
-  const width = 340
+  /* Two columns — picker left, swatches right — so the popover stays short
+     enough to fit on screen instead of becoming a tall scroller. */
+  const width = 520
   const left = rect ? Math.min(Math.max(10, rect.left), window.innerWidth - width - 10) : 40
-  /* Flip above the swatch when there isn't room below. */
   const below = rect ? window.innerHeight - rect.bottom : 0
-  const openUp = below < 430 && rect && rect.top > below
+  const openUp = below < 340 && rect && rect.top > below
 
   return createPortal(
     <>
@@ -159,43 +160,42 @@ function StopPicker({ value, resolved, groups, anchor, onPick, onClose }) {
         zIndex: 2001, width,
         background: 'var(--surf2)', border: '1px solid var(--bdr2)', borderRadius: 10,
         boxShadow: '0 18px 44px rgba(0,0,0,.6)', padding: 12,
-        maxHeight: 'min(560px, 78vh)', overflowY: 'auto',
+        display: 'grid', gridTemplateColumns: '208px 1fr', gap: 12,
       }}>
-        <div style={{ marginBottom: 12 }}>
+        <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 8 }}>
             <span style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--muted)', flex: 1 }}>
               Custom colour
             </span>
-            {!isLiteral && (
-              <span className="chip">following <code style={{ fontFamily: 'var(--mono)', fontSize: 10 }}>{value}</code></span>
-            )}
           </div>
           {/* Always available — editing it detaches the stop from the palette. */}
           <ColorPicker value={isLiteral ? value : resolved} onChange={onPick} compact />
-          {!isLiteral && (
-            <p className="panel-note" style={{ fontSize: 10.5, marginTop: 6 }}>
-              Adjusting this pins the stop to a literal colour; it will stop tracking the palette.
-            </p>
-          )}
+          <p className="panel-note" style={{ fontSize: 10.5, marginTop: 7 }}>
+            {isLiteral
+              ? 'This stop is a literal colour and ignores the palette.'
+              : <>Following <code style={{ fontFamily: 'var(--mono)', fontSize: 10 }}>{value}</code>. Adjusting this pins it to a literal colour.</>}
+          </p>
         </div>
 
-        {groups.map(group => (
-          <div key={group.label} style={{ marginBottom: 11, borderTop: '1px solid var(--bdr)', paddingTop: 10 }}>
-            <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--muted)', marginBottom: 6 }}>
-              {group.label}
+        <div style={{ borderLeft: '1px solid var(--bdr)', paddingLeft: 12, maxHeight: 300, overflowY: 'auto' }}>
+          {groups.map(group => (
+            <div key={group.label} style={{ marginBottom: 10 }}>
+              <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--muted)', marginBottom: 5 }}>
+                {group.label}
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(11, 1fr)', gap: 4 }}>
+                {group.items.map(item => (
+                  <button key={item.ref} onClick={() => { onPick(item.ref); onClose() }}
+                    title={`${item.ref} — ${item.hex}`}
+                    style={{
+                      aspectRatio: '1', background: item.hex, borderRadius: 4, cursor: 'pointer', padding: 0,
+                      border: value === item.ref ? '2px solid var(--accent)' : '1px solid rgba(255,255,255,.08)',
+                    }} />
+                ))}
+              </div>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(11, 1fr)', gap: 4 }}>
-              {group.items.map(item => (
-                <button key={item.ref} onClick={() => { onPick(item.ref); onClose() }}
-                  title={`${item.ref} — ${item.hex}`}
-                  style={{
-                    aspectRatio: '1', background: item.hex, borderRadius: 4, cursor: 'pointer', padding: 0,
-                    border: value === item.ref ? '2px solid var(--accent)' : '1px solid rgba(255,255,255,.08)',
-                  }} />
-              ))}
-            </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     </>,
     document.body

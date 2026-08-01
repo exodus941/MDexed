@@ -224,6 +224,11 @@ export function buildCssVars(d, mode = 'light') {
      Read from the config, not `d.elevation` — that holds the shadow levels. */
   vars['--fill-blend'] = d.elevationCfg?.fillBlend ?? 'normal'
   for (const g of d.gradients ?? []) if (g.name) vars[`--gradient-${g.name}`] = g.css
+  /* Scrim settings reach the Overlays surface, where they're actually visible. */
+  if (d.elevationCfg?.scrim) {
+    vars['--scrim-opacity'] = String(d.elevationCfg.scrim.opacity ?? 0.55)
+    vars['--scrim-blend'] = d.elevationCfg.blendMode ?? 'normal'
+  }
 
   if (d.components?.length) {
     Object.assign(vars, buildComponentVars(d.components, {

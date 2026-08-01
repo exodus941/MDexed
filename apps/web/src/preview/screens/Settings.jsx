@@ -1,7 +1,8 @@
 /* A settings page: dense rows, a sidebar, switches and destructive actions.
    Exercises the tokens that only appear in long-lived application chrome —
    sunken wells, selected nav, disabled controls, danger affordances. */
-import { inspectProps } from '../Gallery.jsx'
+import { inspectProps } from '../inspect.js'
+import { Ico, Switch, IconUser, IconFolder, IconBell, IconLock, IconChart, IconCheck, IconTrash } from '../icons.jsx'
 
 export default function Settings({ onInspect }) {
   const ins = entry => inspectProps(entry, onInspect)
@@ -17,8 +18,10 @@ export default function Settings({ onInspect }) {
     <div style={{ display: 'grid', gridTemplateColumns: '160px 1fr', gap: 'var(--space-xl, 32px)', alignItems: 'start' }}>
       <nav className="stack-sm">
         {sections.map((s, i) => (
-          <div key={s} className={`nav-item${i === 3 ? ' is-active' : ''}`}
-            {...ins(i === 3 ? 'nav-item-selected' : 'nav-item')}>{s}</div>
+          <div key={s} className={`nav-item with-icon${i === 3 ? ' is-active' : ''}`}
+            {...ins(i === 3 ? 'nav-item-selected' : 'nav-item')}>
+            <Ico d={[IconUser, IconFolder, IconChart, IconBell, IconFolder, IconLock][i]} />{s}
+          </div>
         ))}
       </nav>
 
@@ -39,8 +42,7 @@ export default function Settings({ onInspect }) {
                 <div style={{ fontWeight: 500 }}>{title}</div>
                 <p className="muted small" style={{ marginTop: 2 }}>{desc}</p>
               </div>
-              <span className={`badge ${on ? 'badge-success' : 'badge-neutral'}`}
-                {...ins(on ? 'badge-success' : 'badge-neutral')}>{on ? 'On' : 'Off'}</span>
+              <span {...ins(on ? 'switch-checked' : 'switch')}><Switch on={on} /></span>
             </div>
           ))}
         </div>
@@ -58,10 +60,10 @@ export default function Settings({ onInspect }) {
         </div>
 
         <div className="row" style={{ justifyContent: 'space-between' }}>
-          <button className="btn btn-ghost" {...ins('button-ghost')}>Reset to defaults</button>
+          <button className="btn btn-ghost" {...ins('button-ghost')}><Ico d={IconTrash} />Reset to defaults</button>
           <div className="row">
             <button className="btn btn-secondary" disabled {...ins('button-primary-disabled')}>Discard</button>
-            <button className="btn btn-primary" {...ins('button-primary')}>Save changes</button>
+            <button className="btn btn-primary" {...ins('button-primary')}><Ico d={IconCheck} />Save changes</button>
           </div>
         </div>
       </div>
