@@ -5,7 +5,8 @@
 import { useState } from 'react'
 import { useStore } from '../state/store.jsx'
 import { uid } from '../state/schema.js'
-import { RAMP_STEPS, DEFAULT_SHAPE } from '../color/ramp.js'
+import { RAMP_STEPS, DEFAULT_SHAPE, resolveRef } from '../color/ramp.js'
+import { generatePalette, HARMONIES } from '../color/palette.js'
 import { isValidColor } from '../color/convert.js'
 import ColorPicker from '../ui/ColorPicker.jsx'
 import { GRADIENT_TYPES } from '../color/modes.js'
@@ -27,17 +28,33 @@ const nextSeedName = seeds => {
 }
 
 /* ── Seeds ── */
-function SeedRow({ seed, ramps, onChange, onRename, onDelete, open, onToggle }) {
+const Lock = ({ locked }) => (
+  <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+    <rect x="4" y="11" width="16" height="10" rx="2" />
+    {locked ? <path d="M8 11V7a4 4 0 118 0v4" /> : <path d="M8 11V7a4 4 0 117-2.6" />}
+  </svg>
+)
+
+function SeedRow({ seed, ramps, onChange, onRename, onDelete, onLock, open, onToggle }) {
   const anchor = ramps[seed.name]?.anchor
   return (
     <div style={{ background: 'var(--surf2)', border: `1px solid ${open ? 'rgba(220,144,85,.35)' : 'var(--bdr)'}`, borderRadius: 9, overflow: 'hidden', transition: 'border-color var(--t) var(--ease)' }}>
-      <div onClick={onToggle} style={{ display: 'grid', gridTemplateColumns: '30px 1fr auto auto', gap: 10, alignItems: 'center', padding: '8px 12px', cursor: 'pointer' }}>
+      <div onClick={onToggle} style={{ display: 'grid', gridTemplateColumns: '30px 1fr auto auto auto', gap: 10, alignItems: 'center', padding: '8px 12px', cursor: 'pointer' }}>
         <div className="swatch" style={{ width: 26, height: 26, background: seed.hex }} />
         <div style={{ minWidth: 0 }}>
           <div style={{ fontWeight: 500, fontSize: 13.5 }}>{seed.name}</div>
           {seed.desc && <div style={{ fontSize: 11, color: 'var(--dim)' }}>{seed.desc}</div>}
         </div>
         <code className="chip">{seed.hex}</code>
+        <button onClick={e => { e.stopPropagation(); onLock() }}
+          title={seed.locked ? 'Locked — the generator will leave this alone' : 'Unlocked — the generator may replace this'}
+          style={{
+            background: 'none', border: 'none', cursor: 'pointer', padding: 3, display: 'flex',
+            color: seed.locked ? 'var(--accent)' : 'var(--dim)',
+            transition: 'color var(--t) var(--ease)',
+          }}>
+          <Lock locked={seed.locked} />
+        </button>
         {!PROTECTED_SEEDS.includes(seed.name)
           ? <ConfirmDelete onConfirm={onDelete} title="Remove seed" />
           : <span style={{ width: 23 }} />}
@@ -120,7 +137,7 @@ function RampRow({ name, ramp, overrides, onOverride, onResetStep }) {
 /* ── Gradients ──
    Stops reference roles or scale steps, so a gradient follows the palette
    instead of freezing hex values into it. */
-function GradientRow({ grad, css, options, onChange, onDelete }) {
+function GradientRow({ grad, css, options, resolved, onChange, onDelete }) {
   const [open, setOpen] = useState(false)
   const setStop = (i, patch) => onChange({ ...grad, stops: grad.stops.map((s, j) => j === i ? { ...s, ...patch } : s) })
 
@@ -148,11 +165,11 @@ function GradientRow({ grad, css, options, onChange, onDelete }) {
             </div>
           </div>
 
-          {grad.type !== 'radial' && (
+          {grad.type === 'linear' && (
             <Slider label="Angle" value={grad.angle ?? 90} onChange={v => onChange({ ...grad, angle: v })}
               min={0} max={360} step={1} defaultValue={90} format={v => `${Math.round(v)}°`} />
           )}
-          {grad.type !== 'linear' && (
+          {grad.type === 'radial' && (
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
               <NumField label="Centre X" value={grad.cx ?? 50} min={0} max={100} suffix="%" onChange={v => onChange({ ...grad, cx: v })} />
               <NumField label="Centre Y" value={grad.cy ?? 50} min={0} max={100} suffix="%" onChange={v => onChange({ ...grad, cy: v })} />
@@ -160,19 +177,38 @@ function GradientRow({ grad, css, options, onChange, onDelete }) {
           )}
 
           <div style={{ fontSize: 11, color: 'var(--muted)', margin: '4px 0 6px' }}>Stops</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-            {grad.stops.map((s, i) => (
-              <div key={i} style={{ display: 'grid', gridTemplateColumns: '18px minmax(0,1fr) 84px 20px', gap: 7, alignItems: 'center' }}>
-                <span className="swatch" style={{ width: 16, height: 16, cursor: 'default', background: /^#/.test(s.color) ? s.color : `var(--c-${s.color}, #888)` }} />
-                <input list="dmd-grad-stops" value={s.color} onChange={e => setStop(i, { color: e.target.value })}
-                  style={{ fontFamily: 'var(--mono)', fontSize: 11, padding: '3px 6px' }} />
-                <NumField value={s.position} min={0} max={100} suffix="%" onChange={v => setStop(i, { position: v })} />
-                <ConfirmDelete size={11} title="Remove stop"
-                  onConfirm={() => onChange({ ...grad, stops: grad.stops.filter((_, j) => j !== i) })} />
-              </div>
-            ))}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {grad.stops.map((s, i) => {
+              const manual = /^#/.test(s.color)
+              return (
+                <div key={i} style={{ background: 'var(--surf2)', border: '1px solid var(--bdr)', borderRadius: 7, padding: 8 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '20px minmax(0,1fr) 78px 20px', gap: 7, alignItems: 'center', marginBottom: manual ? 8 : 0 }}>
+                    <span className="swatch" style={{ width: 18, height: 18, cursor: 'default', background: resolved[i] }} />
+                    {/* A picker for palette colours, so a gradient tracks the
+                        system; "Custom" drops to a literal for one-offs. */}
+                    <select value={manual ? '__custom' : s.color}
+                      onChange={e => setStop(i, { color: e.target.value === '__custom' ? (resolved[i] ?? '#888888') : e.target.value })}
+                      style={{ fontFamily: 'var(--mono)', fontSize: 11, padding: '4px 6px' }}>
+                      <optgroup label="Seeds">
+                        {options.seeds.map(o => <option key={o} value={o}>{o}</option>)}
+                      </optgroup>
+                      <optgroup label="Roles">
+                        {options.roles.map(o => <option key={o} value={o}>{o}</option>)}
+                      </optgroup>
+                      <optgroup label="Scale steps">
+                        {options.steps.map(o => <option key={o} value={o}>{o}</option>)}
+                      </optgroup>
+                      <option value="__custom">Custom…</option>
+                    </select>
+                    <NumField value={s.position} min={0} max={100} suffix="%" onChange={v => setStop(i, { position: v })} />
+                    <ConfirmDelete size={11} title="Remove stop"
+                      onConfirm={() => onChange({ ...grad, stops: grad.stops.filter((_, j) => j !== i) })} />
+                  </div>
+                  {manual && <ColorPicker value={s.color} onChange={hex => setStop(i, { color: hex })} compact />}
+                </div>
+              )
+            })}
           </div>
-          <datalist id="dmd-grad-stops">{options.map(o => <option key={o} value={o} />)}</datalist>
           <button className="btn-add" style={{ marginTop: 8 }}
             onClick={() => onChange({ ...grad, stops: [...grad.stops, { color: 'accent', position: 100 }] })}>
             + Add stop
@@ -189,6 +225,7 @@ export default function ColorPanel() {
   const { color } = state
   const { ramps } = derived
   const [openSeed, setOpenSeed] = useState(null)
+  const [harmony, setHarmony] = useState('analogous')
 
   const upd = (fn, tag) => set(s => ({ ...s, color: fn(s.color) }), tag)
 
@@ -201,16 +238,28 @@ export default function ColorPanel() {
     setOpenSeed(id)
   }
 
+  const toggleLock = id => upd(c => ({ ...c, seeds: c.seeds.map(s => s.id === id ? { ...s, locked: !s.locked } : s) }))
+  const roll = () => upd(c => {
+    const next = generatePalette(c.seeds, harmony)
+    return { ...c, seeds: c.seeds.map(s => next[s.id] ? { ...s, hex: next[s.id] } : s) }
+  })
+  const lockedCount = color.seeds.filter(s => s.locked).length
+
   const setShape = (key, value) => upd(c => ({ ...c, shape: { ...c.shape, [key]: value } }), `shape:${key}`)
   const setStepOverride = (key, hex) => upd(c => ({ ...c, stepOverrides: { ...c.stepOverrides, [key]: hex } }), `step:${key}`)
   const resetStep = key => upd(c => { const n = { ...c.stepOverrides }; delete n[key]; return { ...c, stepOverrides: n } })
 
   const stepOverrides = Object.keys(color.stepOverrides ?? {}).length
 
-  const stopOptions = [
-    ...Object.keys(derived.roles.light),
-    ...Object.keys(ramps).flatMap(r => RAMP_STEPS.map(s => `${r}.${s}`)),
-  ]
+  /* Grouped so a seed — the thing you actually picked — is the first choice,
+     not buried among 55 scale steps. */
+  const stopOptions = {
+    seeds: color.seeds.map(s => `${s.name}.500`),
+    roles: Object.keys(derived.roles[color.mode]),
+    steps: Object.keys(ramps).flatMap(r => RAMP_STEPS.map(s => `${r}.${s}`)),
+  }
+  const resolveStopHex = value =>
+    /^#/.test(value) ? value : (derived.roles[color.mode][value] ?? resolveRef(value, ramps) ?? '#888888')
   const updGradient = (id, next) => upd(c => ({ ...c, gradients: c.gradients.map(g => g.id === id ? next : g) }), `grad:${id}`)
   const addGradient = () => upd(c => ({
     ...c,
@@ -226,7 +275,40 @@ export default function ColorPanel() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       <SectionHeader title="Colour" desc="Pick a few seeds; the scales generate from them. Roles are on the next tab." />
 
-      <Collapsible title="Seeds" note={String(color.seeds.length)} defaultOpen>
+      <Collapsible title="Seeds" note={`${color.seeds.length}${lockedCount ? ` · ${lockedCount} locked` : ''}`} defaultOpen>
+        {/* Generator, inline rather than on its own screen — locking a colour
+            and re-rolling the rest is a loop you want to stay inside. */}
+        <div style={{ background: 'var(--surf2)', border: '1px solid var(--bdr)', borderRadius: 9, padding: 11, marginBottom: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 9 }}>
+            <span style={{ fontSize: 12, color: 'var(--text)', flex: 1 }}>Generate a palette</span>
+            <select value={harmony} onChange={e => setHarmony(e.target.value)}
+              style={{ width: 'auto', fontSize: 11.5, padding: '4px 7px' }}>
+              {HARMONIES.map(h => <option key={h.id} value={h.id}>{h.label}</option>)}
+            </select>
+            <button className="btn-primary" onClick={roll} style={{ padding: '6px 13px', whiteSpace: 'nowrap' }}>
+              Generate
+            </button>
+          </div>
+          <div style={{ display: 'flex', gap: 3, height: 34, borderRadius: 6, overflow: 'hidden', marginBottom: 8 }}>
+            {color.seeds.map(s => (
+              <button key={s.id} onClick={() => toggleLock(s.id)} title={`${s.name} — ${s.locked ? 'locked' : 'click to lock'}`}
+                style={{
+                  flex: 1, background: s.hex, border: 'none', cursor: 'pointer', position: 'relative',
+                  display: 'flex', alignItems: 'flex-end', justifyContent: 'center', padding: 3,
+                  outline: s.locked ? '2px solid var(--accent)' : 'none', outlineOffset: -2,
+                }}>
+                <span style={{ color: '#fff', mixBlendMode: 'difference', display: 'flex' }}>
+                  {s.locked && <Lock locked />}
+                </span>
+              </button>
+            ))}
+          </div>
+          <p className="panel-note">
+            Lock the ones you like, then generate again — locked colours anchor the hue and weight of everything else.
+            Status seeds stay inside the hue bands that still read as success, warning and danger.
+          </p>
+        </div>
+
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           {color.seeds.map(seed => (
             <SeedRow key={seed.id} seed={seed} ramps={ramps}
@@ -234,6 +316,7 @@ export default function ColorPanel() {
               onToggle={() => setOpenSeed(openSeed === seed.id ? null : seed.id)}
               onChange={hex => setSeed(seed.id, hex)}
               onRename={name => renameSeed(seed.id, name)}
+              onLock={() => toggleLock(seed.id)}
               onDelete={() => deleteSeed(seed.id)} />
           ))}
         </div>
@@ -294,6 +377,7 @@ export default function ColorPanel() {
           )}
           {(color.gradients ?? []).map((g, i) => (
             <GradientRow key={g.id} grad={g} css={derived.gradients[i]?.css ?? 'none'} options={stopOptions}
+              resolved={g.stops.map(s => resolveStopHex(s.color))}
               onChange={next => updGradient(g.id, next)}
               onDelete={() => upd(c => ({ ...c, gradients: c.gradients.filter(x => x.id !== g.id) }))} />
           ))}

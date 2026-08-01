@@ -20,6 +20,7 @@ import ComponentsPanel from './panels/ComponentsPanel.jsx'
 import DirectivesPanel from './panels/DirectivesPanel.jsx'
 import { LayoutPanel, ShapePanel, DepthPanel, MotionPanel } from './panels/system.jsx'
 import { MetaTab, RationaleTab } from './panels/basics.jsx'
+import HistoryPanel from './panels/HistoryPanel.jsx'
 
 /* ── API ── */
 const API_BASE = '/api/v1'
@@ -285,23 +286,34 @@ function FileModal({ onClose }) {
    without needing to be read. */
 function SaveFlash({ savedAt }) {
   const [shown, setShown] = useState(null)
+  const [leaving, setLeaving] = useState(false)
 
+  /* Fades both ways at whatever the UI animation control is set to, rather
+     than appearing and vanishing on a hard cut. */
   useEffect(() => {
     if (!savedAt) return
     setShown(savedAt)
-    const t = setTimeout(() => setShown(null), 1600)
-    return () => clearTimeout(t)
+    setLeaving(false)
+    const ms = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--t'), 10) || 0
+    const hold = setTimeout(() => setLeaving(true), 1600)
+    const gone = setTimeout(() => setShown(null), 1600 + ms)
+    return () => { clearTimeout(hold); clearTimeout(gone) }
   }, [savedAt])
 
   if (!shown) return null
   return (
-    <div className="anim-rise" style={{
+    <div style={{
       position: 'fixed', right: 18, bottom: 16, zIndex: 900, pointerEvents: 'none',
       display: 'flex', alignItems: 'center', gap: 7,
-      background: 'rgba(90,173,128,.14)', border: '1px solid rgba(90,173,128,.35)',
-      color: 'var(--success)', borderRadius: 7, padding: '6px 11px',
+      /* Opaque. A translucent confirmation over a dark editor is unreadable. */
+      background: '#12352a', border: '1px solid rgba(90,173,128,.55)',
+      color: '#7fd6a4', borderRadius: 7, padding: '7px 12px',
       fontSize: 11.5, fontFamily: 'var(--mono)',
-      boxShadow: '0 6px 20px rgba(0,0,0,.35)',
+      boxShadow: '0 8px 24px rgba(0,0,0,.5)',
+      opacity: leaving ? 0 : 1,
+      transform: leaving ? 'translateY(6px)' : 'none',
+      transition: 'opacity var(--t) var(--ease), transform var(--t) var(--ease)',
+      animation: 'dmd-rise var(--t) var(--ease) both',
     }}>
       <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round">
         <polyline points="20 6 9 17 4 12" />
@@ -511,6 +523,7 @@ const TABS = [
   { id: 'components', label: 'Components', Panel: ComponentsPanel },
   { id: 'directives', label: 'Directives', Panel: DirectivesPanel },
   { id: 'rationale',  label: 'Rationale',  Panel: RationaleTab },
+  { id: 'history',    label: 'History',    Panel: HistoryPanel },
 ]
 
 function Shell() {
@@ -547,6 +560,8 @@ function Shell() {
   const dirtyRef = useRef(false)
   const [dirty, setDirty] = useState(false)
   const [savedAt, setSavedAt] = useState(null)
+  const [justSaved, setJustSaved] = useState(false)
+  const justSavedTimer = useRef(null)
 
   /* Open a shared project from /p/:id */
   useEffect(() => {
@@ -748,11 +763,31 @@ function Shell() {
                     style={{ padding: '5px 9px', color: canRedo ? 'var(--text-dim)' : undefined }}>
                     <Undo flip />
                   </button>
-                  <button className="btn-ghost" onClick={() => persist('manual').then(ok => ok && setDirty(false))}
-                    title={dirty ? 'Unsaved changes — click to save now' : 'Everything is saved'}
-                    style={{ padding: '5px 9px', gap: 5, color: dirty ? 'var(--warn)' : 'var(--success)', borderColor: dirty ? 'rgba(216,164,65,.35)' : 'var(--bdr)' }}>
-                    <Save />
-                    {dirty && <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'currentColor' }} />}
+                  {/* Confirms in place: fills, swaps to a tick and reads
+                      "Saved" for a moment, so a manual save is unambiguous. */}
+                  <button
+                    onClick={() => persist('manual').then(ok => {
+                      if (!ok) return
+                      setDirty(false)
+                      setJustSaved(true)
+                      clearTimeout(justSavedTimer.current)
+                      justSavedTimer.current = setTimeout(() => setJustSaved(false), 2200)
+                    })}
+                    title={justSaved ? 'Saved' : dirty ? 'Unsaved changes — click to save now' : 'Everything is saved'}
+                    className={justSaved ? 'btn-primary' : 'btn-ghost'}
+                    style={{
+                      padding: '5px 11px', gap: 6, display: 'inline-flex', alignItems: 'center',
+                      minWidth: 88, justifyContent: 'center',
+                      ...(justSaved
+                        ? { background: 'var(--success)', color: '#0b0b0e' }
+                        : { color: dirty ? 'var(--warn)' : 'var(--muted)', borderColor: dirty ? 'rgba(216,164,65,.4)' : 'var(--bdr)' }),
+                      transition: 'background var(--t) var(--ease), color var(--t) var(--ease), border-color var(--t) var(--ease)',
+                    }}>
+                    {justSaved
+                      ? <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                      : <Save />}
+                    {justSaved ? 'Saved' : 'Save'}
+                    {!justSaved && dirty && <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'currentColor' }} />}
                   </button>
                 </div>
               } />

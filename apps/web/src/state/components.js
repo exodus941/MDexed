@@ -14,7 +14,9 @@ export const COMPONENT_LIBRARY = [
     name: 'button', label: 'Button', group: 'Actions', on: true,
     base: { rounded: '{rounded.md}', typography: 'button', gap: '{spacing.xs}' },
     variants: {
-      primary:   { backgroundColor: '{colors.accent}',  textColor: '{colors.accent-fg}',  borderColor: 'transparent' },
+      /* backgroundImage takes a `{gradient.name}` reference. It sits above the
+         fill colour when set, and is dropped from the output when 'none'. */
+      primary:   { backgroundColor: '{colors.accent}',  textColor: '{colors.accent-fg}',  borderColor: 'transparent', backgroundImage: 'none' },
       secondary: { backgroundColor: '{colors.surface}', textColor: '{colors.text}',       borderColor: '{colors.border}' },
       ghost:     { backgroundColor: 'transparent',      textColor: '{colors.text-muted}', borderColor: 'transparent' },
       danger:    { backgroundColor: '{colors.danger}',  textColor: '{colors.danger-fg}',  borderColor: 'transparent' },
@@ -76,6 +78,7 @@ export const COMPONENT_LIBRARY = [
     base: {
       backgroundColor: '{colors.surface}', borderColor: '{colors.border-subtle}',
       rounded: '{rounded.lg}', padding: '{spacing.md}', boxShadow: '{elevation.raised}',
+      backgroundImage: 'none',
     },
     variants: {
       flat:    { boxShadow: 'none' },
@@ -156,6 +159,9 @@ const applyOverrides = (props, overrides, prefix) => {
 const toProps = obj =>
   Object.entries(obj)
     .filter(([, v]) => v != null && v !== '')
+    /* `backgroundImage: none` is the resting state, not a decision — emitting
+       it on every component would be noise. */
+    .filter(([key, v]) => !(key === 'backgroundImage' && v === 'none'))
     .map(([key, value]) => ({ id: `${key}`, key, value: String(value) }))
 
 /**

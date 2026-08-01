@@ -41,7 +41,7 @@ export function generateCounterpart(roles, from = 'light') {
    A gradient is a CSS *image*, not a colour, so it can never be a `colors`
    token — the spec's map takes colour values. It rides in the markdown body
    instead, and drives a CSS variable for the preview. */
-export const GRADIENT_TYPES = ['linear', 'radial', 'conic']
+export const GRADIENT_TYPES = ['linear', 'radial']
 
 /** Resolve a stop's colour, which may be a role name, a scale ref, or a hex. */
 export const resolveStop = (value, roles, resolveRef, ramps) => {
@@ -58,7 +58,6 @@ export function gradientCss(g, { roles, ramps, resolveRef }) {
     .join(', ')
   if (!stops) return 'none'
   if (g.type === 'radial') return `radial-gradient(circle at ${g.cx ?? 50}% ${g.cy ?? 50}%, ${stops})`
-  if (g.type === 'conic') return `conic-gradient(from ${g.angle ?? 0}deg at ${g.cx ?? 50}% ${g.cy ?? 50}%, ${stops})`
   return `linear-gradient(${g.angle ?? 90}deg, ${stops})`
 }
 
