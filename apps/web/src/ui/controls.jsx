@@ -389,15 +389,30 @@ export function NumField({ label, value, onChange, min, max, step = 1, suffix, w
   )
 }
 
-export function Segmented({ options, value, onChange, size = 'md' }) {
+/**
+ * @param full  stretch to the container and share the width equally between
+ *              options, instead of each one hugging its own label. Use it when
+ *              the control sits above something full-width — a row of buttons
+ *              that stops short of a slider beneath it reads as unfinished,
+ *              and the ragged right edge is the first thing you see.
+ */
+export function Segmented({ options, value, onChange, size = 'md', full }) {
   return (
-    <div style={{ display: 'inline-flex', gap: 2, background: 'var(--surf3)', padding: 2, borderRadius: 6, border: '1px solid var(--bdr)' }}>
+    <div style={{
+      display: full ? 'flex' : 'inline-flex', width: full ? '100%' : undefined,
+      gap: 2, background: 'var(--surf3)', padding: 2, borderRadius: 6, border: '1px solid var(--bdr)',
+    }}>
       {options.map(o => {
         const val = typeof o === 'string' ? o : o.value
         const label = typeof o === 'string' ? o : o.label
         return (
           <button key={val} onClick={() => onChange(val)} className={value === val ? 'seg-on' : 'seg'}
-            style={size === 'sm' ? { padding: '2px 6px', fontSize: 11 } : undefined}>
+            style={{
+              ...(size === 'sm' ? { padding: '2px 6px', fontSize: 11 } : null),
+              /* Equal shares rather than content-sized, so the divisions land
+                 on a regular rhythm instead of tracking label length. */
+              ...(full ? { flex: 1, minWidth: 0 } : null),
+            }}>
             {label}
           </button>
         )

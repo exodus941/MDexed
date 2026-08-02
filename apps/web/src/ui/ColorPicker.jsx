@@ -121,29 +121,23 @@ export default function ColorPicker({ value, onChange, alpha: allowAlpha = false
         </div>
       )}
 
-      {/* Model selector + eyedropper */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-        <Segmented options={MODELS} value={model} onChange={setModel} size="sm" />
-        <div style={{ flex: 1 }} />
-        {typeof window !== 'undefined' && 'EyeDropper' in window && (
-          <button className="btn-ghost" title="Pick a colour from anywhere on screen"
-            style={{ padding: '4px 10px' }}
-            onClick={async () => {
-              try {
-                const { sRGBHex } = await new window.EyeDropper().open()
-                emitHex(sRGBHex)
-              } catch { /* the user dismissed the picker */ }
-            }}>
-            <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
-              <path d="M2 22l1-4 9-9 3 3-9 9-4 1z" /><path d="M15 6l3 3" /><path d="M17.5 3.5a2.12 2.12 0 013 3L18 9l-3-3 2.5-2.5z" />
-            </svg>
-          </button>
-        )}
+      {/* The model selector gets the row to itself.
+       *
+       * The eyedropper used to sit at the end of it behind a flex spacer, and
+       * five model buttons plus a button already exceed the width the picker
+       * is given inside a role card — so it hung off the right edge. It now
+       * sits beside the value field below, where there is always room because
+       * that row is one input wide, and where it is arguably better placed
+       * anyway: it produces a value, so it belongs next to the value. */}
+      <div style={{ marginBottom: 8 }}>
+        <Segmented options={MODELS} value={model} onChange={setModel} size="sm" full />
       </div>
 
       {/* Numeric entry. Switching model swaps one set of fields for another,
           which is a tab change in everything but name — dissolve it. */}
-      <CrossFade id={model}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+        <CrossFade id={model}>
       {model === 'HEX' && (
         <input
           value={hexDraft}
@@ -198,7 +192,27 @@ export default function ColorPicker({ value, onChange, alpha: allowAlpha = false
           )}
         </div>
       )}
-      </CrossFade>
+        </CrossFade>
+        </div>
+
+        {/* Square, so it matches the field height rather than sitting proud of
+            it, and only rendered where the browser can actually open one. */}
+        {typeof window !== 'undefined' && 'EyeDropper' in window && (
+          <button className="btn-ghost" title="Pick a colour from anywhere on screen"
+            aria-label="Pick a colour from anywhere on screen"
+            style={{ padding: 0, width: 36, height: 36, flexShrink: 0, justifyContent: 'center' }}
+            onClick={async () => {
+              try {
+                const { sRGBHex } = await new window.EyeDropper().open()
+                emitHex(sRGBHex)
+              } catch { /* the user dismissed the picker */ }
+            }}>
+            <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+              <path d="M2 22l1-4 9-9 3 3-9 9-4 1z" /><path d="M15 6l3 3" /><path d="M17.5 3.5a2.12 2.12 0 013 3L18 9l-3-3 2.5-2.5z" />
+            </svg>
+          </button>
+        )}
+      </div>
     </div>
   )
 }
