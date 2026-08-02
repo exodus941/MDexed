@@ -410,8 +410,30 @@ export function Segmented({ options, value, onChange, size = 'md', full }) {
             style={{
               ...(size === 'sm' ? { padding: '2px 6px', fontSize: 11 } : null),
               /* Equal shares rather than content-sized, so the divisions land
-                 on a regular rhythm instead of tracking label length. */
-              ...(full ? { flex: 1, minWidth: 0 } : null),
+                 on a regular rhythm instead of tracking label length.
+                 *
+                 The type comes down and the side padding nearly goes, because
+                 the width is now fixed and the longest label has to live
+                 inside it — five equal shares of a 239px picker is 45px, and
+                 OKLCH at 11px with 6px of padding either side does not fit in
+                 that. Shrinking the label is the whole fix. */
+              ...(full ? {
+                /* Grow to fill, but never below the label's own width.
+                 *
+                 * Equal shares (`flex: 1; min-width: 0`) looked tidy and
+                 * clipped OKLCH the moment the container got tight — the token
+                 * picker is 205px, so a fifth of it is 38px against a label
+                 * that needs 40. Sharing only the *leftover* keeps the control
+                 * full-width, which is what was actually asked for, and lets
+                 * the one long label take the room it needs.
+                 *
+                 * Smaller type as well, since that is the other half of making
+                 * it fit, with the weight up a shade to pay for the size: ten
+                 * pixels of 400 reads lighter than eleven did. */
+                flex: '1 1 auto', minWidth: 'max-content',
+                padding: '3px 4px', fontSize: 10, fontWeight: 550,
+                textAlign: 'center', whiteSpace: 'nowrap',
+              } : null),
             }}>
             {label}
           </button>
