@@ -1627,21 +1627,36 @@ function Shell() {
   /* Seeds only, because seeds are what everything else generates from — set
      those and the scales, roles and every component follow. Writing further
      downstream would paste in values that no longer track anything. */
-  const applyCssImport = ({ seeds, family, spacingBase, radiusBase, fontBase }) => {
+  /* Only the slots the mapping table confirmed. Anything absent is untouched
+     — which is the point: a seed left alone keeps every scale, role and
+     component derived from it coherent, where blanking it would leave a hole
+     an agent has to guess its way out of. */
+  const applyCssImport = ({ seeds, families, spacingBase, radiusBase, fontBase }) => {
+    const n = Object.keys(seeds ?? {}).length + Object.keys(families ?? {}).length
+      + [spacingBase, radiusBase, fontBase].filter(v => v != null).length
+
     set(s => {
       const next = { ...s }
       if (seeds && Object.keys(seeds).length) {
         next.color = { ...s.color, seeds: s.color.seeds.map(x => seeds[x.name] ? { ...x, hex: seeds[x.name] } : x) }
       }
-      if (family) {
-        next.type = { ...s.type, families: { ...s.type.families, body: { family, category: 'sans-serif' } } }
+      if (families && Object.keys(families).length) {
+        next.type = {
+          ...s.type,
+          families: Object.fromEntries(Object.entries(s.type.families).map(([role, cur]) =>
+            [role, families[role] ? { ...cur, family: families[role] } : cur])),
+        }
       }
       if (fontBase) next.type = { ...(next.type ?? s.type), base: fontBase }
       if (spacingBase) next.space = { ...s.space, base: spacingBase }
       if (radiusBase) next.radius = { ...s.radius, base: radiusBase }
       return next
     }, 'css-import')
-    setNotice({ tone: 'info', text: 'Imported into the seeds. Everything downstream regenerated — undo if it isn’t what you wanted.' })
+
+    setNotice({
+      tone: 'info',
+      text: `Imported ${n} ${n === 1 ? 'value' : 'values'}. Everything downstream regenerated from them; anything you left unchecked kept what it had. Undo if it isn’t what you wanted.`,
+    })
   }
 
   /* The modal has already read the text, so this only has to parse it. A

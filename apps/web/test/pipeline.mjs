@@ -273,5 +273,56 @@ line('\n- prompt construction -')
   }
 }
 
+/* ── Reference mapping ──
+ *
+ * Inference, so it can only be tested against cases with a right answer. Two:
+ * a modern stylesheet where every slot is named, and an old one with no custom
+ * properties where the only signal is hue. The second is the one that rots —
+ * it depends on pass ordering, and getting that wrong is silent. */
+{
+  line('\n- reference mapping -')
+  const { readCss } = await import('../src/emit/cssImport.js')
+  const { mapReference, toImport } = await import('../src/emit/cssMap.js')
+
+  const named = readCss(`:root{
+    --color-brand-primary:#4f46e5; --color-brand-primary-hover:#4338ca;
+    --color-gray-50:#f9fafb; --color-gray-500:#6b7280; --color-gray-900:#111827;
+    --color-success-600:#059669; --color-warning-500:#f59e0b; --color-error-600:#dc2626;
+    --font-sans:"Inter",sans-serif; --font-mono:"JetBrains Mono",monospace;
+    --font-size-base:16px; --space-unit:4px; --radius-md:8px; --seafoam:#7fd4c1; }`)
+  const a = mapReference(named).proposals
+
+  assert(a.accent?.value === '#4f46e5', 'named: brand beats its own hover state')
+  assert(a.neutral?.value === '#6b7280', 'named: the 500 step beats 50 and 900')
+  assert(a.success?.value === '#059669', 'named: success')
+  assert(a.danger?.value === '#dc2626', 'named: error maps to danger')
+  assert(a.fontMono?.value === 'JetBrains Mono', 'named: mono face')
+  assert(a.spacingBase?.value === 4 && a.radiusBase?.value === 8, 'named: measurements')
+  assert(Object.values(a).every(p => p.confidence === 'named'), 'named: nothing fell back to inference')
+  assert(mapReference(named).unmatched.some(v => v.name === 'seafoam'),
+    'named: an unrecognised name is offered rather than dropped')
+
+  /* No custom properties at all. Status slots have hue priors and must claim
+     before accent, which has none — otherwise accent eats the green. */
+  const bare = readCss(`
+    a{color:#b5651d} .btn-primary{background:#b5651d;padding:10px 20px;border-radius:6px}
+    .alert-ok{color:#1e7b34;border:1px solid #1e7b34}
+    .alert-warn{color:#a37b12} .alert-bad{color:#c0392b}
+    .muted{color:#777777} body{font-size:16px}`)
+  const b = mapReference(bare).proposals
+
+  assert(b.success?.value === '#1e7b34', 'bare: the green goes to success, not accent')
+  assert(b.accent?.value === '#b5651d', 'bare: accent takes what the status hues left')
+  assert(b.danger?.value === '#c0392b', 'bare: danger by hue')
+  assert(b.neutral?.value === '#777777', 'bare: mid grey for the neutral')
+  assert(Object.values(b).every(p => p.confidence === 'inferred'), 'bare: everything marked inferred')
+
+  /* Confirmation is what makes proposing this much safe. */
+  const only = toImport(a, new Set(['accent', 'spacingBase']))
+  assert(only.seeds.accent === '#4f46e5' && only.spacingBase === 4, 'toImport: accepted slots carry')
+  assert(only.radiusBase === undefined && !only.seeds.danger,
+    'toImport: an unchecked slot is absent, so the document keeps its own value')
+}
+
 line(`\n${failures === 0 ? 'ALL PASS' : `${failures} FAILURE(S)`}\n`)
 process.exit(failures ? 1 : 0)
