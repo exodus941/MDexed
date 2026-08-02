@@ -92,7 +92,7 @@ const SyncBadge = ({ status }) => {
     error:    { bg: 'rgba(222,92,92,.13)',  fg: 'var(--danger)',  txt: 'Sync error' },
     offline:  { bg: 'var(--surf2)',         fg: 'var(--muted)',   txt: 'Offline' },
   }[status] ?? { bg: 'var(--surf2)', fg: 'var(--muted)', txt: status }
-  return <span style={{ fontSize: 11, fontFamily: 'var(--mono)', background: cfg.bg, color: cfg.fg, padding: '4px 9px', borderRadius: 5, border: '1px solid var(--bdr)', whiteSpace: 'nowrap' }}>{cfg.txt}</span>
+  return <span style={{ fontSize: 11, fontFamily: 'var(--mono)', background: cfg.bg, color: cfg.fg, padding: '4px 10px', borderRadius: 5, border: '1px solid var(--bdr)', whiteSpace: 'nowrap' }}>{cfg.txt}</span>
 }
 
 /* ── Macro bar ──
@@ -234,13 +234,13 @@ function MacroBar({ onOpenContrast, uiSpeed, setUiSpeed }) {
           background: failing ? 'rgba(222,92,92,.12)' : 'rgba(90,173,128,.10)',
           border: `1px solid ${failing ? 'rgba(222,92,92,.35)' : 'rgba(90,173,128,.3)'}`,
           color: failing ? 'var(--danger)' : 'var(--success)',
-          borderRadius: 6, padding: '5px 9px', fontSize: 11, fontFamily: 'var(--mono)', marginBottom: 1,
+          borderRadius: 6, padding: '4px 10px', fontSize: 11, fontFamily: 'var(--mono)', marginBottom: 1,
         }}>
         <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'currentColor' }} />
         {failing ? `${failing} contrast` : 'Contrast OK'}
       </button>
 
-      <button className="btn-ghost" onClick={reset} disabled={!anyChanged} style={{ padding: '5px 9px', fontSize: 11, flexShrink: 0, marginBottom: 1 }}>Reset All</button>
+      <button className="btn-ghost" onClick={reset} disabled={!anyChanged} style={{ padding: '4px 10px', fontSize: 11, flexShrink: 0, marginBottom: 1 }}>Reset All</button>
 
       {/* Pushed right so it sits above the preview pane — it tunes the editor,
           not the design, and the separation should be visible. */}
@@ -267,7 +267,7 @@ function FileModal({ onClose }) {
             {report.ok ? 'Spec valid' : `${report.errors.length} error${report.errors.length === 1 ? '' : 's'}`}
           </span>
           <span className="chip">{(text.length / 1024).toFixed(1)} kB</span>
-          <button className="btn-ghost" style={{ padding: '5px 10px' }}
+          <button className="btn-ghost" style={{ padding: '4px 10px' }}
             onClick={() => navigator.clipboard.writeText(text).then(() => { setCopied(true); setTimeout(() => setCopied(false), 1800) })}>
             <Copy />{copied ? 'Copied' : 'Copy'}
           </button>
@@ -400,7 +400,7 @@ function TabStrip({ tabs, active, onSelect, right }) {
       <div style={{ display: 'flex', alignItems: 'stretch', flexShrink: 0, paddingLeft: 14 }}>
         <button onClick={() => setMenuOpen(o => !o)} title="Switch tab"
           style={{
-            display: 'flex', alignItems: 'center', gap: 8, padding: '0 14px 0 9px',
+            display: 'flex', alignItems: 'center', gap: 8, padding: '0 14px 0 10px',
             background: 'none', border: 'none', cursor: 'pointer',
             fontFamily: 'var(--sans)', fontSize: 12.5, fontWeight: 500, whiteSpace: 'nowrap',
             color: menuOpen ? 'var(--accent)' : 'var(--text)',
@@ -446,7 +446,7 @@ function TabStrip({ tabs, active, onSelect, right }) {
         {rest.map(t => (
           <button key={t.id} onClick={() => onSelect(t.id)} style={{
             background: 'none', border: 'none', borderRadius: 0, cursor: 'pointer',
-            padding: '0 11px', fontFamily: 'var(--sans)', fontSize: 12.5, whiteSpace: 'nowrap',
+            padding: '0 12px', fontFamily: 'var(--sans)', fontSize: 12.5, whiteSpace: 'nowrap',
             color: 'var(--muted)', fontWeight: 400,
             borderBottom: '2px solid transparent',
             transition: 'color var(--t) var(--ease)', marginBottom: -1,
@@ -581,12 +581,12 @@ function RestoreToast({ offer, onRestore, onDismiss }) {
           “{offer.name}” is saved{when ? ` from ${when}` : ''}.
         </div>
       </div>
-      <button className="btn-ghost" style={{ padding: '5px 11px', fontSize: 12, flexShrink: 0 }}
+      <button className="btn-ghost" style={{ padding: '4px 10px', fontSize: 12, flexShrink: 0 }}
         onClick={() => close(onRestore)}>
         Restore
       </button>
       <button onClick={() => close(onDismiss)} title="Dismiss"
-        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', fontSize: 17, lineHeight: 1, padding: '2px 5px', flexShrink: 0 }}>
+        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', fontSize: 17, lineHeight: 1, padding: '2px 6px', flexShrink: 0 }}>
         ×
       </button>
     </div>
@@ -619,7 +619,7 @@ function NewDocModal({ onClose, onCreate }) {
             {PRESETS.map(p => (
               <button key={p.id} onClick={() => onCreate(p.id, name)}
                 style={{
-                  display: 'flex', alignItems: 'center', gap: 11, padding: '9px 11px', textAlign: 'left',
+                  display: 'flex', alignItems: 'center', gap: 11, padding: '8px 16px', textAlign: 'left',
                   background: 'var(--surf2)', border: '1px solid var(--bdr)', borderRadius: 9,
                   cursor: 'pointer', color: 'var(--text)', fontFamily: 'var(--sans)',
                 }}
@@ -924,20 +924,20 @@ function Shell() {
           <div style={{ display: 'flex', gap: 6, flexShrink: 0, alignItems: 'center' }}>
             <SyncBadge status={syncStatus} />
             {syncStatus === 'conflict' && (
-              <button className="btn-ghost" onClick={reloadFromServer} style={{ padding: '6px 10px', color: 'var(--danger)', borderColor: 'rgba(222,92,92,.4)' }}>Reload</button>
+              <button className="btn-ghost" onClick={reloadFromServer} style={{ padding: '6px 12px', color: 'var(--danger)', borderColor: 'rgba(222,92,92,.4)' }}>Reload</button>
             )}
             {!projectId ? (
-              <button className="btn-ghost" onClick={saveToCloud} style={{ padding: '6px 11px' }}>Save to Cloud</button>
+              <button className="btn-ghost" onClick={saveToCloud} style={{ padding: '6px 12px' }}>Save to Cloud</button>
             ) : (
-              <button className="btn-ghost" style={{ padding: '6px 11px', color: linkCopied ? 'var(--success)' : 'var(--muted)' }}
+              <button className="btn-ghost" style={{ padding: '6px 12px', color: linkCopied ? 'var(--success)' : 'var(--muted)' }}
                 onClick={() => { navigator.clipboard.writeText(window.location.href); setLinkCopied(true); setTimeout(() => setLinkCopied(false), 1800) }}>
                 {linkCopied ? 'Link copied' : 'Copy share URL'}
               </button>
             )}
             <input ref={fileRef} type="file" accept=".md,.txt,.markdown" onChange={importFile} style={{ display: 'none' }} />
-            <button className="btn-ghost" onClick={() => setShowNew(true)} style={{ padding: '6px 11px' }}>New</button>
-            <button className="btn-ghost" onClick={() => fileRef.current?.click()} style={{ padding: '6px 11px' }}><Upload />Import</button>
-            <button className="btn-ghost" onClick={() => setShowFile(true)} style={{ padding: '6px 11px' }}>Preview File</button>
+            <button className="btn-ghost" onClick={() => setShowNew(true)} style={{ padding: '6px 12px' }}>New</button>
+            <button className="btn-ghost" onClick={() => fileRef.current?.click()} style={{ padding: '6px 12px' }}><Upload />Import</button>
+            <button className="btn-ghost" onClick={() => setShowFile(true)} style={{ padding: '6px 12px' }}>Preview File</button>
             <button className="btn-outline" onClick={exportPreviewHtml} disabled={exportingHtml}
               title={`Save the ${(SURFACES.find(s => s.id === surface) ?? SURFACES[0]).label} surface as a standalone HTML page`}
               style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
@@ -965,11 +965,11 @@ function Shell() {
               right={
                 <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                   <button className="btn-ghost" onClick={undo} disabled={!canUndo} title="Undo (Ctrl+Z)"
-                    style={{ padding: '5px 9px', gap: 5, color: canUndo ? 'var(--accent)' : undefined, borderColor: canUndo ? 'rgba(220,144,85,.35)' : undefined }}>
+                    style={{ padding: '4px 10px', gap: 5, color: canUndo ? 'var(--accent)' : undefined, borderColor: canUndo ? 'rgba(220,144,85,.35)' : undefined }}>
                     <Undo />Undo
                   </button>
                   <button className="btn-ghost" onClick={redo} disabled={!canRedo} title="Redo (Ctrl+Shift+Z)"
-                    style={{ padding: '5px 9px', color: canRedo ? 'var(--text-dim)' : undefined }}>
+                    style={{ padding: '4px 10px', color: canRedo ? 'var(--text-dim)' : undefined }}>
                     <Undo flip />
                   </button>
                   {/* Confirms in place: fills, swaps to a tick and reads
@@ -985,7 +985,7 @@ function Shell() {
                     title={justSaved ? 'Saved' : dirty ? 'Unsaved changes — click to save now' : 'Everything is saved'}
                     className={justSaved ? 'btn-primary' : 'btn-ghost'}
                     style={{
-                      padding: '5px 11px', gap: 6, display: 'inline-flex', alignItems: 'center',
+                      padding: '4px 10px', gap: 6, display: 'inline-flex', alignItems: 'center',
                       minWidth: 88, justifyContent: 'center',
                       ...(justSaved
                         ? { background: 'var(--success)', color: '#0b0b0e' }

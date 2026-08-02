@@ -32,33 +32,33 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14
 ::-webkit-scrollbar-thumb:hover{background:#4d4d5e;background-clip:content-box}
 ::-webkit-scrollbar-corner{background:transparent}
 
-input,textarea,select{font-family:var(--sans);font-size:14px;color:var(--text);background:var(--surf3);border:1px solid var(--bdr);border-radius:6px;padding:8px 11px;outline:none;transition:border-color var(--t) var(--ease),background var(--t) var(--ease);width:100%}
+input,textarea,select{font-family:var(--sans);font-size:14px;color:var(--text);background:var(--surf3);border:1px solid var(--bdr);border-radius:6px;padding:8px 12px;outline:none;transition:border-color var(--t) var(--ease),background var(--t) var(--ease);width:100%}
 input:focus,textarea:focus,select:focus{border-color:var(--accent);background:var(--surf2)}
 textarea{resize:vertical;min-height:90px;font-size:13px;line-height:1.6}
 label{display:block;font-size:10.5px;font-weight:500;text-transform:uppercase;letter-spacing:0.07em;color:var(--muted);margin-bottom:5px}
 
-.btn-primary{font-family:var(--sans);font-size:13px;font-weight:500;cursor:pointer;border:none;border-radius:6px;padding:7px 15px;background:var(--accent);color:#0b0b0e;transition:filter var(--t) var(--ease)}
+.btn-primary{font-family:var(--sans);font-size:13px;font-weight:500;cursor:pointer;border:1px solid transparent;border-radius:6px;padding:8px 16px;background:var(--accent);color:#0b0b0e;transition:filter var(--t) var(--ease)}
 .btn-primary:hover{filter:brightness(1.1)}
 /* The accent in outline form. Sits beside the filled Export as its quieter
    sibling — same colour, same weight in the eye's hierarchy minus one step. */
-.btn-outline{font-family:var(--sans);font-size:13px;font-weight:500;cursor:pointer;border:1px solid var(--accent);border-radius:6px;padding:6px 14px;background:transparent;color:var(--accent);transition:background var(--t) var(--ease),color var(--t) var(--ease)}
+.btn-outline{font-family:var(--sans);font-size:13px;font-weight:500;cursor:pointer;border:1px solid var(--accent);border-radius:6px;padding:8px 16px;background:transparent;color:var(--accent);transition:background var(--t) var(--ease),color var(--t) var(--ease)}
 .btn-outline:hover{background:rgba(220,144,85,.13)}
 .btn-outline:disabled{opacity:.5;cursor:progress}
 .btn-outline:disabled:hover{background:transparent}
 /* An unlocked seed shows its open padlock only on hover — the affordance is
    discoverable without all five swatches shouting at once. */
 .seed-lock:hover > span{opacity:1!important}
-.btn-ghost{font-family:var(--sans);font-size:13px;font-weight:400;cursor:pointer;border:1px solid var(--bdr);border-radius:6px;padding:7px 13px;background:transparent;color:var(--muted);transition:background var(--t) var(--ease),color var(--t) var(--ease),border-color var(--t) var(--ease);display:inline-flex;align-items:center;gap:5px}
+.btn-ghost{font-family:var(--sans);font-size:13px;font-weight:400;cursor:pointer;border:1px solid var(--bdr);border-radius:6px;padding:8px 16px;background:transparent;color:var(--muted);transition:background var(--t) var(--ease),color var(--t) var(--ease),border-color var(--t) var(--ease);display:inline-flex;align-items:center;gap:5px}
 .btn-ghost:hover{background:var(--surf2);color:var(--text);border-color:var(--bdr2)}
 .btn-ghost:disabled{opacity:.4;cursor:not-allowed}
 .btn-ghost:disabled:hover{background:transparent;color:var(--muted);border-color:var(--bdr)}
-.btn-add{margin-top:8px;width:100%;padding:10px;background:rgba(220,144,85,.07);color:var(--accent);border:1px dashed rgba(220,144,85,.28);border-radius:8px;cursor:pointer;font-size:13px;font-family:var(--sans);transition:background var(--t) var(--ease)}
+.btn-add{margin-top:8px;width:100%;padding:10px 16px;background:rgba(220,144,85,.07);color:var(--accent);border:1px dashed rgba(220,144,85,.28);border-radius:8px;cursor:pointer;font-size:13px;font-family:var(--sans);transition:background var(--t) var(--ease)}
 .btn-add:hover{background:rgba(220,144,85,.13)}
-.btn-delete{background:none;border:none;cursor:pointer;color:var(--dim);border-radius:4px;transition:color var(--t) var(--ease);display:flex;align-items:center;justify-content:center;padding:5px}
+.btn-delete{background:none;border:none;cursor:pointer;color:var(--dim);border-radius:4px;transition:color var(--t) var(--ease);display:flex;align-items:center;justify-content:center;padding:4px}
 .btn-delete:hover{color:var(--danger)}
 
 /* Inline delete confirmation: red tick commits, grey cross backs out. */
-.btn-confirm{background:none;border:none;cursor:pointer;border-radius:4px;display:flex;align-items:center;justify-content:center;padding:5px;transition:color var(--t) var(--ease),background var(--t) var(--ease)}
+.btn-confirm{background:none;border:none;cursor:pointer;border-radius:4px;display:flex;align-items:center;justify-content:center;padding:4px;transition:color var(--t) var(--ease),background var(--t) var(--ease)}
 .btn-confirm-yes{color:var(--danger)}
 .btn-confirm-yes:hover{background:rgba(222,92,92,.15)}
 .btn-confirm-no{color:var(--muted)}
@@ -94,11 +94,11 @@ label{display:block;font-size:10.5px;font-weight:500;text-transform:uppercase;le
 .xfade-out{animation:dmd-xfade-out var(--t) linear forwards}
 .xfade-in{animation:dmd-fade var(--t) linear both}
 
-.seg,.seg-on{font-family:var(--sans);font-size:12px;cursor:pointer;border:none;border-radius:5px;padding:5px 11px;background:transparent;color:var(--muted);transition:background var(--t) var(--ease),color var(--t) var(--ease);white-space:nowrap}
+.seg,.seg-on{font-family:var(--sans);font-size:12px;cursor:pointer;border:1px solid transparent;border-radius:5px;padding:4px 10px;background:transparent;color:var(--muted);transition:background var(--t) var(--ease),color var(--t) var(--ease);white-space:nowrap}
 .seg:hover{color:var(--text);background:var(--surf3)}
 .seg-on{background:var(--surf3);color:var(--text);font-weight:500}
 
-.chip{font-family:var(--mono);font-size:10.5px;padding:2px 7px;border-radius:4px;background:var(--surf3);border:1px solid var(--bdr);color:var(--muted);white-space:nowrap}
+.chip{font-family:var(--mono);font-size:10.5px;padding:2px 6px;border-radius:4px;background:var(--surf3);border:1px solid var(--bdr);color:var(--muted);white-space:nowrap}
 
 /* A search field must not read as a chip. Chips are flat --surf3 with a dim
    border; this is inset, brighter-edged and carries a visible magnifier. */
@@ -118,7 +118,7 @@ input[type=range]:active::-webkit-slider-thumb{cursor:grabbing;transform:scale(1
 input[type=range]::-moz-range-track{height:3px;border-radius:2px;background:var(--bdr2)}
 input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;background:var(--accent);border:none;cursor:grab}
 
-.num{font-family:var(--mono);font-size:12px;padding:5px 7px;text-align:right}
+.num{font-family:var(--mono);font-size:12px;padding:4px 6px;text-align:right}
 .num::-webkit-outer-spin-button,.num::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 .num[type=number]{-moz-appearance:textfield}
 

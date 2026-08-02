@@ -245,7 +245,7 @@ function EntryBlock({ title, entryName, props, overrides, onSet, onReset, derive
   return (
     <div data-entry={entryName} style={{
       padding: PAD.sub,
-      marginBottom: PAD.gap,
+
       ...revealStyle(targeted),
     }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: PAD.label }}>
@@ -275,7 +275,7 @@ function LayoutBlock({ def, values, onSet }) {
     <div style={{
       /* Same box as an EntryBlock, so the composition card and the property
          rows below it line up on both edges. */
-      marginBottom: PAD.gap, padding: PAD.sub, borderRadius: 8,
+      padding: PAD.sub, borderRadius: 8,
       background: 'var(--surf)', border: '1px solid var(--bdr)',
     }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: PAD.label }}>
@@ -351,7 +351,7 @@ function ComponentBlock({ def, cfg, layout, onSetLayout, onToggle, onSet, onRese
         {open && enabled && <FilterField value={query} onChange={setQuery} placeholder="gap, colourâ€¦" width={124} />}
       </div>
       <Expand open={open && enabled}>
-        <div style={{ padding: PAD.card, borderTop: '1px solid var(--bdr)', background: 'var(--surf2)' }}>
+        <div style={{ padding: PAD.card, borderTop: '1px solid var(--bdr)', background: 'var(--surf2)', display: 'flex', flexDirection: 'column', gap: PAD.gap }}>
           {query && (
             <div style={{ fontSize: 10.5, color: 'var(--muted)', marginBottom: 8 }}>
               Showing properties matching <code style={{ fontFamily: 'var(--mono)', color: 'var(--accent)' }}>{query}</code>
@@ -447,7 +447,7 @@ export default function ComponentsPanel({ inspect }) {
           <Collapsible key={group} title={group} note={`${on}/${defs.length}`}
             defaultOpen={group === 'Actions'}
             openSignal={targetGroup === group ? inspect.at : null}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: PAD.gap }}>
               {defs.map(def => (
                 <ComponentBlock key={def.name} def={def} cfg={cfg} onToggle={onToggle} onSet={onSet} onReset={onReset}
                   layout={derived.componentLayout} onSetLayout={onSetLayout}
