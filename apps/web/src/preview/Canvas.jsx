@@ -5,6 +5,7 @@ import { useStore } from '../state/store.jsx'
 import { CONTRAST_PAIRS } from '../state/schema.js'
 import { check } from '../color/contrast.js'
 import { audit } from '../a11y/audit.js'
+import { Finding } from '../a11y/PanelAlerts.jsx'
 import { PREVIEW_CSS, responsiveCss, varsToStyle } from './tokens.js'
 import { buildCssVars } from '../state/derive.js'
 import { gradientCss } from '../color/modes.js'
@@ -201,42 +202,31 @@ function WarningsChip({ onJump }) {
       </button>
 
       {open && count > 0 && (
+        /* Wide enough that the criterion line — a citation like "2.3.3
+           Animation from interactions (AAA)" — sits on one line beside the
+           Fix it button, and capped against the viewport so a narrow preview
+           pane shrinks it rather than pushing it off-screen. */
         <div ref={boxRef} className="anim-pop" style={{
           position: 'absolute', top: 'calc(100% + 6px)', right: 0, zIndex: 500,
           background: 'var(--surf2)', border: '1px solid var(--bdr2)', borderRadius: 10,
-          boxShadow: '0 12px 32px var(--shade)', width: 330, maxHeight: 420, overflowY: 'auto',
+          boxShadow: '0 12px 32px var(--shade)',
+          width: 'min(440px, calc(100vw - 40px))', maxHeight: 460, overflowY: 'auto',
         }}>
           <div style={{
             fontSize: 10, textTransform: 'uppercase', letterSpacing: '.1em', fontWeight: 700,
             color: 'var(--text-dim)', padding: '11px 14px 10px', borderBottom: '1px solid var(--bdr)',
-            position: 'sticky', top: 0, background: 'var(--surf2)',
+            position: 'sticky', top: 0, background: 'var(--surf2)', zIndex: 1,
           }}>
-            Accessibility
+            Accessibility {fails.length ? 'Findings' : 'Warnings'}
           </div>
-          <div style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 12 }}>
             {[...fails, ...rest].map(f => (
-              <div key={f.id} style={{
-                background: `rgb(var(--${f.level === 'fail' ? 'danger' : 'warn'}-rgb) / .09)`,
-                border: `1px solid rgb(var(--${f.level === 'fail' ? 'danger' : 'warn'}-rgb) / .28)`,
-                borderRadius: 7, padding: 9,
-              }}>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 4 }}>
-                  <span style={{ fontSize: 12, color: 'var(--text)', flex: 1, minWidth: 0 }}>{f.title}</span>
-                  {f.mode && <span className="chip" style={{ flexShrink: 0 }}>{f.mode}</span>}
-                </div>
-                <p style={{ margin: 0, fontSize: 11, lineHeight: 1.5, color: 'var(--muted)' }}>{f.detail}</p>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 7 }}>
-                  <span style={{ fontFamily: 'var(--mono)', fontSize: 9.5, color: 'var(--dim)', flex: 1, minWidth: 0 }}>
-                    {f.criterion}
-                  </span>
-                  {f.tab && (
-                    <button className="btn-ghost" style={{ padding: '2px 8px', fontSize: 10.5 }}
-                      onClick={() => { onJump?.(f.tab, f.entry); setOpen(false) }}>
-                      Fix it
-                    </button>
-                  )}
-                </div>
-              </div>
+              <Finding key={f.id} f={f} action={f.tab && (
+                <button className="btn-ghost" style={{ padding: '2px 8px', fontSize: 10.5, flexShrink: 0 }}
+                  onClick={() => { onJump?.(f.tab, f.entry); setOpen(false) }}>
+                  Fix it
+                </button>
+              )} />
             ))}
           </div>
         </div>

@@ -125,10 +125,10 @@ const SyncBadge = ({ status }) => {
 
 /* The spec version the exported file will carry. Sits next to the storage
    readout because both answer the same question — what am I looking at. */
-/* MDesigner's own build, beside the wordmark because it identifies the tool.
+/* MDexed's own build, beside the wordmark because it identifies the tool.
  *
  * Distinct from the chip on the right, which is the *document's* build — the
- * two answer different questions ("which MDesigner am I running" versus
+ * two answer different questions ("which MDexed am I running" versus
  * "which revision of this design system is this"), so they sit at opposite
  * ends of the header rather than beside each other.
  *
@@ -140,7 +140,7 @@ const AppBuild = () => {
   return (
     <span title={dev
       ? 'Running from the dev server — no build was produced'
-      : `MDesigner build ${version}${sha ? ` · ${sha}` : ''}`}
+      : `MDexed build ${version}${sha ? ` · ${sha}` : ''}`}
       style={{
         fontFamily: 'var(--mono)', fontSize: 9.5, color: 'var(--dim)',
         letterSpacing: '.02em', whiteSpace: 'nowrap', cursor: 'default',
@@ -1125,7 +1125,14 @@ function RestoreToast({ offer, onRestore, onDismiss }) {
     <div className={leaving ? 'anim-fall' : 'anim-rise'} style={{
       display: 'flex', alignItems: 'center', gap: 11,
       background: 'var(--surf2)', border: '1px solid var(--bdr2)',
-      borderRadius: 9, padding: '9px 10px 9px 11px', maxWidth: 400,
+      borderRadius: 9, padding: '9px 10px 9px 11px',
+      /* No fixed cap. The second line names the project, and a name the user
+         chose is not something to replace with an ellipsis when there is room
+         on the screen for it — the toast floats, so growing costs nothing.
+         Bounded against the viewport rather than a magic number; the name
+         field itself is capped at 255 characters, which is what actually
+         keeps this from running away. */
+      maxWidth: 'min(720px, calc(100vw - 48px))',
       boxShadow: '0 10px 30px rgba(0,0,0,.5)',
     }}>
       {/* A restore glyph, in the success green — the one strong colour in the
@@ -1145,7 +1152,7 @@ function RestoreToast({ offer, onRestore, onDismiss }) {
         <div style={{ fontSize: 12.5, color: 'var(--text)' }}>
           Started a new project.
         </div>
-        <div style={{ fontSize: 11.5, color: 'var(--muted)', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <div style={{ fontSize: 11.5, color: 'var(--muted)', marginTop: 1, overflowWrap: 'anywhere' }}>
           “{offer.name}” is saved{when ? ` from ${when}` : ''}.
         </div>
       </div>
@@ -1665,7 +1672,7 @@ function Shell() {
                 which would make it read as secondary next to the wordmark. */}
             <div style={{ width: 26, height: 26, borderRadius: 7, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--display)', fontWeight: 800, fontSize: 11.5, letterSpacing: '-0.04em', color: 'var(--bg)', flexShrink: 0 }}>MD</div>
             <span style={{ fontFamily: 'var(--display)', fontWeight: 700, fontSize: 15, letterSpacing: '-0.025em', whiteSpace: 'nowrap' }}>
-              MD<span style={{ color: 'var(--muted)', fontWeight: 400 }}>esigner</span>
+              MD<span style={{ color: 'var(--muted)', fontWeight: 400 }}>exed</span>
             </span>
             <AppBuild />
             <TitleField name={state.meta.name}

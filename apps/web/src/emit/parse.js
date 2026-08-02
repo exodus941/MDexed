@@ -5,7 +5,7 @@
    file silently wiped the editor. This one uses a real YAML parser and, when
    it can't cope, says so and changes nothing. */
 import { load as yamlLoad } from 'js-yaml'
-import { createInitialState, ALL_ROLES, PROSE_SECTIONS, DEFAULT_MACROS, uid } from '../state/schema.js'
+import { createInitialState, ALL_ROLES, PROSE_SECTIONS, DEFAULT_MACROS, NAME_MAX, uid } from '../state/schema.js'
 import { migrate } from '../state/migrate.js'
 import { RAMP_STEPS } from '../color/ramp.js'
 import { isValidColor } from '../color/convert.js'
@@ -140,7 +140,9 @@ export function parseFile(text) {
   const { state } = migrate({
     schemaVersion: 2,
     meta: {
-      name: doc.name ?? base.meta.name,
+      /* Same 255 cap the editor field enforces. An imported file is the one
+         path into this state that never passed through that input. */
+      name: String(doc.name ?? base.meta.name ?? '').slice(0, NAME_MAX),
       description: doc.description ?? '',
       /* Empty rather than a placeholder. `version` is a build number stamped
          by exporting, so a file that carries none has genuinely never been

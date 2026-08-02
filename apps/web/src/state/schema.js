@@ -168,6 +168,35 @@ export const FRAMEWORKS = ['React + Tailwind', 'React + CSS variables', 'Plain H
 /* ── Default document ──
    A warm editorial system, deliberately opinionated. Nobody should ever face
    a blank canvas here; tuning something coherent beats assembling from zero. */
+/* Component overrides a new document starts with.
+ *
+ * The library's own defaults are what a component "naturally" is; these four
+ * are decisions about this system specifically, carried over from the payload
+ * the defaults were authored in.
+ *
+ * The two sizes are not cosmetic. A 16px checkbox and a 20px switch are the
+ * two findings the audit raises on an untouched document, and shipping a
+ * default that fails your own checker teaches people to ignore it. 24px is
+ * exactly 2.5.8's minimum.
+ *
+ * A fresh copy per call — a shared object literal would let one document's
+ * edits leak into the next New. */
+const defaultComponentOverrides = () => ({
+  'button-ghost.textColor': '{colors.danger}',
+  'checkbox.size': '24px',
+  'switch.height': '24px',
+  'badge-neutral.backgroundColor': '{colors.bg}',
+})
+
+/* Cap on the project name.
+ *
+ *  on the input stops typing but not every paste, and an imported
+ * file never passes through the input at all — so both the editor field and
+ * the parser slice to this. 255 because it is the longest a name can be while
+ * still being a name.
+ */
+export const NAME_MAX = 255
+
 export const createInitialState = () => ({
   schemaVersion: SCHEMA_VERSION,
   /* No version until the first export. `version` is a build number stamped by
@@ -261,11 +290,18 @@ export const createInitialState = () => ({
   radius: { base: 8, steps: RADIUS_STEPS.map(s => ({ ...s })), overrides: {}, nesting: true, borderWidths: { hairline: 1, thick: 2 } },
 
   layout: {
+    /* `xs` at 320 is not one of Tailwind's five, and it is here deliberately.
+       1.4.10 requires the layout to survive a 320px viewport — which is a
+       1280px window at 400% zoom, not a phone — and a scale starting at 640
+       never names that width. An agent reading it has no rule for the
+       narrowest case and will invent one. Naming the floor costs a line and
+       removes the question. */
     breakpoints: [
-      { name: 'sm', px: 640 }, { name: 'md', px: 768 },
+      { name: 'xs', px: 320 }, { name: 'sm', px: 640 }, { name: 'md', px: 768 },
       { name: 'lg', px: 1024 }, { name: 'xl', px: 1280 }, { name: '2xl', px: 1536 },
     ],
-    containers: { sm: 600, md: 720, lg: 960, xl: 1140, '2xl': 1320 },
+    /* 288 = 320 minus 16px of gutter each side. */
+    containers: { xs: 288, sm: 600, md: 720, lg: 960, xl: 1140, '2xl': 1320 },
     columns: 12,
     gutter: 'lg',
     maxMeasure: 68,
@@ -313,7 +349,7 @@ export const createInitialState = () => ({
      arrangement — that have no slot in the spec's eight component properties
      and are emitted as guidance instead. Absent in older documents; readers go
      through `resolveAllLayouts`, which fills the defaults. */
-  components: { enabled: {}, overrides: {}, custom: [], emitStates: true, emitSizes: true, layout: {} },
+  components: { enabled: {}, overrides: defaultComponentOverrides(), custom: [], emitStates: true, emitSizes: true, layout: {} },
 
   voice: {
     casing: 'sentence',        // sentence | title

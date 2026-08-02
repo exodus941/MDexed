@@ -11,6 +11,7 @@ import { resolveRef, RAMP_STEPS } from '../color/ramp.js'
 import BezierEditor from '../ui/BezierEditor.jsx'
 import TokenColorPicker, { paletteGroups } from '../ui/TokenColorPicker.jsx'
 import { SectionHeader, Collapsible, Slider, NumField, Segmented, Toggle, OverrideBadge, Banner, PAD } from '../ui/controls.jsx'
+import PanelAlerts from '../a11y/PanelAlerts.jsx'
 
 /* A colour that is stored as a palette reference.
  *
@@ -93,6 +94,7 @@ export function LayoutPanel() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <PanelAlerts tab="layout" />
       <SectionHeader title="Layout" desc="One spacing scale, one grid. The Density macro moves the whole scale." />
 
       <Collapsible title="Spacing Scale" note={`${state.space.base}px base`} defaultOpen>
@@ -475,6 +477,7 @@ export function MotionPanel() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <PanelAlerts tab="motion" />
       <SectionHeader title="Motion" desc="How quickly anything moves, and along what curve." />
 
       <Collapsible title="Durations" note={state.motion.personality} defaultOpen>

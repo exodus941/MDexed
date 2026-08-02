@@ -18,6 +18,7 @@ import EntrySample from '../preview/EntrySample.jsx'
 import { PREVIEW_CSS, varsToStyle } from '../preview/tokens.js'
 import { buildCssVars } from '../state/derive.js'
 import { gradientCss } from '../color/modes.js'
+import { EntryAlerts, useFindings } from '../a11y/PanelAlerts.jsx'
 
 /* Which token group a property should draw from. Offering `{colors.*}` for a
    padding field is noise; offering nothing at all is what made these look like
@@ -321,6 +322,11 @@ function EntryBlock({ title, entryName, props, overrides, onSet, onReset, derive
           </div>
         )}
       </div>
+      {/* Anything the audit found about *this* entry, under the controls that
+          caused it. A 16px checkbox is a fact about the checkbox, so it is
+          reported on the checkbox — not in a list somewhere else that you have
+          to be holding in your head while you edit. */}
+      <EntryAlerts tab="components" entry={entryName} />
     </div>
   )
 }
@@ -389,6 +395,15 @@ function ComponentBlock({ def, cfg, layout, onSetLayout, onToggle, onSet, onRese
 
   const touched = Object.keys(overrides).filter(k => k === def.name || k.startsWith(`${def.name}.`) || k.startsWith(`${def.name}-`)).length
 
+  /* Findings anywhere under this component. Matching on the entry names it
+     actually emits rather than on the prefix, so `card` doesn't collect
+     `card-elevated`'s neighbours by accident of spelling. */
+  const componentFindings = useFindings('components')
+  const a11yCount = useMemo(() => {
+    const mine = new Set(entriesFor(def, cfg))
+    return componentFindings.filter(f => mine.has(f.entry)).length
+  }, [componentFindings, def, cfg])
+
   return (
     <div ref={ref} style={{
       /* Breathing room above the header when a jump scrolls this to the top. */
@@ -404,6 +419,16 @@ function ComponentBlock({ def, cfg, layout, onSetLayout, onToggle, onSet, onRese
         <button onClick={() => setOpen(o => !o)} disabled={!enabled}
           style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', cursor: enabled ? 'pointer' : 'default', color: 'var(--text)', textAlign: 'left', padding: 0, fontFamily: 'var(--sans)', minWidth: 0 }}>
           <span style={{ fontSize: 13, flex: 1 }}>{def.label}</span>
+          {/* Findings live inside the entry cards, which a collapsed component
+              never renders — so the count comes up to the header, where it is
+              the reason to open the card. It disappears once you have, because
+              by then the real alerts are on screen. */}
+          {!open && a11yCount > 0 && (
+            <span className="chip" style={{ color: 'var(--warn)', borderColor: 'rgb(var(--warn-rgb) / .4)' }}
+              title={`${a11yCount} accessibility ${a11yCount === 1 ? 'finding' : 'findings'} in this component`}>
+              ⚠ {a11yCount}
+            </span>
+          )}
           {touched > 0 && <span className="chip" style={{ color: 'var(--accent)' }}>{touched}</span>}
           <span className="chip">{entryCount}</span>
         </button>
@@ -458,6 +483,7 @@ function ComponentBlock({ def, cfg, layout, onSetLayout, onToggle, onSet, onRese
 export default function ComponentsPanel({ inspect }) {
   const { state, derived, set } = useStore()
   const cfg = state.components
+  const componentFindings = useFindings('components')
   /* Which group holds the inspected entry, so it can be opened too. */
   const targetGroup = inspect
     ? COMPONENT_LIBRARY.find(d => entriesFor(d, cfg).includes(inspect.entry))?.group
@@ -530,8 +556,17 @@ export default function ComponentsPanel({ inspect }) {
       {COMPONENT_GROUPS.map(group => {
         const defs = COMPONENT_LIBRARY.filter(d => d.group === group)
         const on = defs.filter(d => cfg.enabled[d.name] ?? d.on).length
+        /* Same roll-up as the card headers, one level out. A finding on the
+           checkbox is three closed disclosures deep on a fresh load, and a
+           warning nobody can reach is not a warning. */
+        const groupEntries = new Set(defs.flatMap(d => entriesFor(d, cfg)))
+        const groupFindings = componentFindings.filter(f => groupEntries.has(f.entry)).length
         return (
           <Collapsible key={group} title={group} note={`${on}/${defs.length}`}
+            right={groupFindings > 0
+              ? <span className="chip" style={{ color: 'var(--warn)', borderColor: 'rgb(var(--warn-rgb) / .4)' }}
+                  title={`${groupFindings} accessibility ${groupFindings === 1 ? 'finding' : 'findings'} in this group`}>⚠ {groupFindings}</span>
+              : null}
             defaultOpen={group === 'Actions'}
             openSignal={targetGroup === group ? inspect.at : null}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: PAD.gap }}>

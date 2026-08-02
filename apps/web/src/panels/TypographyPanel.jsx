@@ -10,6 +10,7 @@ import { loadDocumentFonts, stackFor } from '../type/fonts.js'
 import FontPicker, { useFontCatalog } from '../ui/FontPicker.jsx'
 import { SectionHeader, Collapsible, Slider, NumField, Segmented, Toggle, OverrideBadge, Banner, PAD } from '../ui/controls.jsx'
 import { useReveal, revealStyle } from '../ui/reveal.js'
+import PanelAlerts from '../a11y/PanelAlerts.jsx'
 
 const ROLE_LABELS = { display: 'Display', body: 'Body', mono: 'Mono' }
 const ROLE_DESC = {
@@ -138,6 +139,7 @@ export default function TypographyPanel({ inspect }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <PanelAlerts tab="type" />
       <SectionHeader title="Typography" desc="Three families and one modular scale generate every text style."
         right={overrideCount > 0 ? <span className="chip">{overrideCount} overridden</span> : null} />
 

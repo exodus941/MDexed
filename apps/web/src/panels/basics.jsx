@@ -1,6 +1,6 @@
 /* Meta and Rationale — the two panels that hold plain text rather than tokens. */
 import { useStore } from '../state/store.jsx'
-import { PROSE_SECTIONS } from '../state/schema.js'
+import { PROSE_SECTIONS, NAME_MAX } from '../state/schema.js'
 import { PRESETS, applyPreset } from '../state/presets.js'
 import { SectionHeader, Collapsible, Banner, PAD } from '../ui/controls.jsx'
 import { AiProvider, AiHeader, SectionAi } from '../ai/ui.jsx'
@@ -16,7 +16,12 @@ export function MetaTab() {
       <Collapsible title="Project Info" note={state.meta.name || 'untitled'} defaultOpen>
         <div style={{ marginBottom: 14 }}>
           <label>System name</label>
-          <input value={state.meta.name} onChange={e => up('name', e.target.value)} placeholder="My Design System" />
+          {/* 255 is the cap on the value, not on how it is shown. Everywhere
+              the name appears — the restore toast, the collapsible note, the
+              frontmatter — it appears in full; the limit is here so that
+              staying whole is affordable. */}
+          <input value={state.meta.name} maxLength={NAME_MAX}
+            onChange={e => up('name', e.target.value.slice(0, NAME_MAX))} placeholder="My Design System" />
         </div>
         <div style={{ marginBottom: 14 }}>
           <label>Description</label>

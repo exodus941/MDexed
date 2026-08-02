@@ -9,6 +9,7 @@ import { useState } from 'react'
 import { useStore } from '../state/store.jsx'
 import { ANTI_PATTERNS, FRAMEWORKS, uid } from '../state/schema.js'
 import { SectionHeader, Collapsible, Segmented, Toggle, Banner, CloseButton } from '../ui/controls.jsx'
+import PanelAlerts from '../a11y/PanelAlerts.jsx'
 
 const SUGGESTED_REFERENCES = [
   'Swiss editorial', 'Brutalist', 'Soft neumorphic', 'Print-inspired', 'Terminal / monospace',
@@ -69,6 +70,7 @@ export default function DirectivesPanel() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <PanelAlerts tab="directives" />
       <SectionHeader title="Voice & Directives" desc="What the agent should aim for, and what it must never do." />
 
       <Collapsible title="Style References" note={String(d.references.length)} defaultOpen>
