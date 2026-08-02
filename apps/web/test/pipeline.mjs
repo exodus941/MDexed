@@ -364,5 +364,60 @@ line('\n- prompt construction -')
   assert(bad.length === 0, `every source file is clean UTF-8${bad.length ? ` — ${bad.join(', ')}` : ''}`)
 }
 
+/* ── Shared constants are actually imported ──
+ *
+ * Twice now a shared constant has been referenced in a file that never
+ * imported it — PAD and BTN once, MODAL_BTN again — and both times the build
+ * passed. It has to: an undefined identifier is a runtime ReferenceError, not
+ * a syntax error, so nothing fails until the component renders. The second one
+ * blanked the whole app the moment you clicked Preview design.md.
+ *
+ * This is what a linter would catch, and there isn't one. Narrow substitute:
+ * every SCREAMING_CASE identifier a source file uses has to be declared or
+ * imported in that file. That is the exact shape of the constants that keep
+ * getting missed, and it is cheap enough to run on every commit. */
+{
+  line('\n- shared constants are imported -')
+  const root = new URL('../src/', import.meta.url)
+  const walk = dir => fs.readdirSync(dir, { withFileTypes: true }).flatMap(e => {
+    const p = new URL(e.name + (e.isDirectory() ? '/' : ''), dir)
+    return e.isDirectory() ? walk(p) : (/\.jsx?$/.test(e.name) ? [p] : [])
+  })
+  /* Browser and language globals that legitimately look like constants. */
+  const GLOBAL = new Set(['NaN', 'Infinity', 'JSON', 'Math', 'Object', 'Array', 'String', 'Number',
+    'Boolean', 'Date', 'Set', 'Map', 'Promise', 'RegExp', 'Error', 'URL', 'CSS', 'DataTransfer'])
+  const missing = []
+  for (const f of walk(root)) {
+    /* Raw source, deliberately. The first version stripped comments and
+       strings first, which needs a parser to do correctly — a quote inside a
+       regex literal (`["']` in cssImport) opened a string that swallowed the
+       declarations after it, and four real constants were reported missing.
+       Scanning raw over-collects names that only appear in prose, but those
+       are declared or imported in the same file anyway, so they resolve. */
+    const code = fs.readFileSync(f, 'utf8')
+    /* Only names in a position where they are evaluated: straight after `=`,
+       `{`, `,`, `(`, or a spread. That is where `style={MODAL_BTN}` and
+       `{...MODAL_BTN}` live, which is the shape that keeps getting missed.
+       A name merely discussed in a comment, or written as
+       `OPENROUTER_API_KEY=sk-...` in a help string, sits before the `=` rather
+       than after it and is correctly ignored. */
+    const used = new Set(
+      [...code.matchAll(/[={,(]\s*(?:\.\.\.)?\s*([A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+)\b/g)].map(m => m[1]),
+    )
+    for (const name of used) {
+      if (GLOBAL.has(name)) continue
+      /* Any assignment counts as a declaration, not just `const NAME`. A
+         single `const A = 1, B = 2` declares B without the keyword touching
+         it, and a name that is merely *used* never appears to the left of an
+         `=`. Also covers `function NAME`. */
+      const declared = new RegExp(`\\b${name}\\s*=[^=]`).test(code)
+        || new RegExp(`function\\s+${name}\\b`).test(code)
+      const imported = new RegExp(`import[^;]*\\b${name}\\b[^;]*from`).test(code)
+      if (!declared && !imported) missing.push(`${f.pathname.split('/src/')[1]}: ${name}`)
+    }
+  }
+  assert(missing.length === 0, `every shared constant is in scope${missing.length ? ` — ${missing.slice(0, 5).join(', ')}` : ''}`)
+}
+
 line(`\n${failures === 0 ? 'ALL PASS' : `${failures} FAILURE(S)`}\n`)
 process.exit(failures ? 1 : 0)
