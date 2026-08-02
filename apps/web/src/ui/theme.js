@@ -229,6 +229,30 @@ label{display:block;font-size:10.5px;font-weight:500;text-transform:uppercase;le
 .rewind-btn:hover{background:rgb(var(--danger-rgb) / .12)}
 .rewind-btn:focus-visible{opacity:1;pointer-events:auto;outline:2px solid var(--danger);outline-offset:1px}
 
+/* Properties beside their sample. The sample column is fixed rather than
+   fractional so it does not shrink to nothing as the property rows grow, and
+   the whole thing folds to one column when the pane is too narrow for two
+   readable ones. */
+.entry-split{display:grid;grid-template-columns:minmax(0,1fr) 168px;gap:12px;align-items:start}
+@container (max-width:560px){.entry-split{grid-template-columns:minmax(0,1fr)}}
+/* Wide samples go above their fields instead. A modal in a 168px column is
+   not a modal and a table loses its columns, so these take the full width and
+   accept the extra height. Order is flipped in CSS rather than in the JSX, so
+   both layouts render from one tree. */
+.entry-stack{display:flex;flex-direction:column;gap:10px}
+.entry-stack .entry-sample-slot{order:-1}
+
+/* The stage a single component entry stands on.
+   Its own recessed plane rather than the panel surface, so the sample reads
+   as the thing being designed rather than as more editor chrome — the same
+   separation the preview pane earns by being a different column. min-height
+   keeps the row from jumping as you move between a badge and a card. */
+.entry-sample{display:flex;align-items:center;justify-content:center;
+  min-height:74px;padding:14px;border-radius:8px;
+  background:var(--preview);border:1px solid var(--preview-bdr);
+  overflow:hidden}
+.entry-sample>*{max-width:100%}
+
 .close-x{opacity:.55;transition:opacity var(--t) var(--ease),background var(--t) var(--ease)}
 .close-x:hover{opacity:1;background:var(--grey-wash)}
 .close-x:focus-visible{opacity:1;outline:2px solid var(--accent);outline-offset:1px}

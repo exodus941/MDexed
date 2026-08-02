@@ -190,6 +190,21 @@ export const PREVIEW_CSS = `
 .dmd .badge-success { background: ${cm('badge-success', 'background-color', c('success-subtle', '#e6f2eb'))}; color: ${cm('badge-success', 'text-color', c('success', '#3f8f63'))}; }
 .dmd .badge-warning { background: ${cm('badge-warning', 'background-color', c('warning-subtle', '#f7efe0'))}; color: ${cm('badge-warning', 'text-color', c('warning', '#c08a2e'))}; }
 .dmd .badge-danger  { background: ${cm('badge-danger', 'background-color', c('danger-subtle', '#f7e8e7'))};  color: ${cm('badge-danger', 'text-color', c('danger', '#c2453c'))}; }
+
+/* Tooltip. It had no rule at all — the Gallery styled its one instance with
+   inline styles, so the entry sample rendered as bare text and the component
+   had no definition anywhere the stylesheet could reach. Its tokens existed
+   the whole time; nothing was reading them. */
+.dmd .tooltip {
+  display: inline-block;
+  background: ${cm('tooltip', 'background-color', c('text', '#111'))};
+  color: ${cm('tooltip', 'text-color', c('text-inverse', '#fff'))};
+  padding: ${cm('tooltip', 'padding', `4px ${sp('xs', '8px')}`)};
+  border-radius: ${cm('tooltip', 'rounded', rd('sm', '4px'))};
+  font-size: ${cm('tooltip', 'font-size', ft('caption', 'size', '12px'))};
+  line-height: ${cm('tooltip', 'line-height', '1.4')};
+  white-space: nowrap;
+}
 .dmd .badge-neutral { background: ${cm('badge-neutral', 'background-color', c('bg-subtle', '#f0f0f0'))};      color: ${cm('badge-neutral', 'text-color', c('text-muted', '#666'))}; }
 
 /* ── Alerts ──
@@ -265,16 +280,16 @@ export const PREVIEW_CSS = `
 
 /* ── Layout, at its widest ──
    These are the column counts before anything collapses. The collapse itself
-   lives in the container queries appended by \`responsiveCss\`, generated from
+   lives in the container queries appended by responsiveCss, generated from
    whatever breakpoints the document declares — so narrowing the preview tests
    this system's breakpoints rather than a set of generic phone sizes.
 
-   Classes rather than inline \`gridTemplateColumns\`, because an inline style
+   Classes rather than inline gridTemplateColumns, because an inline style
    beats a stylesheet and no container query could ever override it. */
 .dmd .cols-2 { display: grid; gap: ${sp('md', '16px')}; grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .dmd .cols-3 { display: grid; gap: ${sp('md', '16px')}; grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .dmd .cols-4 { display: grid; gap: ${sp('md', '16px')}; grid-template-columns: repeat(4, minmax(0, 1fr)); }
-/* A fixed-width side column beside fluid content. \`--aside\` lets each screen
+/* A fixed-width side column beside fluid content. --aside lets each screen
    pick its own width without needing a class of its own. */
 .dmd .with-aside { display: grid; gap: ${sp('lg', '32px')}; align-items: start; grid-template-columns: var(--aside, 180px) minmax(0, 1fr); }
 /* A label sitting beside its field rather than above it. */

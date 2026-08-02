@@ -1784,7 +1784,11 @@ function Shell() {
                     style={{ padding: '4px 10px' }} title={IMPORT_FORMATS}><Upload />Import Reference</button>
                 </>
               } />
-            <main style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', padding: '20px 20px 64px' }}>
+            <main style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', padding: '20px 20px 64px',
+              /* A query container, so panels can respond to this column's
+                 width rather than the window's — the split is draggable and
+                 the two are unrelated. */
+              containerType: 'inline-size' }}>
               <CrossFade id={tab}>
                 <Panel inspect={inspect?.kind === TAB_KIND[tab] ? inspect : null} onNavigate={navigate} />
               </CrossFade>
