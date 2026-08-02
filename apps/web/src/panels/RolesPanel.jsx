@@ -117,7 +117,7 @@ function PairChecker({ roles, mode }) {
 
       <div style={{ marginTop: 9 }}>
         <Segmented value={size} onChange={setSize} size="sm"
-          options={[{ value: 'body', label: 'Body text' }, { value: 'large', label: 'Large / bold' }]} />
+          options={[{ value: 'body', label: 'Body Text' }, { value: 'large', label: 'Large / Bold' }]} />
       </div>
     </div>
   )

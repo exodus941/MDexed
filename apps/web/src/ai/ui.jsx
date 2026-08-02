@@ -146,7 +146,7 @@ export function SectionAi({ section, text, onApply, state, derived }) {
         </button>
         <button className="btn-ghost" style={btn} disabled={busy} onClick={() => run('draft')}
           title={text.trim() ? 'Write a fresh version from the tokens — yours is kept until you accept' : 'Write this section from the tokens'}>
-          <Sparkle /> Draft from tokens
+          <Sparkle /> Draft from Tokens
         </button>
       </div>
 

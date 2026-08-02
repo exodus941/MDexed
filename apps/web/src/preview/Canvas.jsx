@@ -14,7 +14,7 @@ import Settings from './screens/Settings.jsx'
 import Dialog from './screens/Dialog.jsx'
 import Gallery from './Gallery.jsx'
 
-const SURFACES = [
+export const SURFACES = [
   { id: 'dashboard', label: 'Dashboard', Component: Dashboard },
   { id: 'landing',   label: 'Landing',   Component: Landing },
   { id: 'form',      label: 'Form',      Component: Form },
@@ -106,9 +106,11 @@ function TargetMenu({ menu, onPick, onClose }) {
   )
 }
 
-export default function Canvas({ onInspect }) {
+/* Which surface is showing is lifted to the shell: the header's HTML export
+   has to render whatever is currently on screen, and it can't ask for state
+   that lives down here. */
+export default function Canvas({ onInspect, surface, setSurface }) {
   const { state, derived, set } = useStore()
-  const [surface, setSurface] = useState('dashboard')
   const [menu, setMenu] = useState(null)
 
   /* Straight through when the element itself has exactly one destination — a

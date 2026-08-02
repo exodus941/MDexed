@@ -65,7 +65,7 @@ export default function ReviewDiff({ before, after, streaming, error, onAccept, 
           <>
             <span style={{ flex: 1 }} />
             <button className="btn-ghost" style={{ padding: '4px 10px', fontSize: 11 }} onClick={onReject}>Dismiss</button>
-            <button className="btn-primary" style={{ padding: '4px 12px', fontSize: 11 }} onClick={onRetry}>Try again</button>
+            <button className="btn-primary" style={{ padding: '4px 12px', fontSize: 11 }} onClick={onRetry}>Try Again</button>
           </>
         ) : (
           <>

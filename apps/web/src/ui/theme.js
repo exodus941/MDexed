@@ -39,6 +39,12 @@ label{display:block;font-size:10.5px;font-weight:500;text-transform:uppercase;le
 
 .btn-primary{font-family:var(--sans);font-size:13px;font-weight:500;cursor:pointer;border:none;border-radius:6px;padding:7px 15px;background:var(--accent);color:#0b0b0e;transition:filter var(--t) var(--ease)}
 .btn-primary:hover{filter:brightness(1.1)}
+/* The accent in outline form. Sits beside the filled Export as its quieter
+   sibling — same colour, same weight in the eye's hierarchy minus one step. */
+.btn-outline{font-family:var(--sans);font-size:13px;font-weight:500;cursor:pointer;border:1px solid var(--accent);border-radius:6px;padding:6px 14px;background:transparent;color:var(--accent);transition:background var(--t) var(--ease),color var(--t) var(--ease)}
+.btn-outline:hover{background:rgba(220,144,85,.13)}
+.btn-outline:disabled{opacity:.5;cursor:progress}
+.btn-outline:disabled:hover{background:transparent}
 .btn-ghost{font-family:var(--sans);font-size:13px;font-weight:400;cursor:pointer;border:1px solid var(--bdr);border-radius:6px;padding:7px 13px;background:transparent;color:var(--muted);transition:background var(--t) var(--ease),color var(--t) var(--ease),border-color var(--t) var(--ease);display:inline-flex;align-items:center;gap:5px}
 .btn-ghost:hover{background:var(--surf2);color:var(--text);border-color:var(--bdr2)}
 .btn-ghost:disabled{opacity:.4;cursor:not-allowed}

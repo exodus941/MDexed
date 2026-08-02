@@ -217,7 +217,7 @@ export default function HistoryPanel() {
           )
         })}
         {active.size > 0 && (
-          <button className="btn-ghost" style={{ padding: '3px 8px', fontSize: 11 }} onClick={() => setActive(new Set())}>Clear filter</button>
+          <button className="btn-ghost" style={{ padding: '3px 8px', fontSize: 11 }} onClick={() => setActive(new Set())}>Clear Filter</button>
         )}
         <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--dim)' }}>{filtered.length} shown</span>
       </div>

@@ -14,7 +14,7 @@ import { APP_CSS } from './ui/theme.js'
 import { loadDocumentFonts } from './type/fonts.js'
 import { Banner, ResetButton } from './ui/controls.jsx'
 import CrossFade from './ui/CrossFade.jsx'
-import Canvas from './preview/Canvas.jsx'
+import Canvas, { SURFACES } from './preview/Canvas.jsx'
 import ColorPanel from './panels/ColorPanel.jsx'
 import RolesPanel from './panels/RolesPanel.jsx'
 import TypographyPanel from './panels/TypographyPanel.jsx'
@@ -240,7 +240,7 @@ function MacroBar({ onOpenContrast, uiSpeed, setUiSpeed }) {
         {failing ? `${failing} contrast` : 'Contrast OK'}
       </button>
 
-      <button className="btn-ghost" onClick={reset} disabled={!anyChanged} style={{ padding: '5px 9px', fontSize: 11, flexShrink: 0, marginBottom: 1 }}>Reset all</button>
+      <button className="btn-ghost" onClick={reset} disabled={!anyChanged} style={{ padding: '5px 9px', fontSize: 11, flexShrink: 0, marginBottom: 1 }}>Reset All</button>
 
       {/* Pushed right so it sits above the preview pane — it tunes the editor,
           not the design, and the separation should be visible. */}
@@ -667,6 +667,8 @@ function Shell() {
   const [inspect, setInspect] = useState(null)
   /* The previous session's document, offered rather than loaded. */
   const [restorable, setRestorable] = useState(null)
+  /* Owned here rather than in Canvas so the HTML export can render it. */
+  const [surface, setSurface] = useState('dashboard')
   const [uiSpeed, setUiSpeed] = useState(() => {
     try {
       const saved = parseInt(localStorage.getItem(ANIM_KEY), 10)
@@ -840,12 +842,43 @@ function Shell() {
     setSyncStatus('saved')
   }
 
-  const download = () => {
-    const { text } = generateFile(state, derived)
-    const url = URL.createObjectURL(new Blob([text], { type: 'text/markdown' }))
+  const saveAs = (text, filename, type) => {
+    const url = URL.createObjectURL(new Blob([text], { type }))
     const a = document.createElement('a')
-    a.href = url; a.download = 'DESIGN.md'; a.click()
+    a.href = url; a.download = filename; a.click()
     URL.revokeObjectURL(url)
+  }
+
+  const download = () => saveAs(generateFile(state, derived).text, 'DESIGN.md', 'text/markdown')
+
+  /* The surface as a standalone page, for handing to someone who has the
+     DESIGN.md but not this app.
+
+     Rendered fresh through `renderToStaticMarkup` rather than lifted out of
+     the live DOM: passing no `onInspect` means `inspectProps` contributes
+     nothing, so the output carries no `data-cmp` attributes, no click
+     handlers and none of React's bookkeeping — just the markup a developer
+     would have written. The renderer is imported on demand so it stays out of
+     the main bundle. */
+  const [exportingHtml, setExportingHtml] = useState(false)
+  const exportPreviewHtml = async () => {
+    setExportingHtml(true)
+    try {
+      const [{ renderToStaticMarkup }, { previewHtml, slugify }] = await Promise.all([
+        import('react-dom/server'),
+        import('./emit/html.js'),
+      ])
+      const entry = SURFACES.find(s => s.id === surface) ?? SURFACES[0]
+      const markup = renderToStaticMarkup(
+        <div className="dmd"><entry.Component layout={derived.componentLayout} /></div>
+      )
+      const html = previewHtml({ state, derived, markup, surface: entry.label, mode: state.color.mode })
+      saveAs(html, `${slugify(state.meta.name)}-${entry.id}.html`, 'text/html')
+    } catch {
+      setNotice({ tone: 'error', text: 'Could not build the HTML preview.' })
+    } finally {
+      setExportingHtml(false)
+    }
   }
 
   const importFile = e => {
@@ -894,7 +927,7 @@ function Shell() {
               <button className="btn-ghost" onClick={reloadFromServer} style={{ padding: '6px 10px', color: 'var(--danger)', borderColor: 'rgba(222,92,92,.4)' }}>Reload</button>
             )}
             {!projectId ? (
-              <button className="btn-ghost" onClick={saveToCloud} style={{ padding: '6px 11px' }}>Save to cloud</button>
+              <button className="btn-ghost" onClick={saveToCloud} style={{ padding: '6px 11px' }}>Save to Cloud</button>
             ) : (
               <button className="btn-ghost" style={{ padding: '6px 11px', color: linkCopied ? 'var(--success)' : 'var(--muted)' }}
                 onClick={() => { navigator.clipboard.writeText(window.location.href); setLinkCopied(true); setTimeout(() => setLinkCopied(false), 1800) }}>
@@ -904,8 +937,13 @@ function Shell() {
             <input ref={fileRef} type="file" accept=".md,.txt,.markdown" onChange={importFile} style={{ display: 'none' }} />
             <button className="btn-ghost" onClick={() => setShowNew(true)} style={{ padding: '6px 11px' }}>New</button>
             <button className="btn-ghost" onClick={() => fileRef.current?.click()} style={{ padding: '6px 11px' }}><Upload />Import</button>
-            <button className="btn-ghost" onClick={() => setShowFile(true)} style={{ padding: '6px 11px' }}>Preview file</button>
-            <button className="btn-primary" onClick={download} style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><Download />Export</button>
+            <button className="btn-ghost" onClick={() => setShowFile(true)} style={{ padding: '6px 11px' }}>Preview File</button>
+            <button className="btn-outline" onClick={exportPreviewHtml} disabled={exportingHtml}
+              title={`Save the ${(SURFACES.find(s => s.id === surface) ?? SURFACES[0]).label} surface as a standalone HTML page`}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+              <Download />{exportingHtml ? 'Building…' : 'Export Preview (HTML)'}
+            </button>
+            <button className="btn-primary" onClick={download} style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><Download />Export design.md</button>
           </div>
         </header>
 
@@ -971,7 +1009,7 @@ function Shell() {
 
           {/* Route by target kind: components, colour roles and text styles
               each live on their own tab. */}
-          <Canvas onInspect={t => {
+          <Canvas surface={surface} setSurface={setSurface} onInspect={t => {
             setInspect({ entry: t.target, kind: t.kind, at: Date.now() })
             setTab({ component: 'components', role: 'roles', type: 'type' }[t.kind] ?? 'components')
           }} />
@@ -987,10 +1025,15 @@ function Shell() {
         display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8,
         pointerEvents: 'none',
       }}>
-        <div style={{ pointerEvents: 'auto' }}>
-          <RestoreToast offer={restorable} onRestore={restorePrevious} onDismiss={() => setRestorable(null)} />
-        </div>
+        {/* Save confirmation on top, restore offer beneath it. The save flash
+            is transient and its own arrival is the message; the restore offer
+            waits to be acted on, so it takes the lower, calmer slot. */}
         <SaveFlash savedAt={savedAt} />
+        {restorable && (
+          <div style={{ pointerEvents: 'auto' }}>
+            <RestoreToast offer={restorable} onRestore={restorePrevious} onDismiss={() => setRestorable(null)} />
+          </div>
+        )}
       </div>
 
       {showFile && <FileModal onClose={() => setShowFile(false)} />}
