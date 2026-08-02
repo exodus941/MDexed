@@ -11,6 +11,7 @@ import { generateFile, validate } from './emit/designmd.js'
 import { parseFile } from './emit/parse.js'
 import { isValidColor } from './color/convert.js'
 import { APP_CSS } from './ui/theme.js'
+import { loadDocumentFonts } from './type/fonts.js'
 import { Banner, ResetButton } from './ui/controls.jsx'
 import Canvas from './preview/Canvas.jsx'
 import ColorPanel from './panels/ColorPanel.jsx'
@@ -591,6 +592,14 @@ function Shell() {
       return Number.isFinite(saved) && saved >= 0 && saved <= UI_ANIM_MAX ? saved : UI_ANIM_DEFAULT
     } catch { return UI_ANIM_DEFAULT }
   })
+
+  /* The document's own typefaces, requested here rather than in the Typography
+     panel. The preview renders on every tab, so panel-scoped loading meant the
+     mock screens spent most of their life showing a fallback face — the one
+     thing a type preview must never do. The Typography panel re-requests the
+     same families with their full variable-axis ranges once the catalogue has
+     loaded; `loadFont` upgrades the existing link rather than duplicating it. */
+  useEffect(() => { loadDocumentFonts(state.type.families) }, [state.type.families])
 
   /* Drives `--t`, which every editor transition reads. The preview keeps its
      own durations — those are the user's motion tokens, not the tool's. */

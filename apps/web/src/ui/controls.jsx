@@ -33,9 +33,17 @@ const uiDuration = () => {
  * of the close so the collapse is visible, then unmount — keeping 27 role rows
  * worth of colour pickers out of the tree while shut.
  */
-export function Collapsible({ title, note, children, defaultOpen = false, right }) {
+/**
+ * @param openSignal changing this to a new truthy value opens the section.
+ *   Callers used to force it open by changing `key`, but a remount starts life
+ *   already open and skips the animation — which is what made a jump from the
+ *   preview feel like a hard cut.
+ */
+export function Collapsible({ title, note, children, defaultOpen = false, right, openSignal }) {
   const [open, setOpen] = useState(defaultOpen)
   const [mounted, setMounted] = useState(defaultOpen)
+
+  useEffect(() => { if (openSignal) setOpen(true) }, [openSignal])
 
   useEffect(() => {
     if (open) { setMounted(true); return }

@@ -42,46 +42,69 @@ export function filterFamilies(families, { query = '', category = null, variable
   })
 }
 
-/* ── Lazy stylesheet loading ── */
-const loaded = new Set()
+/* ── Lazy stylesheet loading ──
+   Keyed by the spec, not the family: the document's faces are requested at
+   startup at fixed weights, before the catalogue has arrived, and upgraded to
+   full variable-axis ranges once it has. Keying by family alone would pin the
+   first request and leave the axis sliders inert. */
+const loaded = new Map()   // family → the spec currently linked
 
 const linkId = family => `dmd-font-${family.replace(/[^a-z0-9]/gi, '-').toLowerCase()}`
 
-/**
- * Inject a stylesheet for one family. Safe to call repeatedly.
- * @param axes when the family is variable, request the full axis ranges so the
- *             sliders actually do something.
- */
-export function loadFont(family, { weights = [400, 500, 600, 700], axes = null } = {}) {
-  if (!family || loaded.has(family) || typeof document === 'undefined') return
-  loaded.add(family)
+/** Every weight the type scale asks for, so headings aren't synthesised. */
+export const DOCUMENT_WEIGHTS = [300, 400, 500, 600, 700, 800]
 
+const specFor = (family, weights, axes) => {
   const name = family.replace(/ /g, '+')
-  let spec
   if (axes?.length) {
     const tags = axes.map(a => a.tag).filter(t => t !== 'ital').sort()
     const ranges = tags.map(t => {
       const a = axes.find(x => x.tag === t)
       return `${a.start}..${a.end}`
     })
-    spec = `${name}:${tags.join(',')}@${ranges.join(',')}`
-  } else {
-    spec = `${name}:wght@${[...new Set(weights)].sort((a, b) => a - b).join(';')}`
+    return `${name}:${tags.join(',')}@${ranges.join(',')}`
   }
+  return `${name}:wght@${[...new Set(weights)].sort((a, b) => a - b).join(';')}`
+}
+
+/**
+ * Inject a stylesheet for one family. Safe to call repeatedly; only re-links
+ * when the requested spec actually changes.
+ * @param axes when the family is variable, request the full axis ranges so the
+ *             sliders actually do something.
+ */
+export function loadFont(family, { weights = [400, 500, 600, 700], axes = null } = {}) {
+  if (!family || typeof document === 'undefined') return
+  const spec = specFor(family, weights, axes)
+  if (loaded.get(family) === spec) return
+  loaded.set(family, spec)
+
+  const href = `https://fonts.googleapis.com/css2?family=${spec}&display=swap`
+  const id = linkId(family)
+  const existing = document.getElementById(id)
+  if (existing) { existing.href = href; return }
 
   const link = document.createElement('link')
-  link.id = linkId(family)
+  link.id = id
   link.rel = 'stylesheet'
-  link.href = `https://fonts.googleapis.com/css2?family=${spec}&display=swap`
+  link.href = href
   document.head.appendChild(link)
 }
 
-/** Preload the families a document actually uses. */
+/**
+ * The faces the document itself uses. Called from the app shell, not from the
+ * Typography panel — the preview renders on every tab, so waiting until
+ * someone opens Type meant the mock screens spent most of their life in a
+ * fallback face that looks nothing like the chosen one.
+ *
+ * `catalog` is optional: without it the fixed weights are requested straight
+ * away, and the same call with a catalogue later upgrades to axis ranges.
+ */
 export function loadDocumentFonts(families, catalog = []) {
   for (const entry of Object.values(families ?? {})) {
     if (!entry?.family) continue
     const meta = catalog.find(f => f.family === entry.family)
-    loadFont(entry.family, { axes: meta?.axes })
+    loadFont(entry.family, { weights: DOCUMENT_WEIGHTS, axes: meta?.axes })
   }
 }
 
