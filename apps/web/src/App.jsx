@@ -651,6 +651,26 @@ const BAR_H = 42
 const SCROLL_SLOW = 1.25
 const SCROLL_FAST = 12.5
 
+/* How long the strip takes to reach whatever speed you asked for.
+ *
+ * Landing on a chevron used to start at full speed on the first tick, which
+ * reads as a jolt rather than a movement — the strip is already travelling
+ * before the eye has found what it is travelling past. A short ramp fixes it
+ * without costing anything: at 180ms you never wait for the scroll, but the
+ * start has a beginning.
+ *
+ * The ramp is a *duration*, not a fixed acceleration, so the run-up takes the
+ * same time whether you asked for 1.25 or 12.5 — pick the fast edge and it
+ * still spends 180ms getting there rather than arriving instantly because the
+ * target happened to be close. It applies in both directions, so sliding back
+ * toward the inner edge eases down instead of dropping.
+ *
+ * Leaving the chevron still stops dead. That is a release, not a deceleration,
+ * and coasting after the pointer has gone is the behaviour that made these
+ * feel broken when they scrolled on forever. */
+const SCROLL_RAMP_MS = 180
+const SCROLL_TICK_MS = 16
+
 /* Is there anything under here that a wheel would actually move?
  *
  * Walks up looking for an element that both overflows and is allowed to
@@ -851,22 +871,44 @@ function TabStrip({ tabs, active, onSelect, right, title, actions }) {
    * interval it owned would be torn down mid-scroll.
    */
   const scroller = useRef(0)
-  /* Pixels per tick, live. Set from the pointer's depth into the chevron so
-     the speed can change without restarting the timer. */
-  const speed = useRef(SCROLL_SLOW)
+  /* Two speeds, and the distinction is the whole of the ramp.
+     `target` is what the pointer's depth into the chevron is asking for and
+     can change every frame; `actual` is what the strip is doing and is only
+     allowed to close the gap so fast. */
+  const target = useRef(SCROLL_SLOW)
+  const actual = useRef(0)
   const stopScroll = useCallback(() => { clearInterval(scroller.current); scroller.current = 0 }, [])
   const startScroll = useCallback(dir => {
     stopScroll()
     /* Start slow. The pointermove below corrects within a frame, but without
        this the first tick would inherit whatever speed the other chevron was
        left at. */
-    speed.current = SCROLL_SLOW
+    target.current = SCROLL_SLOW
+    /* From a standstill every time, so the ramp is a property of arriving at
+       a chevron rather than of whichever one you were last on. */
+    actual.current = 0
     scroller.current = setInterval(() => {
       const el = ref.current
       if (!el) return stopScroll()
-      el.scrollBy({ left: dir * speed.current, behavior: 'auto' })
+      const want = target.current
+      /* Scaled to the faster of the two, not to the target alone. Off the
+         target only, slowing down crawls — dropping from 12.5 to 1.25 in steps
+         sized for 1.25 takes a second and a half, so pulling back off the edge
+         would leave the strip still racing.
+         *
+         Speeding up is then linear and reaches any target in ~180ms. Slowing
+         down eases out instead, because the step shrinks with the speed: about
+         400ms from the fast end to the slow one, front-loaded. That asymmetry
+         is the right way round — you want the response to your asking for
+         speed to be prompt, and the coast back down to feel like lifting off
+         rather than braking. */
+      const step = Math.max(want, actual.current) * (SCROLL_TICK_MS / SCROLL_RAMP_MS)
+      actual.current = actual.current < want
+        ? Math.min(want, actual.current + step)
+        : Math.max(want, actual.current - step)
+      el.scrollBy({ left: dir * actual.current, behavior: 'auto' })
       measure()
-    }, 16)
+    }, SCROLL_TICK_MS)
   }, [stopScroll, measure])
 
   /* One listener owns everything that depends on where the pointer is:
@@ -894,7 +936,7 @@ function TabStrip({ tabs, active, onSelect, right, title, actions }) {
       const box = chevron.getBoundingClientRect()
       const into = (e.clientX - box.left) / (box.width || 1)
       const t = Math.min(1, Math.max(0, dir < 0 ? 1 - into : into))
-      speed.current = SCROLL_SLOW + (SCROLL_FAST - SCROLL_SLOW) * t
+      target.current = SCROLL_SLOW + (SCROLL_FAST - SCROLL_SLOW) * t
     }
     window.addEventListener('pointermove', check, { passive: true })
     window.addEventListener('pointerdown', check, { passive: true })
@@ -1800,7 +1842,7 @@ function Shell() {
                     {!justSaved && dirty && <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'currentColor' }} />}
                   </button>
                   <div style={{ flex: 1 }} />
-                  <button className="btn-ghost" onClick={() => setShowImport(true)}
+                  <button className="btn-fill" onClick={() => setShowImport(true)}
                     style={{ padding: '4px 10px' }} title={IMPORT_FORMATS}><Upload />Import Reference</button>
                 </>
               } />
