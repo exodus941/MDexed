@@ -478,12 +478,27 @@ function SaveFlash({ savedAt }) {
 const BAR_H = 42
 
 /* Pixels per 16ms tick at the inner and outer edges of a chevron, so roughly
-   84 to 920 px/s. The floor is slow enough to walk a tab into place one at a
-   time; the ceiling crosses the whole strip in well under a second. An eleven
-   to one spread sounds extreme written down, and reads as one control rather
+   78 to 780 px/s. The floor is slow enough to walk a tab into place one at a
+   time; the ceiling crosses the whole strip in well under a second. A ten to
+   one spread sounds extreme written down, and reads as one control rather
    than two, because the position you pick is the speed you get. */
-const SCROLL_SLOW = 1.35
-const SCROLL_FAST = 14.7
+const SCROLL_SLOW = 1.25
+const SCROLL_FAST = 12.5
+
+/* Is there anything under here that a wheel would actually move?
+ *
+ * Walks up looking for an element that both overflows and is allowed to
+ * scroll. `overflow: auto` on a box whose content fits is not scrollable, and
+ * that is the case worth catching: a short panel needs no scrollbar, so a
+ * wheel over it does nothing and should not count as an interaction. */
+function scrollableUnder(node) {
+  for (let el = node; el && el !== document.body; el = el.parentElement) {
+    if (el.scrollHeight <= el.clientHeight + 1) continue
+    const overflow = getComputedStyle(el).overflowY
+    if (overflow === 'auto' || overflow === 'scroll' || overflow === 'overlay') return true
+  }
+  return document.documentElement.scrollHeight > document.documentElement.clientHeight + 1
+}
 
 /* Declared here rather than inside TabStrip.
  *
@@ -566,10 +581,16 @@ function TabStrip({ tabs, active, onSelect, right }) {
     if (!menuOpen) return
     const inside = t => menuRef.current?.contains(t) || triggerRef.current?.contains(t)
     const onDown = e => { if (!inside(e.target)) setMenuOpen(false) }
-    /* Wheel closes wherever it happens, including over the menu: a list of
-       thirteen tabs is not scrollable, so a wheel there is a scroll aimed at
-       whatever is behind it. */
-    const onWheel = () => setMenuOpen(false)
+    /* Close only when the wheel is going to move something.
+     *
+     * Closing on every wheel meant a flick over a pane that already fitted on
+     * screen dismissed the menu for nothing. The gesture had no effect, so it
+     * should not have had a side effect either. Over the menu itself is the
+     * exception: nothing there scrolls, but the wheel is plainly aimed at what
+     * the menu is covering, so it gets out of the way. */
+    const onWheel = e => {
+      if (menuRef.current?.contains(e.target) || scrollableUnder(e.target)) setMenuOpen(false)
+    }
     const onKey = e => { if (e.key === 'Escape') setMenuOpen(false) }
     document.addEventListener('pointerdown', onDown, true)
     document.addEventListener('wheel', onWheel, { passive: true })
@@ -1339,7 +1360,10 @@ function Shell() {
         'README.md': tokens.packageReadme(stamped),
         'DESIGN.md': generateFile(stamped, derived).text,
         'tokens.css': tokens.tokensCss(stamped, derived),
+        'tokens.ts': tokens.tokensTs(stamped, derived),
+        'tailwind.css': tokens.tailwindV4Css(stamped, derived),
         'tailwind.config.js': tokens.tailwindPreset(stamped, derived),
+        '_tokens.scss': tokens.tokensScss(stamped, derived),
         'tokens.json': tokens.tokensJson(stamped, derived),
       }
       for (const s of SURFACES) {

@@ -159,6 +159,22 @@ export default function Canvas({ onInspect, surface, setSurface }) {
         display: 'flex', alignItems: 'center', gap: 6, padding: '0 12px', height: 42,
         borderBottom: '1px solid var(--bdr)', background: 'var(--surf)', flexShrink: 0,
       }}>
+        {/* Says what the pane is.
+            The editor side names itself with a wordmark and a tab strip; this
+            side was six unlabelled buttons and a rendered page, which reads as
+            part of the app rather than as a sample of the thing being
+            designed. Set as a label rather than a tab so it cannot be mistaken
+            for something to click, and separated by a rule so the surfaces
+            still group as one control. */}
+        <span style={{
+          fontSize: 10, fontWeight: 600, letterSpacing: '.1em', textTransform: 'uppercase',
+          color: 'var(--muted)', whiteSpace: 'nowrap', flexShrink: 0, cursor: 'default',
+          userSelect: 'none',
+        }}>
+          Preview
+        </span>
+        <span style={{ width: 1, height: 16, background: 'var(--bdr2)', flexShrink: 0, marginRight: 2 }} />
+
         {SURFACES.map(s => (
           <button key={s.id} onClick={() => setSurface(s.id)} className={surface === s.id ? 'seg-on' : 'seg'}>
             {s.label}
