@@ -177,8 +177,9 @@ export function FilterField({ value, onChange, placeholder = 'Filter', width = 1
           color: value ? 'var(--accent)' : 'var(--text-dim)',
         }} />
       {value && (
-        <button onClick={() => onChange('')} title="Clear"
-          style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', fontSize: 14, lineHeight: 1, padding: 0 }}>×</button>
+        <span style={{ position: 'absolute', right: 5, top: '50%', transform: 'translateY(-50%)', color: 'var(--muted)', fontSize: 11, lineHeight: 1 }}>
+          <CloseButton onClick={() => onChange('')} label="Clear" line={1.4} size={8} />
+        </span>
       )}
     </div>
   )
@@ -360,6 +361,43 @@ export function Empty({ msg = 'Nothing here yet.' }) {
   return <div style={{ textAlign: 'center', padding: '26px 16px', color: 'var(--dim)', fontSize: 13, border: '1px dashed var(--bdr)', borderRadius: 10, lineHeight: 1.6 }}>{msg}</div>
 }
 
+/* The one close control.
+ *
+ * Every hand-rolled `×` in this app sat a couple of pixels above the first
+ * line of text beside it, and the cause was never the flex alignment — it was
+ * the glyph. `×` is a multiplication sign: the font positions its ink around
+ * the maths axis, well above the centre of the em box, and every face puts it
+ * somewhere slightly different. No amount of `align-items` fixes a character
+ * whose ink is off-centre inside its own box.
+ *
+ * So: an SVG, whose ink is exactly centred by construction, inside a box
+ * exactly one line-box tall (`LINE`em against the inherited font size). Two
+ * boxes of equal height, both aligned to the top of the row, have coincident
+ * centres — the cross lands on the first line's optical centre and stays there
+ * whatever the text does.
+ *
+ * `font: inherit` is load-bearing. It makes `em` resolve against the
+ * container's font size rather than the browser's button default, which is
+ * what keeps the box the same height as the line it is aligning to. */
+export const LINE = 1.5
+
+export function CloseButton({ onClick, label = 'Dismiss', line = LINE, size = 9 }) {
+  return (
+    <button onClick={onClick} aria-label={label} title={label} className="close-x"
+      style={{
+        flexShrink: 0, width: `${line}em`, height: `${line}em`,
+        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+        background: 'none', border: 'none', padding: 0, margin: 0,
+        color: 'inherit', font: 'inherit', cursor: 'pointer', borderRadius: 4,
+      }}>
+      <svg width={size} height={size} viewBox="0 0 10 10" fill="none"
+        stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" aria-hidden>
+        <path d="M1.5 1.5l7 7M8.5 1.5l-7 7" />
+      </svg>
+    </button>
+  )
+}
+
 export function Banner({ tone = 'info', children, onDismiss }) {
   const tones = {
     info:    { bg: 'var(--surf3)',           fg: 'var(--muted)',   bd: 'var(--bdr)' },
@@ -370,12 +408,10 @@ export function Banner({ tone = 'info', children, onDismiss }) {
   return (
     <div style={{
       display: 'flex', alignItems: 'flex-start', gap: 10, background: tones.bg, border: `1px solid ${tones.bd}`,
-      color: tones.fg, borderRadius: 8, padding: '9px 12px', fontSize: 12.5, lineHeight: 1.5,
+      color: tones.fg, borderRadius: 8, padding: '9px 12px', fontSize: 12.5, lineHeight: LINE,
     }}>
       <div style={{ flex: 1, minWidth: 0 }}>{children}</div>
-      {onDismiss && (
-        <button onClick={onDismiss} style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', opacity: .7, fontSize: 15, lineHeight: 1, padding: 0 }}>×</button>
-      )}
+      {onDismiss && <CloseButton onClick={onDismiss} />}
     </div>
   )
 }

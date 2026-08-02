@@ -8,7 +8,7 @@
 
    Both palettes ship, switched by `data-theme` on the root element, because a
    reference that only proves the light theme is half a reference. */
-import { PREVIEW_CSS } from '../preview/tokens.js'
+import { PREVIEW_CSS, responsiveCss } from '../preview/tokens.js'
 import { buildCssVars } from '../state/derive.js'
 import { gradientCss } from '../color/modes.js'
 import { resolveRef } from '../color/ramp.js'
@@ -84,6 +84,13 @@ body { background: var(--c-bg, #fff); }
 
 /* ── The system ────────────────────────────────────────────────────────── */
 ${PREVIEW_CSS.trim()}
+
+/* ── Responsive ────────────────────────────────────────────────────────────
+   Container queries rather than media queries, matching the editor's preview
+   exactly. In a standalone page the container is the full width anyway, so
+   the two behave identically — but keeping them the same means the exported
+   file is the thing you were looking at, which is the entire promise here. */
+${responsiveCss(state.layout?.breakpoints ?? []).trim()}
 </style>
 </head>
 <body>

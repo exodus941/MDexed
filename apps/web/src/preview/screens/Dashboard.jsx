@@ -22,7 +22,7 @@ export default function Dashboard({ onInspect, layout }) {
   const badgeFor = s => s === 'Active' ? 'badge-success' : s === 'Overdue' ? 'badge-danger' : 'badge-warning'
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '180px 1fr', gap: 'var(--space-lg, 32px)', alignItems: 'start' }}>
+    <div className="with-aside">
       <nav className="stack-sm">
         <div className="caption" style={{ textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 4 }}
           {...txt('overline', 'text-muted')}>Workspace</div>
@@ -33,7 +33,7 @@ export default function Dashboard({ onInspect, layout }) {
       </nav>
 
       <div className="stack">
-        <div className="row" style={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div className="row row-wrap" style={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div>
             <h2 {...txt('h2')}>Overview</h2>
             <p className="muted small" style={{ marginTop: 4 }} {...txt('body-sm', 'text-muted')}>Fourth quarter, all accounts</p>
@@ -64,7 +64,7 @@ export default function Dashboard({ onInspect, layout }) {
           )}
         </div>
 
-        <div className="grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+        <div className="cols-3">
           {[['Revenue', '$45,645', '+12.4%'], ['Open invoices', '18', '-3'], ['Avg. days to pay', '21', '+2']].map(([label, value, delta]) => (
             <div className="card" key={label} {...ins('card')}>
               <div className="caption" {...txt('caption', 'text-muted')}>{label}</div>
@@ -76,7 +76,7 @@ export default function Dashboard({ onInspect, layout }) {
         </div>
 
         <div className="card" {...ins('card')}>
-          <div className="row" style={{ justifyContent: 'space-between', marginBottom: 'var(--space-md, 16px)' }}>
+          <div className="row row-wrap" style={{ justifyContent: 'space-between', marginBottom: 'var(--space-md, 16px)' }}>
             <h3 style={{ fontSize: 'var(--font-body-md-size, 16px)' }} {...txt('h6')}>Accounts</h3>
             <span className="badge badge-neutral" {...ins('badge-neutral')}>4 shown</span>
           </div>
@@ -103,7 +103,7 @@ export default function Dashboard({ onInspect, layout }) {
           </table>
         </div>
 
-        <div className="grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
+        <div className="cols-2">
           <div className="card" {...ins('card')}>
             <h3 style={{ fontSize: 'var(--font-body-md-size, 16px)', marginBottom: 'var(--space-sm, 8px)' }} {...txt('h6')}>Collection rate</h3>
             {/* No progress component in the library, so this stays part of the card. */}

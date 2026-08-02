@@ -8,7 +8,7 @@
 import { useState } from 'react'
 import { useStore } from '../state/store.jsx'
 import { ANTI_PATTERNS, FRAMEWORKS, uid } from '../state/schema.js'
-import { SectionHeader, Collapsible, Segmented, Toggle, Banner } from '../ui/controls.jsx'
+import { SectionHeader, Collapsible, Segmented, Toggle, Banner, CloseButton } from '../ui/controls.jsx'
 
 const SUGGESTED_REFERENCES = [
   'Swiss editorial', 'Brutalist', 'Soft neumorphic', 'Print-inspired', 'Terminal / monospace',
@@ -33,8 +33,7 @@ function References({ value, onChange }) {
             padding: '3px 6px 3px 9px', fontSize: 12,
           }}>
             {r}
-            <button onClick={() => onChange(value.filter(x => x !== r))}
-              style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', fontSize: 14, lineHeight: 1, padding: 0, opacity: .7 }}>×</button>
+            <CloseButton onClick={() => onChange(value.filter(x => x !== r))} label={`Remove ${r}`} line={1.2} size={8} />
           </span>
         ))}
         {!value.length && <span style={{ fontSize: 11.5, color: 'var(--dim)' }}>None yet — one or two is plenty.</span>}
@@ -88,9 +87,7 @@ export default function DirectivesPanel() {
                 <Toggle label={<span style={{ fontSize: 12.5, color: a.on ? 'var(--text)' : 'var(--muted)' }}>{a.text}</span>}
                   checked={a.on} onChange={() => toggleAnti(a.id)} />
               </div>
-              {a.custom && (
-                <button className="btn-delete" onClick={() => removeAnti(a.id)} title="Remove" style={{ marginTop: 1 }}>×</button>
-              )}
+              {a.custom && <CloseButton onClick={() => removeAnti(a.id)} label="Remove" line={1.5} size={9} />}
             </div>
           ))}
         </div>

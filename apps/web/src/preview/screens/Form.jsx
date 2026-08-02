@@ -35,8 +35,7 @@ function Field({ fl, ins, txt, entry, label, required, help, error, children }) 
   )
 
   return (
-    <div className="field" {...ins(entry)}
-      style={inline ? { display: 'grid', gridTemplateColumns: '112px 1fr', gap: 'var(--space-sm, 12px)', alignItems: 'baseline' } : undefined}>
+    <div className={inline ? 'field field-inline' : 'field'} {...ins(entry)}>
       {labelEl}
       {inline ? <div className="field">{body}</div> : body}
     </div>
@@ -58,7 +57,7 @@ export default function Form({ onInspect, layout }) {
       </div>
 
       <div className="card stack" {...ins('card')}>
-        <div className="grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
+        <div className="cols-2">
           <Field fl={fl} ins={ins} txt={txt} entry="input" label="Legal name" required>
             <input className="input" defaultValue="Northwind Trading Co." />
           </Field>
@@ -77,7 +76,7 @@ export default function Form({ onInspect, layout }) {
           <textarea className="input" rows={3} defaultValue={'44 Wharf Road\nBristol BS1 4TR'} />
         </Field>
 
-        <div className="grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
+        <div className="cols-2">
           <Field fl={fl} ins={ins} txt={txt} entry="input-disabled" label="VAT number" help="Verified — contact support to change this.">
             <input className="input" disabled defaultValue="GB 429 8841 22" />
           </Field>

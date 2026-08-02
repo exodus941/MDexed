@@ -116,7 +116,7 @@ export default function Gallery({ onInspect, layout }) {
       </Section>
 
       <Section txt={txt} title="Inputs" note="Default, focused (click in), invalid, disabled">
-        <div className="grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
+        <div className="cols-2">
           <div className="field" {...ins('input')}><label className="label" {...txt("caption", "text-muted")}>Default</label><input className="input" placeholder="Placeholder text" /></div>
           <div className="field" {...ins('input')}><label className="label" {...txt("caption", "text-muted")}>Filled</label><input className="input" defaultValue="Northwind Trading" /></div>
           <div className="field" {...ins('input-invalid')}><label className="label" {...txt("caption", "text-muted")}>Invalid</label><input className="input is-invalid" defaultValue="not-an-email" /></div>
@@ -253,7 +253,7 @@ export default function Gallery({ onInspect, layout }) {
       </Section>
 
       <Section txt={txt} title="Empty state and loading">
-        <div className="grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
+        <div className="cols-2">
           <div className="card" style={{ textAlign: 'center', padding: 'var(--space-lg, 24px)' }} {...ins('card')}>
             <div style={{ display: 'inline-flex', marginBottom: 'var(--space-xs, 8px)', color: 'var(--c-text-subtle, #999)' }}>
               <Ico d={IconFolder} size="xl" />
@@ -273,7 +273,7 @@ export default function Gallery({ onInspect, layout }) {
       </Section>
 
       <Section txt={txt} title="Surfaces & elevation" note="flat, raised, overlay, sunken">
-        <div className="grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
+        <div className="cols-4">
           <div className="card card-flat" {...ins('card-flat')}><div className="caption" {...txt("caption", "text-muted")}>flat</div><p className="small" style={{ marginTop: 4 }} {...txt("body-sm")}>Border only</p></div>
           <div className="card" {...ins('card')}><div className="caption" {...txt("caption", "text-muted")}>raised</div><p className="small" style={{ marginTop: 4 }} {...txt("body-sm")}>Cards, panels</p></div>
           <div className="card card-overlay" {...ins('card-overlay')}><div className="caption" {...txt("caption", "text-muted")}>overlay</div><p className="small" style={{ marginTop: 4 }} {...txt("body-sm")}>Menus, popovers</p></div>

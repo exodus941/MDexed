@@ -53,6 +53,7 @@ const TAG_LABELS = {
     const inner = TAG_LABELS[t.split(':')[0]]
     return `AI rewrite · ${inner ? inner(t.slice(t.indexOf(':') + 1)) : t}`
   },
+  'css-import': () => 'Imported from CSS',
   palette: t => `Palette generated · ${t}`,
   'seed-lock': () => 'Seed lock',
   macro: t => `${cap(t)} macro`,
