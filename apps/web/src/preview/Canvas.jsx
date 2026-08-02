@@ -116,6 +116,24 @@ function TargetMenu({ menu, onPick, onClose }) {
    that lives down here. */
 /* How the palette currently grades, beside the palette. Counts the same fixed
    pairs the Roles panel reports, in whichever mode is being previewed. */
+/* A tick in a circle for the all-clear, a dot for anything else.
+ *
+ * Both chips used the same 6px dot in whichever colour applied, so "Contrast
+ * OK" and "3 warnings" were the same mark twice and you had to read the words
+ * to tell them apart. A tick is what a pass looks like; it also means the good
+ * state survives being seen in greyscale, which is the rule the audit next to
+ * it is enforcing. */
+function ChipMark({ ok }) {
+  if (!ok) return <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'currentColor' }} />
+  return (
+    <svg width={12} height={12} viewBox="0 0 16 16" fill="none" aria-hidden style={{ flexShrink: 0 }}>
+      <circle cx="8" cy="8" r="7" fill="currentColor" />
+      <path d="M4.9 8.2l2.1 2.1 4.1-4.4" stroke="var(--surf)" strokeWidth={1.8}
+        strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
 function ContrastChip({ onOpen }) {
   const { state, derived } = useStore()
   const mode = state.color.mode
@@ -133,7 +151,7 @@ function ContrastChip({ onOpen }) {
         color: failing ? 'var(--danger)' : 'var(--success)',
         borderRadius: 6, padding: '3px 9px', fontSize: 11, fontFamily: 'var(--mono)',
       }}>
-      <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'currentColor' }} />
+      <ChipMark ok={!failing} />
       {failing ? `${failing} contrast` : 'Contrast OK'}
     </button>
   )
@@ -197,7 +215,7 @@ function WarningsChip({ onJump }) {
           color: `var(--${tone})`,
           borderRadius: 6, padding: '3px 9px', fontSize: 11, fontFamily: 'var(--mono)',
         }}>
-        <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'currentColor' }} />
+        <ChipMark ok={count === 0} />
         {label}
       </button>
 

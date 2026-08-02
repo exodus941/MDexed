@@ -311,12 +311,23 @@ function motionChecks(state, derived) {
   const out = []
   const durations = derived.motion?.durations ?? {}
 
+  /* Curves that pass the end value and come back. The reversal is what
+     provokes vestibular symptoms, not the speed — but only while it is moving
+     something, which is why this is evidence for the policy check below rather
+     than a finding of its own. */
+  const overshoot = Object.entries(state.motion?.easings ?? {}).filter(([, curve]) => {
+    const n = String(curve).match(/-?\d*\.?\d+/g)?.map(Number)
+    return n?.length === 4 && (n[1] > 1 || n[3] > 1 || n[1] < 0 || n[3] < 0)
+  })
+
   if (!state.motion?.reducedMotion) {
+    const names = overshoot.map(([k]) => k).join(', ')
     out.push({
       req: 'motion', id: 'motion:policy', level: FAIL, criterion: '2.3.3 Animation from interactions (AAA)',
       tab: 'motion',
       title: 'No reduced-motion policy',
-      detail: 'Without a stated policy an agent will emit transitions with no `prefers-reduced-motion` block, and vestibular users get the full set. This is one line of CSS that nobody writes unless told to.',
+      detail: 'Without a stated policy an agent will emit transitions with no `prefers-reduced-motion` block, and vestibular users get the full set. This is one line of CSS that nobody writes unless told to.'
+        + (names ? ` It matters more here than usual: ${names} overshoot${overshoot.length === 1 ? 's' : ''} the target, and a curve that reverses direction is the kind that provokes symptoms.` : ''),
       fix: 'Pick a reduced-motion behaviour in the Motion panel.',
     })
   }
@@ -343,22 +354,21 @@ function motionChecks(state, derived) {
     }
   }
 
-  /* Overshoot is the thing that actually triggers vestibular symptoms — it's
-     the reversal, not the speed. Detect it in the curve rather than trusting
-     the personality label. */
-  const overshoot = Object.entries(state.motion?.easings ?? {}).filter(([, curve]) => {
-    const n = String(curve).match(/-?\d*\.?\d+/g)?.map(Number)
-    return n?.length === 4 && (n[1] > 1 || n[3] > 1 || n[1] < 0 || n[3] < 0)
-  })
-  if (overshoot.length > 0 && state.motion?.reducedMotion !== 'none') {
-    out.push({
-      req: 'motion', id: 'motion:overshoot', level: WARN, criterion: '2.3.3 Animation from interactions (AAA)',
-      tab: 'motion', entry: overshoot[0][0],
-      title: `${overshoot.map(([k]) => k).join(', ')} overshoot${overshoot.length === 1 ? 's' : ''} the target`,
-      detail: `${overshoot.map(([k]) => k).join(', ')} ${overshoot.length === 1 ? 'is a curve' : 'are curves'} that go past the end value and come back. That reversal — not the speed — is what provokes vestibular symptoms, and your reduced-motion setting is "crossfade", which keeps animating rather than stopping. So the overshoot is still there for people who asked for less motion.`,
-      fix: `Two ways out, both on this panel. Set Reduced motion to "none", which drops animation entirely under the media query — or open ${overshoot.map(([k]) => k).join(' / ')} in the easing editor and pull the handles back inside the 0–1 box so the curve settles instead of bouncing. Keep the bounce if you want it; it only has to disappear under the query.`,
-    })
-  }
+  /* There was a finding here for overshoot surviving a "crossfade" policy. It
+     was wrong, and wrong in a way worth recording so it does not come back.
+     *
+     * Its premise was that crossfade "keeps animating rather than stopping",
+     * so the bounce reaches people who asked for less motion. But 2.3.3 is
+     * about *motion* animation, and a cross-fade is not motion — it is the
+     * standard substitute for it. The file says so in as many words: "Under
+     * `prefers-reduced-motion`, drop to a cross-fade at `fast`." Nothing
+     * translates or scales, so there is no reversal left to feel. Overshoot on
+     * an opacity curve pushes the value past 1 and clamps.
+     *
+     * So a system with any reduced-motion policy satisfies 2.3.3, and one with
+     * no policy already gets the FAIL above — which now names the overshooting
+     * curves, because that is the case where the reversal genuinely survives.
+     * Two findings for one cause, one of them false, is worse than one. */
 
   return out
 }
