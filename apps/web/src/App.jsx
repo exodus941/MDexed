@@ -283,13 +283,28 @@ function UiSpeedControl({ value, onChange }) {
  * lighter as the number rises, a light theme gets brighter. Same slider, same
  * direction of travel, opposite starting point.
  */
-const UI_B = { dark: { min: 0, max: 33, def: 16 }, light: { min: 66, max: 100, def: 83 } }
+/* Equal spans, 33 steps each, so the same default reads as the same
+   percentage in both themes. At 66-100 the light range was one step wider
+   and its default came out as 32%. */
+const UI_B = { dark: { min: 0, max: 33, def: 11 }, light: { min: 66, max: 99, def: 77 } }
 const UI_B_DEFAULTS = { dark: UI_B.dark.def, light: UI_B.light.def }
 
 function UiBrightnessControl({ value, onChange, theme }) {
   const r = UI_B[theme]
+  const [draft, setDraft] = useState(null)
   const pct = Math.round(((value - r.min) / (r.max - r.min)) * 100)
   const changed = value !== r.def
+
+  /* Typed as a percentage and stored as a raw slider position, so the number
+     you read is the number you can type back. */
+  const commit = input => {
+    setDraft(null)
+    const n = parseFloat(String(input).replace(/[^\d.]/g, ''))
+    if (!Number.isFinite(n)) return
+    const clamped = Math.max(0, Math.min(100, n))
+    onChange(Math.round(r.min + (clamped / 100) * (r.max - r.min)))
+  }
+
   return (
     <div style={{ width: '100%', minWidth: 0 }}
       title={theme === 'dark'
@@ -301,14 +316,16 @@ function UiBrightnessControl({ value, onChange, theme }) {
         </span>
         <ResetButton onClick={() => onChange(r.def)} disabled={!changed} />
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
-        <span style={{
-          width: 16, height: 16, borderRadius: 4, flexShrink: 0, border: '1px solid var(--bdr2)',
-          background: 'var(--surf3)',
-        }} />
-        <span style={{ flex: 1, textAlign: 'right', fontFamily: 'var(--mono)', fontSize: 10.5, color: 'var(--text-dim)' }}>
-          {pct}%
-        </span>
+      <div style={{ display: 'flex', gap: 4, marginBottom: 3 }}>
+        <input
+          value={draft ?? `${pct}%`}
+          onChange={e => setDraft(e.target.value)}
+          onBlur={e => commit(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur() }}
+          style={{
+            flex: 1, minWidth: 0, fontFamily: 'var(--mono)', fontSize: 10.5, padding: '3px 5px',
+            textAlign: 'right', color: 'var(--text-dim)',
+          }} />
       </div>
       <input type="range" min={r.min} max={r.max} step={1} value={value}
         onChange={e => onChange(Number(e.target.value))}
@@ -349,13 +366,7 @@ function UiHueControl({ value, onChange }) {
         <span style={{ fontSize: 10.5, color: changed ? 'var(--text)' : 'var(--muted)', flex: 1, whiteSpace: 'nowrap' }}>UI Hue</span>
         <ResetButton onClick={() => onChange(UI_HUE_DEFAULT)} disabled={!changed} />
       </div>
-      <div style={{ display: 'flex', gap: 4, marginBottom: 3, alignItems: 'center' }}>
-        {/* A sample of the surface the value produces, so the number means
-            something before you drag it. */}
-        <span style={{
-          width: 16, height: 16, borderRadius: 4, flexShrink: 0,
-          background: `hsl(${value} 14% 15%)`, border: '1px solid var(--bdr2)',
-        }} />
+      <div style={{ display: 'flex', gap: 4, marginBottom: 3 }}>
         <input
           value={draft ?? `${value}°`}
           onChange={e => setDraft(e.target.value)}
