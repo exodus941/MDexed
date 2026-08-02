@@ -13,11 +13,16 @@ import { generateCounterpart, clearOverridesFor } from '../color/modes.js'
 import ColorPicker from '../ui/ColorPicker.jsx'
 import { SectionHeader, Collapsible, Expand, Segmented, OverrideBadge, Banner, FilterField } from '../ui/controls.jsx'
 import { useReveal, revealStyle } from '../ui/reveal.js'
+import CrossFade from '../ui/CrossFade.jsx'
 
-function RoleRow({ role, roles, refs, ramps, overrides, onSetRef, onOverride, onResetOverride, scope, inspect }) {
-  const [open, setOpen] = useState(false)
+/* `open` is owned by the panel, not the row. Switching Light/Dark/Both
+   cross-dissolves, which remounts these; state kept here would be wiped by an
+   animation, so a scope change would silently collapse everything you had
+   expanded. */
+function RoleRow({ role, roles, refs, ramps, overrides, onSetRef, onOverride, onResetOverride, scope, inspect, open, onToggle }) {
   const targeted = inspect?.entry === role.name
   const ref = useReveal(targeted, inspect?.at)
+  const setOpen = next => onToggle(typeof next === 'function' ? next(open) : next)
 
   useEffect(() => { if (targeted) setOpen(true) }, [targeted, inspect?.at])
   const options = [
@@ -193,6 +198,18 @@ export default function RolesPanel({ inspect }) {
     roleOverrides: clearOverridesFor(c.roleOverrides, from === 'light' ? 'dark' : 'light'),
   }))
 
+  /* Held here so a scope change — which remounts the groups through the
+     cross-dissolve — doesn't collapse whatever you had open. */
+  const [openGroups, setOpenGroups] = useState(() => new Set(['surface']))
+  const [openRows, setOpenRows] = useState(() => new Set())
+  const toggle = setter => (key, on) => setter(prev => {
+    const next = new Set(prev)
+    if (on) next.add(key); else next.delete(key)
+    return next
+  })
+  const toggleGroup = toggle(setOpenGroups)
+  const toggleRow = toggle(setOpenRows)
+
   const targetGroup = inspect ? ROLE_GROUPS.find(g => g.roles.some(r => r.name === inspect.entry))?.id : null
   const overrideCount = Object.keys(color.roleOverrides ?? {}).length
   const failing = CONTRAST_PAIRS.filter(p => {
@@ -227,9 +244,14 @@ export default function RolesPanel({ inspect }) {
         </div>
       </Collapsible>
 
+      {/* Switching scope swaps one column layout for another — the same kind
+          of change as a tab, so it dissolves like one. Open state lives above
+          this in the panel, so nothing collapses on the way through. */}
+      <CrossFade id={scope}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       {ROLE_GROUPS.map(group => (
         <Collapsible key={group.id} title={group.label} note={String(group.roles.length)}
-          defaultOpen={group.id === 'surface'}
+          open={openGroups.has(group.id)} onOpenChange={v => toggleGroup(group.id, v)}
           openSignal={targetGroup === group.id ? inspect.at : null}>
           <p className="panel-note" style={{ marginBottom: 8 }}>{group.desc}</p>
           <div style={{ display: 'grid', gridTemplateColumns: scope === 'both' ? '1fr 22px 22px' : '1fr 22px', gap: 8, paddingBottom: 3, borderBottom: '1px solid var(--bdr)' }}>
@@ -241,10 +263,13 @@ export default function RolesPanel({ inspect }) {
           {group.roles.map(role => (
             <RoleRow key={role.name} role={role} roles={roles} refs={color.roles} ramps={ramps}
               overrides={color.roleOverrides ?? {}} scope={scope} inspect={inspect}
+              open={openRows.has(role.name)} onToggle={v => toggleRow(role.name, v)}
               onSetRef={setRoleRef} onOverride={setRoleOverride} onResetOverride={resetRole} />
           ))}
         </Collapsible>
       ))}
+      </div>
+      </CrossFade>
 
       <Collapsible title="Contrast" note={failing ? `${failing} failing` : color.mode} defaultOpen>
         <PairChecker roles={roles} mode={color.mode} />

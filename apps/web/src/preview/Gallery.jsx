@@ -32,9 +32,10 @@ const Label = ({ children, txt }) => (
     {...txt('overline', 'text-muted')}>{children}</div>
 )
 
-export default function Gallery({ onInspect }) {
+export default function Gallery({ onInspect, layout }) {
   const ins = entry => inspectProps(entry, onInspect)
   const txt = (typeName, roleName = 'text') => inspectProps(text(typeName, roleName), onInspect)
+  const al = layout?.alert ?? {}
   const variants = ['primary', 'secondary', 'ghost', 'danger']
   const states = [
     { key: '', cls: '', label: 'default' },
@@ -216,21 +217,32 @@ export default function Gallery({ onInspect }) {
             ['warning', IconInfo, 'Two invoices are overdue by more than 30 days.'],
             ['danger', IconInfo, 'Payment failed — the card on file has expired.']].map(([tone, icon, body]) => (
             <div key={tone} className={`alert alert-${tone}`} {...ins(`alert-${tone}`)}>
-              <Ico d={icon} />
-              <span className="alert-body" {...txt('body-sm')}>{body}</span>
+              {al.icon !== 'none' && <Ico d={icon} />}
+              <span className="alert-body" {...txt('body-sm')}>
+                {al.title === 'bold' && <strong style={{ display: 'block' }}>{tone[0].toUpperCase() + tone.slice(1)}</strong>}
+                {body}
+              </span>
             </div>
           ))}
           {/* Deliberately long, so the first-line alignment is visible rather
               than merely asserted. */}
           <div className="alert alert-warning" {...ins('alert-warning')}>
-            <Ico d={IconInfo} />
+            {al.icon !== 'none' && <Ico d={IconInfo} />}
             <span className="alert-body" {...txt('body-sm')}>
+              {al.title === 'bold' && <strong style={{ display: 'block' }}>Overdue accounts</strong>}
               Three invoices have been outstanding for more than sixty days, and two of those
               accounts have no payment method on file — chase them before the quarter closes.
+              {al.action === 'below' && (
+                <span style={{ display: 'block', marginTop: 'var(--space-xs, 8px)' }}>
+                  <button className="btn btn-ghost btn-sm" {...ins('button-ghost')}>Review</button>
+                </span>
+              )}
             </span>
-            <span className="alert-action">
-              <button className="btn btn-ghost btn-sm" {...ins('button-ghost')}>Review</button>
-            </span>
+            {al.action === 'inline' && (
+              <span className="alert-action">
+                <button className="btn btn-ghost btn-sm" {...ins('button-ghost')}>Review</button>
+              </span>
+            )}
           </div>
           <div className="card card-overlay row" style={{ maxWidth: 340 }} {...ins("card-overlay")}>
             <Ico d={IconCheck} />
