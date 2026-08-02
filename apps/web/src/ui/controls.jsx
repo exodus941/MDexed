@@ -40,6 +40,63 @@ export const BTN = {
   lg: '8px 16px',   // header and primary actions
 }
 
+/**
+ * A slider that moves between named scale steps, beside a field that accepts
+ * anything.
+ *
+ * Dropdowns were the wrong instrument for these. Choosing a radius or a font
+ * size is comparative — you want the next one up, and you want to see what
+ * that did — and a select makes you open a list, read names, guess, close it,
+ * look, and start again. A slider is the same decision in one gesture.
+ *
+ * But a scale is not a continuum, so it snaps: every stop is a real token, and
+ * dragging writes the token reference rather than the pixel value it happens
+ * to resolve to today. That matters because the whole system is derived. A
+ * value of `{rounded.lg}` follows the roundness macro forever; `12px` was
+ * right once.
+ *
+ * The field stays, because sometimes the answer genuinely is 3px and no step
+ * is going to give you that. Off-scale values are shown as such rather than
+ * being silently rounded to the nearest step, and the slider parks at the
+ * closest one so it still has somewhere to be.
+ *
+ * @param steps  [{ name, value }] in scale order
+ * @param value  the current raw value: a `{group.name}` reference or a literal
+ * @param refFor turns a step name into the reference to store
+ */
+export function SnapSlider({ steps, value, onChange, refFor, title }) {
+  if (!steps?.length) return null
+
+  const raw = String(value ?? '')
+  const named = steps.findIndex(s => raw === refFor(s.name))
+  /* Off-scale: find the step it is nearest to in px so the thumb has a home,
+     and say so rather than pretending it landed on one. */
+  const px = parseFloat(raw)
+  const nearest = named >= 0 ? named : (Number.isFinite(px)
+    ? steps.reduce((best, s, i) =>
+        Math.abs(parseFloat(s.value) - px) < Math.abs(parseFloat(steps[best].value) - px) ? i : best, 0)
+    : 0)
+  const off = named < 0
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }} title={title}>
+      <input type="range" min={0} max={steps.length - 1} step={1} value={nearest}
+        onChange={e => onChange(refFor(steps[Number(e.target.value)].name))}
+        /* Ticks make the stops visible before you drag, so the control shows
+           how many choices there are rather than making you discover them. */
+        list="dmd-snap-ticks"
+        style={{ flex: 1, minWidth: 60, height: 13, opacity: off ? .55 : 1 }} />
+      <span style={{
+        fontFamily: 'var(--mono)', fontSize: 9.5, whiteSpace: 'nowrap', flexShrink: 0,
+        minWidth: 62, textAlign: 'right',
+        color: off ? 'var(--dim)' : 'var(--muted)',
+      }}>
+        {off ? `off scale` : `${steps[nearest].name} · ${steps[nearest].value}`}
+      </span>
+    </div>
+  )
+}
+
 export function SectionHeader({ title, desc, count, right }) {
   return (
     <div style={{ marginBottom: 18, display: 'flex', alignItems: 'flex-start', gap: 12 }}>

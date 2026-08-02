@@ -43,10 +43,19 @@ export default function TokenColorPicker({
   isRef = v => !/^#/.test(String(v ?? '')),
   note,
 }) {
+  /* An anchor can legitimately be missing: a ref that has not attached yet, or
+     a swatch held in a ref array that a re-render has moved. The old fallback
+     put the panel at 40,8 — the top-left corner of the window, nowhere near
+     whatever was clicked, which reads as the picker having failed to open
+     rather than as having opened somewhere odd. Centring it is unambiguous:
+     it is clearly a panel that appeared, and it is clearly about the thing you
+     just clicked because nothing else is open. */
   const rect = anchor?.getBoundingClientRect()
-  const left = rect ? Math.min(Math.max(10, rect.left), window.innerWidth - WIDTH - 10) : 40
+  const left = rect
+    ? Math.min(Math.max(10, rect.left), window.innerWidth - WIDTH - 10)
+    : Math.max(10, (window.innerWidth - WIDTH) / 2)
   const below = rect ? window.innerHeight - rect.bottom : 0
-  const openUp = below < 340 && rect && rect.top > below
+  const openUp = !!rect && below < 340 && rect.top > below
   const following = isRef(value)
 
   return createPortal(
@@ -54,7 +63,7 @@ export default function TokenColorPicker({
       <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 2000 }} />
       <div className="anim-pop" style={{
         position: 'fixed', left,
-        ...(openUp ? { bottom: window.innerHeight - rect.top + 8 } : { top: (rect?.bottom ?? 0) + 8 }),
+        ...(openUp ? { bottom: window.innerHeight - rect.top + 8 } : { top: rect ? rect.bottom + 8 : 80 }),
         zIndex: 2001, width: WIDTH,
         background: 'var(--surf2)', border: '1px solid var(--bdr2)', borderRadius: 10,
         boxShadow: '0 18px 44px rgba(0,0,0,.6)', padding: 12,

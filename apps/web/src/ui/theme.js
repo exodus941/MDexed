@@ -17,12 +17,41 @@ export const APP_CSS = `
      than a rewrite. Only the lightnesses and a handful of saturations differ
      between the two, and the hue slider keeps working in both. */
   --ui-h:208;
-  --bg:hsl(var(--ui-h) 12% 5%);--surf:hsl(var(--ui-h) 12% 8%);
-  --surf2:hsl(var(--ui-h) 12% 11%);--surf3:hsl(var(--ui-h) 14% 15%);
-  --bdr:hsl(var(--ui-h) 12% 16%);--bdr2:hsl(var(--ui-h) 12% 20%);
-  --text:hsl(var(--ui-h) 5% 87%);--muted:hsl(var(--ui-h) 3% 46%);--dim:hsl(var(--ui-h) 9% 27%);
-  --text-dim:hsl(var(--ui-h) 4% 74%);
-  --scroll:hsl(var(--ui-h) 11% 25%);--scroll-hover:hsl(var(--ui-h) 10% 34%);
+
+  /* ── Brightness ──
+   * --ui-b is the raw slider, 0-33 in dark and 66-100 in light. --b
+   * normalises it to 0-1 inside whichever theme is active, so every lightness
+   * below is one calc against a single number.
+   *
+   * Surfaces and text move together but not equally. Lifting a dark theme is
+   * a request for "less black", not for less contrast, so the backgrounds
+   * travel about seven points across the range while the text travels four
+   * in the same direction. Contrast narrows a little at the bright end, which
+   * is the honest cost of the control, and the range is deliberately short
+   * enough that it never falls below AA.
+   *
+   * Written as calc() inside hsl() rather than as a filter on the root: a
+   * filter would drag the preview pane with it and repaint the design being
+   * worked on, which is the one thing the chrome must never do.
+   */
+  --ui-b:16;
+  --b:calc(var(--ui-b) / 33);
+
+  --bg:hsl(var(--ui-h) 12% calc(2% + var(--b) * 6%));
+  --surf:hsl(var(--ui-h) 12% calc(5% + var(--b) * 6%));
+  --surf2:hsl(var(--ui-h) 12% calc(8% + var(--b) * 6%));
+  --surf3:hsl(var(--ui-h) 14% calc(11% + var(--b) * 8%));
+  --bdr:hsl(var(--ui-h) 12% calc(12% + var(--b) * 8%));
+  --bdr2:hsl(var(--ui-h) 12% calc(16% + var(--b) * 8%));
+  --text:hsl(var(--ui-h) 5% calc(85% + var(--b) * 4%));
+  --text-dim:hsl(var(--ui-h) 4% calc(72% + var(--b) * 5%));
+  /* Raised well above where these started. At 27% on an 8% surface the small
+     uppercase labels were 1.9:1 and genuinely hard to read; nothing that is
+     meant to be read should sit that low, whatever the aesthetic. */
+  --muted:hsl(var(--ui-h) 6% calc(56% + var(--b) * 5%));
+  --dim:hsl(var(--ui-h) 8% calc(42% + var(--b) * 6%));
+  --scroll:hsl(var(--ui-h) 11% calc(21% + var(--b) * 8%));
+  --scroll-hover:hsl(var(--ui-h) 10% calc(30% + var(--b) * 8%));
   /* The full hue circle, 0 to 360, so every position on the track shows the
      hue it selects. Stops every 30° rather than every 60°: the gradient
      interpolates in sRGB, and across a 60° span that cuts the corner through
@@ -80,13 +109,25 @@ export const APP_CSS = `
  * that is clearly present at 15% lightness disappears entirely at 95%.
  */
 :root[data-ui-theme="light"]{
-  --bg:hsl(var(--ui-h) 16% 93%);--surf:hsl(var(--ui-h) 20% 97%);
-  --surf2:hsl(var(--ui-h) 24% 99%);--surf3:hsl(var(--ui-h) 16% 90%);
-  --bdr:hsl(var(--ui-h) 14% 85%);--bdr2:hsl(var(--ui-h) 14% 77%);
-  --text:hsl(var(--ui-h) 18% 15%);--muted:hsl(var(--ui-h) 8% 44%);--dim:hsl(var(--ui-h) 10% 68%);
-  --text-dim:hsl(var(--ui-h) 12% 28%);
-  --scroll:hsl(var(--ui-h) 12% 76%);--scroll-hover:hsl(var(--ui-h) 12% 64%);
-  --preview:hsl(var(--ui-h) 14% 88%);--preview-bdr:hsl(var(--ui-h) 12% 80%);
+  /* 66-100 on the same slider, normalised to the same 0-1. Dimming the light
+     theme darkens the paper and darkens the text with it, so the page reads
+     as a lower lamp rather than as grey ink on white. */
+  --b:calc((var(--ui-b) - 66) / 34);
+
+  --bg:hsl(var(--ui-h) 16% calc(86% + var(--b) * 9%));
+  --surf:hsl(var(--ui-h) 20% calc(92% + var(--b) * 7%));
+  --surf2:hsl(var(--ui-h) 24% calc(95% + var(--b) * 5%));
+  --surf3:hsl(var(--ui-h) 16% calc(83% + var(--b) * 9%));
+  --bdr:hsl(var(--ui-h) 14% calc(78% + var(--b) * 9%));
+  --bdr2:hsl(var(--ui-h) 14% calc(70% + var(--b) * 9%));
+  --text:hsl(var(--ui-h) 18% calc(12% + var(--b) * 5%));
+  --text-dim:hsl(var(--ui-h) 12% calc(24% + var(--b) * 6%));
+  --muted:hsl(var(--ui-h) 8% calc(38% + var(--b) * 6%));
+  --dim:hsl(var(--ui-h) 10% calc(50% + var(--b) * 6%));
+  --scroll:hsl(var(--ui-h) 12% calc(68% + var(--b) * 10%));
+  --scroll-hover:hsl(var(--ui-h) 12% calc(56% + var(--b) * 10%));
+  --preview:hsl(var(--ui-h) 14% calc(81% + var(--b) * 9%));
+  --preview-bdr:hsl(var(--ui-h) 12% calc(73% + var(--b) * 9%));
 
   /* Darkened until each clears 4.5:1 on the 93% page, checked with this app's
      own contrast module rather than by eye. The dark theme's

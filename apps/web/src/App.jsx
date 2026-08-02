@@ -39,6 +39,7 @@ const PREV_AT_KEY = 'design-md:previous-at'
 const ANIM_KEY = 'design-md:ui-anim'
 const HUE_KEY = 'design-md:ui-hue'
 const THEME_KEY = 'design-md:ui-theme'
+const BRIGHT_KEY = 'design-md:ui-bright'
 
 /* A document nobody has touched. Compared as text against a freshly created
    one — `createInitialState()` is deterministic, with fixed ids and no
@@ -198,7 +199,7 @@ function MacroControl({ macro, value, resolved, onChange }) {
   }
 
   return (
-    <div style={{ width: 156, flexShrink: 0 }} title={macro.desc}>
+    <div style={{ width: '100%', minWidth: 0 }} title={macro.desc}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 3 }}>
         <span style={{ fontSize: 10.5, color: changed ? 'var(--text)' : 'var(--muted)', flex: 1, whiteSpace: 'nowrap' }}>{macro.label}</span>
         <ResetButton onClick={() => onChange(base)} disabled={!changed} />
@@ -248,7 +249,7 @@ function UiSpeedControl({ value, onChange }) {
   }
 
   return (
-    <div style={{ width: 156, flexShrink: 0 }} title="How fast the editor's own panels and controls animate. 0 disables them.">
+    <div style={{ width: '100%', minWidth: 0 }} title="How fast the editor's own panels and controls animate. 0 disables them.">
       <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 3 }}>
         <span style={{ fontSize: 10.5, color: changed ? 'var(--text)' : 'var(--muted)', flex: 1, whiteSpace: 'nowrap' }}>UI Animation</span>
         <ResetButton onClick={() => onChange(UI_ANIM_DEFAULT)} disabled={!changed} />
@@ -267,6 +268,51 @@ function UiSpeedControl({ value, onChange }) {
       <input type="range" min={0} max={UI_ANIM_MAX} step={UI_ANIM_STEP} value={Math.min(value, UI_ANIM_MAX)}
         onChange={e => onChange(Number(e.target.value))}
         onDoubleClick={() => onChange(UI_ANIM_DEFAULT)} />
+    </div>
+  )
+}
+
+/* How dark the dark is, and how bright the bright is.
+ *
+ * One slider, two ranges: 0-33 belongs to the dark theme and 66-100 to the
+ * light one, so the value carries which theme it was set for and each theme
+ * remembers its own setting. The gap between them is not reachable, because
+ * there is nothing sensible in the middle — a 50% chrome is neither.
+ *
+ * The label reads in the direction the theme thinks: a dark theme gets
+ * lighter as the number rises, a light theme gets brighter. Same slider, same
+ * direction of travel, opposite starting point.
+ */
+const UI_B = { dark: { min: 0, max: 33, def: 16 }, light: { min: 66, max: 100, def: 83 } }
+const UI_B_DEFAULTS = { dark: UI_B.dark.def, light: UI_B.light.def }
+
+function UiBrightnessControl({ value, onChange, theme }) {
+  const r = UI_B[theme]
+  const pct = Math.round(((value - r.min) / (r.max - r.min)) * 100)
+  const changed = value !== r.def
+  return (
+    <div style={{ width: '100%', minWidth: 0 }}
+      title={theme === 'dark'
+        ? 'How far the dark theme lifts off black. Text follows, so contrast stays inside AA across the range.'
+        : 'How bright the paper is. Text darkens as the page dims, so the page reads as a lower lamp rather than as grey ink.'}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 3 }}>
+        <span style={{ fontSize: 10.5, color: changed ? 'var(--text)' : 'var(--muted)', flex: 1, whiteSpace: 'nowrap' }}>
+          Brightness
+        </span>
+        <ResetButton onClick={() => onChange(r.def)} disabled={!changed} />
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+        <span style={{
+          width: 16, height: 16, borderRadius: 4, flexShrink: 0, border: '1px solid var(--bdr2)',
+          background: 'var(--surf3)',
+        }} />
+        <span style={{ flex: 1, textAlign: 'right', fontFamily: 'var(--mono)', fontSize: 10.5, color: 'var(--text-dim)' }}>
+          {pct}%
+        </span>
+      </div>
+      <input type="range" min={r.min} max={r.max} step={1} value={value}
+        onChange={e => onChange(Number(e.target.value))}
+        onDoubleClick={() => onChange(r.def)} />
     </div>
   )
 }
@@ -298,7 +344,7 @@ function UiHueControl({ value, onChange }) {
   const snap = v => (Math.abs(v - UI_HUE_DEFAULT) <= 360 * 0.03 ? UI_HUE_DEFAULT : v)
 
   return (
-    <div style={{ width: 156, flexShrink: 0 }} title="The hue of the editor's own chrome. Saturation and lightness are untouched — only the cast changes.">
+    <div style={{ width: '100%', minWidth: 0 }} title="The hue of the editor's own chrome. Saturation and lightness are untouched — only the cast changes.">
       <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 3 }}>
         <span style={{ fontSize: 10.5, color: changed ? 'var(--text)' : 'var(--muted)', flex: 1, whiteSpace: 'nowrap' }}>UI Hue</span>
         <ResetButton onClick={() => onChange(UI_HUE_DEFAULT)} disabled={!changed} />
@@ -371,7 +417,7 @@ function GlobalMetrics({ onOpenContrast }) {
           top of the window, where five controls plus two editor settings made
           the chrome taller than the thing being edited. In a panel they can
           reflow to the column width instead of fighting for it. */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: `${PAD.card}px ${PAD.card + 6}px`, marginBottom: PAD.card }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: PAD.card, marginBottom: PAD.card + 4 }}>
         {MACROS.map(m => (
           <MacroControl key={m.key} macro={m} value={state.macros[m.key]} resolved={resolvedFor(m.key)}
             onChange={v => setMacro(m.key, v)} />
@@ -402,7 +448,7 @@ function GlobalMetrics({ onOpenContrast }) {
  * the top of the window cost a whole row of chrome for controls nobody
  * touches twice in a session.
  */
-function ToolsMenu({ uiSpeed, setUiSpeed, uiHue, setUiHue, uiTheme, setUiTheme }) {
+function ToolsMenu({ uiSpeed, setUiSpeed, uiHue, setUiHue, uiTheme, setUiTheme, uiBright, setUiBright }) {
   const [open, setOpen] = useState(false)
   const boxRef = useRef(null)
   const btnRef = useRef(null)
@@ -437,21 +483,34 @@ function ToolsMenu({ uiSpeed, setUiSpeed, uiHue, setUiHue, uiTheme, setUiTheme }
       </button>
 
       {open && (
+        /* Padding on the panel, gaps between the groups, and a ruled header —
+         * rather than the one flat 12px everywhere that had the rainbow track
+         * sitting on the bottom border and every label jammed against the
+         * left edge.
+         *
+         * A range input's thumb overhangs its track by a few pixels top and
+         * bottom, so a slider as the last child needs more clearance below it
+         * than a line of text does. Hence the extra on the bottom. */
         <div ref={boxRef} className="anim-pop" style={{
           position: 'absolute', top: 'calc(100% + 6px)', right: 0, zIndex: 500,
           background: 'var(--surf2)', border: '1px solid var(--bdr2)', borderRadius: 10,
-          boxShadow: '0 12px 32px var(--shade)', padding: PAD.card, minWidth: 210,
-          display: 'flex', flexDirection: 'column', gap: PAD.card,
+          boxShadow: '0 12px 32px var(--shade)', width: 244,
+          padding: '0 0 6px',
         }}>
-          <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '.09em', color: 'var(--dim)' }}>
-            Editor settings
+          <div style={{
+            fontSize: 10, textTransform: 'uppercase', letterSpacing: '.09em',
+            color: 'var(--muted)', fontWeight: 600,
+            padding: '11px 14px 10px', borderBottom: '1px solid var(--bdr)',
+          }}>
+            App UI settings
           </div>
-          <ThemeToggle value={uiTheme} onChange={setUiTheme} />
-          <UiSpeedControl value={uiSpeed} onChange={setUiSpeed} />
-          <UiHueControl value={uiHue} onChange={setUiHue} />
-          <p className="panel-note" style={{ fontSize: 10.5, margin: 0 }}>
-            These configure the editor. None of them reach the exported file.
-          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: '14px 14px 8px' }}>
+            <ThemeToggle value={uiTheme} onChange={setUiTheme} />
+            <UiBrightnessControl theme={uiTheme} value={uiBright[uiTheme]}
+              onChange={v => setUiBright(b => ({ ...b, [uiTheme]: v }))} />
+            <UiSpeedControl value={uiSpeed} onChange={setUiSpeed} />
+            <UiHueControl value={uiHue} onChange={setUiHue} />
+          </div>
         </div>
       )}
     </div>
@@ -1230,6 +1289,11 @@ function Shell() {
   const [uiTheme, setUiTheme] = useState(() => {
     try { return localStorage.getItem(THEME_KEY) === 'light' ? 'light' : 'dark' } catch { return 'dark' }
   })
+  /* One entry per theme, so switching back finds the setting you left. */
+  const [uiBright, setUiBright] = useState(() => {
+    try { return { ...UI_B_DEFAULTS, ...JSON.parse(localStorage.getItem(BRIGHT_KEY) || '{}') } }
+    catch { return { ...UI_B_DEFAULTS } }
+  })
   const [uiHue, setUiHue] = useState(() => {
     try {
       const saved = parseInt(localStorage.getItem(HUE_KEY), 10)
@@ -1258,6 +1322,11 @@ function Shell() {
     document.documentElement.style.setProperty('--ui-h', String(uiHue))
     try { localStorage.setItem(HUE_KEY, String(uiHue)) } catch { /* ignore */ }
   }, [uiHue])
+
+  useEffect(() => {
+    document.documentElement.style.setProperty('--ui-b', String(uiBright[uiTheme]))
+    try { localStorage.setItem(BRIGHT_KEY, JSON.stringify(uiBright)) } catch { /* ignore */ }
+  }, [uiBright, uiTheme])
 
   /* Selects the light block in theme.js, and tells the browser which way the
      page leans so its own form controls and scrollbars follow. */
@@ -1574,7 +1643,20 @@ function Shell() {
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: 6, flexShrink: 0, alignItems: 'center' }}>
+          {/* Scrolls rather than clips.
+           *
+           * This row was `flexShrink: 0` against a title that could shrink to
+           * nothing, so below about 1220px the buttons ran off the right edge
+           * and simply became unreachable — no scrollbar, no wrap, no way to
+           * press Export at all. A 14" laptop with any browser zoom lands
+           * there. Now the row keeps its own size and the header scrolls to
+           * it, so the far end is always reachable even when the window is
+           * too narrow to show everything at once. */}
+          <div className="no-bar" style={{
+            display: 'flex', gap: 6, alignItems: 'center',
+            minWidth: 0, overflowX: 'auto', overflowY: 'hidden',
+            paddingBottom: 1, scrollbarWidth: 'none',
+          }}>
             {/* Two readouts, then the controls. Tighter gap between them than
                 to the buttons, so they group as one unit rather than reading
                 as two more things to click. */}
@@ -1586,33 +1668,40 @@ function Shell() {
               <button className="btn-ghost" onClick={reloadFromServer} style={{ padding: '6px 12px', color: 'var(--danger)', borderColor: 'rgb(var(--danger-rgb) / .4)' }}>Reload</button>
             )}
             {!projectId ? (
-              <button className="btn-ghost" onClick={saveToCloud} style={{ padding: '6px 12px' }}>Save to Cloud</button>
+              <button className="btn-ghost" onClick={saveToCloud} style={{ padding: '6px 12px', flexShrink: 0 }}>Save to Cloud</button>
             ) : (
               <button className="btn-ghost" style={{ padding: '6px 12px', color: linkCopied ? 'var(--success)' : 'var(--muted)' }}
                 onClick={() => { navigator.clipboard.writeText(window.location.href); setLinkCopied(true); setTimeout(() => setLinkCopied(false), 1800) }}>
                 {linkCopied ? 'Link copied' : 'Copy share URL'}
               </button>
             )}
-            <button className="btn-ghost" onClick={() => setShowNew(true)} style={{ padding: '6px 12px' }}>New</button>
+            <button className="btn-ghost" onClick={() => setShowNew(true)} style={{ padding: '6px 12px', flexShrink: 0 }}>New</button>
             {/* One door for anything that already exists — a DESIGN.md to open
                 or a stylesheet to sample. The modal works out which. */}
-            <button className="btn-ghost" onClick={() => setShowImport(true)} style={{ padding: '6px 12px' }}
+            <button className="btn-ghost" onClick={() => setShowImport(true)} style={{ padding: '6px 12px', flexShrink: 0 }}
               title={IMPORT_FORMATS}><Upload />Import Reference</button>
-            <button className="btn-ghost" onClick={() => setShowFile(true)} style={{ padding: '6px 12px' }}>Preview design.md</button>
+            <button className="btn-ghost" onClick={() => setShowFile(true)} style={{ padding: '6px 12px', flexShrink: 0 }}>Preview design.md</button>
             <button className="btn-outline" onClick={exportPreviewHtml} disabled={exportingHtml}
               title={`Save the ${(SURFACES.find(s => s.id === surface) ?? SURFACES[0]).label} surface as a standalone HTML page`}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
               <Download />{exportingHtml ? 'Building…' : 'Export Preview (HTML)'}
             </button>
-            <button className="btn-primary" onClick={download} style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><Download />Export design.md</button>
+            <button className="btn-primary" onClick={download} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, flexShrink: 0 }}><Download />Export design.md</button>
             <button className="btn-package" onClick={exportPackage} disabled={packaging}
               title="DESIGN.md, tokens.css, a Tailwind preset, tokens.json and every surface as HTML — one zip"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
               <Download />{packaging ? 'Packaging…' : 'Export Payload'}
             </button>
-            <ToolsMenu uiSpeed={uiSpeed} setUiSpeed={setUiSpeed} uiHue={uiHue} setUiHue={setUiHue}
-              uiTheme={uiTheme} setUiTheme={setUiTheme} />
           </div>
+
+          {/* Outside the scrolling row on purpose. An absolutely positioned
+              popover is clipped by any ancestor with overflow, and the row
+              above is now a scroller — leaving the menu inside it painted the
+              dropdown into a 44px-tall slot, so it opened and was invisible.
+              It also should not scroll out of reach: whatever else is too
+              narrow to fit, the settings stay put. */}
+            <ToolsMenu uiSpeed={uiSpeed} setUiSpeed={setUiSpeed} uiHue={uiHue} setUiHue={setUiHue}
+              uiTheme={uiTheme} setUiTheme={setUiTheme} uiBright={uiBright} setUiBright={setUiBright} />
         </header>
 
         <NoticeBar notice={notice} onClose={() => setNotice(null)} />
