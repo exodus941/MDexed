@@ -13,7 +13,7 @@ import { parseFile } from './emit/parse.js'
 import { isValidColor } from './color/convert.js'
 import { APP_CSS } from './ui/theme.js'
 import { loadDocumentFonts } from './type/fonts.js'
-import { Banner, ResetButton, CloseButton, SectionHeader, PAD, BTN } from './ui/controls.jsx'
+import { Banner, ResetButton, CloseButton, SectionHeader, PAD, BTN, MODAL_BTN } from './ui/controls.jsx'
 import CrossFade from './ui/CrossFade.jsx'
 import ImportModal, { IMPORT_FORMATS } from './ui/ImportModal.jsx'
 import Canvas, { SURFACES } from './preview/Canvas.jsx'
@@ -578,7 +578,7 @@ function ToolsMenu({ uiSpeed, setUiSpeed, uiHue, setUiHue, uiTheme, setUiTheme, 
       <button ref={btnRef} className="btn-ghost" onClick={() => setOpen(o => !o)}
         title="Editor settings — theme, scale, animation, chrome hue"
         aria-expanded={open}
-        style={{ padding: '6px 10px', gap: 6, color: open ? 'var(--accent)' : 'var(--muted)' }}>
+        style={{ padding: BTN.lg, gap: 6, color: open ? 'var(--accent)' : 'var(--muted)' }}>
         <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
           <line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" />
         </svg>
@@ -598,7 +598,7 @@ function ToolsMenu({ uiSpeed, setUiSpeed, uiHue, setUiHue, uiTheme, setUiTheme, 
         <div ref={boxRef} className="anim-pop" style={{
           position: 'absolute', top: 'calc(100% + 6px)', right: 0, zIndex: 500,
           background: 'var(--surf2)', border: '1px solid var(--bdr2)', borderRadius: 10,
-          boxShadow: '0 12px 32px var(--shade)', width: 244,
+          boxShadow: '0 12px 32px var(--shade)', width: 288,
           padding: '0 0 6px',
         }}>
           {/* Same treatment as the EDITOR and PREVIEW pane titles: 10px, 700,
@@ -1923,18 +1923,18 @@ function Shell() {
               <SyncBadge status={syncStatus} />
             </div>
             {syncStatus === 'conflict' && (
-              <button className="btn-ghost" onClick={reloadFromServer} style={{ padding: '6px 12px', color: 'var(--danger)', borderColor: 'rgb(var(--danger-rgb) / .4)' }}>Reload</button>
+              <button className="btn-ghost" onClick={reloadFromServer} style={{ padding: BTN.lg, color: 'var(--danger)', borderColor: 'rgb(var(--danger-rgb) / .4)' }}>Reload</button>
             )}
             {!projectId ? (
-              <button className="btn-ghost" onClick={saveToCloud} style={{ padding: '6px 12px', flexShrink: 0 }}>Save to Cloud</button>
+              <button className="btn-ghost" onClick={saveToCloud} style={{ padding: BTN.lg, flexShrink: 0 }}>Save to Cloud</button>
             ) : (
-              <button className="btn-ghost" style={{ padding: '6px 12px', color: linkCopied ? 'var(--success)' : 'var(--muted)' }}
+              <button className="btn-ghost" style={{ padding: BTN.lg, color: linkCopied ? 'var(--success)' : 'var(--muted)' }}
                 onClick={() => { navigator.clipboard.writeText(window.location.href); setLinkCopied(true); setTimeout(() => setLinkCopied(false), 1800) }}>
                 {linkCopied ? 'Link copied' : 'Copy share URL'}
               </button>
             )}
-            <button className="btn-ghost" onClick={() => setShowNew(true)} style={{ padding: '6px 12px', flexShrink: 0 }}>New</button>
-            <button className="btn-ghost" onClick={() => setShowFile(true)} style={{ padding: '6px 12px', flexShrink: 0 }}>Preview design.md</button>
+            <button className="btn-ghost" onClick={() => setShowNew(true)} style={{ padding: BTN.lg, flexShrink: 0 }}>New</button>
+            <button className="btn-ghost" onClick={() => setShowFile(true)} style={{ padding: BTN.lg, flexShrink: 0 }}>Preview design.md</button>
             <button className="btn-outline" onClick={exportPreviewHtml} disabled={exportingHtml}
               title={`Save the ${(SURFACES.find(s => s.id === surface) ?? SURFACES[0]).label} surface as a standalone HTML page`}
               style={{ display: 'inline-flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>

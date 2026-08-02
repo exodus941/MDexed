@@ -53,7 +53,23 @@ function RoleRow({ role, roles, refs, ramps, overrides, onSetRef, onOverride, on
       </div>
 
       <Expand open={open}>
-        <div style={{ padding: `0 ${PAD.sub}px ${PAD.sub}px`, display: 'grid', gridTemplateColumns: modes.length === 1 ? '1fr' : '1fr 1fr', gap: PAD.gap }}>
+        {/* Two columns when two fit, one when they do not.
+         *
+         * This was a hard `1fr 1fr`, which is a bet that the pane is always
+         * wide enough for two colour pickers. Raising the UI scale breaks that
+         * bet without changing anything else: `zoom` leaves the pane the same
+         * number of device pixels but makes it fewer CSS pixels, so at 150% a
+         * pair of pickers had about two thirds of the room and the right-hand
+         * one was clipped at the pane edge.
+         *
+         * `auto-fit` with a floor asks the question per render instead of
+         * assuming the answer, so it reflows at whatever scale, pane width or
+         * window size happens to make two columns impossible. */}
+        <div style={{
+          padding: `0 ${PAD.sub}px ${PAD.sub}px`, display: 'grid',
+          gridTemplateColumns: modes.length === 1 ? '1fr' : 'repeat(auto-fit, minmax(248px, 1fr))',
+          gap: PAD.gap,
+        }}>
           {modes.map(mode => {
             const key = `${role.name}:${mode}`
             const overridden = overrides[key] != null
