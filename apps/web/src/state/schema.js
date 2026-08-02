@@ -194,14 +194,24 @@ export const createInitialState = () => ({
      indigo, far enough from the teal to never be confused with it. The result
      passes every colour-alone check and every contrast pair in both modes.
 
+     The second pass was about whether anyone would want to look at it. The
+     first set passed every check and was joyless: a cold grey page, a muted
+     indigo, nothing above 0.11 chroma anywhere. Passing an audit is a floor,
+     not a design, and a first launch that looks like a wireframe is its own
+     kind of failure.
+
+     So the neutral is warm rather than dead grey, which turns the page from
+     #dadbe0 into paper, and the accent carries twice the chroma it did. Both
+     still clear every contrast pair and every colour-alone check.
+
      Change these freely — the audit in the Access tab will tell you what it
      costs. */
     seeds: [
-      { id: 'sd-accent',  name: 'accent',  hex: '#5b67c2', desc: 'Primary action and emphasis' },
-      { id: 'sd-neutral', name: 'neutral', hex: '#6f7179', desc: 'Surfaces, text, borders' },
-      { id: 'sd-success', name: 'success', hex: '#008d87', desc: 'Confirmation' },
-      { id: 'sd-warning', name: 'warning', hex: '#d38e22', desc: 'Caution' },
-      { id: 'sd-danger',  name: 'danger',  hex: '#cc3336', desc: 'Destructive and errors' },
+      { id: 'sd-accent',  name: 'accent',  hex: '#4338ca', desc: 'Primary action and emphasis' },
+      { id: 'sd-neutral', name: 'neutral', hex: '#78736b', desc: 'Surfaces, text, borders' },
+      { id: 'sd-success', name: 'success', hex: '#0a8a86', desc: 'Confirmation' },
+      { id: 'sd-warning', name: 'warning', hex: '#c9800f', desc: 'Caution' },
+      { id: 'sd-danger',  name: 'danger',  hex: '#d33a35', desc: 'Destructive and errors' },
     ],
     shape: { ...DEFAULT_SHAPE },
     roles: defaultRoles(),

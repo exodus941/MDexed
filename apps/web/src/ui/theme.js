@@ -45,11 +45,12 @@ export const APP_CSS = `
   --bdr2:hsl(var(--ui-h) 12% calc(16% + var(--b) * 8%));
   --text:hsl(var(--ui-h) 5% calc(85% + var(--b) * 4%));
   --text-dim:hsl(var(--ui-h) 4% calc(72% + var(--b) * 5%));
-  /* Raised well above where these started. At 27% on an 8% surface the small
-     uppercase labels were 1.9:1 and genuinely hard to read; nothing that is
-     meant to be read should sit that low, whatever the aesthetic. */
-  --muted:hsl(var(--ui-h) 6% calc(56% + var(--b) * 5%));
-  --dim:hsl(var(--ui-h) 8% calc(42% + var(--b) * 6%));
+  /* Solved for a target ratio rather than picked: muted lands on 6.25:1 and
+     dim on 3.75:1 against their own surface at the default brightness. They
+     started at 3.29 and 1.89, where the small uppercase labels were genuinely
+     hard to read. Nothing meant to be read should sit that low. */
+  --muted:hsl(var(--ui-h) 6% calc(56.8% + var(--b) * 5%));
+  --dim:hsl(var(--ui-h) 8% calc(42.1% + var(--b) * 6%));
   --scroll:hsl(var(--ui-h) 11% calc(21% + var(--b) * 8%));
   --scroll-hover:hsl(var(--ui-h) 10% calc(30% + var(--b) * 8%));
   /* The full hue circle, 0 to 360, so every position on the track shows the
@@ -112,7 +113,7 @@ export const APP_CSS = `
   /* 66-100 on the same slider, normalised to the same 0-1. Dimming the light
      theme darkens the paper and darkens the text with it, so the page reads
      as a lower lamp rather than as grey ink on white. */
-  --b:calc((var(--ui-b) - 66) / 34);
+  --b:calc((var(--ui-b) - 67) / 33);
 
   --bg:hsl(var(--ui-h) 16% calc(86% + var(--b) * 9%));
   --surf:hsl(var(--ui-h) 20% calc(92% + var(--b) * 7%));
@@ -122,8 +123,8 @@ export const APP_CSS = `
   --bdr2:hsl(var(--ui-h) 14% calc(70% + var(--b) * 9%));
   --text:hsl(var(--ui-h) 18% calc(12% + var(--b) * 5%));
   --text-dim:hsl(var(--ui-h) 12% calc(24% + var(--b) * 6%));
-  --muted:hsl(var(--ui-h) 8% calc(38% + var(--b) * 6%));
-  --dim:hsl(var(--ui-h) 10% calc(50% + var(--b) * 6%));
+  --muted:hsl(var(--ui-h) 8% calc(32.8% + var(--b) * 6%));
+  --dim:hsl(var(--ui-h) 10% calc(46.7% + var(--b) * 6%));
   --scroll:hsl(var(--ui-h) 12% calc(68% + var(--b) * 10%));
   --scroll-hover:hsl(var(--ui-h) 12% calc(56% + var(--b) * 10%));
   --preview:hsl(var(--ui-h) 14% calc(81% + var(--b) * 9%));

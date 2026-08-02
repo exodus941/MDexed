@@ -283,10 +283,11 @@ function UiSpeedControl({ value, onChange }) {
  * lighter as the number rises, a light theme gets brighter. Same slider, same
  * direction of travel, opposite starting point.
  */
-/* Equal spans, 33 steps each, so the same default reads as the same
-   percentage in both themes. At 66-100 the light range was one step wider
-   and its default came out as 32%. */
-const UI_B = { dark: { min: 0, max: 33, def: 11 }, light: { min: 66, max: 99, def: 77 } }
+/* Equal spans, 33 wide on each side, so the same default reads as the same
+   percentage in both themes and a step means the same amount of light in
+   either. The unreachable gap between them is what makes the value itself
+   say which theme it belongs to. */
+const UI_B = { dark: { min: 0, max: 33, def: 11 }, light: { min: 67, max: 100, def: 78 } }
 const UI_B_DEFAULTS = { dark: UI_B.dark.def, light: UI_B.light.def }
 
 function UiBrightnessControl({ value, onChange, theme }) {
@@ -388,7 +389,7 @@ function UiHueControl({ value, onChange }) {
   )
 }
 
-function GlobalMetrics({ onOpenContrast }) {
+function GlobalMetrics() {
   const { state, derived, set } = useStore()
   const setMacro = (key, value) => set(s => ({ ...s, macros: { ...s.macros, [key]: value } }), `macro:${key}`)
   const reset = () => set(s => ({ ...s, macros: { ...DEFAULT_MACROS } }))
@@ -435,18 +436,7 @@ function GlobalMetrics({ onOpenContrast }) {
         ))}
       </div>
 
-      <button onClick={onOpenContrast} title="Open the contrast checker"
-        style={{
-          display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', width: '100%',
-          background: failing ? 'rgb(var(--danger-rgb) / .12)' : 'rgb(var(--success-rgb) / .10)',
-          border: `1px solid ${failing ? 'rgb(var(--danger-rgb) / .35)' : 'rgb(var(--success-rgb) / .3)'}`,
-          color: failing ? 'var(--danger)' : 'var(--success)',
-          borderRadius: 7, padding: `${PAD.sub}px ${PAD.card}px`, fontSize: 12, fontFamily: 'var(--mono)',
-        }}>
-        <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'currentColor', flexShrink: 0 }} />
-        {failing ? `${failing} contrast pair${failing === 1 ? '' : 's'} failing` : 'Every contrast pair passes'}
-        <span style={{ marginLeft: 'auto', opacity: .7, fontSize: 11 }}>Open the checker →</span>
-      </button>
+
     </div>
   )
 }
@@ -519,8 +509,8 @@ function ToolsMenu({ uiSpeed, setUiSpeed, uiHue, setUiHue, uiTheme, setUiTheme, 
             <ThemeToggle value={uiTheme} onChange={setUiTheme} />
             <UiBrightnessControl theme={uiTheme} value={uiBright[uiTheme]}
               onChange={v => setUiBright(b => ({ ...b, [uiTheme]: v }))} />
-            <UiSpeedControl value={uiSpeed} onChange={setUiSpeed} />
             <UiHueControl value={uiHue} onChange={setUiHue} />
+            <UiSpeedControl value={uiSpeed} onChange={setUiSpeed} />
           </div>
         </div>
       )}
@@ -724,7 +714,7 @@ function Chevron({ dir, state, onEnter, onLeave, onClick }) {
   )
 }
 
-function TabStrip({ tabs, active, onSelect, right }) {
+function TabStrip({ tabs, active, onSelect, right, title, actions }) {
   const ref = useRef(null)
   const [edges, setEdges] = useState({ left: false, right: false })
   const [menuOpen, setMenuOpen] = useState(false)
@@ -922,75 +912,103 @@ function TabStrip({ tabs, active, onSelect, right }) {
   const rest = tabs.filter(t => t.id !== active)
 
   return (
-    <nav style={{
-      display: 'flex', alignItems: 'stretch', height: BAR_H, flexShrink: 0,
-      borderBottom: '1px solid var(--bdr)', background: 'var(--surf)', paddingRight: 10,
-      position: 'relative',
-    }}>
-      {/* Name and arrow are one control — the whole thing opens the menu, and
-          the underline spans the full hit area rather than just the label. */}
-      <div style={{ display: 'flex', alignItems: 'stretch', flexShrink: 0, paddingLeft: 14 }}>
-        <button ref={triggerRef} onClick={() => setMenuOpen(o => !o)} title="Switch tab"
-          style={{
-            display: 'flex', alignItems: 'center', gap: 8, padding: '0 14px 0 10px',
-            background: 'none', border: 'none', cursor: 'pointer',
-            fontFamily: 'var(--sans)', fontSize: 12.5, fontWeight: 500, whiteSpace: 'nowrap',
-            color: menuOpen ? 'var(--accent)' : 'var(--text)',
-            borderBottom: '2px solid var(--accent)', marginBottom: -1,
-            transition: 'color var(--t) var(--ease)',
+    <>
+      <nav style={{
+        display: 'flex', alignItems: 'stretch', height: BAR_H, flexShrink: 0,
+        borderBottom: actions ? 'none' : '1px solid var(--bdr)', background: 'var(--surf)', paddingRight: 10,
+        position: 'relative',
+      }}>
+        {/* Names the pane. The editor and the preview are two halves of one
+            window with near-identical furniture, and without a word on each the
+            only way to tell which is which is to recognise the tab names. */}
+        {title && (
+          <span style={{
+            display: 'flex', alignItems: 'center', paddingLeft: 14, flexShrink: 0,
+            fontSize: 10, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase',
+            color: 'var(--text-dim)', whiteSpace: 'nowrap', userSelect: 'none', cursor: 'default',
           }}>
-          {activeTab.label}
-          <svg width={11} height={11} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"
-            style={{ transform: menuOpen ? 'rotate(180deg)' : 'none', transition: 'transform var(--t) var(--ease)', opacity: .8 }}>
-            <polyline points="6 9 12 15 18 9" />
-          </svg>
-        </button>
-        <span style={{ alignSelf: 'center', width: 1, height: 18, background: 'var(--bdr)', margin: '0 2px' }} />
-      </div>
+            {title}
+          </span>
+        )}
+        {/* Name and arrow are one control — the whole thing opens the menu, and
+            the underline spans the full hit area rather than just the label. */}
+        <div style={{ display: 'flex', alignItems: 'stretch', flexShrink: 0, paddingLeft: 14 }}>
+          <button ref={triggerRef} onClick={() => setMenuOpen(o => !o)} title="Switch tab"
+            style={{
+              display: 'flex', alignItems: 'center', gap: 8, padding: '0 14px 0 10px',
+              background: 'none', border: 'none', cursor: 'pointer',
+              fontFamily: 'var(--sans)', fontSize: 12.5, fontWeight: 500, whiteSpace: 'nowrap',
+              color: menuOpen ? 'var(--accent)' : 'var(--text)',
+              borderBottom: '2px solid var(--accent)', marginBottom: -1,
+              transition: 'color var(--t) var(--ease)',
+            }}>
+            {activeTab.label}
+            <svg width={11} height={11} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"
+              style={{ transform: menuOpen ? 'rotate(180deg)' : 'none', transition: 'transform var(--t) var(--ease)', opacity: .8 }}>
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </button>
+          <span style={{ alignSelf: 'center', width: 1, height: 18, background: 'var(--bdr)', margin: '0 2px' }} />
+        </div>
 
-      {menuOpen && (
-        <div ref={menuRef} className="anim-pop" style={{
-          position: 'absolute', top: BAR_H - 2, left: 10, zIndex: 71, minWidth: 176,
-          background: 'var(--surf2)', border: '1px solid var(--bdr2)', borderRadius: 9,
-          boxShadow: '0 12px 32px rgba(0,0,0,.55)', padding: 5,
-        }}>
-            {tabs.map(t => (
-              <button key={t.id} onClick={() => { onSelect(t.id); setMenuOpen(false) }}
-                style={{
-                  display: 'block', width: '100%', textAlign: 'left', background: t.id === active ? 'var(--surf3)' : 'none',
-                  border: 'none', cursor: 'pointer', fontFamily: 'var(--sans)', fontSize: 12.5,
-                  color: t.id === active ? 'var(--accent)' : 'var(--text)', padding: '6px 9px', borderRadius: 6,
-                }}
-                onMouseEnter={e => { if (t.id !== active) e.currentTarget.style.background = 'var(--surf3)' }}
-                onMouseLeave={e => { if (t.id !== active) e.currentTarget.style.background = 'none' }}>
-              {t.label}
-            </button>
+        {menuOpen && (
+          <div ref={menuRef} className="anim-pop" style={{
+            position: 'absolute', top: BAR_H - 2, left: 10, zIndex: 71, minWidth: 176,
+            background: 'var(--surf2)', border: '1px solid var(--bdr2)', borderRadius: 9,
+            boxShadow: '0 12px 32px rgba(0,0,0,.55)', padding: 5,
+          }}>
+              {tabs.map(t => (
+                <button key={t.id} onClick={() => { onSelect(t.id); setMenuOpen(false) }}
+                  style={{
+                    display: 'block', width: '100%', textAlign: 'left', background: t.id === active ? 'var(--surf3)' : 'none',
+                    border: 'none', cursor: 'pointer', fontFamily: 'var(--sans)', fontSize: 12.5,
+                    color: t.id === active ? 'var(--accent)' : 'var(--text)', padding: '6px 9px', borderRadius: 6,
+                  }}
+                  onMouseEnter={e => { if (t.id !== active) e.currentTarget.style.background = 'var(--surf3)' }}
+                  onMouseLeave={e => { if (t.id !== active) e.currentTarget.style.background = 'none' }}>
+                {t.label}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {phase.left && <Chevron dir={-1} state={phase.left} onEnter={() => startScroll(-1)} onLeave={stopScroll} onClick={() => nudge(-1)} />}
+        <div ref={ref} className="no-bar" onScroll={measure}
+          style={{ display: 'flex', flex: 1, minWidth: 0, overflowX: 'auto' }}>
+          {rest.map(t => (
+            <button key={t.id} onClick={() => onSelect(t.id)} style={{
+              background: 'none', border: 'none', borderRadius: 0, cursor: 'pointer',
+              padding: '0 12px', fontFamily: 'var(--sans)', fontSize: 12.5, whiteSpace: 'nowrap',
+              color: 'var(--muted)', fontWeight: 400,
+              borderBottom: '2px solid transparent',
+              transition: 'color var(--t) var(--ease)', marginBottom: -1,
+            }}
+              onMouseEnter={e => { e.currentTarget.style.color = 'var(--text)' }}
+              onMouseLeave={e => { e.currentTarget.style.color = 'var(--muted)' }}>{t.label}</button>
           ))}
         </div>
-      )}
-
-      {phase.left && <Chevron dir={-1} state={phase.left} onEnter={() => startScroll(-1)} onLeave={stopScroll} onClick={() => nudge(-1)} />}
-      <div ref={ref} className="no-bar" onScroll={measure}
-        style={{ display: 'flex', flex: 1, minWidth: 0, overflowX: 'auto' }}>
-        {rest.map(t => (
-          <button key={t.id} onClick={() => onSelect(t.id)} style={{
-            background: 'none', border: 'none', borderRadius: 0, cursor: 'pointer',
-            padding: '0 12px', fontFamily: 'var(--sans)', fontSize: 12.5, whiteSpace: 'nowrap',
-            color: 'var(--muted)', fontWeight: 400,
-            borderBottom: '2px solid transparent',
-            transition: 'color var(--t) var(--ease)', marginBottom: -1,
-          }}
-            onMouseEnter={e => { e.currentTarget.style.color = 'var(--text)' }}
-            onMouseLeave={e => { e.currentTarget.style.color = 'var(--muted)' }}>{t.label}</button>
-        ))}
-      </div>
-      {phase.right && <Chevron dir={1} state={phase.right} onEnter={() => startScroll(1)} onLeave={stopScroll} onClick={() => nudge(1)} />}
-      {right && (
-        <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0, paddingLeft: 10, borderLeft: '1px solid var(--bdr)', marginLeft: 6 }}>
-          {right}
+        {phase.right && <Chevron dir={1} state={phase.right} onEnter={() => startScroll(1)} onLeave={stopScroll} onClick={() => nudge(1)} />}
+        {right && (
+          <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0, paddingLeft: 10, borderLeft: '1px solid var(--bdr)', marginLeft: 6 }}>
+            {right}
+          </div>
+        )}
+      </nav>
+      {/* A second line, for the actions that belong to the pane rather than
+          to the tab. They used to ride on the right of the tab strip, which
+          meant the tabs and the buttons competed for the same width and the
+          tabs lost first. Full width here, and the tab strip gets the whole
+          line above to itself. */}
+      {actions && (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0,
+          padding: '0 12px', height: 38, background: 'var(--surf)',
+          borderBottom: '1px solid var(--bdr)', borderTop: '1px solid var(--bdr)',
+        }}>
+          {actions}
         </div>
       )}
-    </nav>
+    </>
   )
 }
 
@@ -1235,12 +1253,12 @@ function NewDocModal({ onClose, onCreate }) {
  *
  * A divider rather than a second card, because the macro block already
  * carries its own heading and nesting it would be three borders deep. */
-function MetaGlobalTab({ onNavigate }) {
+function MetaGlobalTab() {
   return (
     <div>
       <MetaTab />
       <hr style={{ border: 0, borderTop: '1px solid var(--bdr)', margin: '24px 0 20px' }} />
-      <GlobalMetrics onOpenContrast={() => onNavigate?.('roles')} />
+      <GlobalMetrics />
     </div>
   )
 }
@@ -1687,10 +1705,6 @@ function Shell() {
               </button>
             )}
             <button className="btn-ghost" onClick={() => setShowNew(true)} style={{ padding: '6px 12px', flexShrink: 0 }}>New</button>
-            {/* One door for anything that already exists — a DESIGN.md to open
-                or a stylesheet to sample. The modal works out which. */}
-            <button className="btn-ghost" onClick={() => setShowImport(true)} style={{ padding: '6px 12px', flexShrink: 0 }}
-              title={IMPORT_FORMATS}><Upload />Import Reference</button>
             <button className="btn-ghost" onClick={() => setShowFile(true)} style={{ padding: '6px 12px', flexShrink: 0 }}>Preview design.md</button>
             <button className="btn-outline" onClick={exportPreviewHtml} disabled={exportingHtml}
               title={`Save the ${(SURFACES.find(s => s.id === surface) ?? SURFACES[0]).label} surface as a standalone HTML page`}
@@ -1723,9 +1737,9 @@ function Shell() {
             `overflow: auto` below actually engage. */}
         <div style={{ flex: 1, display: 'grid', gridTemplateColumns: 'minmax(420px, 46%) 1fr', minHeight: 0, overflow: 'hidden' }}>
           <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: 0, borderRight: '1px solid var(--bdr)' }}>
-            <TabStrip tabs={TABS} active={tab} onSelect={setTab}
-              right={
-                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <TabStrip tabs={TABS} active={tab} onSelect={setTab} title="Editor"
+              actions={
+                <>
                   <button className="btn-ghost" onClick={undo} disabled={!canUndo} title="Undo (Ctrl+Z)"
                     style={{ padding: '4px 10px', gap: 5, color: canUndo ? 'var(--accent)' : undefined, borderColor: canUndo ? 'rgb(var(--accent-rgb) / .35)' : undefined }}>
                     <Undo />Undo
@@ -1760,7 +1774,10 @@ function Shell() {
                     {justSaved ? 'Saved' : 'Save'}
                     {!justSaved && dirty && <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'currentColor' }} />}
                   </button>
-                </div>
+                  <div style={{ flex: 1 }} />
+                  <button className="btn-ghost" onClick={() => setShowImport(true)}
+                    style={{ padding: '4px 10px' }} title={IMPORT_FORMATS}><Upload />Import Reference</button>
+                </>
               } />
             <main style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', padding: '20px 20px 64px' }}>
               <CrossFade id={tab}>
@@ -1771,7 +1788,7 @@ function Shell() {
 
           {/* Route by target kind: components, colour roles and text styles
               each live on their own tab. */}
-          <Canvas surface={surface} setSurface={setSurface} onInspect={t => {
+          <Canvas surface={surface} setSurface={setSurface} onOpenContrast={() => setTab('roles')} onInspect={t => {
             setInspect({ entry: t.target, kind: t.kind, at: Date.now() })
             setTab(KIND_TAB[t.kind] ?? 'components')
           }} />
