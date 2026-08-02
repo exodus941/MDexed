@@ -291,6 +291,11 @@ function UiHueControl({ value, onChange }) {
     if (Number.isFinite(n)) onChange(((Math.round(n) % 360) + 360) % 360)
   }
 
+  /* Same 3% catchment the token macros use: dragging near the default lands
+     exactly on it, so returning to baseline doesn't need a steady hand.
+     Typing is exempt — an explicit 205 means 205. */
+  const snap = v => (Math.abs(v - UI_HUE_DEFAULT) <= 360 * 0.03 ? UI_HUE_DEFAULT : v)
+
   return (
     <div style={{ width: 156, flexShrink: 0 }} title="The hue of the editor's own chrome. Saturation and lightness are untouched — only the cast changes.">
       <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 3 }}>
@@ -318,7 +323,7 @@ function UiHueControl({ value, onChange }) {
           the control states its own range and its own value. `--hue` is read
           by the thumb rule in theme.js. */}
       <input type="range" className="hue-slider" min={0} max={360} step={1} value={value}
-        onChange={e => onChange(Number(e.target.value))}
+        onChange={e => onChange(snap(Number(e.target.value)))}
         onDoubleClick={() => onChange(UI_HUE_DEFAULT)}
         style={{ '--hue': value }} />
     </div>
@@ -472,34 +477,18 @@ function SaveFlash({ savedAt }) {
    when there's actually something off-screen in that direction. */
 const BAR_H = 42
 
-function TabStrip({ tabs, active, onSelect, right }) {
-  const ref = useRef(null)
-  const [edges, setEdges] = useState({ left: false, right: false })
-  const [menuOpen, setMenuOpen] = useState(false)
-
-  const measure = useCallback(() => {
-    const el = ref.current
-    if (!el) return
-    setEdges({
-      left: el.scrollLeft > 2,
-      right: el.scrollLeft + el.clientWidth < el.scrollWidth - 2,
-    })
-  }, [])
-
-  useEffect(() => {
-    measure()
-    const el = ref.current
-    if (!el) return
-    const ro = new ResizeObserver(measure)
-    ro.observe(el)
-    window.addEventListener('resize', measure)
-    return () => { ro.disconnect(); window.removeEventListener('resize', measure) }
-  }, [measure, tabs.length, active])
-
-  const nudge = dir => ref.current?.scrollBy({ left: dir * 160, behavior: 'smooth' })
-
-  const Chevron = ({ dir }) => (
-    <button onClick={() => nudge(dir)} title={dir < 0 ? 'Scroll left' : 'Scroll right'}
+/* Declared here rather than inside TabStrip.
+ *
+ * A component defined in a render body is a new component *type* on every
+ * render, so React unmounts and remounts it rather than updating it. That was
+ * survivable while these were click-only. It stopped being survivable once
+ * they scrolled on hover: the button under the cursor was replaced mid-scroll,
+ * and the pointerleave that should have stopped it fired on a node that no
+ * longer existed. The scroll ran on with the cursor somewhere else entirely. */
+function Chevron({ dir, onEnter, onLeave, onClick }) {
+  return (
+    <button data-chevron onClick={onClick} title={dir < 0 ? 'Scroll left' : 'Scroll right'}
+      onPointerEnter={onEnter} onPointerLeave={onLeave} onPointerCancel={onLeave}
       style={{
         flexShrink: 0, display: 'flex', alignItems: 'center',
         justifyContent: dir < 0 ? 'flex-start' : 'flex-end',
@@ -516,6 +505,94 @@ function TabStrip({ tabs, active, onSelect, right }) {
       </svg>
     </button>
   )
+}
+
+function TabStrip({ tabs, active, onSelect, right }) {
+  const ref = useRef(null)
+  const [edges, setEdges] = useState({ left: false, right: false })
+  const [menuOpen, setMenuOpen] = useState(false)
+
+  /* Only writes state when an edge actually flips.
+   *
+   * It used to hand back a fresh object every call, which re-rendered the
+   * strip on every scroll event. Harmless at one call per wheel tick, not
+   * harmless once hover-scrolling calls it sixty times a second: the chevrons
+   * remounted on every frame, and the pointerleave that should have stopped
+   * the scroll landed on a node that had already been replaced. */
+  const measure = useCallback(() => {
+    const el = ref.current
+    if (!el) return
+    const next = {
+      left: el.scrollLeft > 2,
+      right: el.scrollLeft + el.clientWidth < el.scrollWidth - 2,
+    }
+    setEdges(prev => (prev.left === next.left && prev.right === next.right ? prev : next))
+  }, [])
+
+  useEffect(() => {
+    measure()
+    const el = ref.current
+    if (!el) return
+    const ro = new ResizeObserver(measure)
+    ro.observe(el)
+    window.addEventListener('resize', measure)
+    return () => { ro.disconnect(); window.removeEventListener('resize', measure) }
+  }, [measure, tabs.length, active])
+
+  const nudge = dir => ref.current?.scrollBy({ left: dir * 160, behavior: 'smooth' })
+
+  /* ── Hover to scroll ──
+   *
+   * Pointing at a chevron scrolls for as long as you stay there, rather than
+   * making you click once per 160px. The tab strip is a queue you are looking
+   * *through*, so the gesture should be "keep going" — clicking repeatedly to
+   * travel in one direction is the interaction equivalent of a stuck key.
+   *
+   * A timer rather than requestAnimationFrame: rAF is throttled whenever the
+   * page isn't compositing, which this codebase has already been caught by
+   * twice. `behavior: auto` because the steps are small and frequent — smooth
+   * scrolling on top of a 16ms tick fights itself and stutters.
+   *
+   * The timer lives here rather than in `Chevron` because `Chevron` is
+   * redefined on every render, so React remounts it each time and any
+   * interval it owned would be torn down mid-scroll.
+   */
+  const scroller = useRef(0)
+  const stopScroll = useCallback(() => { clearInterval(scroller.current); scroller.current = 0 }, [])
+  const startScroll = useCallback(dir => {
+    stopScroll()
+    scroller.current = setInterval(() => {
+      const el = ref.current
+      if (!el) return stopScroll()
+      el.scrollBy({ left: dir * 5, behavior: 'auto' })
+      measure()
+    }, 16)
+  }, [stopScroll, measure])
+
+  /* Belt and braces: stop the moment the pointer is anywhere that isn't a
+     chevron.
+
+     `pointerleave` alone is not enough to rely on. A chevron hides itself
+     once its edge is reached, so it can vanish from under the cursor without
+     ever firing one; the pointer can leave the window entirely; and any
+     remount swaps the node the listener was attached to. All three end with
+     the strip scrolling on its own, which is the one failure mode that makes
+     the feature worse than the clicks it replaced. This catches every case
+     from a single listener that watches where the pointer actually is. */
+  useEffect(() => {
+    const check = e => { if (!e.target?.closest?.('[data-chevron]')) stopScroll() }
+    window.addEventListener('pointermove', check, { passive: true })
+    window.addEventListener('pointerdown', check, { passive: true })
+    document.addEventListener('pointerleave', stopScroll)
+    window.addEventListener('blur', stopScroll)
+    return () => {
+      window.removeEventListener('pointermove', check)
+      window.removeEventListener('pointerdown', check)
+      document.removeEventListener('pointerleave', stopScroll)
+      window.removeEventListener('blur', stopScroll)
+      stopScroll()
+    }
+  }, [stopScroll])
 
   /* The active tab is pinned at the left with a menu beside it, so it never
      scrolls out of sight; the rest queue up to its right. */
@@ -573,7 +650,7 @@ function TabStrip({ tabs, active, onSelect, right }) {
         </>
       )}
 
-      {edges.left && <Chevron dir={-1} />}
+      {edges.left && <Chevron dir={-1} onEnter={() => startScroll(-1)} onLeave={stopScroll} onClick={() => nudge(-1)} />}
       <div ref={ref} className="no-bar" onScroll={measure}
         style={{ display: 'flex', flex: 1, minWidth: 0, overflowX: 'auto' }}>
         {rest.map(t => (
@@ -588,7 +665,7 @@ function TabStrip({ tabs, active, onSelect, right }) {
             onMouseLeave={e => { e.currentTarget.style.color = 'var(--muted)' }}>{t.label}</button>
         ))}
       </div>
-      {edges.right && <Chevron dir={1} />}
+      {edges.right && <Chevron dir={1} onEnter={() => startScroll(1)} onLeave={stopScroll} onClick={() => nudge(1)} />}
       {right && (
         <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0, paddingLeft: 10, borderLeft: '1px solid var(--bdr)', marginLeft: 6 }}>
           {right}

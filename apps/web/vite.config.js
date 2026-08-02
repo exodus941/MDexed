@@ -1,3 +1,4 @@
+import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { execSync } from 'node:child_process'
@@ -6,30 +7,29 @@ import react from '@vitejs/plugin-react'
 
 /* ── The app's own build number ──
  *
- * `260802-3` — the third build of 2 August 2026. Baked in at build time,
+ * `260802-3` — the third build of 2 August 2026. Baked in at compile time,
  * because a running app cannot know when it was compiled.
  *
- * The counter is the number of commits landed that day, which makes it a real
- * fact about the build rather than a number someone has to remember to
- * increment. Two builds from the same commit get the same id, which is
- * correct: they are the same build.
+ * The counter comes from build-number.json, advanced by `npm run bump` before
+ * a push. It was derived from the day's commit count first, and that number
+ * was wrong in the way that matters: twenty-eight commits had produced three
+ * things worth calling a build. Counting builds gives the smaller and truer
+ * number, and it costs one committed file.
  *
- * Git may be missing (a tarball, a stripped CI image), so every step degrades
- * rather than failing the build — a version string is not worth a broken
- * deploy.
+ * Because the number lives in the repo, rebuilding a commit reproduces its id
+ * instead of inventing a new one — the same source is the same build.
+ *
+ * The short SHA still comes from git, and is allowed to be missing: a tarball
+ * or a stripped CI image shouldn't fail a deploy over a version string.
  */
 function buildId() {
-  const now = new Date()
-  const two = n => String(n).padStart(2, '0')
-  const date = `${two(now.getFullYear() % 100)}${two(now.getMonth() + 1)}${two(now.getDate())}`
-  const git = cmd => {
-    try { return execSync(cmd, { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim() }
-    catch { return '' }
-  }
-  const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString()
-  const count = git(`git log --since="${midnight}" --oneline`).split('\n').filter(Boolean).length
-  const sha = git('git rev-parse --short HEAD')
-  return { version: `${date}-${Math.max(1, count)}`, sha: sha || null }
+  let stamp = { date: '000000', n: 0 }
+  try { stamp = JSON.parse(fs.readFileSync(new URL('./build-number.json', import.meta.url), 'utf8')) }
+  catch { /* keep the placeholder rather than break the build */ }
+  let sha = ''
+  try { sha = execSync('git rev-parse --short HEAD', { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim() }
+  catch { /* no git here */ }
+  return { version: `${stamp.date}-${stamp.n}`, sha: sha || null }
 }
 
 export default defineConfig(({ command }) => ({
