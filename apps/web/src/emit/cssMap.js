@@ -35,29 +35,29 @@ import { parseColor, toOklchObj } from '../color/convert.js'
  * allowed to be a coral. */
 export const SLOTS = [
   {
-    id: 'accent', label: 'Accent', kind: 'color', group: 'Seeds',
+    id: 'accent', label: 'Accent', kind: 'color', group: 'Colours',
     desc: 'Primary action and emphasis',
     patterns: [/^(brand|primary|accent|main|theme|interactive|link)$/, /\b(brand|primary|accent)\b/],
   },
   {
-    id: 'neutral', label: 'Neutral', kind: 'color', group: 'Seeds',
+    id: 'neutral', label: 'Neutral', kind: 'color', group: 'Colours',
     desc: 'Surfaces, text, borders',
     patterns: [/^(neutral|grey|gray|slate|zinc|stone|mono|ink)$/, /\b(neutral|grey|gray|slate|zinc|stone)\b/],
   },
   {
-    id: 'success', label: 'Success', kind: 'color', group: 'Seeds',
+    id: 'success', label: 'Success', kind: 'color', group: 'Colours',
     desc: 'Confirmation',
     patterns: [/^(success|positive|valid|confirm|good|ok)$/, /\b(success|positive|valid)\b/],
     hue: 155, spread: 55,
   },
   {
-    id: 'warning', label: 'Warning', kind: 'color', group: 'Seeds',
+    id: 'warning', label: 'Warning', kind: 'color', group: 'Colours',
     desc: 'Caution',
     patterns: [/^(warning|warn|caution|attention|pending)$/, /\b(warning|warn|caution)\b/],
     hue: 80, spread: 32,
   },
   {
-    id: 'danger', label: 'Danger', kind: 'color', group: 'Seeds',
+    id: 'danger', label: 'Danger', kind: 'color', group: 'Colours',
     desc: 'Destructive and errors',
     patterns: [/^(danger|error|negative|destructive|critical|invalid|alert)$/, /\b(danger|error|destructive|negative)\b/],
     hue: 27, spread: 30,
