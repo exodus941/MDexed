@@ -40,6 +40,8 @@ const HUE_KEY = 'design-md:ui-hue'
 const THEME_KEY = 'design-md:ui-theme'
 const BRIGHT_KEY = 'design-md:ui-bright'
 const SCALE_KEY = 'design-md:ui-scale'
+const PSCALE_KEY = 'design-md:preview-scale'
+const PLINK_KEY = 'design-md:preview-link'
 
 /* ── UI scale ──
  *
@@ -317,9 +319,9 @@ function UiSpeedControl({ value, onChange }) {
 const UI_B = { dark: { min: 0, max: 33, def: 11 }, light: { min: 67, max: 100, def: 78 } }
 const UI_B_DEFAULTS = { dark: UI_B.dark.def, light: UI_B.light.def }
 
-/* How large the whole editor draws. See the UI_SCALE block for why this is
-   `zoom` rather than a rem rewrite. */
-function UiScaleControl({ value, onChange }) {
+/* A percentage slider with a typed field, shared by the two scales.
+   See the UI_SCALE block for why scaling is `zoom` rather than a rem rewrite. */
+function ScaleSlider({ label, title, value, onChange, disabled, children }) {
   const [draft, setDraft] = useState(null)
   const changed = value !== UI_SCALE.def
 
@@ -334,17 +336,16 @@ function UiScaleControl({ value, onChange }) {
   const slide = n => onChange(Math.abs(n - UI_SCALE.def) <= SCALE_SNAP ? UI_SCALE.def : n)
 
   return (
-    <div style={{ width: '100%', minWidth: 0 }}
-      title="Scales the whole editor, preview included. Nothing in the document changes — only how large it is drawn.">
+    <div style={{ width: '100%', minWidth: 0, opacity: disabled ? 0.55 : 1 }} title={title}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 3 }}>
         <span style={{ fontSize: 10.5, color: changed ? 'var(--text)' : 'var(--muted)', flex: 1, whiteSpace: 'nowrap' }}>
-          UI Scale
+          {label}
         </span>
-        <ResetButton onClick={() => onChange(UI_SCALE.def)} disabled={!changed} />
+        <ResetButton onClick={() => onChange(UI_SCALE.def)} disabled={disabled || !changed} />
       </div>
       <div style={{ display: 'flex', gap: 4, marginBottom: 3 }}>
         <input
-          value={draft ?? `${value}%`}
+          value={draft ?? `${value}%`} disabled={disabled}
           onChange={e => setDraft(e.target.value)}
           onBlur={e => commit(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur() }}
@@ -353,10 +354,40 @@ function UiScaleControl({ value, onChange }) {
             textAlign: 'right', color: 'var(--text-dim)',
           }} />
       </div>
-      <input type="range" min={UI_SCALE.min} max={UI_SCALE.max} step={1} value={value}
+      <input type="range" min={UI_SCALE.min} max={UI_SCALE.max} step={1} value={value} disabled={disabled}
         onChange={e => slide(Number(e.target.value))}
         onDoubleClick={() => onChange(UI_SCALE.def)} />
+      {children}
     </div>
+  )
+}
+
+/* The preview at its own size.
+ *
+ * Unlinked by default, and that default is the whole reason this exists. The
+ * editor is a tool and can be as large as your eyes want; the preview is the
+ * thing being judged, and judging "is 14px body text too small" is impossible
+ * if the app has quietly grown it to 21. Held at 100%, a 375px responsive
+ * preview is 375 real pixels whatever the chrome is doing.
+ *
+ * Linking is there for the other half of the day, when you are not measuring
+ * anything and just want to see it.
+ */
+function PreviewScaleControl({ value, onChange, linked, setLinked, uiScale }) {
+  return (
+    <ScaleSlider
+      label="Preview Scale"
+      title="How large the preview surface draws, independent of the editor around it. The document is unchanged either way — this is magnification, not a token."
+      value={linked ? uiScale : value} onChange={onChange} disabled={linked}>
+      <label style={{
+        display: 'flex', alignItems: 'center', gap: 6, marginTop: 7, cursor: 'pointer',
+        fontSize: 10.5, color: linked ? 'var(--text)' : 'var(--muted)', userSelect: 'none',
+      }} title="Follow the UI Scale slider instead of keeping its own value.">
+        <input type="checkbox" checked={linked} onChange={e => setLinked(e.target.checked)}
+          style={{ width: 13, height: 13, accentColor: 'var(--accent)', flexShrink: 0 }} />
+        Link to UI Scale
+      </label>
+    </ScaleSlider>
   )
 }
 
@@ -519,7 +550,7 @@ function GlobalMetrics() {
  * the top of the window cost a whole row of chrome for controls nobody
  * touches twice in a session.
  */
-function ToolsMenu({ uiSpeed, setUiSpeed, uiHue, setUiHue, uiTheme, setUiTheme, uiBright, setUiBright, uiScale, setUiScale }) {
+function ToolsMenu({ uiSpeed, setUiSpeed, uiHue, setUiHue, uiTheme, setUiTheme, uiBright, setUiBright, uiScale, setUiScale, prevScale, setPrevScale, prevLink, setPrevLink }) {
   const [open, setOpen] = useState(false)
   const boxRef = useRef(null)
   const btnRef = useRef(null)
@@ -584,7 +615,10 @@ function ToolsMenu({ uiSpeed, setUiSpeed, uiHue, setUiHue, uiTheme, setUiTheme, 
             <ThemeToggle value={uiTheme} onChange={setUiTheme} />
             <UiBrightnessControl theme={uiTheme} value={uiBright[uiTheme]}
               onChange={v => setUiBright(b => ({ ...b, [uiTheme]: v }))} />
-            <UiScaleControl value={uiScale} onChange={setUiScale} />
+            <ScaleSlider label="UI Scale" value={uiScale} onChange={setUiScale}
+              title="Scales the editor chrome. The preview has its own control below." />
+            <PreviewScaleControl value={prevScale} onChange={setPrevScale}
+              linked={prevLink} setLinked={setPrevLink} uiScale={uiScale} />
             <UiHueControl value={uiHue} onChange={setUiHue} />
             <UiSpeedControl value={uiSpeed} onChange={setUiSpeed} />
           </div>
@@ -1454,12 +1488,18 @@ function Shell() {
     } catch { return UI_HUE_DEFAULT }
   })
 
-  const [uiScale, setUiScale] = useState(() => {
+  const readScale = key => {
     try {
-      const saved = parseInt(localStorage.getItem(SCALE_KEY), 10)
+      const saved = parseInt(localStorage.getItem(key), 10)
       return Number.isFinite(saved) && saved >= UI_SCALE.min && saved <= UI_SCALE.max
         ? saved : UI_SCALE.def
     } catch { return UI_SCALE.def }
+  }
+  const [uiScale, setUiScale] = useState(() => readScale(SCALE_KEY))
+  const [prevScale, setPrevScale] = useState(() => readScale(PSCALE_KEY))
+  /* Unlinked unless you say otherwise — see PreviewScaleControl. */
+  const [prevLink, setPrevLink] = useState(() => {
+    try { return localStorage.getItem(PLINK_KEY) === 'true' } catch { return false }
   })
 
   /* The document's own typefaces, requested here rather than in the Typography
@@ -1496,6 +1536,22 @@ function Shell() {
     document.documentElement.style.setProperty('--ui-zoom', String(uiScale / 100))
     try { localStorage.setItem(SCALE_KEY, String(uiScale)) } catch { /* ignore */ }
   }, [uiScale])
+
+  /* Drives `--preview-zoom`, the scale the preview surface ends up at.
+   *
+   * Absolute, not relative: the preview divides this by `--ui-zoom` to cancel
+   * the body zoom it is already sitting inside, so the two multiply back to
+   * exactly this number. Setting it to 1 means one preview pixel is one screen
+   * pixel no matter what the chrome is doing, which is the only way "is this
+   * text too small" stays a question the preview can answer. */
+  useEffect(() => {
+    const effective = prevLink ? uiScale : prevScale
+    document.documentElement.style.setProperty('--preview-zoom', String(effective / 100))
+    try {
+      localStorage.setItem(PSCALE_KEY, String(prevScale))
+      localStorage.setItem(PLINK_KEY, String(prevLink))
+    } catch { /* ignore */ }
+  }, [prevScale, prevLink, uiScale])
 
   useEffect(() => {
     document.documentElement.style.setProperty('--ui-b', String(uiBright[uiTheme]))
@@ -1898,6 +1954,7 @@ function Shell() {
               narrow to fit, the settings stay put. */}
             <ToolsMenu uiSpeed={uiSpeed} setUiSpeed={setUiSpeed} uiHue={uiHue} setUiHue={setUiHue}
               uiScale={uiScale} setUiScale={setUiScale}
+              prevScale={prevScale} setPrevScale={setPrevScale} prevLink={prevLink} setPrevLink={setPrevLink}
               uiTheme={uiTheme} setUiTheme={setUiTheme} uiBright={uiBright} setUiBright={setUiBright} />
         </header>
 
