@@ -12,7 +12,7 @@ import { LOG_LIMIT_DEFAULT, LOG_LIMIT_MAX } from '../state/store.jsx'
 import { CHANGE_CATEGORIES, CATEGORY_BY_ID, canRevert, revertChange } from '../state/changelog.js'
 import { gradientCss } from '../color/modes.js'
 import { resolveRef } from '../color/ramp.js'
-import { SectionHeader, Collapsible, NumField, Banner, ConfirmDelete } from '../ui/controls.jsx'
+import { SectionHeader, Collapsible, NumField, Banner, ConfirmDelete, PAD } from '../ui/controls.jsx'
 
 const pad = n => String(n).padStart(2, '0')
 const clock = ts => { const d = new Date(ts); return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}` }
@@ -237,7 +237,7 @@ export default function HistoryPanel() {
               return (
                 <div key={e.id} style={{
                   display: 'grid', gridTemplateColumns: '8px 1fr auto', gap: 10,
-                  padding: '8px 2px', borderBottom: '1px solid var(--bdr)',
+                  padding: PAD.sub, borderBottom: '1px solid var(--bdr)',
                 }}>
                   <span style={{ width: 6, height: 6, borderRadius: '50%', background: cat.colour, marginTop: 5 }} title={cat.label} />
                   <div style={{ minWidth: 0 }}>

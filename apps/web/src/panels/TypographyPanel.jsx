@@ -8,7 +8,7 @@ import { useStore } from '../state/store.jsx'
 import { RATIOS, OPENTYPE_FEATURES } from '../type/scale.js'
 import { loadDocumentFonts, stackFor } from '../type/fonts.js'
 import FontPicker, { useFontCatalog } from '../ui/FontPicker.jsx'
-import { SectionHeader, Collapsible, Slider, NumField, Segmented, Toggle, OverrideBadge, Banner } from '../ui/controls.jsx'
+import { SectionHeader, Collapsible, Slider, NumField, Segmented, Toggle, OverrideBadge, Banner, PAD } from '../ui/controls.jsx'
 import { useReveal, revealStyle } from '../ui/reveal.js'
 
 const ROLE_LABELS = { display: 'Display', body: 'Body', mono: 'Mono' }
@@ -65,7 +65,7 @@ function TokenRow({ token, overrides, onOverride, onReset, families, inspect }) 
 
   return (
     <div ref={rowRef} style={{
-      borderBottom: '1px solid var(--bdr)', padding: '8px',
+      borderBottom: '1px solid var(--bdr)', padding: PAD.sub,
       ...revealStyle(targeted),
     }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 9, marginBottom: 6 }}>
@@ -146,14 +146,14 @@ export default function TypographyPanel({ inspect }) {
         {['display', 'body', 'mono'].map(role => {
           const meta = catalog.find(f => f.family === t.families[role]?.family)
           return (
-            <div key={role} style={{ background: 'var(--surf2)', border: '1px solid var(--bdr)', borderRadius: 9, padding: 12 }}>
+            <div key={role} style={{ background: 'var(--surf2)', border: '1px solid var(--bdr)', borderRadius: 9, padding: PAD.card }}>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 7 }}>
                 <span style={{ fontSize: 12.5, color: 'var(--text)', fontWeight: 500 }}>{ROLE_LABELS[role]}</span>
                 <span style={{ fontSize: 11, color: 'var(--dim)' }}>{ROLE_DESC[role]}</span>
               </div>
               <FontPicker value={t.families[role]?.family} onChange={fam => setFamily(role, fam)} role={role} />
               <div className="preview-box" style={{
-                marginTop: 9, padding: '12px 13px',
+                marginTop: 9, padding: PAD.card,
                 fontFamily: stackFor(t.families[role]?.family, t.families[role]?.category),
                 fontSize: role === 'display' ? 22 : 15, color: 'var(--text)',
                 fontVariationSettings: Object.entries(t.axes?.[role] ?? {}).map(([k, v]) => `"${k}" ${v}`).join(', ') || undefined,

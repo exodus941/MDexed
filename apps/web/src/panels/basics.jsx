@@ -2,7 +2,7 @@
 import { useStore } from '../state/store.jsx'
 import { PROSE_SECTIONS } from '../state/schema.js'
 import { PRESETS, applyPreset } from '../state/presets.js'
-import { SectionHeader, Collapsible, Banner } from '../ui/controls.jsx'
+import { SectionHeader, Collapsible, Banner, PAD } from '../ui/controls.jsx'
 import { AiProvider, AiHeader, SectionAi } from '../ai/ui.jsx'
 
 export function MetaTab() {
@@ -38,7 +38,7 @@ export function MetaTab() {
           {PRESETS.map(p => (
             <button key={p.id} onClick={() => load(applyPreset(p.id, state))}
               style={{
-                display: 'flex', alignItems: 'center', gap: 11, padding: '9px 11px', textAlign: 'left',
+                display: 'flex', alignItems: 'center', gap: 11, padding: PAD.sub, textAlign: 'left',
                 background: 'var(--surf)', border: '1px solid var(--bdr)', borderRadius: 9,
                 cursor: 'pointer', color: 'var(--text)', fontFamily: 'var(--sans)',
               }}

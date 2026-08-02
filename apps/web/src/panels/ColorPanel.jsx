@@ -12,7 +12,7 @@ import { bestOn } from '../color/contrast.js'
 import ColorPicker from '../ui/ColorPicker.jsx'
 import TokenColorPicker, { paletteGroups } from '../ui/TokenColorPicker.jsx'
 import { GRADIENT_TYPES } from '../color/modes.js'
-import { SectionHeader, Collapsible, Expand, Slider, NumField, Toggle, OverrideBadge, ConfirmDelete, Banner } from '../ui/controls.jsx'
+import { SectionHeader, Collapsible, Expand, Slider, NumField, Toggle, OverrideBadge, ConfirmDelete, Banner, PAD } from '../ui/controls.jsx'
 
 const PROTECTED_SEEDS = ['accent', 'neutral']
 
@@ -44,7 +44,7 @@ function SeedRow({ seed, ramps, onChange, onRename, onDelete, onLock, open, onTo
   const anchor = ramps[seed.name]?.anchor
   return (
     <div style={{ background: 'var(--surf2)', border: `1px solid ${open ? 'rgba(220,144,85,.35)' : 'var(--bdr)'}`, borderRadius: 9, overflow: 'hidden', transition: 'border-color var(--t) var(--ease)' }}>
-      <div onClick={onToggle} style={{ display: 'grid', gridTemplateColumns: '30px 1fr auto auto auto', gap: 10, alignItems: 'center', padding: '8px 12px', cursor: 'pointer' }}>
+      <div onClick={onToggle} style={{ display: 'grid', gridTemplateColumns: '30px 1fr auto auto auto', gap: 10, alignItems: 'center', padding: `${PAD.sub}px ${PAD.card}px`, cursor: 'pointer' }}>
         <div className="swatch" style={{ width: 26, height: 26, background: seed.hex }} />
         <div style={{ minWidth: 0 }}>
           <div style={{ fontWeight: 500, fontSize: 13.5 }}>{seed.name}</div>
@@ -65,7 +65,7 @@ function SeedRow({ seed, ramps, onChange, onRename, onDelete, onLock, open, onTo
           : <span style={{ width: 23 }} />}
       </div>
       <Expand open={open}>
-        <div style={{ padding: '12px 14px', borderTop: '1px solid var(--bdr)', background: 'var(--surf)' }}>
+        <div style={{ padding: PAD.card, borderTop: '1px solid var(--bdr)', background: 'var(--surf)' }}>
           <div style={{ marginBottom: 10 }}>
             <label>Seed name</label>
             <input value={seed.name} onChange={e => onRename(e.target.value)}
@@ -126,7 +126,7 @@ function RampRow({ name, ramp, overrides, onOverride, onResetStep }) {
       </div>
 
       <Expand open={selected != null}>
-        <div style={{ marginTop: 10, padding: 12, background: 'var(--surf2)', border: '1px solid var(--bdr)', borderRadius: 8 }}>
+        <div style={{ marginTop: PAD.gap, padding: PAD.card, background: 'var(--surf2)', border: '1px solid var(--bdr)', borderRadius: 8 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 9 }}>
             <code style={{ fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--text)', flex: 1 }}>{name}-{selected}</code>
             {overrides[selectedKey] != null && <OverrideBadge onReset={() => onResetStep(selectedKey)} title="Reset to the generated value" />}
@@ -167,7 +167,7 @@ function GradientRow({ grad, css, options, resolved, onChange, onDelete }) {
 
   return (
     <div style={{ background: 'var(--surf2)', border: `1px solid ${open ? 'rgba(220,144,85,.35)' : 'var(--bdr)'}`, borderRadius: 9, overflow: 'hidden' }}>
-      <div onClick={() => setOpen(o => !o)} style={{ display: 'grid', gridTemplateColumns: '84px 1fr auto auto auto', gap: 10, alignItems: 'center', padding: '8px 12px', cursor: 'pointer' }}>
+      <div onClick={() => setOpen(o => !o)} style={{ display: 'grid', gridTemplateColumns: '84px 1fr auto auto auto', gap: 10, alignItems: 'center', padding: `${PAD.sub}px ${PAD.card}px`, cursor: 'pointer' }}>
         <div style={{ height: 26, borderRadius: 5, background: css, border: '1px solid rgba(255,255,255,.08)' }} />
         <code style={{ fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--text)' }}>{grad.name}</code>
         <button onClick={e => { e.stopPropagation(); reverse() }} title="Reverse the gradient"
@@ -183,7 +183,7 @@ function GradientRow({ grad, css, options, resolved, onChange, onDelete }) {
         <ConfirmDelete onConfirm={onDelete} title="Remove gradient" />
       </div>
       <Expand open={open}>
-        <div style={{ padding: '12px 14px', borderTop: '1px solid var(--bdr)', background: 'var(--surf)' }}>
+        <div style={{ padding: PAD.card, borderTop: '1px solid var(--bdr)', background: 'var(--surf)' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 11 }}>
             <div>
               <label>Name</label>
@@ -324,7 +324,7 @@ export default function ColorPanel() {
       <Collapsible title="Seeds" note={`${color.seeds.length}${lockedCount ? ` · ${lockedCount} locked` : ''}`} defaultOpen>
         {/* Generator, inline rather than on its own screen — locking a colour
             and re-rolling the rest is a loop you want to stay inside. */}
-        <div style={{ background: 'var(--surf2)', border: '1px solid var(--bdr)', borderRadius: 9, padding: 11, marginBottom: 10 }}>
+        <div style={{ background: 'var(--surf2)', border: '1px solid var(--bdr)', borderRadius: 9, padding: PAD.card, marginBottom: 10 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 9 }}>
             <span style={{ fontSize: 12, color: 'var(--text)', flex: 1 }}>Generate a palette</span>
             <select value={intensity} onChange={e => setIntensity(e.target.value)}
