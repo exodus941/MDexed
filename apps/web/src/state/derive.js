@@ -166,14 +166,23 @@ const kebab = s => s.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase()
 /* Component entries → CSS variables, so editing `input.padding` actually moves
    the input in the preview. Without this the matrix only affected the exported
    file and the preview quietly kept using the raw scales. */
-function buildComponentVars(components = [], { roles, spacing, rounded, typography, gradients, icons }) {
+function buildComponentVars(components = [], { roles, spacing, rounded, typography, gradients, icons, ramps }) {
   const spaceBy = Object.fromEntries(spacing.map(s => [s.name, s.value]))
   const roundBy = Object.fromEntries(rounded.map(r => [r.name, r.value]))
   const typeBy = Object.fromEntries(typography.map(t => [t.name, t]))
 
+  /* Scale steps are legal colour references too — the emitted file carries
+     `accent-700` alongside the roles — so the preview has to resolve them or
+     it would quietly disagree with the export. Flattened under the same
+     hyphenated names the emitter uses. */
+  const stepBy = {}
+  for (const [name, ramp] of Object.entries(ramps ?? {})) {
+    for (const [step, hex] of Object.entries(ramp.steps ?? {})) stepBy[`${name}-${step}`] = hex
+  }
+
   const gradientBy = Object.fromEntries((gradients ?? []).map(g => [g.name, g.css]))
   const resolve = v => String(v)
-    .replace(/\{colors\.([\w-]+)\}/g, (m, k) => roles[k] ?? m)
+    .replace(/\{colors\.([\w-]+)\}/g, (m, k) => roles[k] ?? stepBy[k] ?? m)
     .replace(/\{spacing\.([\w-]+)\}/g, (m, k) => spaceBy[k] ?? m)
     .replace(/\{rounded\.([\w-]+)\}/g, (m, k) => roundBy[k] ?? m)
     .replace(/\{gradient\.([\w-]+)\}/g, (m, k) => gradientBy[k] ?? m)
@@ -239,6 +248,7 @@ export function buildCssVars(d, mode = 'light') {
     Object.assign(vars, buildComponentVars(d.components, {
       roles: d.roles?.[mode] ?? {}, spacing: d.spacing ?? [], rounded: d.rounded ?? [],
       typography: d.typography ?? [], gradients: d.gradients ?? [], icons: d.icons,
+      ramps: d.ramps ?? {},
     }))
   }
   return vars

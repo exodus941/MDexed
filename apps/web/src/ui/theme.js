@@ -45,6 +45,9 @@ label{display:block;font-size:10.5px;font-weight:500;text-transform:uppercase;le
 .btn-outline:hover{background:rgba(220,144,85,.13)}
 .btn-outline:disabled{opacity:.5;cursor:progress}
 .btn-outline:disabled:hover{background:transparent}
+/* An unlocked seed shows its open padlock only on hover — the affordance is
+   discoverable without all five swatches shouting at once. */
+.seed-lock:hover > span{opacity:1!important}
 .btn-ghost{font-family:var(--sans);font-size:13px;font-weight:400;cursor:pointer;border:1px solid var(--bdr);border-radius:6px;padding:7px 13px;background:transparent;color:var(--muted);transition:background var(--t) var(--ease),color var(--t) var(--ease),border-color var(--t) var(--ease);display:inline-flex;align-items:center;gap:5px}
 .btn-ghost:hover{background:var(--surf2);color:var(--text);border-color:var(--bdr2)}
 .btn-ghost:disabled{opacity:.4;cursor:not-allowed}
