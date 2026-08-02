@@ -11,7 +11,7 @@ import { RAMP_STEPS } from '../color/ramp.js'
 import { check } from '../color/contrast.js'
 import { generateCounterpart, clearOverridesFor } from '../color/modes.js'
 import ColorPicker from '../ui/ColorPicker.jsx'
-import { SectionHeader, Collapsible, Expand, Segmented, OverrideBadge, Banner, FilterField } from '../ui/controls.jsx'
+import { SectionHeader, Collapsible, Expand, Segmented, OverrideBadge, Banner, FilterField, PAD } from '../ui/controls.jsx'
 import { useReveal, revealStyle } from '../ui/reveal.js'
 import CrossFade from '../ui/CrossFade.jsx'
 
@@ -36,7 +36,7 @@ function RoleRow({ role, roles, refs, ramps, overrides, onSetRef, onOverride, on
   return (
     <div ref={ref} style={{ borderBottom: '1px solid var(--bdr)', ...revealStyle(targeted) }}>
       <div onClick={() => setOpen(o => !o)}
-        style={{ display: 'grid', gridTemplateColumns: `1fr ${modes.map(() => '22px').join(' ')}`, gap: 8, alignItems: 'center', padding: '7px 2px', cursor: 'pointer' }}>
+        style={{ display: 'grid', gridTemplateColumns: `1fr ${modes.map(() => '22px').join(' ')}`, gap: 8, alignItems: 'center', padding: PAD.sub, cursor: 'pointer' }}>
         <div style={{ minWidth: 0 }}>
           <code style={{ fontFamily: 'var(--mono)', fontSize: 11.5, color: 'var(--text)' }}>{role.name}</code>
           <div style={{ fontSize: 10.5, color: 'var(--dim)', marginTop: 1 }}>{role.desc}</div>
@@ -52,12 +52,12 @@ function RoleRow({ role, roles, refs, ramps, overrides, onSetRef, onOverride, on
       </div>
 
       <Expand open={open}>
-        <div style={{ padding: '4px 0 14px', display: 'grid', gridTemplateColumns: modes.length === 1 ? '1fr' : '1fr 1fr', gap: 14 }}>
+        <div style={{ padding: `0 ${PAD.sub}px ${PAD.sub}px`, display: 'grid', gridTemplateColumns: modes.length === 1 ? '1fr' : '1fr 1fr', gap: PAD.gap }}>
           {modes.map(mode => {
             const key = `${role.name}:${mode}`
             const overridden = overrides[key] != null
             return (
-              <div key={mode} style={{ background: 'var(--surf2)', border: '1px solid var(--bdr)', borderRadius: 7, padding: 10 }}>
+              <div key={mode} style={{ background: 'var(--surf2)', border: '1px solid var(--bdr)', borderRadius: 7, padding: PAD.sub }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 7 }}>
                   <span style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--muted)', flex: 1 }}>{mode}</span>
                   {overridden && <OverrideBadge onReset={() => onResetOverride(key)} title="Relink to the scale" />}
@@ -234,7 +234,7 @@ export default function RolesPanel({ inspect }) {
             </button>
           )}
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 11px', background: 'var(--surf2)', border: '1px solid var(--bdr)', borderRadius: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: PAD.sub, background: 'var(--surf2)', border: '1px solid var(--bdr)', borderRadius: 8 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 12, color: 'var(--text)' }}>Generate the opposite mode</div>
             <div style={{ fontSize: 10.5, color: 'var(--dim)', marginTop: 1 }}>Mirrors each role's scale position. A starting point, not a finished theme.</div>

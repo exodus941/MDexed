@@ -7,7 +7,7 @@
 import { useStore } from '../state/store.jsx'
 import { ICON_LIBRARIES } from '../state/schema.js'
 import BezierEditor from '../ui/BezierEditor.jsx'
-import { SectionHeader, Collapsible, Slider, NumField, Segmented, Toggle, OverrideBadge, Banner } from '../ui/controls.jsx'
+import { SectionHeader, Collapsible, Slider, NumField, Segmented, Toggle, OverrideBadge, Banner, PAD } from '../ui/controls.jsx'
 
 export const BLEND_MODES = [
   'normal', 'multiply', 'screen', 'overlay', 'soft-light', 'hard-light',
