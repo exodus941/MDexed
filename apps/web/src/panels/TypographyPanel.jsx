@@ -93,7 +93,7 @@ function TokenRow({ token, overrides, onOverride, onReset, families, inspect }) 
               style={{
                 fontFamily: 'var(--mono)', fontSize: 11, padding: '4px 6px',
                 color: set ? 'var(--accent)' : 'var(--muted)',
-                borderColor: set ? 'rgba(220,144,85,.4)' : 'var(--bdr)',
+                borderColor: set ? 'rgb(var(--accent-rgb) / .4)' : 'var(--bdr)',
               }} />
           )
         })}

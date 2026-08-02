@@ -259,7 +259,7 @@ export default function HistoryPanel() {
                           color: 'var(--muted)', padding: '2px 8px', fontSize: 10.5, fontFamily: 'var(--sans)',
                           transition: 'color var(--t) var(--ease), border-color var(--t) var(--ease)',
                         }}
-                        onMouseEnter={ev => { ev.currentTarget.style.color = 'var(--accent)'; ev.currentTarget.style.borderColor = 'rgba(220,144,85,.4)' }}
+                        onMouseEnter={ev => { ev.currentTarget.style.color = 'var(--accent)'; ev.currentTarget.style.borderColor = 'rgb(var(--accent-rgb) / .4)' }}
                         onMouseLeave={ev => { ev.currentTarget.style.color = 'var(--muted)'; ev.currentTarget.style.borderColor = 'var(--bdr)' }}>
                         <svg width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round">
                           <path d="M3 2v6h6" /><path d="M3.5 12a8.5 8.5 0 1 0 2.5-6L3 8.5" />

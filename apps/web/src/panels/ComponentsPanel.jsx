@@ -150,7 +150,7 @@ function PropRow({ entryName, propKey, defaultValue, override, onSet, onReset, d
           style={{
             fontFamily: 'var(--mono)', fontSize: 10.5, padding: '3px 6px',
             color: set ? 'var(--accent)' : 'var(--muted)',
-            borderColor: set ? 'rgba(220,144,85,.4)' : 'var(--bdr)',
+            borderColor: set ? 'rgb(var(--accent-rgb) / .4)' : 'var(--bdr)',
           }} />
         {options.length > 0 && (
           <datalist id={listId}>{options.map(o => <option key={o} value={o} />)}</datalist>
@@ -190,7 +190,7 @@ function PropRow({ entryName, propKey, defaultValue, override, onSet, onReset, d
         <span style={{
           visibility: legal ? 'hidden' : 'visible',
           width: 13, height: 13, borderRadius: '50%', flexShrink: 0,
-          border: '1px solid rgba(216,164,65,.5)', color: 'var(--warn)',
+          border: '1px solid rgb(var(--warn-rgb) / .5)', color: 'var(--warn)',
           fontSize: 9, lineHeight: '11px', textAlign: 'center', fontWeight: 700,
         }}>!</span>
 
@@ -251,7 +251,7 @@ function EntryBlock({ title, entryName, props, overrides, onSet, onReset, derive
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: PAD.label }}>
         <code style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--accent)' }}>{entryName}</code>
         {title && <span style={{ fontSize: 10, color: 'var(--dim)' }}>{title}</span>}
-        {targeted && <span className="chip" style={{ color: 'var(--accent)', borderColor: 'rgba(220,144,85,.4)' }}>from preview</span>}
+        {targeted && <span className="chip" style={{ color: 'var(--accent)', borderColor: 'rgb(var(--accent-rgb) / .4)' }}>from preview</span>}
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: PAD.row }}>
         {shown.map(([k, v]) => (
@@ -333,7 +333,7 @@ function ComponentBlock({ def, cfg, layout, onSetLayout, onToggle, onSet, onRese
       /* Breathing room above the header when a jump scrolls this to the top. */
       scrollMarginTop: 12,
       background: 'var(--surf2)',
-      border: `1px solid ${targeted ? 'var(--accent)' : open ? 'rgba(220,144,85,.35)' : 'var(--bdr)'}`,
+      border: `1px solid ${targeted ? 'var(--accent)' : open ? 'rgb(var(--accent-rgb) / .35)' : 'var(--bdr)'}`,
       borderRadius: 9, overflow: 'hidden', opacity: enabled ? 1 : 0.55,
       transition: 'border-color var(--t) var(--ease)',
     }}>
@@ -357,10 +357,24 @@ function ComponentBlock({ def, cfg, layout, onSetLayout, onToggle, onSet, onRese
               Showing properties matching <code style={{ fontFamily: 'var(--mono)', color: 'var(--accent)' }}>{query}</code>
             </div>
           )}
+          {/* Base first, then composition.
+           *
+           * Composition used to sit at the top, which put the one block the
+           * preview cannot reach ahead of the one it always lands on. Clicking
+           * a modal jumped to the card and the first thing under the heading
+           * was a set of controls the click had nothing to do with, while the
+           * entry actually being edited was pushed below the fold.
+           *
+           * The general rule, applied to every component that has both: the
+           * blocks a preview click can target come first, in the order the
+           * click resolves them (base, then variant, size, state). Anything
+           * unreachable from the preview follows, because the only way to
+           * reach it is to scroll here deliberately, and someone scrolling
+           * deliberately can scroll one block further. */}
+          {def.base && <EntryBlock entryName={def.name} title="base" props={def.base} overrides={overrides} onSet={onSet} onReset={onReset} derived={derived} mode={mode} inspect={inspect} query={query} colorGroups={colorGroups} />}
           {!query && LAYOUT_BY_NAME[def.name] && (
             <LayoutBlock def={LAYOUT_BY_NAME[def.name]} values={layout[def.name]} onSet={onSetLayout} />
           )}
-          {def.base && <EntryBlock entryName={def.name} title="base" props={def.base} overrides={overrides} onSet={onSet} onReset={onReset} derived={derived} mode={mode} inspect={inspect} query={query} colorGroups={colorGroups} />}
           {Object.entries(def.variants ?? {}).map(([v, props]) => (
             <EntryBlock key={v} entryName={`${def.name}-${v}`} title="variant" props={props} overrides={overrides} onSet={onSet} onReset={onReset} derived={derived} mode={mode} inspect={inspect} query={query} colorGroups={colorGroups} />
           ))}
@@ -423,7 +437,7 @@ export default function ComponentsPanel({ inspect }) {
       <Banner tone="info">
         <span style={{
           display: 'inline-block', width: 13, height: 13, borderRadius: '50%', marginRight: 5,
-          border: '1px solid rgba(216,164,65,.5)', color: 'var(--warn)', fontSize: 9,
+          border: '1px solid rgb(var(--warn-rgb) / .5)', color: 'var(--warn)', fontSize: 9,
           lineHeight: '11px', textAlign: 'center', fontWeight: 700, verticalAlign: 'middle',
         }}>!</span>
         A property marked with this isn't one of the eight the DESIGN.md schema allows

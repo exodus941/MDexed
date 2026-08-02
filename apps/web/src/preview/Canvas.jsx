@@ -167,8 +167,8 @@ export default function Canvas({ onInspect, surface, setSurface }) {
             for something to click, and separated by a rule so the surfaces
             still group as one control. */}
         <span style={{
-          fontSize: 10, fontWeight: 600, letterSpacing: '.1em', textTransform: 'uppercase',
-          color: 'var(--muted)', whiteSpace: 'nowrap', flexShrink: 0, cursor: 'default',
+          fontSize: 10, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase',
+          color: 'var(--text-dim)', whiteSpace: 'nowrap', flexShrink: 0, cursor: 'default',
           userSelect: 'none',
         }}>
           Preview

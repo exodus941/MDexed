@@ -13,7 +13,7 @@ import { parseFile } from './emit/parse.js'
 import { isValidColor } from './color/convert.js'
 import { APP_CSS } from './ui/theme.js'
 import { loadDocumentFonts } from './type/fonts.js'
-import { Banner, ResetButton, CloseButton } from './ui/controls.jsx'
+import { Banner, ResetButton, CloseButton, SectionHeader, PAD, BTN } from './ui/controls.jsx'
 import CrossFade from './ui/CrossFade.jsx'
 import ImportModal, { IMPORT_FORMATS } from './ui/ImportModal.jsx'
 import Canvas, { SURFACES } from './preview/Canvas.jsx'
@@ -38,6 +38,7 @@ const PREV_KEY = 'design-md:previous'
 const PREV_AT_KEY = 'design-md:previous-at'
 const ANIM_KEY = 'design-md:ui-anim'
 const HUE_KEY = 'design-md:ui-hue'
+const THEME_KEY = 'design-md:ui-theme'
 
 /* A document nobody has touched. Compared as text against a freshly created
    one — `createInitialState()` is deterministic, with fixed ids and no
@@ -330,7 +331,7 @@ function UiHueControl({ value, onChange }) {
   )
 }
 
-function MacroBar({ onOpenContrast, uiSpeed, setUiSpeed, uiHue, setUiHue }) {
+function GlobalMetrics({ onOpenContrast }) {
   const { state, derived, set } = useStore()
   const setMacro = (key, value) => set(s => ({ ...s, macros: { ...s.macros, [key]: value } }), `macro:${key}`)
   const reset = () => set(s => ({ ...s, macros: { ...DEFAULT_MACROS } }))
@@ -357,34 +358,135 @@ function MacroBar({ onOpenContrast, uiSpeed, setUiSpeed, uiHue, setUiHue }) {
   }).length
 
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 14, padding: '8px 20px 10px', borderBottom: '1px solid var(--bdr)', background: 'var(--surf)', flexShrink: 0, overflowX: 'auto' }}>
-      <span style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '.09em', color: 'var(--dim)', whiteSpace: 'nowrap', paddingBottom: 4 }}>System</span>
+    <div>
+      <SectionHeader title="Global metrics"
+        desc="Five multipliers that reshape every dependent token at once. Everything below them in the app is derived, so these move the whole system rather than one value."
+        right={
+          <button className="btn-ghost" onClick={reset} disabled={!anyChanged} style={{ padding: BTN.sm, fontSize: 11.5 }}>
+            Reset All
+          </button>
+        } />
 
-      {MACROS.map(m => (
-        <MacroControl key={m.key} macro={m} value={state.macros[m.key]} resolved={resolvedFor(m.key)}
-          onChange={v => setMacro(m.key, v)} />
-      ))}
+      {/* Wraps rather than scrolls. This lived in a horizontal strip across the
+          top of the window, where five controls plus two editor settings made
+          the chrome taller than the thing being edited. In a panel they can
+          reflow to the column width instead of fighting for it. */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: `${PAD.card}px ${PAD.card + 6}px`, marginBottom: PAD.card }}>
+        {MACROS.map(m => (
+          <MacroControl key={m.key} macro={m} value={state.macros[m.key]} resolved={resolvedFor(m.key)}
+            onChange={v => setMacro(m.key, v)} />
+        ))}
+      </div>
 
       <button onClick={onOpenContrast} title="Open the contrast checker"
         style={{
-          display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0, cursor: 'pointer',
-          background: failing ? 'rgba(222,92,92,.12)' : 'rgba(90,173,128,.10)',
-          border: `1px solid ${failing ? 'rgba(222,92,92,.35)' : 'rgba(90,173,128,.3)'}`,
+          display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', width: '100%',
+          background: failing ? 'rgb(var(--danger-rgb) / .12)' : 'rgb(var(--success-rgb) / .10)',
+          border: `1px solid ${failing ? 'rgb(var(--danger-rgb) / .35)' : 'rgb(var(--success-rgb) / .3)'}`,
           color: failing ? 'var(--danger)' : 'var(--success)',
-          borderRadius: 6, padding: '4px 10px', fontSize: 11, fontFamily: 'var(--mono)', marginBottom: 1,
+          borderRadius: 7, padding: `${PAD.sub}px ${PAD.card}px`, fontSize: 12, fontFamily: 'var(--mono)',
         }}>
-        <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'currentColor' }} />
-        {failing ? `${failing} contrast` : 'Contrast OK'}
+        <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'currentColor', flexShrink: 0 }} />
+        {failing ? `${failing} contrast pair${failing === 1 ? '' : 's'} failing` : 'Every contrast pair passes'}
+        <span style={{ marginLeft: 'auto', opacity: .7, fontSize: 11 }}>Open the checker →</span>
+      </button>
+    </div>
+  )
+}
+
+/* ── Tool settings ──
+ *
+ * Behind a menu because none of it is design work. Animation speed, chrome
+ * hue and light or dark configure the tool, they never reach the exported
+ * file, and they are set once and forgotten. Sitting them permanently across
+ * the top of the window cost a whole row of chrome for controls nobody
+ * touches twice in a session.
+ */
+function ToolsMenu({ uiSpeed, setUiSpeed, uiHue, setUiHue, uiTheme, setUiTheme }) {
+  const [open, setOpen] = useState(false)
+  const boxRef = useRef(null)
+  const btnRef = useRef(null)
+
+  useEffect(() => {
+    if (!open) return
+    const inside = t => boxRef.current?.contains(t) || btnRef.current?.contains(t)
+    const onDown = e => { if (!inside(e.target)) setOpen(false) }
+    const onKey = e => { if (e.key === 'Escape') setOpen(false) }
+    /* Same rule as the tab menu: a wheel that would move something is a scroll
+       aimed past this, so get out of the way. One that would not is not. */
+    const onWheel = e => { if (!inside(e.target) && scrollableUnder(e.target)) setOpen(false) }
+    document.addEventListener('pointerdown', onDown, true)
+    document.addEventListener('keydown', onKey)
+    document.addEventListener('wheel', onWheel, { passive: true })
+    return () => {
+      document.removeEventListener('pointerdown', onDown, true)
+      document.removeEventListener('keydown', onKey)
+      document.removeEventListener('wheel', onWheel)
+    }
+  }, [open])
+
+  return (
+    <div style={{ position: 'relative', flexShrink: 0 }}>
+      <button ref={btnRef} className="btn-ghost" onClick={() => setOpen(o => !o)}
+        title="Editor settings — theme, animation, chrome hue"
+        aria-expanded={open}
+        style={{ padding: '8px 10px', color: open ? 'var(--accent)' : 'var(--muted)' }}>
+        <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+          <line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" />
+        </svg>
       </button>
 
-      <button className="btn-ghost" onClick={reset} disabled={!anyChanged} style={{ padding: '4px 10px', fontSize: 11, flexShrink: 0, marginBottom: 1 }}>Reset All</button>
+      {open && (
+        <div ref={boxRef} className="anim-pop" style={{
+          position: 'absolute', top: 'calc(100% + 6px)', right: 0, zIndex: 500,
+          background: 'var(--surf2)', border: '1px solid var(--bdr2)', borderRadius: 10,
+          boxShadow: '0 12px 32px var(--shade)', padding: PAD.card, minWidth: 210,
+          display: 'flex', flexDirection: 'column', gap: PAD.card,
+        }}>
+          <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '.09em', color: 'var(--dim)' }}>
+            Editor settings
+          </div>
+          <ThemeToggle value={uiTheme} onChange={setUiTheme} />
+          <UiSpeedControl value={uiSpeed} onChange={setUiSpeed} />
+          <UiHueControl value={uiHue} onChange={setUiHue} />
+          <p className="panel-note" style={{ fontSize: 10.5, margin: 0 }}>
+            These configure the editor. None of them reach the exported file.
+          </p>
+        </div>
+      )}
+    </div>
+  )
+}
 
-      {/* Pushed right so it sits above the preview pane — it tunes the editor,
-          not the design, and the separation should be visible. */}
-      <div style={{ marginLeft: 'auto', paddingLeft: 20, display: 'flex', alignItems: 'flex-end', gap: 14, flexShrink: 0 }}>
-        <UiSpeedControl value={uiSpeed} onChange={setUiSpeed} />
-        <UiHueControl value={uiHue} onChange={setUiHue} />
-      </div>
+/* Light or dark for the app itself. A bulb rather than a sun and moon,
+   because the two-icon version always leaves you guessing whether the icon is
+   the current state or the one you would switch to. A bulb is lit or it
+   isn't, and the label says the rest. */
+function ThemeToggle({ value, onChange }) {
+  const light = value === 'light'
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <span style={{ fontSize: 10.5, color: 'var(--muted)', flex: 1 }}>Appearance</span>
+      <button onClick={() => onChange(light ? 'dark' : 'light')}
+        title={light ? 'Switch to the dark theme' : 'Switch to the light theme'}
+        style={{
+          display: 'inline-flex', alignItems: 'center', gap: 6, cursor: 'pointer',
+          background: light ? 'rgb(var(--warn-rgb) / .14)' : 'var(--surf3)',
+          border: `1px solid ${light ? 'rgb(var(--warn-rgb) / .4)' : 'var(--bdr)'}`,
+          color: light ? 'var(--warn)' : 'var(--muted)',
+          borderRadius: 6, padding: BTN.xs, fontSize: 11, fontFamily: 'var(--sans)',
+          transition: 'background var(--t) var(--ease), color var(--t) var(--ease), border-color var(--t) var(--ease)',
+        }}>
+        <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round">
+          <path d="M9 18h6" /><path d="M10 22h4" />
+          <path d="M15.1 14c.4-1.4 1.4-2.4 2.2-3.5A6 6 0 1 0 6.7 10.5c.8 1.1 1.8 2.1 2.2 3.5" />
+          {/* Rays only when lit. The bulb is the state, not a decoration. */}
+          {light && <><path d="M12 1v1.5" /><path d="M4.2 4.2l1 1" /><path d="M19.8 4.2l-1 1" />
+            <path d="M1.5 12H3" /><path d="M21 12h1.5" /></>}
+        </svg>
+        {light ? 'Light' : 'Dark'}
+      </button>
     </div>
   )
 }
@@ -401,7 +503,7 @@ function FileModal({ onClose }) {
       <div onClick={e => e.stopPropagation()} className="anim-rise" style={{ background: 'var(--surf)', border: '1px solid var(--bdr)', borderRadius: 12, width: '100%', maxWidth: 760, maxHeight: '84vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <div style={{ display: 'flex', alignItems: 'center', padding: '13px 17px', borderBottom: '1px solid var(--bdr)', gap: 10 }}>
           <span style={{ fontFamily: 'var(--display)', fontWeight: 700, fontSize: 15, flex: 1 }}>DESIGN.md</span>
-          <span className="chip" style={{ color: report.ok ? 'var(--success)' : 'var(--danger)', borderColor: report.ok ? 'rgba(90,173,128,.3)' : 'rgba(222,92,92,.3)' }}>
+          <span className="chip" style={{ color: report.ok ? 'var(--success)' : 'var(--danger)', borderColor: report.ok ? 'rgb(var(--success-rgb) / .3)' : 'rgb(var(--danger-rgb) / .3)' }}>
             {report.ok ? 'Spec valid' : `${report.errors.length} error${report.errors.length === 1 ? '' : 's'}`}
           </span>
           <span className="chip">{(text.length / 1024).toFixed(1)} kB</span>
@@ -458,7 +560,7 @@ function SaveFlash({ savedAt }) {
       pointerEvents: 'none',
       display: 'flex', alignItems: 'center', gap: 7,
       /* Opaque. A translucent confirmation over a dark editor is unreadable. */
-      background: '#12352a', border: '1px solid rgba(90,173,128,.55)',
+      background: '#12352a', border: '1px solid rgb(var(--success-rgb) / .55)',
       color: '#7fd6a4', borderRadius: 7, padding: '7px 12px',
       fontSize: 11.5, fontFamily: 'var(--mono)',
       boxShadow: '0 8px 24px rgba(0,0,0,.5)',
@@ -858,7 +960,7 @@ function TitleField({ name, onCommit }) {
         style={{
           width: dirty ? 180 : 150, padding: '3px 8px', fontSize: 12,
           fontFamily: 'var(--mono)', background: 'var(--surf2)',
-          borderColor: dirty ? 'rgba(220,144,85,.45)' : 'var(--bdr)',
+          borderColor: dirty ? 'rgb(var(--accent-rgb) / .45)' : 'var(--bdr)',
           color: dirty ? 'var(--accent)' : 'var(--muted)',
           transition: 'width var(--t) var(--ease), border-color var(--t) var(--ease)',
         }} />
@@ -939,7 +1041,7 @@ function RestoreToast({ offer, onRestore, onDismiss }) {
       <span style={{
         display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
         width: 26, height: 26, borderRadius: '50%', flexShrink: 0,
-        background: 'rgba(90,173,128,.16)', color: 'var(--success)',
+        background: 'rgb(var(--success-rgb) / .16)', color: 'var(--success)',
       }}>
         <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor"
           strokeWidth={2.1} strokeLinecap="round" strokeLinejoin="round">
@@ -1036,7 +1138,7 @@ function NewDocModal({ onClose, onCreate }) {
                   background: 'var(--surf2)', border: '1px solid var(--bdr)', borderRadius: 9,
                   cursor: 'pointer', color: 'var(--text)', fontFamily: 'var(--sans)',
                 }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(220,144,85,.4)' }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgb(var(--accent-rgb) / .4)' }}
                 onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--bdr)' }}>
                 <div style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
                   {p.swatches.map(c => <div key={c} style={{ width: 16, height: 26, background: c, borderRadius: 3, border: '1px solid rgba(255,255,255,.07)' }} />)}
@@ -1054,9 +1156,28 @@ function NewDocModal({ onClose, onCreate }) {
   )
 }
 
+/* Document identity and the five multipliers, on one tab.
+ *
+ * They belong together: the name, the description and the macros are all
+ * statements about the system as a whole rather than about any one token, and
+ * a designer opening a document wants the same three answers each time. What
+ * is this, how big is it, how round is it.
+ *
+ * A divider rather than a second card, because the macro block already
+ * carries its own heading and nesting it would be three borders deep. */
+function MetaGlobalTab({ onNavigate }) {
+  return (
+    <div>
+      <MetaTab />
+      <hr style={{ border: 0, borderTop: '1px solid var(--bdr)', margin: '24px 0 20px' }} />
+      <GlobalMetrics onOpenContrast={() => onNavigate?.('roles')} />
+    </div>
+  )
+}
+
 /* ── Shell ── */
 const TABS = [
-  { id: 'meta',       label: 'Meta',       Panel: MetaTab },
+  { id: 'meta',       label: 'Meta/Global', Panel: MetaGlobalTab },
   { id: 'colors',     label: 'Colour',     Panel: ColorPanel },
   { id: 'roles',      label: 'Roles',      Panel: RolesPanel },
   { id: 'type',       label: 'Type',       Panel: TypographyPanel },
@@ -1106,6 +1227,9 @@ function Shell() {
   /* Kept in localStorage rather than in the document: it's a preference about
      the tool, and it should follow you between projects rather than travelling
      inside a file you hand to someone else. */
+  const [uiTheme, setUiTheme] = useState(() => {
+    try { return localStorage.getItem(THEME_KEY) === 'light' ? 'light' : 'dark' } catch { return 'dark' }
+  })
   const [uiHue, setUiHue] = useState(() => {
     try {
       const saved = parseInt(localStorage.getItem(HUE_KEY), 10)
@@ -1134,6 +1258,13 @@ function Shell() {
     document.documentElement.style.setProperty('--ui-h', String(uiHue))
     try { localStorage.setItem(HUE_KEY, String(uiHue)) } catch { /* ignore */ }
   }, [uiHue])
+
+  /* Selects the light block in theme.js, and tells the browser which way the
+     page leans so its own form controls and scrollbars follow. */
+  useEffect(() => {
+    document.documentElement.setAttribute('data-ui-theme', uiTheme)
+    try { localStorage.setItem(THEME_KEY, uiTheme) } catch { /* ignore */ }
+  }, [uiTheme])
   const [notice, setNotice] = useState(null)
   const [projectId, setProjectId] = useState(null)
   const [editToken, setEditToken] = useState(null)
@@ -1452,7 +1583,7 @@ function Shell() {
               <SyncBadge status={syncStatus} />
             </div>
             {syncStatus === 'conflict' && (
-              <button className="btn-ghost" onClick={reloadFromServer} style={{ padding: '6px 12px', color: 'var(--danger)', borderColor: 'rgba(222,92,92,.4)' }}>Reload</button>
+              <button className="btn-ghost" onClick={reloadFromServer} style={{ padding: '6px 12px', color: 'var(--danger)', borderColor: 'rgb(var(--danger-rgb) / .4)' }}>Reload</button>
             )}
             {!projectId ? (
               <button className="btn-ghost" onClick={saveToCloud} style={{ padding: '6px 12px' }}>Save to Cloud</button>
@@ -1479,10 +1610,10 @@ function Shell() {
               style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
               <Download />{packaging ? 'Packaging…' : 'Export Payload'}
             </button>
+            <ToolsMenu uiSpeed={uiSpeed} setUiSpeed={setUiSpeed} uiHue={uiHue} setUiHue={setUiHue}
+              uiTheme={uiTheme} setUiTheme={setUiTheme} />
           </div>
         </header>
-
-        <MacroBar onOpenContrast={() => setTab('roles')} uiSpeed={uiSpeed} setUiSpeed={setUiSpeed} uiHue={uiHue} setUiHue={setUiHue} />
 
         <NoticeBar notice={notice} onClose={() => setNotice(null)} />
 
@@ -1496,7 +1627,7 @@ function Shell() {
               right={
                 <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                   <button className="btn-ghost" onClick={undo} disabled={!canUndo} title="Undo (Ctrl+Z)"
-                    style={{ padding: '4px 10px', gap: 5, color: canUndo ? 'var(--accent)' : undefined, borderColor: canUndo ? 'rgba(220,144,85,.35)' : undefined }}>
+                    style={{ padding: '4px 10px', gap: 5, color: canUndo ? 'var(--accent)' : undefined, borderColor: canUndo ? 'rgb(var(--accent-rgb) / .35)' : undefined }}>
                     <Undo />Undo
                   </button>
                   <button className="btn-ghost" onClick={redo} disabled={!canRedo} title="Redo (Ctrl+Shift+Z)"
@@ -1520,7 +1651,7 @@ function Shell() {
                       minWidth: 88, justifyContent: 'center',
                       ...(justSaved
                         ? { background: 'var(--success)', color: 'var(--bg)' }
-                        : { color: dirty ? 'var(--warn)' : 'var(--muted)', borderColor: dirty ? 'rgba(216,164,65,.4)' : 'var(--bdr)' }),
+                        : { color: dirty ? 'var(--warn)' : 'var(--muted)', borderColor: dirty ? 'rgb(var(--warn-rgb) / .4)' : 'var(--bdr)' }),
                       transition: 'background var(--t) var(--ease), color var(--t) var(--ease), border-color var(--t) var(--ease)',
                     }}>
                     {justSaved

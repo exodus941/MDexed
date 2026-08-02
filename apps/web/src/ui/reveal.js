@@ -100,21 +100,26 @@ export function useReveal(active, at) {
 }
 
 /**
- * Reveal a *container* and a row inside it, in that order of priority.
- *
- * Centring the row alone was the obvious thing and the wrong thing: a click on
- * the modal in the preview landed halfway down the Modal accordion with the
- * component's own header scrolled off the top, so you could neither see what
- * you were editing nor reach its other entries without scrolling back. You
- * rarely want *only* the row — you want the row, in context.
- *
- * So the container's top goes to the top of the scroller, and the row is only
- * scrolled to if that left it off screen — and then by the smallest amount
- * that works (`nearest`), which keeps the header as close to view as the
- * geometry allows.
+ * Reveal a specific row inside a card, falling back to the card itself.
  *
  * @param rowSelector CSS selector for the row, resolved inside the container
  * @returns a ref for the container
+ *
+ * This used to scroll the card to the top and then move the row only if it
+ * was not fully visible. Both halves of that were wrong. A tall panel shows
+ * most of a card at once, so `button-primary` was usually already "visible"
+ * after the card scrolled and the second step did nothing — you asked for a
+ * variant and landed on the component's heading. And when it did fire,
+ * `block: 'nearest'` moved the minimum distance, parking the row against the
+ * bottom edge.
+ *
+ * The row is the target. The card is only what to do when there isn't one.
+ *
+ * The row may not exist on the first attempt: the card has to open, and its
+ * 0fr→1fr transition means the content has no height for a frame or two. So
+ * it retries a few times before giving up rather than assuming one timeout is
+ * enough — the previous single-shot timing was tuned against one animation
+ * duration and broke as soon as that setting changed.
  */
 export function useRevealWithin(active, at, rowSelector) {
   const ref = useRef(null)
@@ -125,23 +130,30 @@ export function useRevealWithin(active, at, rowSelector) {
     const instant = ms === 0 || reducedMotion()
 
     let cancelCheck = () => {}
-    let after = 0
-    const settle = setTimeout(() => {
+    let attempt = 0
+    let timer = 0
+
+    const tryReveal = () => {
       const box = ref.current
       if (!box) return
+      const row = rowSelector && box.querySelector(rowSelector)
+
+      if (row) {
+        /* `start` rather than `nearest`: land it at the top of the panel with
+           its siblings below, which is where you read from. `nearest` leaves
+           it wherever it already was if that counted as on-screen. */
+        cancelCheck = scrollAndConfirm(row, 'start', instant)
+        return
+      }
+
+      /* Not there yet — the card is still opening. Keep looking for a few
+         frames, then settle for the card. */
+      if (++attempt < 6) { timer = setTimeout(tryReveal, instant ? 0 : 60); return }
       cancelCheck = scrollAndConfirm(box, 'start', instant)
+    }
 
-      /* Only after the container's scroll has landed — including the fallback
-         inside scrollAndConfirm — is it meaningful to ask whether the row is
-         visible. */
-      after = setTimeout(() => {
-        const row = rowSelector && ref.current?.querySelector(rowSelector)
-        if (!row || fullyVisible(row)) return
-        row.scrollIntoView({ block: 'nearest', behavior: instant ? 'auto' : 'smooth' })
-      }, instant ? 0 : 780)
-    }, instant ? 0 : ms)
-
-    return () => { clearTimeout(settle); clearTimeout(after); cancelCheck() }
+    timer = setTimeout(tryReveal, instant ? 0 : ms)
+    return () => { clearTimeout(timer); cancelCheck() }
   }, [active, at, rowSelector])
 
   return ref
@@ -151,8 +163,8 @@ export function useRevealWithin(active, at, rowSelector) {
 export const revealStyle = active => ({
   transition: 'background var(--t) var(--ease), box-shadow var(--t) var(--ease)',
   ...(active && {
-    background: 'rgba(220,144,85,.07)',
-    boxShadow: '0 0 0 1px rgba(220,144,85,.45)',
+    background: 'rgb(var(--accent-rgb) / .07)',
+    boxShadow: '0 0 0 1px rgb(var(--accent-rgb) / .45)',
     borderRadius: 7,
   }),
 })

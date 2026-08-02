@@ -4,10 +4,39 @@
    and its macro slider, with an override field per step. The override input
    shows the generated value as its placeholder, so it's always obvious what
    you're departing from. */
+import { useRef, useState } from 'react'
 import { useStore } from '../state/store.jsx'
 import { ICON_LIBRARIES } from '../state/schema.js'
+import { resolveRef, RAMP_STEPS } from '../color/ramp.js'
 import BezierEditor from '../ui/BezierEditor.jsx'
+import TokenColorPicker, { paletteGroups } from '../ui/TokenColorPicker.jsx'
 import { SectionHeader, Collapsible, Slider, NumField, Segmented, Toggle, OverrideBadge, Banner, PAD } from '../ui/controls.jsx'
+
+/* A colour that is stored as a palette reference.
+ *
+ * Two of these were missing entirely. The shadow tint was a read-only swatch
+ * captioned "not black", which stated the point of the feature while offering
+ * no way to act on it, and the scrim was a select listing four steps per ramp
+ * out of eleven. Both are ordinary colour choices and both now open the same
+ * picker every other colour in the app uses, so there is one way to choose a
+ * colour rather than three.
+ */
+function RefSwatch({ value, hex, groups, onPick, label }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+  return (
+    <>
+      <button ref={ref} className="swatch" onClick={() => setOpen(true)}
+        title={`${label} — ${value}`}
+        style={{ width: 22, height: 22, background: hex, cursor: 'pointer', padding: 0, flexShrink: 0 }} />
+      {open && (
+        <TokenColorPicker value={value} resolved={hex} groups={groups} anchor={ref.current}
+          onPick={next => { onPick(next); setOpen(false) }} onClose={() => setOpen(false)}
+          note="Stored as a reference, so it follows the palette when the scale regenerates." />
+      )}
+    </>
+  )
+}
 
 export const BLEND_MODES = [
   'normal', 'multiply', 'screen', 'overlay', 'soft-light', 'hard-light',
@@ -36,7 +65,7 @@ function ScaleRows({ items, overrides, onOverride, onReset, unit = 'px' }) {
               style={{
                 fontFamily: 'var(--mono)', fontSize: 11, padding: '4px 7px', textAlign: 'right',
                 color: set ? 'var(--accent)' : 'var(--muted)',
-                borderColor: set ? 'rgba(220,144,85,.4)' : 'var(--bdr)',
+                borderColor: set ? 'rgb(var(--accent-rgb) / .4)' : 'var(--bdr)',
                 opacity: item.pill ? 0.5 : 1,
               }} />
             <span>{set && <OverrideBadge onReset={() => onReset(item.name)} />}</span>
@@ -264,6 +293,14 @@ export function DepthPanel() {
   const mode = state.color.mode
   const roles = derived.roles[mode]
 
+  /* Every seed, role and scale step, the same set the gradient stops and the
+     component properties offer. A shadow tint and a scrim are colour choices
+     like any other and should not have a shorter menu than the rest. */
+  const swatchGroups = paletteGroups({
+    seeds: state.color.seeds, roles, ramps: derived.ramps, rampSteps: RAMP_STEPS,
+    resolveRef: ref => resolveRef(ref, derived.ramps),
+  })
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       <SectionHeader title="Depth" desc="How surfaces separate from one another." />
@@ -298,8 +335,10 @@ export function DepthPanel() {
               min={0} max={2} step={0.05} defaultValue={1} format={v => `${v.toFixed(2)}×`} />
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11.5, color: 'var(--muted)' }}>
               <span>Tinted with</span>
-              <div className="swatch" style={{ width: 16, height: 16, background: derived.shadowHex, cursor: 'default' }} />
-              <code style={{ fontFamily: 'var(--mono)', fontSize: 10.5 }}>{derived.shadowHex}</code>
+              <RefSwatch label="Shadow tint" value={state.elevation.tintRole ?? 'neutral.950'}
+                hex={derived.shadowHex} groups={swatchGroups}
+                onPick={ref => setElev('tintRole', ref)} />
+              <code style={{ fontFamily: 'var(--mono)', fontSize: 10.5 }}>{state.elevation.tintRole ?? 'neutral.950'}</code>
               <span style={{ color: 'var(--dim)' }}>not black</span>
             </div>
           </>
@@ -374,12 +413,14 @@ export function DepthPanel() {
             onChange={v => setElev('scrim', { ...state.elevation.scrim, blur: v })} />
           <div>
             <label>Scrim colour</label>
-            <select value={state.elevation.scrim?.color ?? 'neutral.950'}
-              onChange={e => setElev('scrim', { ...state.elevation.scrim, color: e.target.value })}
-              style={{ fontFamily: 'var(--mono)', fontSize: 11, padding: '6px 7px' }}>
-              {Object.keys(derived.ramps).flatMap(r => ['50', '500', '900', '950'].map(s => `${r}.${s}`))
-                .map(ref => <option key={ref} value={ref}>{ref}</option>)}
-            </select>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 7, height: 32 }}>
+              <RefSwatch label="Scrim colour" value={state.elevation.scrim?.color ?? 'neutral.950'}
+                hex={derived.scrimColor} groups={swatchGroups}
+                onPick={ref => setElev('scrim', { ...state.elevation.scrim, color: ref })} />
+              <code style={{ fontFamily: 'var(--mono)', fontSize: 10.5, color: 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {state.elevation.scrim?.color ?? 'neutral.950'}
+              </code>
+            </div>
           </div>
         </div>
 

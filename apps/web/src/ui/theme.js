@@ -1,20 +1,21 @@
 /* The editor's own chrome — deliberately separate from the preview stylesheet.
-   The app is dark and fixed; the thing being designed sits inside it and must
-   never inherit any of this. */
+   The thing being designed sits inside this and must never inherit any of it,
+   which is why the two themes below only ever touch `--`-prefixed names the
+   preview does not read. */
 export const APP_CSS = `
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
   /* ── One hue for the whole chrome ──
      Every neutral below is the same hue at its own saturation and lightness,
-     so the slider in the macro bar rotates the entire interface without
-     touching its tonal structure. Written as HSL for exactly that reason:
-     the hex values these replace encoded the hue fourteen separate times,
-     and there was no way to change it without changing everything else too.
+     so the hue slider rotates the entire interface without touching its tonal
+     structure. Written as HSL for exactly that reason: the hex values these
+     replace encoded the hue fourteen separate times, and there was no way to
+     change it without changing everything else too.
 
-     The semantic colours underneath — accent, success, danger, warn — are
-     deliberately left out. They mean something, and a hue slider that also
-     turns the error colour green would be a different feature. */
+     The same choice is what makes a light theme a block of numbers rather
+     than a rewrite. Only the lightnesses and a handful of saturations differ
+     between the two, and the hue slider keeps working in both. */
   --ui-h:208;
   --bg:hsl(var(--ui-h) 12% 5%);--surf:hsl(var(--ui-h) 12% 8%);
   --surf2:hsl(var(--ui-h) 12% 11%);--surf3:hsl(var(--ui-h) 14% 15%);
@@ -30,13 +31,78 @@ export const APP_CSS = `
     hsl(0 70% 55%),hsl(30 70% 55%),hsl(60 70% 55%),hsl(90 70% 55%),
     hsl(120 70% 55%),hsl(150 70% 55%),hsl(180 70% 55%),hsl(210 70% 55%),
     hsl(240 70% 55%),hsl(270 70% 55%),hsl(300 70% 55%),hsl(330 70% 55%),hsl(360 70% 55%));
+
+  /* ── Semantic colours ──
+     Left out of the hue rotation on purpose: they mean something, and a hue
+     slider that also turned the error colour green would be a different
+     feature. They do change between themes, because a colour legible on a
+     5%-lightness page is not legible on a 93% one. */
   --accent:#dc9055;--success:#5aad80;--danger:#de5c5c;--warn:#d8a441;
+  /* The same four as bare channels, so a component can pick its own alpha:
+     rgb(var(--accent-rgb) / .4). Sixty-five rgba() literals were spread
+     across the panels, every one of them the dark theme's value, and every
+     one of them wrong the moment a second theme existed. A triple is the only
+     form that lets an arbitrary alpha stay theme-aware. */
+  --accent-rgb:220 144 85;--success-rgb:90 173 128;
+  --danger-rgb:222 92 92;--warn-rgb:216 164 65;
+  /* Which direction a wash goes. White lightens the dark theme; black darkens
+     the light one. Anything using this reads as "slightly emphasised", not as
+     "slightly white". */
+  --ink-rgb:255 255 255;
+  /* Tints of those, for hovers and soft fills. */
+  --accent-wash:rgba(220,144,85,.07);--accent-soft:rgba(220,144,85,.13);
+  --accent-line:rgba(220,144,85,.28);--accent-ring:rgba(220,144,85,.55);
+  --success-soft:rgba(90,173,128,.13);--danger-soft:rgba(222,92,92,.15);
+  --hover-wash:rgba(255,255,255,.08);--grey-wash:rgba(127,127,127,.16);
+  --thumb-ring:rgba(255,255,255,.55);
+  --shade:rgba(0,0,0,.35);--track-shade:rgba(0,0,0,.22);
+
   --display:'Plus Jakarta Sans',system-ui,sans-serif;--sans:'Plus Jakarta Sans',system-ui,sans-serif;--mono:'JetBrains Mono',monospace;
   /* One duration for the whole editor. Snappier than this reads as jumpy. */
   --t:125ms;--ease:cubic-bezier(0.2,0,0,1);
   /* Preview surfaces sit below the page, so a live sample never reads as
      another input. Deliberately darker than --surf3, which is input fill. */
   --preview:hsl(var(--ui-h) 16% 4%);--preview-bdr:hsl(var(--ui-h) 13% 12%);
+  color-scheme:dark;
+}
+
+/* ── Light ──
+ * Paper, not a lightbox. The page sits at 93% rather than pure white and the
+ * panels rise from it, which keeps the tonal order of the dark theme intact:
+ * the background is still the recessed plane and a card still floats above it.
+ * Going to #fff would invert that, because there is nowhere lighter to go.
+ *
+ * Inputs invert, though. --surf3 is above the panel in dark and below it in
+ * light, because a field reads as a well on paper and as a raised slot in the
+ * dark. That is the one place the two themes genuinely disagree.
+ *
+ * Saturation runs a little higher than the dark theme at the same hue: a tint
+ * that is clearly present at 15% lightness disappears entirely at 95%.
+ */
+:root[data-ui-theme="light"]{
+  --bg:hsl(var(--ui-h) 16% 93%);--surf:hsl(var(--ui-h) 20% 97%);
+  --surf2:hsl(var(--ui-h) 24% 99%);--surf3:hsl(var(--ui-h) 16% 90%);
+  --bdr:hsl(var(--ui-h) 14% 85%);--bdr2:hsl(var(--ui-h) 14% 77%);
+  --text:hsl(var(--ui-h) 18% 15%);--muted:hsl(var(--ui-h) 8% 44%);--dim:hsl(var(--ui-h) 10% 68%);
+  --text-dim:hsl(var(--ui-h) 12% 28%);
+  --scroll:hsl(var(--ui-h) 12% 76%);--scroll-hover:hsl(var(--ui-h) 12% 64%);
+  --preview:hsl(var(--ui-h) 14% 88%);--preview-bdr:hsl(var(--ui-h) 12% 80%);
+
+  /* Darkened until each clears 4.5:1 on the 93% page, checked with this app's
+     own contrast module rather than by eye. The dark theme's
+     values sit around 60-70% lightness and read as pastel smears here. */
+  --accent:#994f16;--success:#2f7350;--danger:#b3312f;--warn:#8a6008;
+  --accent-rgb:153 79 22;--success-rgb:47 115 80;
+  --danger-rgb:179 49 47;--warn-rgb:138 96 8;
+  --ink-rgb:0 0 0;
+  --accent-wash:rgba(153,79,22,.07);--accent-soft:rgba(153,79,22,.12);
+  --accent-line:rgba(153,79,22,.32);--accent-ring:rgba(153,79,22,.55);
+  --success-soft:rgba(47,115,80,.12);--danger-soft:rgba(179,49,47,.12);
+  /* Hovers darken on paper rather than lightening. */
+  --hover-wash:rgba(0,0,0,.05);--grey-wash:rgba(0,0,0,.08);
+  --thumb-ring:rgba(0,0,0,.35);
+  --shade:rgba(0,0,0,.18);--track-shade:rgba(0,0,0,.07);
+  color-scheme:light;
 }
 /* Toggled from the header. Kills editor chrome motion without touching the
    preview pane, which is showing the user's own motion tokens. */
@@ -48,7 +114,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14
    track reads as "no scrollbar", which is worse than no styling at all. */
 *{scrollbar-width:thin;scrollbar-color:var(--scroll) transparent}
 ::-webkit-scrollbar{width:11px;height:11px}
-::-webkit-scrollbar-track{background:rgba(0,0,0,.22)}
+::-webkit-scrollbar-track{background:var(--track-shade)}
 ::-webkit-scrollbar-thumb{background:var(--scroll);border-radius:6px;border:2px solid transparent;background-clip:content-box;min-height:32px}
 ::-webkit-scrollbar-thumb:hover{background:var(--scroll-hover);background-clip:content-box}
 ::-webkit-scrollbar-corner{background:transparent}
@@ -63,7 +129,7 @@ label{display:block;font-size:10.5px;font-weight:500;text-transform:uppercase;le
 /* The accent in outline form. Sits beside the filled Export as its quieter
    sibling — same colour, same weight in the eye's hierarchy minus one step. */
 .btn-outline{font-family:var(--sans);font-size:13px;font-weight:500;cursor:pointer;border:1px solid var(--accent);border-radius:6px;padding:8px 16px;background:transparent;color:var(--accent);transition:background var(--t) var(--ease),color var(--t) var(--ease)}
-.btn-outline:hover{background:rgba(220,144,85,.13)}
+.btn-outline:hover{background:var(--accent-soft)}
 .btn-outline:disabled{opacity:.5;cursor:progress}
 .btn-outline:disabled:hover{background:transparent}
 /* The full package — the one export that contains all the others, so it gets
@@ -79,8 +145,8 @@ label{display:block;font-size:10.5px;font-weight:500;text-transform:uppercase;le
 .btn-ghost:hover{background:var(--surf2);color:var(--text);border-color:var(--bdr2)}
 .btn-ghost:disabled{opacity:.4;cursor:not-allowed}
 .btn-ghost:disabled:hover{background:transparent;color:var(--muted);border-color:var(--bdr)}
-.btn-add{margin-top:8px;width:100%;padding:10px 16px;background:rgba(220,144,85,.07);color:var(--accent);border:1px dashed rgba(220,144,85,.28);border-radius:8px;cursor:pointer;font-size:13px;font-family:var(--sans);transition:background var(--t) var(--ease)}
-.btn-add:hover{background:rgba(220,144,85,.13)}
+.btn-add{margin-top:8px;width:100%;padding:10px 16px;background:var(--accent-wash);color:var(--accent);border:1px dashed var(--accent-line);border-radius:8px;cursor:pointer;font-size:13px;font-family:var(--sans);transition:background var(--t) var(--ease)}
+.btn-add:hover{background:var(--accent-soft)}
 .btn-delete{background:none;border:none;cursor:pointer;color:var(--dim);border-radius:4px;transition:color var(--t) var(--ease);display:flex;align-items:center;justify-content:center;padding:4px}
 .btn-delete:hover{color:var(--danger)}
 /* Tab-strip chevrons. Opacity transitions so reaching the end of travel dims
@@ -109,18 +175,18 @@ label{display:block;font-size:10.5px;font-weight:500;text-transform:uppercase;le
   color:var(--muted);cursor:pointer;text-align:center;
   transition:border-color var(--t) var(--ease),background var(--t) var(--ease),color var(--t) var(--ease)}
 .dropzone:hover{border-color:var(--accent);color:var(--text-dim)}
-.dropzone.over{border-color:var(--accent);background:rgba(220,144,85,.08);color:var(--accent)}
+.dropzone.over{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
 
 .close-x{opacity:.55;transition:opacity var(--t) var(--ease),background var(--t) var(--ease)}
-.close-x:hover{opacity:1;background:rgba(127,127,127,.16)}
+.close-x:hover{opacity:1;background:var(--grey-wash)}
 .close-x:focus-visible{opacity:1;outline:2px solid var(--accent);outline-offset:1px}
 
 /* Inline delete confirmation: red tick commits, grey cross backs out. */
 .btn-confirm{background:none;border:none;cursor:pointer;border-radius:4px;display:flex;align-items:center;justify-content:center;padding:4px;transition:color var(--t) var(--ease),background var(--t) var(--ease)}
 .btn-confirm-yes{color:var(--danger)}
-.btn-confirm-yes:hover{background:rgba(222,92,92,.15)}
+.btn-confirm-yes:hover{background:var(--danger-soft)}
 .btn-confirm-no{color:var(--muted)}
-.btn-confirm-no:hover{color:var(--success);background:rgba(90,173,128,.13)}
+.btn-confirm-no:hover{color:var(--success);background:var(--success-soft)}
 
 /* Live samples. Darker than any input so a preview never reads as a field. */
 .preview-box{background:var(--preview);border:1px solid var(--preview-bdr);border-radius:7px}
@@ -166,11 +232,11 @@ label{display:block;font-size:10.5px;font-weight:500;text-transform:uppercase;le
    border; this is inset, brighter-edged and carries a visible magnifier. */
 .filter-field input{
   background:var(--bg);border:1px solid var(--bdr2);border-radius:999px;
-  box-shadow:inset 0 1px 2px rgba(0,0,0,.35)
+  box-shadow:inset 0 1px 2px var(--shade)
 }
 .filter-field input::placeholder{color:var(--dim)}
 .filter-field input:focus{border-color:var(--accent);background:var(--bg)}
-.filter-field.has-value input{border-color:rgba(220,144,85,.55)}
+.filter-field.has-value input{border-color:var(--accent-ring)}
 
 /* Range inputs: the macro sliders live or die on these feeling right */
 input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:18px;background:transparent;padding:0;border:none}
@@ -195,14 +261,14 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;bac
    never painted, in either place it had been tried. */
 input[type=range].hue-slider::-webkit-slider-runnable-track{height:6px;border-radius:3px;background:var(--spectrum)}
 input[type=range].hue-slider::-moz-range-track{height:6px;border-radius:3px;background:var(--spectrum)}
-input[type=range].hue-slider::-webkit-slider-thumb{width:14px;height:14px;margin-top:-4px;background:hsl(var(--hue) 70% 55%);box-shadow:0 0 0 2px var(--surf),0 0 0 3px rgba(255,255,255,.55)}
-input[type=range].hue-slider::-moz-range-thumb{width:14px;height:14px;background:hsl(var(--hue) 70% 55%);box-shadow:0 0 0 2px var(--surf),0 0 0 3px rgba(255,255,255,.55)}
+input[type=range].hue-slider::-webkit-slider-thumb{width:14px;height:14px;margin-top:-4px;background:hsl(var(--hue) 70% 55%);box-shadow:0 0 0 2px var(--surf),0 0 0 3px var(--thumb-ring)}
+input[type=range].hue-slider::-moz-range-thumb{width:14px;height:14px;background:hsl(var(--hue) 70% 55%);box-shadow:0 0 0 2px var(--surf),0 0 0 3px var(--thumb-ring)}
 
 .num{font-family:var(--mono);font-size:12px;padding:4px 6px;text-align:right}
 .num::-webkit-outer-spin-button,.num::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 .num[type=number]{-moz-appearance:textfield}
 
-.swatch{border-radius:5px;border:1px solid rgba(255,255,255,.08);cursor:pointer;position:relative;flex-shrink:0;transition:transform var(--t) var(--ease)}
+.swatch{border-radius:5px;border:1px solid var(--hover-wash);cursor:pointer;position:relative;flex-shrink:0;transition:transform var(--t) var(--ease)}
 .swatch:hover{transform:scale(1.06);z-index:1}
 
 .panel-note{font-size:12px;color:var(--muted);line-height:1.55}
