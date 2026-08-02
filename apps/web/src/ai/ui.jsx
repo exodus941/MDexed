@@ -75,8 +75,8 @@ export function AiHeader() {
         </select>
       </div>
       <div style={{ fontSize: 11, color: 'var(--muted)', lineHeight: 1.5, maxWidth: 190, flexShrink: 0 }}>
-        {models.length} free models. {chosen?.context ? `${Math.round(chosen.context / 1000)}k context.` : ''}
-        {' '}Free tiers are rate-limited and slow; that’s the trade.
+        {models.length} free models{chosen?.context ? `, ${Math.round(chosen.context / 1000)}k context` : ''}.
+        {' '}Free tiers are rate-limited.
       </div>
     </div>
   )
