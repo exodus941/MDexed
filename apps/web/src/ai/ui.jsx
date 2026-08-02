@@ -7,7 +7,7 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState } f
 import { loadModels, pickDefaultModel, complete } from './client.js'
 import { systemPrompt, refinePrompt, draftPrompt } from './prompts.js'
 import ReviewDiff from './ReviewDiff.jsx'
-import { Expand } from '../ui/controls.jsx'
+import { Expand, BTN } from '../ui/controls.jsx'
 
 const MODEL_KEY = 'dmd.ai.model'
 const AiCtx = createContext(null)
@@ -167,7 +167,7 @@ export function SectionAi({ section, text, onApply, state, derived }) {
   )
 }
 
-const btn = { padding: '5px 11px', fontSize: 11.5 }
+const btn = { padding: BTN.sm, fontSize: 11.5 }
 
 const Sparkle = () => (
   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"

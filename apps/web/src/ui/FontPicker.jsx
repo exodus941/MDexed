@@ -77,7 +77,7 @@ export default function FontPicker({ value, onChange, label, role }) {
       {label && <label>{label}</label>}
       <button onClick={() => setOpen(o => !o)}
         style={{
-          width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px',
+          width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '6px 12px',
           background: 'var(--surf3)', border: `1px solid ${open ? 'var(--accent)' : 'var(--bdr)'}`,
           borderRadius: 6, cursor: 'pointer', color: 'var(--text)', textAlign: 'left', fontFamily: 'var(--sans)',
         }}>

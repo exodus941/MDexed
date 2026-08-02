@@ -65,14 +65,14 @@ export default function ReviewDiff({ before, after, streaming, error, onAccept, 
           <>
             <span style={{ flex: 1 }} />
             <button className="btn-ghost" style={{ padding: '4px 10px', fontSize: 11 }} onClick={onReject}>Dismiss</button>
-            <button className="btn-primary" style={{ padding: '4px 12px', fontSize: 11 }} onClick={onRetry}>Try Again</button>
+            <button className="btn-primary" style={{ padding: '4px 10px', fontSize: 11 }} onClick={onRetry}>Try Again</button>
           </>
         ) : (
           <>
             <span style={{ fontSize: 11, color: 'var(--dim)', flex: 1 }}>Nothing is saved until you accept.</span>
             <button className="btn-ghost" style={{ padding: '4px 10px', fontSize: 11 }} onClick={onRetry}>Regenerate</button>
             <button className="btn-ghost" style={{ padding: '4px 10px', fontSize: 11 }} onClick={onReject}>Discard</button>
-            <button className="btn-primary" style={{ padding: '4px 12px', fontSize: 11 }} onClick={onAccept}>Accept</button>
+            <button className="btn-primary" style={{ padding: '4px 10px', fontSize: 11 }} onClick={onAccept}>Accept</button>
           </>
         )}
       </div>

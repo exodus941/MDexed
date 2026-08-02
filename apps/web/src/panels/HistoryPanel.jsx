@@ -34,7 +34,7 @@ const short = v => {
 
 const Chip = ({ children, tone }) => (
   <code style={{
-    fontFamily: 'var(--mono)', fontSize: 10.5, padding: '1px 6px', borderRadius: 4,
+    fontFamily: 'var(--mono)', fontSize: 10.5, padding: '2px 6px', borderRadius: 4,
     background: 'var(--surf3)', border: '1px solid var(--bdr)',
     color: tone ?? 'var(--text-dim)', whiteSpace: 'nowrap',
   }}>{children}</code>
@@ -207,7 +207,7 @@ export default function HistoryPanel() {
                 background: on ? `${c.colour}22` : 'transparent',
                 border: `1px solid ${on ? c.colour : 'var(--bdr)'}`,
                 color: on ? c.colour : 'var(--muted)',
-                borderRadius: 6, padding: '3px 9px', fontSize: 11.5, cursor: 'pointer',
+                borderRadius: 6, padding: '4px 10px', fontSize: 11.5, cursor: 'pointer',
                 transition: 'all var(--t) var(--ease)',
               }}>
               <span style={{ width: 6, height: 6, borderRadius: '50%', background: c.colour }} />
@@ -217,7 +217,7 @@ export default function HistoryPanel() {
           )
         })}
         {active.size > 0 && (
-          <button className="btn-ghost" style={{ padding: '3px 8px', fontSize: 11 }} onClick={() => setActive(new Set())}>Clear Filter</button>
+          <button className="btn-ghost" style={{ padding: '2px 6px', fontSize: 11 }} onClick={() => setActive(new Set())}>Clear Filter</button>
         )}
         <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--dim)' }}>{filtered.length} shown</span>
       </div>
@@ -256,7 +256,7 @@ export default function HistoryPanel() {
                         style={{
                           display: 'inline-flex', alignItems: 'center', gap: 4, background: 'none',
                           border: '1px solid var(--bdr)', borderRadius: 5, cursor: 'pointer',
-                          color: 'var(--muted)', padding: '2px 7px', fontSize: 10.5, fontFamily: 'var(--sans)',
+                          color: 'var(--muted)', padding: '2px 8px', fontSize: 10.5, fontFamily: 'var(--sans)',
                           transition: 'color var(--t) var(--ease), border-color var(--t) var(--ease)',
                         }}
                         onMouseEnter={ev => { ev.currentTarget.style.color = 'var(--accent)'; ev.currentTarget.style.borderColor = 'rgba(220,144,85,.4)' }}

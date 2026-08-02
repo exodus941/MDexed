@@ -127,7 +127,7 @@ export default function ColorPicker({ value, onChange, alpha: allowAlpha = false
         <div style={{ flex: 1 }} />
         {typeof window !== 'undefined' && 'EyeDropper' in window && (
           <button className="btn-ghost" title="Pick a colour from anywhere on screen"
-            style={{ padding: '4px 8px' }}
+            style={{ padding: '4px 10px' }}
             onClick={async () => {
               try {
                 const { sRGBHex } = await new window.EyeDropper().open()

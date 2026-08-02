@@ -102,7 +102,7 @@ function PairChecker({ roles, mode }) {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: 7, alignItems: 'end', marginBottom: 9 }}>
         <div><label>Foreground</label><Select value={fg} onChange={setFg} /></div>
         <div><label>Background</label><Select value={bg} onChange={setBg} /></div>
-        <button className="btn-ghost" title="Swap" style={{ padding: '5px 9px' }} onClick={() => { setFg(bg); setBg(fg) }}>⇄</button>
+        <button className="btn-ghost" title="Swap" style={{ padding: '4px 10px' }} onClick={() => { setFg(bg); setBg(fg) }}>⇄</button>
       </div>
 
       <div style={{ display: 'flex', gap: 10, alignItems: 'stretch' }}>
@@ -228,7 +228,7 @@ export default function RolesPanel({ inspect }) {
           <Segmented value={scope} onChange={setScope} size="sm"
             options={[{ value: 'light', label: 'Light only' }, { value: 'dark', label: 'Dark only' }, { value: 'both', label: 'Both' }]} />
           {scope !== 'both' && scope !== color.mode && (
-            <button className="btn-ghost" style={{ padding: '3px 8px', fontSize: 10.5 }}
+            <button className="btn-ghost" style={{ padding: '2px 6px', fontSize: 10.5 }}
               onClick={() => upd(c => ({ ...c, mode: scope }))}>
               Preview {scope}
             </button>
@@ -239,8 +239,8 @@ export default function RolesPanel({ inspect }) {
             <div style={{ fontSize: 12, color: 'var(--text)' }}>Generate the opposite mode</div>
             <div style={{ fontSize: 10.5, color: 'var(--dim)', marginTop: 1 }}>Mirrors each role's scale position. A starting point, not a finished theme.</div>
           </div>
-          <button className="btn-ghost" style={{ padding: '5px 9px', fontSize: 11, whiteSpace: 'nowrap' }} onClick={() => generateMode('light')}>Light → Dark</button>
-          <button className="btn-ghost" style={{ padding: '5px 9px', fontSize: 11, whiteSpace: 'nowrap' }} onClick={() => generateMode('dark')}>Dark → Light</button>
+          <button className="btn-ghost" style={{ padding: '4px 10px', fontSize: 11, whiteSpace: 'nowrap' }} onClick={() => generateMode('light')}>Light → Dark</button>
+          <button className="btn-ghost" style={{ padding: '4px 10px', fontSize: 11, whiteSpace: 'nowrap' }} onClick={() => generateMode('dark')}>Dark → Light</button>
         </div>
       </Collapsible>
 

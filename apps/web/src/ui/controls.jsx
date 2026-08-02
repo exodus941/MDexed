@@ -21,6 +21,25 @@ export const PAD = {
   label: 6,   // a subcard's heading to its first row
 }
 
+/* Button padding, on a 2px grid.
+ *
+ * Layout wants 4px steps; controls are too small for that — the gap between
+ * a 4px and an 8px button is the difference between compact and chunky, with
+ * nothing usable in between. 2px gives four sizes across the range a button
+ * actually occupies, and every value stays even.
+ *
+ * Every button also carries a 1px border, transparent where it isn't drawn,
+ * so a filled button and an outlined one at the same size are the same
+ * height. Without it the outlined one is 2px taller and every toolbar sits
+ * slightly crooked.
+ */
+export const BTN = {
+  xs: '2px 6px',    // chips, icon-adjacent nudges
+  sm: '4px 10px',   // inline actions inside a panel
+  md: '6px 12px',   // the default
+  lg: '8px 16px',   // header and primary actions
+}
+
 export function SectionHeader({ title, desc, count, right }) {
   return (
     <div style={{ marginBottom: 18, display: 'flex', alignItems: 'flex-start', gap: 12 }}>
@@ -86,7 +105,7 @@ export function Collapsible({ title, note, children, defaultOpen = false, right,
         <button
           onClick={() => setOpen(o => !o)}
           style={{
-            flex: 1, display: 'flex', alignItems: 'center', gap: 8, padding: '9px 12px',
+            flex: 1, display: 'flex', alignItems: 'center', gap: 8, padding: `${PAD.sub}px ${PAD.card}px`,
             background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text)',
             fontFamily: 'var(--sans)', fontSize: 13, textAlign: 'left', minWidth: 0,
           }}>
@@ -105,7 +124,7 @@ export function Collapsible({ title, note, children, defaultOpen = false, right,
         transition: 'grid-template-rows var(--t) var(--ease)',
       }}>
         <div style={{ overflow: 'hidden', minHeight: 0 }}>
-          {mounted && <div style={{ padding: `4px ${PAD.card}px ${PAD.card}px`, borderTop: '1px solid var(--bdr)' }}>{children}</div>}
+          {mounted && <div style={{ padding: PAD.card, borderTop: '1px solid var(--bdr)' }}>{children}</div>}
         </div>
       </div>
     </div>
@@ -300,7 +319,7 @@ export function Segmented({ options, value, onChange, size = 'md' }) {
         const label = typeof o === 'string' ? o : o.label
         return (
           <button key={val} onClick={() => onChange(val)} className={value === val ? 'seg-on' : 'seg'}
-            style={size === 'sm' ? { padding: '3px 8px', fontSize: 11 } : undefined}>
+            style={size === 'sm' ? { padding: '2px 6px', fontSize: 11 } : undefined}>
             {label}
           </button>
         )
@@ -329,7 +348,7 @@ export function OverrideBadge({ onReset, title = 'Overridden — click to relink
       style={{
         display: 'inline-flex', alignItems: 'center', gap: 4, background: 'rgba(220,144,85,.12)',
         border: '1px solid rgba(220,144,85,.3)', color: 'var(--accent)', borderRadius: 4,
-        padding: '1px 5px', fontSize: 9.5, fontFamily: 'var(--mono)', cursor: 'pointer', lineHeight: 1.6,
+        padding: '2px 6px', fontSize: 9.5, fontFamily: 'var(--mono)', cursor: 'pointer', lineHeight: 1.6,
       }}>
       <span style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--accent)' }} />
       set

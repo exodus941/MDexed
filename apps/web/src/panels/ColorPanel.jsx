@@ -54,7 +54,7 @@ function SeedRow({ seed, ramps, onChange, onRename, onDelete, onLock, open, onTo
         <button onClick={e => { e.stopPropagation(); onLock() }}
           title={seed.locked ? 'Locked — the generator will leave this alone' : 'Unlocked — the generator may replace this'}
           style={{
-            background: 'none', border: 'none', cursor: 'pointer', padding: 3, display: 'flex',
+            background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex',
             color: seed.locked ? 'var(--accent)' : 'var(--dim)',
             transition: 'color var(--t) var(--ease)',
           }}>
@@ -130,7 +130,7 @@ function RampRow({ name, ramp, overrides, onOverride, onResetStep }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 9 }}>
             <code style={{ fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--text)', flex: 1 }}>{name}-{selected}</code>
             {overrides[selectedKey] != null && <OverrideBadge onReset={() => onResetStep(selectedKey)} title="Reset to the generated value" />}
-            <button className="btn-ghost" style={{ padding: '3px 8px', fontSize: 11 }} onClick={() => setSelected(null)}>Close</button>
+            <button className="btn-ghost" style={{ padding: '2px 6px', fontSize: 11 }} onClick={() => setSelected(null)}>Close</button>
           </div>
           {selected != null && <ColorPicker value={ramp.steps[selected]} onChange={hex => onOverride(selectedKey, hex)} compact />}
         </div>
@@ -336,7 +336,7 @@ export default function ColorPanel() {
               style={{ width: 'auto', fontSize: 11.5, padding: '4px 7px' }}>
               {HARMONIES.map(h => <option key={h.id} value={h.id}>{h.label}</option>)}
             </select>
-            <button className="btn-primary" onClick={roll} style={{ padding: '6px 13px', whiteSpace: 'nowrap' }}>
+            <button className="btn-primary" onClick={roll} style={{ padding: '6px 12px', whiteSpace: 'nowrap' }}>
               Generate
             </button>
           </div>
