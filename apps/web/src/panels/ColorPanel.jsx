@@ -3,13 +3,14 @@
    Semantic roles used to live here too, but they're 27 rows deep and the panel
    became unreadable. They have their own tab now and read from these scales. */
 import { useState, useRef } from 'react'
-import { createPortal } from 'react-dom'
 import { useStore } from '../state/store.jsx'
 import { uid } from '../state/schema.js'
 import { RAMP_STEPS, DEFAULT_SHAPE, resolveRef } from '../color/ramp.js'
 import { generatePalette, HARMONIES } from '../color/palette.js'
 import { isValidColor } from '../color/convert.js'
+import { bestOn } from '../color/contrast.js'
 import ColorPicker from '../ui/ColorPicker.jsx'
+import TokenColorPicker, { paletteGroups } from '../ui/TokenColorPicker.jsx'
 import { GRADIENT_TYPES } from '../color/modes.js'
 import { SectionHeader, Collapsible, Expand, Slider, NumField, Toggle, OverrideBadge, ConfirmDelete, Banner } from '../ui/controls.jsx'
 
@@ -29,8 +30,11 @@ const nextSeedName = seeds => {
 }
 
 /* ── Seeds ── */
-const Lock = ({ locked }) => (
-  <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+/* Stroke thins as the glyph grows, so a 26px lock doesn't read as a fat
+   cartoon next to the 12px one in the seed rows. */
+const Lock = ({ locked, size = 12 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+    strokeWidth={size > 18 ? 1.9 : 2} strokeLinecap="round">
     <rect x="4" y="11" width="16" height="10" rx="2" />
     {locked ? <path d="M8 11V7a4 4 0 118 0v4" /> : <path d="M8 11V7a4 4 0 117-2.6" />}
   </svg>
@@ -132,74 +136,6 @@ function RampRow({ name, ramp, overrides, onOverride, onResetStep }) {
         </div>
       </Expand>
     </div>
-  )
-}
-
-/* Swatch grid + picker, opened from a stop's swatch.
-
-   Rendered into a portal: inside the card it was clipped by the panel's
-   overflow and crammed into its own scrollbar. The custom picker sits at the
-   top, because a gradient that deliberately ignores the palette is a normal
-   thing to want and shouldn't be the last thing you find. */
-function StopPicker({ value, resolved, groups, anchor, onPick, onClose }) {
-  const isLiteral = /^#/.test(value)
-  const rect = anchor?.getBoundingClientRect()
-  /* Two columns — picker left, swatches right — so the popover stays short
-     enough to fit on screen instead of becoming a tall scroller. */
-  const width = 520
-  const left = rect ? Math.min(Math.max(10, rect.left), window.innerWidth - width - 10) : 40
-  const below = rect ? window.innerHeight - rect.bottom : 0
-  const openUp = below < 340 && rect && rect.top > below
-
-  return createPortal(
-    <>
-      <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 2000 }} />
-      <div className="anim-pop" style={{
-        position: 'fixed', left,
-        ...(openUp ? { bottom: window.innerHeight - rect.top + 8 } : { top: (rect?.bottom ?? 0) + 8 }),
-        zIndex: 2001, width,
-        background: 'var(--surf2)', border: '1px solid var(--bdr2)', borderRadius: 10,
-        boxShadow: '0 18px 44px rgba(0,0,0,.6)', padding: 12,
-        display: 'grid', gridTemplateColumns: '208px 1fr', gap: 12,
-      }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 8 }}>
-            <span style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--muted)', flex: 1 }}>
-              Custom colour
-            </span>
-          </div>
-          {/* Always available — editing it detaches the stop from the palette. */}
-          <ColorPicker value={isLiteral ? value : resolved} onChange={onPick} compact />
-          <p className="panel-note" style={{ fontSize: 10.5, marginTop: 7 }}>
-            {isLiteral
-              ? 'This stop is a literal colour and ignores the palette.'
-              : <>Following <code style={{ fontFamily: 'var(--mono)', fontSize: 10 }}>{value}</code>. Adjusting this pins it to a literal colour.</>}
-          </p>
-        </div>
-
-        {/* paddingRight keeps the swatches off the scrollbar. */}
-        <div style={{ borderLeft: '1px solid var(--bdr)', paddingLeft: 12, paddingRight: 10, maxHeight: 300, overflowY: 'auto' }}>
-          {groups.map(group => (
-            <div key={group.label} style={{ marginBottom: 10 }}>
-              <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--muted)', marginBottom: 5 }}>
-                {group.label}
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(11, 1fr)', gap: 4 }}>
-                {group.items.map(item => (
-                  <button key={item.ref} onClick={() => { onPick(item.ref); onClose() }}
-                    title={`${item.ref} — ${item.hex}`}
-                    style={{
-                      aspectRatio: '1', background: item.hex, borderRadius: 4, cursor: 'pointer', padding: 0,
-                      border: value === item.ref ? '2px solid var(--accent)' : '1px solid rgba(255,255,255,.08)',
-                    }} />
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </>,
-    document.body
   )
 }
 
@@ -311,7 +247,7 @@ function GradientRow({ grad, css, options, resolved, onChange, onDelete }) {
                     onConfirm={() => onChange({ ...grad, stops: grad.stops.filter((_, j) => j !== i) })} />
                 </div>
                 {openStop === i && (
-                  <StopPicker value={s.color} resolved={resolved[i]} groups={options} anchor={swatchRefs.current[i]}
+                  <TokenColorPicker value={s.color} resolved={resolved[i]} groups={options} anchor={swatchRefs.current[i]}
                     onPick={colour => setStop(i, { color: colour })}
                     onClose={() => setOpenStop(null)} />
                 )}
@@ -368,14 +304,7 @@ export default function ColorPanel() {
 
   /* Grouped for the swatch grid: seeds first — the colours you actually
      picked — then roles, then the full scales. */
-  const stopOptions = [
-    { label: 'Seeds', items: color.seeds.map(s => ({ ref: `${s.name}.500`, hex: resolveStopHex(`${s.name}.500`) })) },
-    { label: 'Roles', items: Object.entries(derived.roles[color.mode]).map(([ref, hex]) => ({ ref, hex })) },
-    ...Object.entries(ramps).map(([name, ramp]) => ({
-      label: `${name} scale`,
-      items: RAMP_STEPS.map(step => ({ ref: `${name}.${step}`, hex: ramp.steps[step] })),
-    })),
-  ]
+  const stopOptions = paletteGroups({ seeds: color.seeds, roles: derived.roles[color.mode], ramps, rampSteps: RAMP_STEPS, resolveRef: resolveStopHex })
   const updGradient = (id, next) => upd(c => ({ ...c, gradients: c.gradients.map(g => g.id === id ? next : g) }), `grad:${id}`)
   const addGradient = () => upd(c => ({
     ...c,
@@ -405,19 +334,35 @@ export default function ColorPanel() {
               Generate
             </button>
           </div>
-          <div style={{ display: 'flex', gap: 3, height: 34, borderRadius: 6, overflow: 'hidden', marginBottom: 8 }}>
-            {color.seeds.map(s => (
-              <button key={s.id} onClick={() => toggleLock(s.id)} title={`${s.name} — ${s.locked ? 'locked' : 'click to lock'}`}
-                style={{
-                  flex: 1, background: s.hex, border: 'none', cursor: 'pointer', position: 'relative',
-                  display: 'flex', alignItems: 'flex-end', justifyContent: 'center', padding: 3,
-                  outline: s.locked ? '2px solid var(--accent)' : 'none', outlineOffset: -2,
-                }}>
-                <span style={{ color: '#fff', mixBlendMode: 'difference', display: 'flex' }}>
-                  {s.locked && <Lock locked />}
-                </span>
-              </button>
-            ))}
+          {/* The lock is drawn in whichever of black or white actually reads
+              against the swatch, computed per colour. `mix-blend-mode:
+              difference` was the clever answer and the wrong one — against a
+              mid-grey it inverts to another mid-grey and vanishes, which is
+              exactly where you most need to see it. */}
+          <div style={{ display: 'flex', gap: 3, height: 58, borderRadius: 6, overflow: 'hidden', marginBottom: 8 }}>
+            {color.seeds.map(s => {
+              const ink = bestOn(s.hex)
+              return (
+                <button key={s.id} onClick={() => toggleLock(s.id)} className="seed-lock"
+                  title={`${s.name} — ${s.locked ? 'locked, click to release' : 'click to lock'}`}
+                  style={{
+                    flex: 1, background: s.hex, border: 'none', cursor: 'pointer', position: 'relative',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0,
+                    outline: s.locked ? '2px solid var(--accent)' : 'none', outlineOffset: -2,
+                  }}>
+                  <span style={{
+                    color: ink, display: 'flex',
+                    /* Unlocked shows an open padlock on hover only, so the
+                       affordance is discoverable without every swatch
+                       shouting. */
+                    opacity: s.locked ? 1 : 0,
+                    transition: 'opacity var(--t) var(--ease)',
+                  }}>
+                    <Lock locked={s.locked} size={26} />
+                  </span>
+                </button>
+              )
+            })}
           </div>
           <p className="panel-note">
             Lock the ones you like, then generate again — locked colours anchor the hue and weight of everything else.

@@ -5,13 +5,15 @@
    will carry in the file, so the hyphenated flattening the spec requires
    (`button-primary-hover`) is visible while you work rather than a surprise
    at export. */
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useStore } from '../state/store.jsx'
 import { COMPONENT_LIBRARY, COMPONENT_GROUPS } from '../state/components.js'
 import { SPEC_COMPONENT_PROPS } from '../emit/yaml.js'
 import { LAYOUT_BY_NAME, fieldActive } from '../state/componentLayout.js'
 import { SectionHeader, Toggle, ResetButton, Banner, Collapsible, Expand, FilterField, Segmented } from '../ui/controls.jsx'
 import { useRevealWithin, revealStyle } from '../ui/reveal.js'
+import TokenColorPicker, { paletteGroups } from '../ui/TokenColorPicker.jsx'
+import { RAMP_STEPS, resolveRef } from '../color/ramp.js'
 
 /* Which token group a property should draw from. Offering `{colors.*}` for a
    padding field is noise; offering nothing at all is what made these look like
@@ -22,6 +24,11 @@ const SPACING_PROPS = ['padding', 'gap', 'margin']
 /* Dimensions are not spacing steps â€” a control's height is its own decision,
    so these get plain pixel values rather than `{spacing.*}` references. */
 const SIZE_PROPS = ['height', 'width', 'size', 'minHeight', 'maxHeight', 'outlineOffset', 'iconSize']
+
+/* Swatch references are dotted (`accent.700`) because that's how the scales
+   are addressed internally; the colour tokens the file emits are hyphenated
+   (`accent-700`). This is the one place the two spellings meet. */
+const COLOR_REF = ref => `{colors.${ref.replace('.', '-')}}`
 
 const PX_SUGGESTIONS = ['20px', '24px', '28px', '32px', '36px', '40px', '44px', '48px', '56px', '64px']
 const ICON_SUGGESTIONS = ['{icons.sm}', '{icons.md}', '{icons.lg}', '{icons.xl}', '12px', '14px', '16px', '18px', '20px', '24px']
@@ -77,7 +84,12 @@ function resolveValue(value, derived, mode) {
   const ref = /^\{(colors|rounded|spacing)\.([a-zA-Z0-9_-]+)\}$/.exec(str)
   if (ref) {
     const [, group, key] = ref
-    if (group === 'colors') return { kind: 'color', value: derived.roles[mode][key] }
+    /* Roles first, then scale steps under their emitted hyphenated names —
+       both are legal colour references, so both have to preview. */
+    if (group === 'colors') {
+      const hex = derived.roles[mode][key] ?? resolveRef(key.replace(/-(?=\d+$)/, '.'), derived.ramps)
+      return hex ? { kind: 'color', value: hex } : null
+    }
     if (group === 'rounded') return { kind: 'text', value: derived.rounded.find(r => r.name === key)?.value }
     if (group === 'spacing') return { kind: 'text', value: derived.spacing.find(s => s.name === key)?.value }
   }
@@ -101,7 +113,9 @@ function resolveValue(value, derived, mode) {
   return null
 }
 
-function PropRow({ entryName, propKey, defaultValue, override, onSet, onReset, derived, mode }) {
+function PropRow({ entryName, propKey, defaultValue, override, onSet, onReset, derived, mode, colorGroups }) {
+  const [picking, setPicking] = useState(false)
+  const swatchRef = useRef(null)
   const legal = SPEC_COMPONENT_PROPS.includes(propKey)
   const set = override != null
   const current = override ?? defaultValue
@@ -142,12 +156,25 @@ function PropRow({ entryName, propKey, defaultValue, override, onSet, onReset, d
           <datalist id={listId}>{options.map(o => <option key={o} value={o} />)}</datalist>
         )}
 
-        {/* What the value actually resolves to right now. */}
+        {/* What the value actually resolves to right now. For a colour the
+            swatch is the way in: the same picker the gradient stops use, so
+            you never have to know that `{colors.accent}` is the syntax. */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 4, minWidth: 0 }}>
           {resolved?.kind === 'color' && (
             <>
-              <span className="swatch" style={{ width: 13, height: 13, background: resolved.value, cursor: 'default' }} />
+              <button ref={swatchRef} className="swatch" onClick={() => setPicking(true)}
+                title="Pick a colour"
+                style={{ width: 13, height: 13, background: resolved.value, cursor: 'pointer', padding: 0, flexShrink: 0 }} />
               <code style={{ fontFamily: 'var(--mono)', fontSize: 8.5, color: 'var(--dim)', overflow: 'hidden', textOverflow: 'ellipsis' }}>{resolved.value}</code>
+              {picking && (
+                <TokenColorPicker
+                  value={current} resolved={resolved.value}
+                  groups={colorGroups} anchor={swatchRef.current}
+                  refFor={COLOR_REF}
+                  isRef={v => /^\{colors\./.test(String(v ?? ''))}
+                  onPick={v => onSet(key, v)}
+                  onClose={() => setPicking(false)} />
+              )}
             </>
           )}
           {resolved?.kind === 'gradient' && (
@@ -199,7 +226,7 @@ const matches = (query, entryName, key, value) => {
   return entryName.toLowerCase().includes(q) || key.toLowerCase().includes(q) || String(value).toLowerCase().includes(q)
 }
 
-function EntryBlock({ title, entryName, props, overrides, onSet, onReset, derived, mode, inspect, query }) {
+function EntryBlock({ title, entryName, props, overrides, onSet, onReset, derived, mode, inspect, query, colorGroups }) {
   /* The jump targets the exact entry â€” clicking a small button lands on
      `button-sm`, not merely somewhere inside Button. The scrolling is the
      owning ComponentBlock's job; this only marks itself. */
@@ -230,7 +257,7 @@ function EntryBlock({ title, entryName, props, overrides, onSet, onReset, derive
         {shown.map(([k, v]) => (
           <PropRow key={k} entryName={entryName} propKey={k} defaultValue={String(v)}
             override={overrides[`${entryName}.${k}`]} onSet={onSet} onReset={onReset}
-            derived={derived} mode={mode} />
+            derived={derived} mode={mode} colorGroups={colorGroups} />
         ))}
       </div>
     </div>
@@ -274,7 +301,7 @@ function LayoutBlock({ def, values, onSet }) {
   )
 }
 
-function ComponentBlock({ def, cfg, layout, onSetLayout, onToggle, onSet, onReset, derived, mode, inspect }) {
+function ComponentBlock({ def, cfg, layout, onSetLayout, onToggle, onSet, onReset, derived, mode, inspect, colorGroups }) {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const enabled = cfg.enabled[def.name] ?? def.on
@@ -333,18 +360,18 @@ function ComponentBlock({ def, cfg, layout, onSetLayout, onToggle, onSet, onRese
           {!query && LAYOUT_BY_NAME[def.name] && (
             <LayoutBlock def={LAYOUT_BY_NAME[def.name]} values={layout[def.name]} onSet={onSetLayout} />
           )}
-          {def.base && <EntryBlock entryName={def.name} title="base" props={def.base} overrides={overrides} onSet={onSet} onReset={onReset} derived={derived} mode={mode} inspect={inspect} query={query} />}
+          {def.base && <EntryBlock entryName={def.name} title="base" props={def.base} overrides={overrides} onSet={onSet} onReset={onReset} derived={derived} mode={mode} inspect={inspect} query={query} colorGroups={colorGroups} />}
           {Object.entries(def.variants ?? {}).map(([v, props]) => (
-            <EntryBlock key={v} entryName={`${def.name}-${v}`} title="variant" props={props} overrides={overrides} onSet={onSet} onReset={onReset} derived={derived} mode={mode} inspect={inspect} query={query} />
+            <EntryBlock key={v} entryName={`${def.name}-${v}`} title="variant" props={props} overrides={overrides} onSet={onSet} onReset={onReset} derived={derived} mode={mode} inspect={inspect} query={query} colorGroups={colorGroups} />
           ))}
           {cfg.emitSizes && Object.entries(def.sizes ?? {}).map(([s, props]) => (
-            <EntryBlock key={s} entryName={`${def.name}-${s}`} title="size" props={props} overrides={overrides} onSet={onSet} onReset={onReset} derived={derived} mode={mode} inspect={inspect} query={query} />
+            <EntryBlock key={s} entryName={`${def.name}-${s}`} title="size" props={props} overrides={overrides} onSet={onSet} onReset={onReset} derived={derived} mode={mode} inspect={inspect} query={query} colorGroups={colorGroups} />
           ))}
           {cfg.emitStates && Object.entries(def.states ?? {}).flatMap(([stateName, byVariant]) =>
             Object.entries(byVariant).map(([variant, props]) => (
               <EntryBlock key={`${stateName}-${variant}`}
                 entryName={variant === '_' ? `${def.name}-${stateName}` : `${def.name}-${variant}-${stateName}`}
-                title="state" props={props} overrides={overrides} onSet={onSet} onReset={onReset} derived={derived} mode={mode} inspect={inspect} query={query} />
+                title="state" props={props} overrides={overrides} onSet={onSet} onReset={onReset} derived={derived} mode={mode} inspect={inspect} query={query} colorGroups={colorGroups} />
             ))
           )}
         </div>
@@ -376,6 +403,17 @@ export default function ComponentsPanel({ inspect }) {
 
   const proseOnly = derived.components.reduce((n, c) =>
     n + c.properties.filter(p => !SPEC_COMPONENT_PROPS.includes(p.key)).length, 0)
+
+  /* The same swatch grid the gradient stops use. Built once here rather than
+     per property row — there are 48 entries and this walks every scale. */
+  const colorGroups = useMemo(() => paletteGroups({
+    seeds: state.color.seeds,
+    roles: derived.roles[state.color.mode],
+    ramps: derived.ramps,
+    rampSteps: RAMP_STEPS,
+    /* Seeds are shown at their own pinned step, matching the Colour tab. */
+    resolveRef: ref => resolveRef(ref, derived.ramps),
+  }), [state.color.seeds, state.color.mode, derived.roles, derived.ramps])
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -413,7 +451,7 @@ export default function ComponentsPanel({ inspect }) {
               {defs.map(def => (
                 <ComponentBlock key={def.name} def={def} cfg={cfg} onToggle={onToggle} onSet={onSet} onReset={onReset}
                   layout={derived.componentLayout} onSetLayout={onSetLayout}
-                  derived={derived} mode={state.color.mode} inspect={inspect} />
+                  derived={derived} mode={state.color.mode} inspect={inspect} colorGroups={colorGroups} />
               ))}
             </div>
           </Collapsible>
