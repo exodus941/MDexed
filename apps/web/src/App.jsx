@@ -124,6 +124,32 @@ const SyncBadge = ({ status }) => {
 
 /* The spec version the exported file will carry. Sits next to the storage
    readout because both answer the same question — what am I looking at. */
+/* MDesigner's own build, beside the wordmark because it identifies the tool.
+ *
+ * Distinct from the chip on the right, which is the *document's* build — the
+ * two answer different questions ("which MDesigner am I running" versus
+ * "which revision of this design system is this"), so they sit at opposite
+ * ends of the header rather than beside each other.
+ *
+ * Baked in by vite.config.js at compile time; `dev` when the dev server is
+ * serving, since nothing was built. */
+const AppBuild = () => {
+  const { version, sha } = __APP_BUILD__
+  const dev = version === 'dev'
+  return (
+    <span title={dev
+      ? 'Running from the dev server — no build was produced'
+      : `MDesigner build ${version}${sha ? ` · ${sha}` : ''}`}
+      style={{
+        fontFamily: 'var(--mono)', fontSize: 9.5, color: 'var(--dim)',
+        letterSpacing: '.02em', whiteSpace: 'nowrap', cursor: 'default',
+        alignSelf: 'flex-start', marginTop: 4,
+      }}>
+      {version}
+    </span>
+  )
+}
+
 /* The build this document last produced.
  *
  * Not "the version you typed" — the version is stamped by exporting, because
@@ -288,14 +314,13 @@ function UiHueControl({ value, onChange }) {
             textAlign: 'right', color: 'var(--text-dim)',
           }} />
       </div>
-      {/* The track carries the hue circle itself — the control shows its own
-          range rather than making you sweep to find out. */}
-      <input type="range" min={0} max={360} step={1} value={value}
+      {/* The track is the hue circle and the thumb is the hue you are on, so
+          the control states its own range and its own value. `--hue` is read
+          by the thumb rule in theme.js. */}
+      <input type="range" className="hue-slider" min={0} max={360} step={1} value={value}
         onChange={e => onChange(Number(e.target.value))}
         onDoubleClick={() => onChange(UI_HUE_DEFAULT)}
-        style={{
-          background: 'linear-gradient(to right, hsl(0 45% 45%), hsl(60 45% 45%), hsl(120 45% 45%), hsl(180 45% 45%), hsl(240 45% 45%), hsl(300 45% 45%), hsl(360 45% 45%))',
-        }} />
+        style={{ '--hue': value }} />
     </div>
   )
 }
@@ -1183,6 +1208,7 @@ function Shell() {
             <span style={{ fontFamily: 'var(--display)', fontWeight: 700, fontSize: 15, letterSpacing: '-0.025em', whiteSpace: 'nowrap' }}>
               MD<span style={{ color: 'var(--muted)', fontWeight: 400 }}>esigner</span>
             </span>
+            <AppBuild />
             <TitleField name={state.meta.name}
               onCommit={next => set(s => ({ ...s, meta: { ...s.meta, name: next } }), 'meta:name')} />
             <div style={{ display: 'flex', gap: 3, marginLeft: 4 }}>

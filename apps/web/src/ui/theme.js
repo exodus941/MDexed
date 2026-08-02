@@ -22,6 +22,9 @@ export const APP_CSS = `
   --text:hsl(var(--ui-h) 5% 87%);--muted:hsl(var(--ui-h) 3% 46%);--dim:hsl(var(--ui-h) 9% 27%);
   --text-dim:hsl(var(--ui-h) 4% 74%);
   --scroll:hsl(var(--ui-h) 11% 25%);--scroll-hover:hsl(var(--ui-h) 10% 34%);
+  /* The hue circle, at the saturation and lightness the chrome swatch uses,
+     so the track previews what the slider actually produces. */
+  --spectrum:linear-gradient(to right,hsl(0 65% 52%),hsl(60 65% 52%),hsl(120 65% 52%),hsl(180 65% 52%),hsl(240 65% 52%),hsl(300 65% 52%),hsl(360 65% 52%));
   --accent:#dc9055;--success:#5aad80;--danger:#de5c5c;--warn:#d8a441;
   --display:'Plus Jakarta Sans',system-ui,sans-serif;--sans:'Plus Jakarta Sans',system-ui,sans-serif;--mono:'JetBrains Mono',monospace;
   /* One duration for the whole editor. Snappier than this reads as jumpy. */
@@ -159,6 +162,19 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;
 input[type=range]:active::-webkit-slider-thumb{cursor:grabbing;transform:scale(1.15)}
 input[type=range]::-moz-range-track{height:3px;border-radius:2px;background:var(--bdr2)}
 input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;background:var(--accent);border:none;cursor:grab}
+
+/* ── The hue slider ──
+   The spectrum belongs to the track, not to the input box behind it — a
+   gradient on the element itself paints a band around the 3px track and
+   reads as a rainbow sitting behind a grey bar.
+
+   The thumb carries the hue it is currently pointing at, so the control
+   states its own value. A ring keeps it findable at the yellows, where a
+   bare swatch would vanish into the track under it. */
+.hue-slider::-webkit-slider-runnable-track{height:6px;border-radius:3px;background:var(--spectrum)}
+.hue-slider::-moz-range-track{height:6px;border-radius:3px;background:var(--spectrum)}
+.hue-slider::-webkit-slider-thumb{width:14px;height:14px;margin-top:-4px;background:hsl(var(--hue) 65% 52%);box-shadow:0 0 0 2px var(--surf),0 0 0 3px rgba(255,255,255,.5)}
+.hue-slider::-moz-range-thumb{width:14px;height:14px;background:hsl(var(--hue) 65% 52%);box-shadow:0 0 0 2px var(--surf),0 0 0 3px rgba(255,255,255,.5)}
 
 .num{font-family:var(--mono);font-size:12px;padding:4px 6px;text-align:right}
 .num::-webkit-outer-spin-button,.num::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
