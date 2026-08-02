@@ -17,7 +17,6 @@ import { PROSE_SECTIONS } from '../src/state/schema.js'
 /* theme.js re-exports a `?raw` import, which is a Vite feature Node cannot
    resolve, so the chrome stylesheet is read from disk instead. */
 const APP_CSS = fs.readFileSync(new URL('../src/ui/theme.css', import.meta.url), 'utf8')
-import { PREVIEW_CSS } from '../src/preview/tokens.js'
 
 const line = s => console.log(s)
 let failures = 0
@@ -32,7 +31,10 @@ line('\n- colour -')
 assert(Object.keys(derived.ramps).length === 5, '5 ramps built')
 assert(/^#[0-9a-f]{6}$/i.test(derived.ramps.accent.steps[500]), `accent.500 is a hex (${derived.ramps.accent.steps[500]})`)
 assert(derived.ramps.accent.anchor != null, `seed anchored at step ${derived.ramps.accent.anchor}`)
-assert(Object.keys(derived.roles.light).length === 27, `27 light roles (got ${Object.keys(derived.roles.light).length})`)
+/* 28 since danger-hover joined the status group. Accent had a hover role from
+   the start and danger did not, so a destructive button's hover resolved to
+   the colour it already was. */
+assert(Object.keys(derived.roles.light).length === 28, `28 light roles (got ${Object.keys(derived.roles.light).length})`)
 assert(derived.roles.light.bg !== derived.roles.dark.bg, 'light and dark bg differ')
 
 line('\n- generated scales -')
@@ -244,24 +246,34 @@ line('\n- prompt construction -')
 }
 
 
-/* ── Stylesheets survive being template literals ──
+/* ── Stylesheets are stylesheets ──
  *
- * APP_CSS and PREVIEW_CSS are one enormous backtick string each, so a backtick
- * typed inside a CSS comment terminates the literal early. The file often
- * still parses, the app renders nothing, and the build can stay green because
- * the resulting error lands somewhere unrelated. It has happened four times.
+ * Both sheets used to be one enormous backtick string, and a backtick typed
+ * inside a CSS comment terminated the literal early. The file still parsed,
+ * the app rendered nothing, and the build could stay green because the
+ * resulting error landed somewhere unrelated. It happened five times.
  *
- * Checking the exported string rather than counting backticks in the source:
- * a parity check passes when there are two strays, which is exactly what a
- * pair of backticks around one word produces — the case that actually keeps
- * happening. A truncated literal cannot contain the rule that closes it. */
+ * Both are .css files now, read with ?raw, where a backtick is an ordinary
+ * character and the bug cannot be written. This guard remains as the check
+ * that they are still *whole* — a truncated or half-saved sheet cannot contain
+ * the rule that closes it — and as the thing that fails loudly if either is
+ * ever moved back into JavaScript.
+ *
+ * Read from disk rather than imported: Node cannot resolve Vite's ?raw. */
 {
-  line('\n- stylesheet literals -')
+  line('\n- stylesheets -')
   const BT = String.fromCharCode(96)
+  const PREVIEW_CSS = fs.readFileSync(new URL('../src/preview/preview.css', import.meta.url), 'utf8')
   const sheets = [
     ['APP_CSS', APP_CSS, '.dropzone'],
     ['PREVIEW_CSS', PREVIEW_CSS, '.dmd .nav-item'],
   ]
+  /* The structural claim, asserted rather than trusted: neither sheet lives in
+     a template literal any more. */
+  for (const f of ['../src/ui/theme.js', '../src/preview/tokens.js']) {
+    const src = fs.readFileSync(new URL(f, import.meta.url), 'utf8')
+    assert(!new RegExp('CSS = ' + BT).test(src), `${f.split('/').pop()} holds no CSS template literal`)
+  }
   for (const [name, css, tail] of sheets) {
     /* Reaching the closing rule is the real test. An escaped backtick is
        legal and harmless — it lands in a CSS comment and nothing cares — so
