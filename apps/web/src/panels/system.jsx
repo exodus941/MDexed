@@ -293,13 +293,21 @@ export function DepthPanel() {
   const mode = state.color.mode
   const roles = derived.roles[mode]
 
-  /* Every seed, role and scale step, the same set the gradient stops and the
-     component properties offer. A shadow tint and a scrim are colour choices
-     like any other and should not have a shorter menu than the rest. */
+  /* Seeds and scale steps, but deliberately not roles.
+   *
+   * These two are stored as dotted scale references (`neutral.950`) and
+   * resolved through `resolveRef`, which only knows scales. Offering roles
+   * let you pick `danger-subtle` and get black, because the reference went in
+   * fine and came back unresolvable. The menu now only contains what the
+   * field can actually hold.
+   *
+   * It is the right vocabulary anyway. A shadow tint is not semantic — it is
+   * a hue borrowed from a scale to keep shadows off pure black — so naming it
+   * after a role would say something untrue about why it was chosen. */
   const swatchGroups = paletteGroups({
-    seeds: state.color.seeds, roles, ramps: derived.ramps, rampSteps: RAMP_STEPS,
+    seeds: state.color.seeds, roles: {}, ramps: derived.ramps, rampSteps: RAMP_STEPS,
     resolveRef: ref => resolveRef(ref, derived.ramps),
-  })
+  }).filter(g => g.items.length > 0)
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
