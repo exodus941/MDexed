@@ -62,6 +62,25 @@ label{display:block;font-size:10.5px;font-weight:500;text-transform:uppercase;le
 .btn-add:hover{background:rgba(220,144,85,.13)}
 .btn-delete{background:none;border:none;cursor:pointer;color:var(--dim);border-radius:4px;transition:color var(--t) var(--ease);display:flex;align-items:center;justify-content:center;padding:4px}
 .btn-delete:hover{color:var(--danger)}
+/* The shared close control. Dimmed until pointed at, so it never competes
+   with the message it sits beside. */
+/* File drop target. A dashed box reads as "put something here" in a way no
+   button does, and it doubles as the click target so there is one thing to
+   aim at rather than a zone plus a button beside it. */
+/* A <label> so the hidden file input is triggered by clicking anywhere in the
+   box — which means inheriting the field-label styling above, hence the
+   resets on the first line. */
+.dropzone{text-transform:none;letter-spacing:normal;font-weight:400;margin-bottom:0;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;
+  padding:34px 20px;border:1.5px dashed var(--bdr2);border-radius:10px;background:var(--surf2);
+  color:var(--muted);cursor:pointer;text-align:center;
+  transition:border-color var(--t) var(--ease),background var(--t) var(--ease),color var(--t) var(--ease)}
+.dropzone:hover{border-color:var(--accent);color:var(--text-dim)}
+.dropzone.over{border-color:var(--accent);background:rgba(220,144,85,.08);color:var(--accent)}
+
+.close-x{opacity:.55;transition:opacity var(--t) var(--ease),background var(--t) var(--ease)}
+.close-x:hover{opacity:1;background:rgba(127,127,127,.16)}
+.close-x:focus-visible{opacity:1;outline:2px solid var(--accent);outline-offset:1px}
 
 /* Inline delete confirmation: red tick commits, grey cross backs out. */
 .btn-confirm{background:none;border:none;cursor:pointer;border-radius:4px;display:flex;align-items:center;justify-content:center;padding:4px;transition:color var(--t) var(--ease),background var(--t) var(--ease)}
@@ -84,7 +103,11 @@ label{display:block;font-size:10.5px;font-weight:500;text-transform:uppercase;le
 @keyframes dmd-pop{from{opacity:0;transform:translateY(-4px) scale(.985)}to{opacity:1;transform:none}}
 @keyframes dmd-rise{from{opacity:0;transform:translateY(8px) scale(.99)}to{opacity:1;transform:none}}
 @keyframes dmd-fall{from{opacity:1;transform:none}to{opacity:0;transform:translateY(8px) scale(.99)}}
+@keyframes dmd-fade-out{from{opacity:1}to{opacity:0}}
 .anim-fade{animation:dmd-fade var(--t) var(--ease) both}
+/* A straight dissolve out, for things that leave in place rather than
+   travelling — the notice bar, which occupies a row and shouldn't slide. */
+.anim-fade-out{animation:dmd-fade-out var(--t) var(--ease) forwards}
 .anim-pop{animation:dmd-pop var(--t) var(--ease) both}
 .anim-rise{animation:dmd-rise var(--t) var(--ease) both}
 /* Exit as a keyframe rather than a transition: a transition needs a frame to

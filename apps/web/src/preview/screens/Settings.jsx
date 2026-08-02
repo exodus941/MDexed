@@ -16,7 +16,7 @@ export default function Settings({ onInspect }) {
   ]
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '160px 1fr', gap: 'var(--space-xl, 32px)', alignItems: 'start' }}>
+    <div className="with-aside" style={{ '--aside': '160px' }}>
       <nav className="stack-sm">
         {sections.map((s, i) => (
           <div key={s} className={`nav-item with-icon${i === 3 ? ' is-active' : ''}`}

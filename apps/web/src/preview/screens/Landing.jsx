@@ -11,7 +11,7 @@ export default function Landing({ onInspect }) {
   const txt = (typeName, roleName = 'text') => inspectProps(text(typeName, roleName), onInspect)
   return (
     <div style={{ maxWidth: 'var(--measure, 68ch)', margin: '0 auto' }} className="stack">
-      <div className="row" style={{ justifyContent: 'space-between' }}>
+      <div className="row row-wrap" style={{ justifyContent: 'space-between' }}>
         <div className="row">
           <div className="avatar" {...ins('avatar')}>N</div>
           <strong {...txt('body-md', 'text')} style={{ fontSize: 'var(--font-body-md-size, 16px)', cursor: onInspect ? 'pointer' : undefined }}>Northwind</strong>
@@ -38,7 +38,7 @@ export default function Landing({ onInspect }) {
         <p className="caption" {...txt('caption', 'text-muted')}>No card required · Cancel any time</p>
       </div>
 
-      <div className="grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+      <div className="cols-3">
         {[
           ['Send in seconds', 'Templates remember your line items, tax rates and terms.'],
           ['Chase on its own', 'Reminders at 7, 14 and 30 days, in your own words.'],

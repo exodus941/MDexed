@@ -12,14 +12,16 @@ import { parseFile } from './emit/parse.js'
 import { isValidColor } from './color/convert.js'
 import { APP_CSS } from './ui/theme.js'
 import { loadDocumentFonts } from './type/fonts.js'
-import { Banner, ResetButton } from './ui/controls.jsx'
+import { Banner, ResetButton, CloseButton } from './ui/controls.jsx'
 import CrossFade from './ui/CrossFade.jsx'
+import ImportModal, { IMPORT_FORMATS } from './ui/ImportModal.jsx'
 import Canvas, { SURFACES } from './preview/Canvas.jsx'
 import ColorPanel from './panels/ColorPanel.jsx'
 import RolesPanel from './panels/RolesPanel.jsx'
 import TypographyPanel from './panels/TypographyPanel.jsx'
 import ComponentsPanel from './panels/ComponentsPanel.jsx'
 import DirectivesPanel from './panels/DirectivesPanel.jsx'
+import AccessPanel from './panels/AccessPanel.jsx'
 import { LayoutPanel, ShapePanel, DepthPanel, MotionPanel } from './panels/system.jsx'
 import { MetaTab, RationaleTab } from './panels/basics.jsx'
 import HistoryPanel from './panels/HistoryPanel.jsx'
@@ -82,17 +84,56 @@ const Motion = ({ off }) => (
   </svg>
 )
 
+/* Where this document lives. A readout, not a control.
+ *
+ * It used to say "Local only" inside a bordered pill that looked exactly like
+ * every button beside it, so the obvious move was to click it and nothing
+ * happened. Now it reads as status: a coloured dot, no border, no pill, and
+ * wording that states a fact rather than naming a mode. */
 const SyncBadge = ({ status }) => {
   const cfg = {
-    local:    { bg: 'var(--surf2)',         fg: 'var(--muted)',   txt: 'Local only' },
-    saving:   { bg: 'var(--surf2)',         fg: 'var(--accent)',  txt: 'Saving…' },
-    saved:    { bg: 'rgba(90,173,128,.13)', fg: 'var(--success)', txt: 'Saved' },
-    readonly: { bg: 'var(--surf2)',         fg: 'var(--muted)',   txt: 'Read-only' },
-    conflict: { bg: 'rgba(222,92,92,.13)',  fg: 'var(--danger)',  txt: 'Conflict' },
-    error:    { bg: 'rgba(222,92,92,.13)',  fg: 'var(--danger)',  txt: 'Sync error' },
-    offline:  { bg: 'var(--surf2)',         fg: 'var(--muted)',   txt: 'Offline' },
-  }[status] ?? { bg: 'var(--surf2)', fg: 'var(--muted)', txt: status }
-  return <span style={{ fontSize: 11, fontFamily: 'var(--mono)', background: cfg.bg, color: cfg.fg, padding: '4px 10px', borderRadius: 5, border: '1px solid var(--bdr)', whiteSpace: 'nowrap' }}>{cfg.txt}</span>
+    local:    { fg: 'var(--muted)',   dot: 'var(--dim)',     txt: 'On this device' },
+    saving:   { fg: 'var(--accent)',  dot: 'var(--accent)',  txt: 'Saving…' },
+    saved:    { fg: 'var(--success)', dot: 'var(--success)', txt: 'In the cloud' },
+    readonly: { fg: 'var(--muted)',   dot: 'var(--dim)',     txt: 'Read-only' },
+    conflict: { fg: 'var(--danger)',  dot: 'var(--danger)',  txt: 'Conflict' },
+    error:    { fg: 'var(--danger)',  dot: 'var(--danger)',  txt: 'Sync failed' },
+    offline:  { fg: 'var(--muted)',   dot: 'var(--warn)',    txt: 'Offline' },
+  }[status] ?? { fg: 'var(--muted)', dot: 'var(--dim)', txt: status }
+  const help = {
+    local: 'Saved in this browser only. Use Save to Cloud to sync it.',
+    saving: 'Writing to the cloud…',
+    saved: 'Synced. Also kept in this browser.',
+    readonly: 'Opened from a share link — changes stay local.',
+    conflict: 'The cloud copy changed since you loaded this one.',
+    error: 'The last sync failed. Your work is still safe locally.',
+    offline: 'No connection. Everything is being kept locally.',
+  }[status] ?? 'Where this document is stored'
+  return (
+    <span title={help} style={{
+      display: 'inline-flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap',
+      fontSize: 11, color: cfg.fg, cursor: 'default',
+    }}>
+      <span style={{ width: 6, height: 6, borderRadius: '50%', background: cfg.dot, flexShrink: 0 }} />
+      {cfg.txt}
+    </span>
+  )
+}
+
+/* The spec version the exported file will carry. Sits next to the storage
+   readout because both answer the same question — what am I looking at. */
+const VersionChip = ({ version }) => {
+  const v = String(version ?? '').trim()
+  /* Prefix a `v` only for a number. "1.2" wants to read as "v1.2"; "alpha"
+     does not want to read as "valpha". */
+  return (
+    <span title="DESIGN.md version — edit it in the Meta tab" style={{
+      fontSize: 10.5, fontFamily: 'var(--mono)', color: 'var(--dim)',
+      whiteSpace: 'nowrap', cursor: 'default',
+    }}>
+      {!v ? 'no version' : /^\d/.test(v) ? `v${v}` : v}
+    </span>
+  )
 }
 
 /* ── Macro bar ──
@@ -271,7 +312,7 @@ function FileModal({ onClose }) {
             onClick={() => navigator.clipboard.writeText(text).then(() => { setCopied(true); setTimeout(() => setCopied(false), 1800) })}>
             <Copy />{copied ? 'Copied' : 'Copy'}
           </button>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', fontSize: 18, padding: '2px 6px', lineHeight: 1 }}>×</button>
+          <CloseButton onClick={onClose} label="Close" size={11} />
         </div>
 
         {(report.errors.length > 0 || report.warnings.length > 0 || dropped.length > 0) && (
@@ -585,10 +626,49 @@ function RestoreToast({ offer, onRestore, onDismiss }) {
         onClick={() => close(onRestore)}>
         Restore
       </button>
-      <button onClick={() => close(onDismiss)} title="Dismiss"
-        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', fontSize: 17, lineHeight: 1, padding: '2px 6px', flexShrink: 0 }}>
-        ×
-      </button>
+      <CloseButton onClick={() => close(onDismiss)} size={10} />
+    </div>
+  )
+}
+
+/* ── The notice bar ──
+ *
+ * Ten seconds, then it fades out on its own. A notice that stays until
+ * clicked becomes furniture — you stop reading it, and the next one looks
+ * like the last one still being there.
+ *
+ * Hovering pauses the clock. Ten seconds is not long for an error message
+ * you are still reading, and the cost of getting that wrong is that the
+ * explanation for a failed import vanishes mid-sentence.
+ *
+ * Both the timer and the fade go through the animation setting: with UI
+ * animation off, it disappears the moment the ten seconds are up rather than
+ * animating out over a duration that has been set to zero. */
+function NoticeBar({ notice, onClose }) {
+  const [leaving, setLeaving] = useState(false)
+  const [held, setHeld] = useState(false)
+
+  useEffect(() => { setLeaving(false) }, [notice])
+
+  useEffect(() => {
+    if (!notice || held) return
+    const t = setTimeout(() => setLeaving(true), 10000)
+    return () => clearTimeout(t)
+  }, [notice, held])
+
+  useEffect(() => {
+    if (!leaving) return
+    const ms = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--t'), 10) || 0
+    const t = setTimeout(onClose, ms)
+    return () => clearTimeout(t)
+  }, [leaving, onClose])
+
+  if (!notice) return null
+  return (
+    <div className={leaving ? 'anim-fade-out' : 'anim-fade'}
+      onMouseEnter={() => setHeld(true)} onMouseLeave={() => setHeld(false)}
+      style={{ padding: '9px 20px', background: 'var(--surf)', borderBottom: '1px solid var(--bdr)', flexShrink: 0 }}>
+      <Banner tone={notice.tone} onDismiss={() => setLeaving(true)}>{notice.text}</Banner>
     </div>
   )
 }
@@ -603,7 +683,7 @@ function NewDocModal({ onClose, onCreate }) {
       <div onClick={e => e.stopPropagation()} className="anim-rise" style={{ background: 'var(--surf)', border: '1px solid var(--bdr)', borderRadius: 12, width: '100%', maxWidth: 560, maxHeight: '84vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <div style={{ display: 'flex', alignItems: 'center', padding: '13px 17px', borderBottom: '1px solid var(--bdr)' }}>
           <span style={{ fontFamily: 'var(--display)', fontWeight: 700, fontSize: 15, flex: 1 }}>New design system</span>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', fontSize: 18, padding: '2px 6px', lineHeight: 1 }}>×</button>
+          <CloseButton onClick={onClose} label="Close" size={11} />
         </div>
 
         <div style={{ padding: 17, overflowY: 'auto', minHeight: 0 }}>
@@ -653,18 +733,33 @@ const TABS = [
   { id: 'motion',     label: 'Motion',     Panel: MotionPanel },
   { id: 'components', label: 'Components', Panel: ComponentsPanel },
   { id: 'directives', label: 'Directives', Panel: DirectivesPanel },
+  { id: 'access',     label: 'Access',     Panel: AccessPanel },
   { id: 'rationale',  label: 'Rationale',  Panel: RationaleTab },
   { id: 'history',    label: 'History',    Panel: HistoryPanel },
 ]
+
+/* Which kind of thing each tab's rows are, so a jump from anywhere can hand
+   the destination panel something it recognises. One table, one place to be
+   wrong. */
+const TAB_KIND = { components: 'component', roles: 'role', type: 'type' }
+const KIND_TAB = { component: 'components', role: 'roles', type: 'type' }
 
 function Shell() {
   const { state, derived, set, load, undo, redo, canUndo, canRedo } = useStore()
   const [tab, setTab] = useState('colors')
   const [showFile, setShowFile] = useState(false)
   const [showNew, setShowNew] = useState(false)
+  const [showImport, setShowImport] = useState(false)
   /* Carries a timestamp so clicking the same element twice re-triggers the
      jump rather than being deduplicated as an unchanged value. */
   const [inspect, setInspect] = useState(null)
+  /* A jump from one panel to a row on another. The accessibility audit is the
+     first caller: reading that `checkbox` is 16px and then hunting for the
+     checkbox across thirteen tabs is how audits get abandoned. */
+  const navigate = useCallback((toTab, entry) => {
+    setTab(toTab)
+    setInspect(entry && TAB_KIND[toTab] ? { entry, kind: TAB_KIND[toTab], at: Date.now() } : null)
+  }, [])
   /* The previous session's document, offered rather than loaded. */
   const [restorable, setRestorable] = useState(null)
   /* Owned here rather than in Canvas so the HTML export can render it. */
@@ -698,7 +793,6 @@ function Shell() {
   const [syncStatus, setSyncStatus] = useState('local')
   const [linkCopied, setLinkCopied] = useState(false)
   const isInitialSync = useRef(true)
-  const fileRef = useRef(null)
   const savingRef = useRef(false)
   const dirtyRef = useRef(false)
   const [dirty, setDirty] = useState(false)
@@ -870,7 +964,7 @@ function Shell() {
       ])
       const entry = SURFACES.find(s => s.id === surface) ?? SURFACES[0]
       const markup = renderToStaticMarkup(
-        <div className="dmd"><entry.Component layout={derived.componentLayout} /></div>
+        <div className="dmd-frame"><div className="dmd"><entry.Component layout={derived.componentLayout} /></div></div>
       )
       const html = previewHtml({ state, derived, markup, surface: entry.label, mode: state.color.mode })
       saveAs(html, `${slugify(state.meta.name)}-${entry.id}.html`, 'text/html')
@@ -905,7 +999,7 @@ function Shell() {
       }
       for (const s of SURFACES) {
         const markup = renderToStaticMarkup(
-          <div className="dmd"><s.Component layout={derived.componentLayout} /></div>
+          <div className="dmd-frame"><div className="dmd"><s.Component layout={derived.componentLayout} /></div></div>
         )
         files[`html-examples/${s.id}.html`] =
           html.previewHtml({ state, derived, markup, surface: s.label, mode: state.color.mode })
@@ -922,22 +1016,36 @@ function Shell() {
     }
   }
 
-  const importFile = e => {
-    const f = e.target.files?.[0]
-    e.target.value = ''
-    if (!f) return
-    const reader = new FileReader()
-    reader.onload = ev => {
-      const result = parseFile(String(ev.target.result))
-      /* A failed import leaves the current document untouched. */
-      if (!result.ok) { setNotice({ tone: 'error', text: `Could not import ${f.name}. ${result.error}` }); return }
-      load(result.state)
-      setNotice(result.warnings.length
-        ? { tone: 'warn', text: `Imported ${f.name}. ${result.warnings.join(' ')}` }
-        : { tone: 'success', text: `Imported ${f.name}.` })
-    }
-    reader.onerror = () => setNotice({ tone: 'error', text: `Could not read ${f.name}.` })
-    reader.readAsText(f)
+  /* Seeds only, because seeds are what everything else generates from — set
+     those and the scales, roles and every component follow. Writing further
+     downstream would paste in values that no longer track anything. */
+  const applyCssImport = ({ seeds, family, spacingBase, radiusBase, fontBase }) => {
+    set(s => {
+      const next = { ...s }
+      if (seeds && Object.keys(seeds).length) {
+        next.color = { ...s.color, seeds: s.color.seeds.map(x => seeds[x.name] ? { ...x, hex: seeds[x.name] } : x) }
+      }
+      if (family) {
+        next.type = { ...s.type, families: { ...s.type.families, body: { family, category: 'sans-serif' } } }
+      }
+      if (fontBase) next.type = { ...(next.type ?? s.type), base: fontBase }
+      if (spacingBase) next.space = { ...s.space, base: spacingBase }
+      if (radiusBase) next.radius = { ...s.radius, base: radiusBase }
+      return next
+    }, 'css-import')
+    setNotice({ tone: 'info', text: 'Imported into the seeds. Everything downstream regenerated — undo if it isn’t what you wanted.' })
+  }
+
+  /* The modal has already read the text, so this only has to parse it. A
+     failed parse leaves the current document untouched — the whole point of
+     doing the work here rather than optimistically loading and rolling back. */
+  const openDocument = (text, label) => {
+    const result = parseFile(text)
+    if (!result.ok) { setNotice({ tone: 'error', text: `Could not import ${label}. ${result.error}` }); return }
+    load(result.state)
+    setNotice(result.warnings.length
+      ? { tone: 'warn', text: `Imported ${label}. ${result.warnings.join(' ')}` }
+      : { tone: 'success', text: `Imported ${label}.` })
   }
 
   const swatches = [derived.roles.light.accent, derived.roles.light.bg, derived.roles.light.surface, derived.roles.light.text, derived.roles.light.success, derived.roles.light.warning, derived.roles.light.danger].filter(isValidColor)
@@ -951,9 +1059,12 @@ function Shell() {
 
         <header style={{ display: 'flex', alignItems: 'center', gap: 13, padding: '0 20px', height: 50, borderBottom: '1px solid var(--bdr)', background: 'var(--surf)', flexShrink: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 9, flex: 1, minWidth: 0 }}>
-            <div style={{ width: 26, height: 26, borderRadius: 7, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--display)', fontWeight: 800, fontSize: 12.5, color: '#0b0b0e', flexShrink: 0 }}>D</div>
+            {/* Two letters in the same box the single D had, so the mark
+                keeps its size — tighter tracking rather than a smaller face,
+                which would make it read as secondary next to the wordmark. */}
+            <div style={{ width: 26, height: 26, borderRadius: 7, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--display)', fontWeight: 800, fontSize: 11.5, letterSpacing: '-0.04em', color: '#0b0b0e', flexShrink: 0 }}>MD</div>
             <span style={{ fontFamily: 'var(--display)', fontWeight: 700, fontSize: 15, letterSpacing: '-0.025em', whiteSpace: 'nowrap' }}>
-              design<span style={{ color: 'var(--muted)', fontWeight: 400 }}>.md</span>
+              MD<span style={{ color: 'var(--muted)', fontWeight: 400 }}>esigner</span>
             </span>
             <TitleField name={state.meta.name}
               onCommit={next => set(s => ({ ...s, meta: { ...s.meta, name: next } }), 'meta:name')} />
@@ -963,7 +1074,13 @@ function Shell() {
           </div>
 
           <div style={{ display: 'flex', gap: 6, flexShrink: 0, alignItems: 'center' }}>
-            <SyncBadge status={syncStatus} />
+            {/* Two readouts, then the controls. Tighter gap between them than
+                to the buttons, so they group as one unit rather than reading
+                as two more things to click. */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginRight: 2 }}>
+              <VersionChip version={state.meta.version} />
+              <SyncBadge status={syncStatus} />
+            </div>
             {syncStatus === 'conflict' && (
               <button className="btn-ghost" onClick={reloadFromServer} style={{ padding: '6px 12px', color: 'var(--danger)', borderColor: 'rgba(222,92,92,.4)' }}>Reload</button>
             )}
@@ -975,10 +1092,12 @@ function Shell() {
                 {linkCopied ? 'Link copied' : 'Copy share URL'}
               </button>
             )}
-            <input ref={fileRef} type="file" accept=".md,.txt,.markdown" onChange={importFile} style={{ display: 'none' }} />
             <button className="btn-ghost" onClick={() => setShowNew(true)} style={{ padding: '6px 12px' }}>New</button>
-            <button className="btn-ghost" onClick={() => fileRef.current?.click()} style={{ padding: '6px 12px' }}><Upload />Import</button>
-            <button className="btn-ghost" onClick={() => setShowFile(true)} style={{ padding: '6px 12px' }}>Preview File</button>
+            {/* One door for anything that already exists — a DESIGN.md to open
+                or a stylesheet to sample. The modal works out which. */}
+            <button className="btn-ghost" onClick={() => setShowImport(true)} style={{ padding: '6px 12px' }}
+              title={IMPORT_FORMATS}><Upload />Import Reference</button>
+            <button className="btn-ghost" onClick={() => setShowFile(true)} style={{ padding: '6px 12px' }}>Preview design.md</button>
             <button className="btn-outline" onClick={exportPreviewHtml} disabled={exportingHtml}
               title={`Save the ${(SURFACES.find(s => s.id === surface) ?? SURFACES[0]).label} surface as a standalone HTML page`}
               style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
@@ -988,18 +1107,14 @@ function Shell() {
             <button className="btn-package" onClick={exportPackage} disabled={packaging}
               title="DESIGN.md, tokens.css, a Tailwind preset, tokens.json and every surface as HTML — one zip"
               style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-              <Download />{packaging ? 'Packaging…' : 'Export Full Package'}
+              <Download />{packaging ? 'Packaging…' : 'Export Payload'}
             </button>
           </div>
         </header>
 
         <MacroBar onOpenContrast={() => setTab('roles')} uiSpeed={uiSpeed} setUiSpeed={setUiSpeed} />
 
-        {notice && (
-          <div style={{ padding: '9px 20px', background: 'var(--surf)', borderBottom: '1px solid var(--bdr)', flexShrink: 0 }}>
-            <Banner tone={notice.tone} onDismiss={() => setNotice(null)}>{notice.text}</Banner>
-          </div>
-        )}
+        <NoticeBar notice={notice} onClose={() => setNotice(null)} />
 
         {/* Grid items default to min-height:auto, which stops them shrinking
             below their content — so an overflowing panel pushes the row taller
@@ -1048,7 +1163,7 @@ function Shell() {
               } />
             <main style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', padding: '20px 20px 64px' }}>
               <CrossFade id={tab}>
-                <Panel inspect={inspect?.kind === ({ components: 'component', roles: 'role', type: 'type' }[tab]) ? inspect : null} />
+                <Panel inspect={inspect?.kind === TAB_KIND[tab] ? inspect : null} onNavigate={navigate} />
               </CrossFade>
             </main>
           </div>
@@ -1057,7 +1172,7 @@ function Shell() {
               each live on their own tab. */}
           <Canvas surface={surface} setSurface={setSurface} onInspect={t => {
             setInspect({ entry: t.target, kind: t.kind, at: Date.now() })
-            setTab({ component: 'components', role: 'roles', type: 'type' }[t.kind] ?? 'components')
+            setTab(KIND_TAB[t.kind] ?? 'components')
           }} />
         </div>
       </div>
@@ -1083,6 +1198,10 @@ function Shell() {
       </div>
 
       {showFile && <FileModal onClose={() => setShowFile(false)} />}
+      {showImport && (
+        <ImportModal onClose={() => setShowImport(false)}
+          onApply={applyCssImport} onOpenDocument={openDocument} />
+      )}
       {showNew && (
         <NewDocModal
           onClose={() => setShowNew(false)}

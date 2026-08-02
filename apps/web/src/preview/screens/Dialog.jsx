@@ -125,7 +125,7 @@ export default function Dialog({ onInspect, layout }) {
         <Modal ins={ins} txt={txt} layout={modal} onInspect={onInspect} />
       </div>
 
-      <div className="grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
+      <div className="cols-2">
         {/* Toast */}
         <div className="card card-overlay row" {...ins('card-overlay')}>
           <span style={{ color: 'var(--c-success, green)', display: 'flex' }}><Ico d={IconCheck} /></span>

@@ -2,7 +2,7 @@
    stylesheet, then renders whichever surface is selected inside them. */
 import { useEffect, useState } from 'react'
 import { useStore } from '../state/store.jsx'
-import { PREVIEW_CSS, varsToStyle } from './tokens.js'
+import { PREVIEW_CSS, responsiveCss, varsToStyle } from './tokens.js'
 import { buildCssVars } from '../state/derive.js'
 import { gradientCss } from '../color/modes.js'
 import CrossFade from '../ui/CrossFade.jsx'
@@ -113,6 +113,10 @@ function TargetMenu({ menu, onPick, onClose }) {
 export default function Canvas({ onInspect, surface, setSurface }) {
   const { state, derived, set } = useStore()
   const [menu, setMenu] = useState(null)
+  /* null = fill the pane, which is the honest default: the preview is not a
+     device, it's a pane, and pretending otherwise invites reading exact
+     pixel sizes off it. */
+  const [width, setWidth] = useState(null)
 
   /* Straight through when the element itself has exactly one destination — a
      button should still be one click, even though the card behind it is now
@@ -137,9 +141,18 @@ export default function Canvas({ onInspect, surface, setSurface }) {
   }, mode)
   const { Component } = SURFACES.find(s => s.id === surface) ?? SURFACES[0]
 
+  /* Below the smallest breakpoint, then just inside each declared one. A
+     breakpoint you can't see the effect of is a number in a file. */
+  const bps = state.layout?.breakpoints ?? []
+  const widths = [
+    { label: 'Fit', px: null, note: 'the full pane' },
+    { label: `<${bps[0]?.px ?? 640}`, px: (bps[0]?.px ?? 640) - 24, note: `below ${bps[0]?.name ?? 'sm'}` },
+    ...bps.map(b => ({ label: b.name, px: b.px, note: `at ${b.name}` })),
+  ]
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minWidth: 0, minHeight: 0, background: 'var(--surf2)' }}>
-      <style>{PREVIEW_CSS}</style>
+      <style>{PREVIEW_CSS}{responsiveCss(bps)}</style>
 
       {/* Height matches the editor tab strip so the two bars line up. */}
       <div style={{
@@ -152,9 +165,24 @@ export default function Canvas({ onInspect, surface, setSurface }) {
           </button>
         ))}
         <div style={{ flex: 1 }} />
+
+        {/* Widths come from the breakpoints this document actually declares,
+            so the control tests the system rather than some generic set of
+            phone sizes. Each snaps just inside its breakpoint — the point is
+            to see the layout the breakpoint produces, not the boundary. */}
+        <div style={{ display: 'flex', gap: 2, background: 'var(--surf3)', padding: 2, borderRadius: 6, border: '1px solid var(--bdr)' }}>
+          {widths.map(w => (
+            <button key={w.label} onClick={() => setWidth(w.px)}
+              className={width === w.px ? 'seg-on' : 'seg'} style={{ padding: '2px 8px', fontSize: 11 }}
+              title={w.px ? `${w.px}px — ${w.note}` : 'Fill the pane'}>
+              {w.label}
+            </button>
+          ))}
+        </div>
+
         <div style={{ display: 'flex', gap: 2, background: 'var(--surf3)', padding: 2, borderRadius: 6, border: '1px solid var(--bdr)' }}>
           {['light', 'dark'].map(m => (
-            <button key={m} onClick={() => setMode(m)} className={mode === m ? 'seg-on' : 'seg'} style={{ padding: '3px 10px' }}>
+            <button key={m} onClick={() => setMode(m)} className={mode === m ? 'seg-on' : 'seg'} style={{ padding: '2px 10px' }}>
               {m === 'light' ? 'Light' : 'Dark'}
             </button>
           ))}
@@ -166,16 +194,33 @@ export default function Canvas({ onInspect, surface, setSurface }) {
           the old palette and light↔dark genuinely cross-dissolves rather than
           snapping. */}
       <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'auto', padding: 16 }}>
-        <CrossFade id={`${surface}:${mode}`}>
-          {/* The page itself is a token too. Clicking empty space lands on the
-              `bg` role — which is also how you discover that the background
-              is drawn from the neutral scale, since that is not guessable
-              from looking at it. Inner elements stop propagation, so this
-              only fires on genuinely blank areas. */}
-          <div className="dmd" style={{ ...varsToStyle(vars), borderRadius: 10, border: '1px solid var(--bdr)' }}
-            {...(onInspect ? inspectProps(role('bg', 'Page background · bg'), handleInspect) : {})}>
-            {/* Every surface is inspectable, not just the gallery. */}
-            <Component onInspect={onInspect ? handleInspect : undefined} layout={derived.componentLayout} />
+        {width && (
+          <div style={{ textAlign: 'center', fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--dim)', marginBottom: 6 }}>
+            {width}px
+          </div>
+        )}
+        {/* No transition on the width. Two reasons, and the second is the one
+            that matters: animating a width forces a full relayout of every
+            element in the preview on every frame, and a CSS transition only
+            advances while the page is compositing — so in a pane that isn't
+            being painted it sticks at its starting value and the surface
+            silently never resizes. The same trap the exit animations hit. */}
+        <CrossFade id={`${surface}:${mode}`}
+          style={width ? { width, margin: '0 auto' } : undefined}>
+          {/* The frame is what the container queries measure — see
+              `responsiveCss`. It carries no padding of its own so the width
+              the control asks for is the width the breakpoints see. */}
+          <div className="dmd-frame">
+            {/* The page itself is a token too. Clicking empty space lands on
+                the `bg` role — which is also how you discover that the
+                background is drawn from the neutral scale, since that is not
+                guessable from looking at it. Inner elements stop propagation,
+                so this only fires on genuinely blank areas. */}
+            <div className="dmd" style={{ ...varsToStyle(vars), borderRadius: 10, border: '1px solid var(--bdr)' }}
+              {...(onInspect ? inspectProps(role('bg', 'Page background · bg'), handleInspect) : {})}>
+              {/* Every surface is inspectable, not just the gallery. */}
+              <Component onInspect={onInspect ? handleInspect : undefined} layout={derived.componentLayout} />
+            </div>
           </div>
         </CrossFade>
       </div>

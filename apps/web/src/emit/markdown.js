@@ -10,6 +10,7 @@ import { PROSE_SECTIONS, CONTRAST_PAIRS, ROLE_GROUPS } from '../state/schema.js'
 import { check } from '../color/contrast.js'
 import { SPEC_COMPONENT_PROPS } from './yaml.js'
 import { LAYOUT_COMPONENTS, layoutRows, layoutSentences } from '../state/componentLayout.js'
+import { audit, REQUIREMENTS as A11Y_REQUIREMENTS } from '../a11y/audit.js'
 
 const cell = v => String(v ?? '').replace(/\|/g, '\\|').replace(/\n+/g, ' ').trim()
 
@@ -308,6 +309,56 @@ function motionSection(state, derived) {
   )
 }
 
+/* ── Accessibility ──
+   A tenth section, and the one with the most leverage per byte.
+
+   Two halves, and the split matters. The requirements are things no palette
+   can check and every agent gets wrong unless told — semantic elements, focus
+   trapping, live regions. They are the same every time, which is exactly why
+   they belong in the file rather than in someone's head.
+
+   The findings are what this specific system currently fails. Shipping them
+   is a deliberate choice: an agent that knows the palette's success and danger
+   collapse under deuteranopia will pair them with icons. An agent handed a
+   silently broken palette will not. A known flaw stated out loud is worth
+   more than a clean-looking file. */
+function accessibilitySection(state, derived, findings) {
+  const f = state.focus ?? {}
+  const live = findings.filter(x => x.level === 'fail')
+
+  return joinBlocks(
+    '**Non-negotiable**',
+    bullets(A11Y_REQUIREMENTS.map(r => r.text)),
+
+    '**Focus**',
+    bullets([
+      f.style === 'none'
+        ? 'No focus style is defined in this system. Define one before shipping.'
+        : `Focus indicator: ${f.width}px ${f.style}, offset ${f.offset}px, using the \`${f.role}\` colour.`,
+      'Apply it with `:focus-visible`, never `:focus` — a mouse click should not draw a ring.',
+      'Never remove the outline without replacing it with something at least as visible.',
+    ]),
+
+    '**Targets and states**',
+    bullets([
+      `Minimum interactive target: ${state.states?.touchTarget ?? 44}px. Controls smaller than this need clear space around them to compensate.`,
+      `Disabled controls sit at ${state.states?.disabledOpacity ?? 0.5} opacity and stay in the tab order only if they explain why they are disabled.`,
+      'Every interactive element has a hover, a focus-visible, an active and a disabled appearance. Do not ship a control with only a resting state.',
+    ]),
+
+    live.length > 0 && '**Known issues in this system**',
+    live.length > 0 && 'These are measured, not hypothetical. Work around them; do not reproduce them elsewhere.',
+    live.length > 0 && table(
+      ['Issue', 'Criterion', 'Measured'],
+      live.map(x => [
+        x.mode ? `${x.title} (${x.mode} mode)` : x.title,
+        x.criterion,
+        x.measured ? `\`${x.measured}\`` : '—',
+      ])
+    )
+  )
+}
+
 /**
  * @returns {{ text: string, omitted: string[] }}
  */
@@ -334,6 +385,7 @@ export function emitBody(state, derived) {
   }
 
   parts.push(`## Motion\n\n${fenceGenerated(motionSection(state, derived))}`)
+  parts.push(`## Accessibility\n\n${fenceGenerated(accessibilitySection(state, derived, audit(state, derived)))}`)
 
   return { text: parts.join('\n\n'), omitted }
 }
