@@ -481,26 +481,33 @@ export default function ImportModal({ onClose, onApply, onOpenDocument }) {
               {/* Three stacked blocks that were four, eight and eight pixels
                   apart, which is why the top of this read as one crowded
                   paragraph with a checkbox in it. Same scale as the table. */}
-              {/* Start over has moved to the footer, beside the other two
-                  buttons. It is an action, and the actions belong together —
-                  up here it was a button floating in a line of statistics. */}
-              <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 14 }}>
-                {found.counts.colours} colours, {found.counts.families} families
-                {found.counts.vars > 0 && `, ${found.counts.vars} custom properties`}
+              {/* What the file turned out to contain, as cards rather than a
+                  sentence. Three numbers reading as prose is three numbers
+                  nobody reads; the count is the point, so the count is the
+                  large thing. Start over has moved to the footer with the
+                  other actions — up here it was a button adrift in a line of
+                  statistics. */}
+              <div style={{ display: 'flex', gap: 10, marginBottom: 18 }}>
+                <Stat label="Colours" value={found.counts.colours} />
+                <Stat label="Families" value={found.counts.families} />
+                <Stat label="Custom properties" value={found.counts.vars} />
               </div>
 
-              <p className="panel-note" style={{ marginBottom: 20 }}>
+              <p className="panel-note" style={{ marginBottom: GROUP_TOP }}>
                 Only selected elements from the following list go into a <strong>seed</strong>, and the
                 scales, roles and components are generated from there.
               </p>
 
-              {/* One rule above, not one above and one below — the second was
-                  landing a few pixels from the first group heading and reading
-                  as a box drawn round nothing. */}
+              {/* Spaced exactly like a table row, because that is what it is:
+                  a rule on top, ROW_Y of padding either side, and the heading
+                  under it taking its usual GROUP_TOP. That makes the air above
+                  and below this identical to the air between a table's last
+                  row and the next group heading — the same 36px, arrived at
+                  the same way rather than by matching a number by eye. */}
               {Object.keys(rows).length > 0 && (
                 <div style={{
                   display: 'flex', alignItems: 'center', gap: PAD.gap,
-                  padding: '14px 0 18px', borderTop: RULE,
+                  padding: `${ROW_Y}px 0`, borderTop: RULE,
                 }}>
                   <SelectAll label="Select all" ids={Object.keys(rows)} off={off}
                     onSet={on => setOff(on ? new Set() : new Set(Object.keys(rows)))} />
@@ -522,9 +529,11 @@ export default function ImportModal({ onClose, onApply, onOpenDocument }) {
                       <Fragment key={group}>
                         <div style={{
                           gridColumn: '1 / -1', fontSize: 12, fontWeight: 500, color: 'var(--text)',
-                          /* No extra air above the first heading — the block
-                             already has the panel's own padding above it. */
-                          paddingTop: gi === 0 ? 0 : GROUP_TOP,
+                          /* Every heading the same, the first included — the
+                             select-all row above it is spaced like a table
+                             row, so this gap is the same gap as everywhere
+                             else in the list. */
+                          paddingTop: GROUP_TOP,
                           paddingBottom: GROUP_BOT,
                         }}>{group}</div>
 
@@ -603,9 +612,25 @@ const Section = ({ title, note, right, children }) => (
   </div>
 )
 
+/* What the file contained, one card per count.
+ *
+ * The number leads and the label follows, because the number is the fact and
+ * the label only says which fact — reading "21 colours, 0 families, 36 custom
+ * properties" as a sentence buries all three. A zero greys out rather than
+ * disappearing: "no families in this file" is worth knowing, and an absent
+ * card would leave you wondering whether it had been looked for. */
 const Stat = ({ label, value }) => (
-  <div style={{ background: 'var(--surf2)', border: '1px solid var(--bdr)', borderRadius: 7, padding: PAD.sub, minWidth: 108 }}>
-    <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--muted)' }}>{label}</div>
-    <div style={{ fontFamily: 'var(--mono)', fontSize: 13, color: 'var(--text)', marginTop: 2 }}>{value}</div>
+  <div style={{
+    background: 'var(--surf2)', border: '1px solid var(--bdr)', borderRadius: 8,
+    padding: '11px 16px 12px', minWidth: 116,
+  }}>
+    <div style={{
+      fontFamily: 'var(--mono)', fontSize: 19, lineHeight: 1.15,
+      color: value ? 'var(--text)' : 'var(--dim)',
+    }}>{value}</div>
+    <div style={{
+      fontSize: 9.5, textTransform: 'uppercase', letterSpacing: '.07em',
+      color: 'var(--muted)', marginTop: 5,
+    }}>{label}</div>
   </div>
 )
