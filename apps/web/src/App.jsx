@@ -13,6 +13,7 @@ import { isValidColor } from './color/convert.js'
 import { APP_CSS } from './ui/theme.js'
 import { loadDocumentFonts } from './type/fonts.js'
 import { Banner, ResetButton } from './ui/controls.jsx'
+import CrossFade from './ui/CrossFade.jsx'
 import Canvas from './preview/Canvas.jsx'
 import ColorPanel from './panels/ColorPanel.jsx'
 import RolesPanel from './panels/RolesPanel.jsx'
@@ -852,7 +853,9 @@ function Shell() {
                 </div>
               } />
             <main style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', padding: '20px 20px 64px' }}>
-              <Panel inspect={inspect?.kind === ({ components: 'component', roles: 'role', type: 'type' }[tab]) ? inspect : null} />
+              <CrossFade id={tab}>
+                <Panel inspect={inspect?.kind === ({ components: 'component', roles: 'role', type: 'type' }[tab]) ? inspect : null} />
+              </CrossFade>
             </main>
           </div>
 

@@ -7,6 +7,7 @@ import { parseColor, toRgb255 } from '../color/convert.js'
 import { buildTypeScale } from '../type/scale.js'
 import { stackFor } from '../type/fonts.js'
 import { expandComponents } from './components.js'
+import { resolveAllLayouts } from './componentLayout.js'
 import { ALL_ROLES } from './schema.js'
 
 const UNIT_RE = /^(-?\d*\.?\d+)\s*([a-z%]*)$/i
@@ -146,8 +147,11 @@ export function derive(state) {
     ...(state.components?.custom ?? []).map(c => ({ ...c, source: 'custom' })),
   ].map(c => ({ ...c, properties: c.properties.map(p => ({ ...p, value: resolveLiterals(p.value) })) }))
 
+  const componentLayout = resolveAllLayouts(state.components?.layout)
+
   return {
     ramps, roles, families, typography, spacing, rounded, elevation, motion, components, gradients,
+    componentLayout,
     shadowHex, scrimColor,
     layout: state.layout,
     icons: state.icons,

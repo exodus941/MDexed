@@ -6,6 +6,7 @@
 import { useMemo, useState } from 'react'
 import { diffWords, diffStats } from './diff.js'
 import { Segmented } from '../ui/controls.jsx'
+import CrossFade from '../ui/CrossFade.jsx'
 
 export default function ReviewDiff({ before, after, streaming, error, onAccept, onReject, onRetry }) {
   const [view, setView] = useState('diff')
@@ -33,6 +34,7 @@ export default function ReviewDiff({ before, after, streaming, error, onAccept, 
       </div>
 
       <div style={{ padding: '11px 13px', maxHeight: 320, overflowY: 'auto' }}>
+        <CrossFade id={streaming ? 'streaming' : error ? 'error' : view}>
         {error ? (
           <p style={{ fontSize: 12.5, color: 'var(--danger)', lineHeight: 1.55 }}>{error}</p>
         ) : view === 'diff' && parts ? (
@@ -50,6 +52,7 @@ export default function ReviewDiff({ before, after, streaming, error, onAccept, 
             {after}{streaming && <span style={{ color: 'var(--accent)' }}>▍</span>}
           </p>
         )}
+        </CrossFade>
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 11px', borderTop: '1px solid var(--bdr)' }}>

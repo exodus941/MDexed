@@ -156,6 +156,45 @@ assert(!broken.ok && broken.state === null, 'malformed YAML refuses to load rath
 assert(/line \d+/.test(broken.error), 'the error names a line')
 assert(!parseFile('# just a readme\n\nnothing here').ok, 'a file with no frontmatter is rejected')
 
+line('\n- component composition -')
+{
+  const { LAYOUT_BY_NAME, resolveAllLayouts, layoutRows, layoutSentences, fieldActive } =
+    await import('../src/state/componentLayout.js')
+  const modal = LAYOUT_BY_NAME.modal
+
+  /* A document written before composition existed must still resolve. */
+  const bare = resolveAllLayouts(undefined).modal
+  assert(modal.fields.every(f => bare[f.k] === f.default), 'an absent layout resolves to every default')
+  assert(derive({ ...state, components: { ...state.components, layout: undefined } }).componentLayout.modal.align === 'left',
+    'derive fills composition defaults for an older document')
+
+  const partial = resolveAllLayouts({ modal: { align: 'center' } }).modal
+  assert(partial.align === 'center' && partial.actions === 'right', 'a partial layout keeps defaults for the rest')
+
+  /* Icon size and treatment are meaningless with no icon, and must not be
+     emitted as rules the agent would then try to follow. */
+  const noIcon = { ...bare, iconPlacement: 'none' }
+  assert(!fieldActive(modal.fields.find(f => f.k === 'iconSize'), noIcon), 'icon size hides when there is no icon')
+  assert(!layoutRows(modal, noIcon).some(([l]) => /Icon size|Icon treatment/.test(l)),
+    'dependent settings are left out of the table when inactive')
+
+  const custom = { ...bare, align: 'center', iconPlacement: 'above', iconSize: 'xl', actions: 'stretch' }
+  const sentences = layoutSentences(modal, custom)
+  assert(sentences.length === layoutRows(modal, custom).length, 'every emitted row has a matching rule')
+  assert(sentences.some(s => /above the title/.test(s)) && sentences.some(s => /full-width/.test(s)),
+    'the rules describe the arrangement, not just the setting name')
+
+  const withLayout = { ...state, components: { ...state.components, layout: { modal: custom } } }
+  const file = generateFile(withLayout, derive(withLayout)).text
+  assert(file.includes('| Icon placement | `above`'), 'composition reaches the exported file as a table')
+  assert(file.includes('Actions stack full-width'), 'composition reaches the exported file as guidance')
+
+  /* Composition is guidance, not frontmatter — the spec has no slot for it. */
+  const fm = yamlLoad(file.split('---')[1])
+  assert(!JSON.stringify(fm).includes('iconPlacement'), 'composition never leaks into the frontmatter')
+  assert(validate(file).ok, 'a document with composition still validates')
+}
+
 line('\n- word diff -')
 {
   /* Shared words carry the rewrite's whitespace, so compare on words alone. */

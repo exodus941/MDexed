@@ -6,9 +6,93 @@
 import { inspectProps, text } from '../inspect.js'
 import { Ico, Check, IconAlert, IconCheck, IconX, IconTrash, IconInfo, IconMore, IconStar } from '../icons.jsx'
 
-export default function Dialog({ onInspect }) {
+/* The composition rules from the Components tab, rendered. This is the only
+   way to tell whether "icon above, centred, full-width actions" is what you
+   actually meant — a settings list can't show you that. */
+function Modal({ ins, txt, layout, onInspect }) {
+  const centred = layout.align === 'center'
+  const showIcon = layout.iconPlacement !== 'none'
+  const stacked = layout.iconPlacement === 'above'
+  const circle = layout.iconStyle === 'circle'
+  const gap = `var(--space-${layout.gap}, 12px)`
+
+  const icon = showIcon && (
+    <span {...ins('modal')} style={{
+      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+      color: 'var(--c-danger, #c00)', flexShrink: 0,
+      ...(circle && {
+        background: 'var(--c-danger-subtle, #f7e8e7)',
+        borderRadius: '50%',
+        padding: 'var(--space-xs, 8px)',
+      }),
+    }}>
+      <Ico d={IconAlert} size={layout.iconSize} />
+    </span>
+  )
+
+  const actionJustify = { right: 'flex-end', left: 'flex-start', center: 'center', stretch: 'stretch' }[layout.actions]
+  const actionsStretch = layout.actions === 'stretch'
+  /* Primary last when actions sit right, first everywhere else — that is the
+     convention each arrangement carries, and the emitted guidance says so. */
+  const primaryLast = layout.actions === 'right'
+  const cancel = <button key="c" className="btn btn-ghost" {...ins('button-ghost')} style={actionsStretch ? { width: '100%', justifyContent: 'center' } : undefined}>Cancel</button>
+  const confirm = <button key="d" className="btn btn-danger" {...ins('button-danger')} style={actionsStretch ? { width: '100%', justifyContent: 'center' } : undefined}><Ico d={IconTrash} />Delete</button>
+
+  return (
+    <div {...ins('modal')} style={{
+      position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)',
+      width: 'var(--cmp-modal-width, min(400px, 86%))',
+      background: 'var(--cmp-modal-background-color, var(--c-surface-raised, #fff))',
+      borderRadius: 'var(--cmp-modal-rounded, var(--radius-lg, 16px))',
+      padding: 'var(--cmp-modal-padding, var(--space-lg, 24px))',
+      boxShadow: 'var(--cmp-modal-box-shadow, var(--shadow-modal, none))',
+      border: '1px solid var(--c-border-subtle, #eee)',
+      textAlign: centred ? 'center' : 'left',
+    }}>
+      {layout.dismiss === 'corner' && (
+        <button className="icon-btn" {...ins('button-secondary')}
+          style={{ position: 'absolute', top: 'var(--space-sm, 12px)', right: 'var(--space-sm, 12px)' }}>
+          <Ico d={IconX} />
+        </button>
+      )}
+
+      <div style={{
+        display: 'flex', gap: 'var(--icon-gap, 8px)', marginBottom: gap,
+        ...(stacked
+          ? { flexDirection: 'column', alignItems: centred ? 'center' : 'flex-start' }
+          : { alignItems: 'center', justifyContent: centred ? 'center' : 'flex-start' }),
+      }}>
+        {icon}
+        <h3 style={{ fontSize: 'var(--font-h5-size, 20px)' }} {...txt('h5')}>Delete this invoice?</h3>
+      </div>
+
+      <p className="muted small" style={{ marginBottom: 'var(--space-md, 16px)' }} {...txt('body-sm', 'text-muted')}>
+        Invoice NW-0421 will be removed permanently. This cannot be undone.
+      </p>
+
+      <label className="with-icon" {...ins('checkbox')} style={{
+        marginBottom: 'var(--space-md, 16px)',
+        justifyContent: centred ? 'center' : 'flex-start',
+      }}>
+        <Check /><span className="small" {...txt('body-sm')}>Also notify the customer</span>
+      </label>
+
+      <div style={{
+        display: 'flex', gap: 'var(--space-xs, 8px)',
+        ...(actionsStretch
+          ? { flexDirection: 'column' }
+          : { justifyContent: actionJustify }),
+      }}>
+        {primaryLast ? [cancel, confirm] : [confirm, cancel]}
+      </div>
+    </div>
+  )
+}
+
+export default function Dialog({ onInspect, layout }) {
   const ins = entry => inspectProps(entry, onInspect)
   const txt = (typeName, roleName = 'text') => inspectProps(text(typeName, roleName), onInspect)
+  const modal = layout?.modal ?? {}
 
   return (
     <div className="stack">
@@ -38,32 +122,7 @@ export default function Dialog({ onInspect }) {
           mixBlendMode: 'var(--scrim-blend, normal)',
         }} />
 
-        <div {...ins('modal')} style={{
-          position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)',
-          width: 'var(--cmp-modal-width, min(400px, 86%))',
-          background: 'var(--cmp-modal-background-color, var(--c-surface-raised, #fff))',
-          borderRadius: 'var(--cmp-modal-rounded, var(--radius-lg, 16px))',
-          padding: 'var(--cmp-modal-padding, var(--space-lg, 24px))',
-          boxShadow: 'var(--cmp-modal-box-shadow, var(--shadow-modal, none))',
-          border: '1px solid var(--c-border-subtle, #eee)',
-          cursor: onInspect ? 'pointer' : undefined,
-        }}>
-          <div className="row" style={{ marginBottom: 'var(--space-sm, 12px)' }}>
-            <span style={{ color: 'var(--c-danger, #c00)', display: 'flex' }}><Ico d={IconAlert} size="lg" /></span>
-            <h3 style={{ flex: 1, fontSize: 'var(--font-h5-size, 20px)' }} {...txt("h5")}>Delete this invoice?</h3>
-            <button className="icon-btn" {...ins('button-secondary')}><Ico d={IconX} /></button>
-          </div>
-          <p className="muted small" style={{ marginBottom: 'var(--space-md, 16px)' }} {...txt("body-sm", "text-muted")}>
-            Invoice NW-0421 will be removed permanently. This cannot be undone.
-          </p>
-          <label className="with-icon" style={{ marginBottom: 'var(--space-md, 16px)', cursor: 'pointer' }} {...ins('checkbox')}>
-            <Check /><span className="small" {...txt("body-sm")}>Also notify the customer</span>
-          </label>
-          <div className="row" style={{ justifyContent: 'flex-end' }}>
-            <button className="btn btn-ghost" {...ins('button-ghost')}>Cancel</button>
-            <button className="btn btn-danger" {...ins('button-danger')}><Ico d={IconTrash} />Delete</button>
-          </div>
-        </div>
+        <Modal ins={ins} txt={txt} layout={modal} onInspect={onInspect} />
       </div>
 
       <div className="grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
