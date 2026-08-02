@@ -77,17 +77,7 @@ function colorsBody(state, derived) {
     return [p.label, `\`${p.fg}\` on \`${p.bg}\``, `${r.ratio}:1`, p.ui ? (r.ratio >= 3 ? 'Pass' : 'Fail') : r.label, `Lc ${r.lc}`]
   }).filter(Boolean)
 
-  /* Gradients are CSS images, not colour values, so they cannot be `colors`
-     tokens. They travel here with their literal CSS. */
-  const gradients = derived.gradients ?? []
-  const gradientBlock = gradients.length ? joinBlocks(
-    '**Gradients**',
-    table(['Token', 'CSS'], gradients.map(g => [`\`--gradient-${g.name}\``, `\`${g.css}\``])),
-    bullets([
-      'Gradients are images, not colours — they are not in the `colors` map above. Apply them as `background-image`.',
-      'For a gradient *stroke*, use `border-image` or a two-layer background with `background-clip: padding-box, border-box`. There is no gradient border property; do not invent one.',
-    ])
-  ) : ''
+  const gradientBlock = gradientSection(state, derived)
 
   return joinBlocks(
     roleTable,
@@ -101,6 +91,101 @@ function colorsBody(state, derived) {
     ])
   )
 }
+
+/* ── Gradients ──
+ *
+ * The section most likely to be skipped, so it is written to be hard to skip.
+ *
+ * A gradient is a CSS image, not a colour value, so it cannot be a `colors`
+ * token and no component property in the spec's legal eight can hold one.
+ * That is a ceiling, not an implementation gap: gradients reach an agent as
+ * prose or not at all. Which means the prose has to carry the whole job.
+ *
+ * Four things make the difference between an agent reading this and an agent
+ * acting on it:
+ *
+ *   1. Say where each one goes. A table of gradient definitions is inert; the
+ *      component that uses it lives in a different table further down the
+ *      file, and nothing was joining the two. Now the section names the
+ *      elements by selector.
+ *   2. Give code to copy. Models reproduce a fenced block far more reliably
+ *      than they infer one from a description.
+ *   3. Say it is not optional. Anything that reads as decoration is the first
+ *      thing dropped when a model is economising.
+ *   4. Say what the failure mode looks like, because "substitute a flat
+ *      colour" is exactly what gets done otherwise, and it looks plausible.
+ */
+function gradientSection(state, derived) {
+  const gradients = derived.gradients ?? []
+  if (!gradients.length) return ''
+
+  /* Which entries actually reference each gradient. This is the join that was
+     missing: without it the definitions are a glossary nobody is told to use. */
+  const usage = new Map(gradients.map(g => [g.name, []]))
+  for (const c of derived.components ?? []) {
+    for (const p of c.properties ?? []) {
+      const m = /^\{gradient\.([\w-]+)\}$/.exec(String(p.value))
+      if (m && usage.has(m[1])) usage.get(m[1]).push({ entry: c.name, prop: p.key })
+    }
+  }
+  const used = gradients.filter(g => usage.get(g.name).length)
+  const unused = gradients.filter(g => !usage.get(g.name).length)
+
+  const applyRows = used.flatMap(g =>
+    usage.get(g.name).map(u => [`\`.${u.entry}\``, `\`${kebabCss(u.prop)}\``, `\`var(--gradient-${g.name})\``]))
+
+  /* A worked example beats a rule. Uses the first real pairing where there is
+     one, so the snippet is about this system rather than a generic one. */
+  const sample = used[0]
+  const sampleSel = sample ? `.${usage.get(sample.name)[0].entry}` : null
+  const example = sample ? [
+    '```css',
+    `/* ${sampleSel} — the gradient is the fill, not an overlay on one. */`,
+    `${sampleSel} {`,
+    `  background-image: var(--gradient-${sample.name});`,
+    '  /* Keep a flat fallback underneath for print and forced-colours mode. */',
+    `  background-color: var(--c-accent);`,
+    '}',
+    '```',
+  ].join('\n') : null
+
+  return joinBlocks(
+    '**Gradients**',
+    'These are part of the design, not decoration. Implement every one of them.',
+    table(['Token', 'CSS'], gradients.map(g => [`\`--gradient-${g.name}\``, `\`${g.css}\``])),
+
+    applyRows.length && '**Where each one goes.** Apply exactly these; do not invent new placements.',
+    applyRows.length && table(['Element', 'Property', 'Value'], applyRows),
+    example,
+
+    /* Named but unassigned. Saying nothing invites two opposite mistakes:
+       dropping it, or sprinkling it wherever it seems to fit. Neither is what
+       an unassigned token means. */
+    unused.length > 0 && (() => {
+      const one = unused.length === 1
+      const names = unused.map(g => `\`--gradient-${g.name}\``).join(', ')
+      /* "the table above" only means something when there is one. With
+         nothing assigned at all the sentence would point at empty space. */
+      const where = applyRows.length
+        ? `do not apply ${one ? 'it' : 'them'} anywhere the table above does not ask for`
+        : `do not apply ${one ? 'it' : 'them'} to anything — nothing in this system uses ${one ? 'it' : 'them'} yet`
+      return `${one ? 'One gradient is' : `${unused.length} gradients are`} defined but not assigned: ${names}. `
+        + `Define ${one ? 'it' : 'them'} in your stylesheet so ${one ? 'it is' : 'they are'} available, but ${where}.`
+    })(),
+
+    bullets([
+      'A gradient is a CSS image, so it is not in the `colors` map and cannot be one. Apply it as `background-image` and leave `background-color` set as the fallback beneath it.',
+      '**Do not substitute a flat colour.** Approximating a gradient with its first stop is the most common way this gets lost, and it silently changes the design. If a surface is listed above as carrying a gradient, it carries the gradient.',
+      'If `tokens.css` shipped alongside this file, every `--gradient-*` custom property above is already defined there — reference it rather than pasting the literal, so the value stays in one place.',
+      'For a gradient *stroke*, use `border-image` or a two-layer background with `background-clip: padding-box, border-box`. There is no gradient border property; do not invent one.',
+      'Text on a gradient must clear contrast against **both** end stops, not the average. Where it cannot, keep the flat fill.',
+    ].filter(Boolean))
+  )
+}
+
+/* `backgroundImage` → `background-image`, for prose that a developer reads as
+   CSS rather than as our internal property names. */
+const kebabCss = k => k.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase()
 
 /* ── Typography ── */
 function typographyBody(state, derived) {
