@@ -881,6 +881,47 @@ function Shell() {
     }
   }
 
+  /* Everything a developer needs, in one archive: the file for the agent, the
+     token formats a build can enforce, and every surface as a page they can
+     open and read the markup of. Same `derive()` behind all of it, so nothing
+     in the zip can contradict anything else in it. */
+  const [packaging, setPackaging] = useState(false)
+  const exportPackage = async () => {
+    setPackaging(true)
+    try {
+      const [{ renderToStaticMarkup }, html, tokens, { zip }] = await Promise.all([
+        import('react-dom/server'),
+        import('./emit/html.js'),
+        import('./emit/tokens.js'),
+        import('./emit/zip.js'),
+      ])
+      const slug = html.slugify(state.meta.name)
+      const files = {
+        'README.md': tokens.packageReadme(state),
+        'DESIGN.md': generateFile(state, derived).text,
+        'tokens.css': tokens.tokensCss(state, derived),
+        'tailwind.config.js': tokens.tailwindPreset(state, derived),
+        'tokens.json': tokens.tokensJson(state, derived),
+      }
+      for (const s of SURFACES) {
+        const markup = renderToStaticMarkup(
+          <div className="dmd"><s.Component layout={derived.componentLayout} /></div>
+        )
+        files[`html-examples/${s.id}.html`] =
+          html.previewHtml({ state, derived, markup, surface: s.label, mode: state.color.mode })
+      }
+      const url = URL.createObjectURL(zip(files))
+      const a = document.createElement('a')
+      a.href = url; a.download = `${slug}-design-package.zip`; a.click()
+      URL.revokeObjectURL(url)
+      setSavedAt({ at: Date.now(), where: `a package of ${Object.keys(files).length} files`, reason: 'export' })
+    } catch {
+      setNotice({ tone: 'error', text: 'Could not build the design package.' })
+    } finally {
+      setPackaging(false)
+    }
+  }
+
   const importFile = e => {
     const f = e.target.files?.[0]
     e.target.value = ''
@@ -944,6 +985,11 @@ function Shell() {
               <Download />{exportingHtml ? 'Building…' : 'Export Preview (HTML)'}
             </button>
             <button className="btn-primary" onClick={download} style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><Download />Export design.md</button>
+            <button className="btn-package" onClick={exportPackage} disabled={packaging}
+              title="DESIGN.md, tokens.css, a Tailwind preset, tokens.json and every surface as HTML — one zip"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+              <Download />{packaging ? 'Packaging…' : 'Export Full Package'}
+            </button>
           </div>
         </header>
 
