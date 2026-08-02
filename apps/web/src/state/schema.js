@@ -170,16 +170,38 @@ export const FRAMEWORKS = ['React + Tailwind', 'React + CSS variables', 'Plain H
    a blank canvas here; tuning something coherent beats assembling from zero. */
 export const createInitialState = () => ({
   schemaVersion: SCHEMA_VERSION,
-  meta: { name: 'My Design System', description: '', version: 'alpha' },
+  /* No version until the first export. `version` is a build number stamped by
+     exporting — see state/build.js — so a document that has produced no file
+     has nothing to name. */
+  meta: { name: 'My Design System', description: '', version: '' },
   macros: { ...DEFAULT_MACROS },
 
   color: {
+  /* ── The default seeds ──
+     Chosen against the accessibility audit rather than by eye alone, because
+     the previous set failed WCAG 1.4.1 six times over and nothing in the app
+     was saying so.
+
+     The structural problem: every status role sits on the same ramp step, so
+     they all share a lightness by construction. Red-green colour blindness
+     collapses hue, and once hue is gone, three colours of identical lightness
+     are one colour. A conventional green/amber/red trio cannot survive that —
+     which is exactly why 1.4.1 exists.
+
+     So success is a teal rather than a green. It keeps blue content, which is
+     the channel deuteranopia and protanopia leave intact, and it stays clearly
+     separate from both the amber and the red under simulation. Accent is an
+     indigo, far enough from the teal to never be confused with it. The result
+     passes every colour-alone check and every contrast pair in both modes.
+
+     Change these freely — the audit in the Access tab will tell you what it
+     costs. */
     seeds: [
-      { id: 'sd-accent',  name: 'accent',  hex: '#0d7a70', desc: 'Primary action and emphasis' },
-      { id: 'sd-neutral', name: 'neutral', hex: '#757980', desc: 'Surfaces, text, borders' },
-      { id: 'sd-success', name: 'success', hex: '#4a8f3c', desc: 'Confirmation' },
-      { id: 'sd-warning', name: 'warning', hex: '#b8801f', desc: 'Caution' },
-      { id: 'sd-danger',  name: 'danger',  hex: '#c0392f', desc: 'Destructive and errors' },
+      { id: 'sd-accent',  name: 'accent',  hex: '#5b67c2', desc: 'Primary action and emphasis' },
+      { id: 'sd-neutral', name: 'neutral', hex: '#6f7179', desc: 'Surfaces, text, borders' },
+      { id: 'sd-success', name: 'success', hex: '#008d87', desc: 'Confirmation' },
+      { id: 'sd-warning', name: 'warning', hex: '#d38e22', desc: 'Caution' },
+      { id: 'sd-danger',  name: 'danger',  hex: '#cc3336', desc: 'Destructive and errors' },
     ],
     shape: { ...DEFAULT_SHAPE },
     roles: defaultRoles(),

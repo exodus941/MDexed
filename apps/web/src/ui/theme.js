@@ -5,17 +5,30 @@ export const APP_CSS = `
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg:#0b0b0e;--surf:#131318;--surf2:#191920;--surf3:#20202a;
-  --bdr:#24242e;--bdr2:#2e2e3a;
-  --text:#e0dedd;--muted:#74727a;--dim:#3e3e4a;
-  --text-dim:#c0bebb;
+  /* ── One hue for the whole chrome ──
+     Every neutral below is the same hue at its own saturation and lightness,
+     so the slider in the macro bar rotates the entire interface without
+     touching its tonal structure. Written as HSL for exactly that reason:
+     the hex values these replace encoded the hue fourteen separate times,
+     and there was no way to change it without changing everything else too.
+
+     The semantic colours underneath — accent, success, danger, warn — are
+     deliberately left out. They mean something, and a hue slider that also
+     turns the error colour green would be a different feature. */
+  --ui-h:208;
+  --bg:hsl(var(--ui-h) 12% 5%);--surf:hsl(var(--ui-h) 12% 8%);
+  --surf2:hsl(var(--ui-h) 12% 11%);--surf3:hsl(var(--ui-h) 14% 15%);
+  --bdr:hsl(var(--ui-h) 12% 16%);--bdr2:hsl(var(--ui-h) 12% 20%);
+  --text:hsl(var(--ui-h) 5% 87%);--muted:hsl(var(--ui-h) 3% 46%);--dim:hsl(var(--ui-h) 9% 27%);
+  --text-dim:hsl(var(--ui-h) 4% 74%);
+  --scroll:hsl(var(--ui-h) 11% 25%);--scroll-hover:hsl(var(--ui-h) 10% 34%);
   --accent:#dc9055;--success:#5aad80;--danger:#de5c5c;--warn:#d8a441;
   --display:'Plus Jakarta Sans',system-ui,sans-serif;--sans:'Plus Jakarta Sans',system-ui,sans-serif;--mono:'JetBrains Mono',monospace;
   /* One duration for the whole editor. Snappier than this reads as jumpy. */
   --t:125ms;--ease:cubic-bezier(0.2,0,0,1);
   /* Preview surfaces sit below the page, so a live sample never reads as
      another input. Deliberately darker than --surf3, which is input fill. */
-  --preview:#08080b;--preview-bdr:#1b1b23;
+  --preview:hsl(var(--ui-h) 16% 4%);--preview-bdr:hsl(var(--ui-h) 13% 12%);
 }
 /* Toggled from the header. Kills editor chrome motion without touching the
    preview pane, which is showing the user's own motion tokens. */
@@ -25,11 +38,11 @@ html.no-anim *,html.no-anim *::before,html.no-anim *::after{
 body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;line-height:1.5;min-height:100vh}
 /* Wide enough to grab and dark enough to see. A 6px thumb on a transparent
    track reads as "no scrollbar", which is worse than no styling at all. */
-*{scrollbar-width:thin;scrollbar-color:#3a3a48 transparent}
+*{scrollbar-width:thin;scrollbar-color:var(--scroll) transparent}
 ::-webkit-scrollbar{width:11px;height:11px}
 ::-webkit-scrollbar-track{background:rgba(0,0,0,.22)}
-::-webkit-scrollbar-thumb{background:#3a3a48;border-radius:6px;border:2px solid transparent;background-clip:content-box;min-height:32px}
-::-webkit-scrollbar-thumb:hover{background:#4d4d5e;background-clip:content-box}
+::-webkit-scrollbar-thumb{background:var(--scroll);border-radius:6px;border:2px solid transparent;background-clip:content-box;min-height:32px}
+::-webkit-scrollbar-thumb:hover{background:var(--scroll-hover);background-clip:content-box}
 ::-webkit-scrollbar-corner{background:transparent}
 
 input,textarea,select{font-family:var(--sans);font-size:14px;color:var(--text);background:var(--surf3);border:1px solid var(--bdr);border-radius:6px;padding:8px 12px;outline:none;transition:border-color var(--t) var(--ease),background var(--t) var(--ease);width:100%}
@@ -37,7 +50,7 @@ input:focus,textarea:focus,select:focus{border-color:var(--accent);background:va
 textarea{resize:vertical;min-height:90px;font-size:13px;line-height:1.6}
 label{display:block;font-size:10.5px;font-weight:500;text-transform:uppercase;letter-spacing:0.07em;color:var(--muted);margin-bottom:5px}
 
-.btn-primary{font-family:var(--sans);font-size:13px;font-weight:500;cursor:pointer;border:1px solid transparent;border-radius:6px;padding:8px 16px;background:var(--accent);color:#0b0b0e;transition:filter var(--t) var(--ease)}
+.btn-primary{font-family:var(--sans);font-size:13px;font-weight:500;cursor:pointer;border:1px solid transparent;border-radius:6px;padding:8px 16px;background:var(--accent);color:var(--bg);transition:filter var(--t) var(--ease)}
 .btn-primary:hover{filter:brightness(1.1)}
 /* The accent in outline form. Sits beside the filled Export as its quieter
    sibling — same colour, same weight in the eye's hierarchy minus one step. */
@@ -47,7 +60,7 @@ label{display:block;font-size:10.5px;font-weight:500;text-transform:uppercase;le
 .btn-outline:disabled:hover{background:transparent}
 /* The full package — the one export that contains all the others, so it gets
    its own colour rather than competing with the accent beside it. */
-.btn-package{font-family:var(--sans);font-size:13px;font-weight:500;cursor:pointer;border:1px solid transparent;border-radius:6px;padding:8px 16px;background:var(--success);color:#0b0b0e;transition:filter var(--t) var(--ease)}
+.btn-package{font-family:var(--sans);font-size:13px;font-weight:500;cursor:pointer;border:1px solid transparent;border-radius:6px;padding:8px 16px;background:var(--success);color:var(--bg);transition:filter var(--t) var(--ease)}
 .btn-package:hover{filter:brightness(1.1)}
 .btn-package:disabled{opacity:.55;cursor:progress}
 .btn-package:disabled:hover{filter:none}
