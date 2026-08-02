@@ -342,3 +342,45 @@ export function describeChange(tag, keys) {
   if (keys.length > 3) return { category: 'system', label: 'Document replaced' }
   return { category, label: FALLBACK_LABEL[key] ?? 'Change' }
 }
+
+/* ── Rewinding to a point ──
+ *
+ * `revertChange` puts one change back. This puts back everything from the
+ * newest entry down to and including the one named, which is the difference
+ * between "undo that mistake" and "take me back to before I went wrong".
+ *
+ * Newest first, on purpose. Two edits to the same token both carry the value
+ * that preceded them, so replaying them oldest-first would leave the *second*
+ * edit's "before" in place — the intermediate value, not the original.
+ * Walking backwards ends on the oldest recorded "before", which is the one
+ * that was true at the point being rewound to.
+ *
+ * Not everything is revertible: prose changes log word counts rather than the
+ * prose, and anything the log could not describe reversibly is skipped. So
+ * this reports what it will manage rather than promising a clean rewind, and
+ * the caller shows those numbers before doing anything.
+ *
+ * @param log   the full log, oldest first
+ * @param index position of the entry to rewind to, in that same order
+ */
+export function planRewind(log, index) {
+  if (index < 0 || index >= log.length) return { updater: null, applied: 0, skipped: 0, total: 0 }
+
+  const span = log.slice(index)
+  const steps = []
+  let skipped = 0
+  for (let i = span.length - 1; i >= 0; i--) {
+    const fn = revertChange(span[i])
+    if (fn) steps.push(fn)
+    else skipped++
+  }
+
+  return {
+    total: span.length,
+    applied: steps.length,
+    skipped,
+    /* One state update for the whole rewind, so it is a single entry in the
+       undo stack — Ctrl+Z takes all of it back, not one step of it. */
+    updater: steps.length ? s => steps.reduce((acc, fn) => fn(acc), s) : null,
+  }
+}

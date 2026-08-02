@@ -219,6 +219,16 @@ label{display:block;font-size:10.5px;font-weight:500;text-transform:uppercase;le
 .dropzone:hover{border-color:var(--accent);color:var(--text-dim)}
 .dropzone.over{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
 
+/* The destructive action on a log row. Hidden until the row is pointed at,
+   so a list of eighty entries is not eighty invitations to wipe your work.
+   :focus-within matters as much as :hover — hover-only would make it
+   unreachable by keyboard, which is the sort of thing this app's own audit
+   exists to catch. */
+.rewind-btn{opacity:0;pointer-events:none;transition:opacity var(--t) var(--ease),background var(--t) var(--ease)}
+.log-row:hover .rewind-btn,.log-row:focus-within .rewind-btn{opacity:1;pointer-events:auto}
+.rewind-btn:hover{background:rgb(var(--danger-rgb) / .12)}
+.rewind-btn:focus-visible{opacity:1;pointer-events:auto;outline:2px solid var(--danger);outline-offset:1px}
+
 .close-x{opacity:.55;transition:opacity var(--t) var(--ease),background var(--t) var(--ease)}
 .close-x:hover{opacity:1;background:var(--grey-wash)}
 .close-x:focus-visible{opacity:1;outline:2px solid var(--accent);outline-offset:1px}
