@@ -186,13 +186,23 @@ function targetSize(state, derived) {
     if (!/button|input|select|switch|checkbox|radio|chip|tab|link|toggle|slider/.test(name)) continue
     if (v >= 24) continue
     seen.add(name)
+    /* 2.5.8 has a spacing exception: an undersized target passes if a 24px
+       circle centred on it doesn't touch its neighbours. A system that
+       declares a minimum target is claiming that spacing, so this is a
+       reminder to honour it rather than a violation. Without a declared
+       minimum there is nothing making the claim, and it fails. */
+    const covered = declared >= 24
     out.push({
-      id: `target:${name}`, level: v < 24 ? FAIL : WARN,
+      id: `target:${name}`, level: covered ? WARN : FAIL,
       criterion: '2.5.8 Target size minimum (AA)',
       tab: 'components', entry: name,
-      title: `${name} is ${v}px`,
-      detail: `Interactive targets need 24×24. A ${v}px control can still pass if it has 24px of clear space around it, but that has to be deliberate and written down — otherwise an agent will place them in a tight row.`,
-      fix: `Either raise ${name} to 24px, or record the spacing exemption in the Directives panel.`,
+      title: `${name} draws at ${v}px`,
+      detail: covered
+        ? `Below the 24×24 minimum, but this system declares a ${declared}px minimum target, and 2.5.8 exempts a small control whose neighbours are far enough away. The declaration is the thing making that true — an agent that puts these in a tight row breaks it.`
+        : `Interactive targets need 24×24, and nothing in this system declares a minimum that would invoke the spacing exception.`,
+      fix: covered
+        ? `Keep the hit area at ${declared}px even though the control draws at ${v}px — padding on the label, not a bigger box.`
+        : `Either raise ${name} to 24px, or set a minimum target in the Directives panel and honour it with spacing.`,
       measured: `${v}px`,
     })
   }

@@ -7,6 +7,7 @@ import { createInitialState, MACROS, DEFAULT_MACROS, CONTRAST_PAIRS } from './st
 import { PRESETS, applyPreset } from './state/presets.js'
 import { check } from './color/contrast.js'
 import { migrate } from './state/migrate.js'
+import { nextBuild, describeBuild, isBuild } from './state/build.js'
 import { generateFile, validate } from './emit/designmd.js'
 import { parseFile } from './emit/parse.js'
 import { isValidColor } from './color/convert.js'
@@ -36,6 +37,7 @@ const DRAFT_AT_KEY = 'design-md:draft-at'
 const PREV_KEY = 'design-md:previous'
 const PREV_AT_KEY = 'design-md:previous-at'
 const ANIM_KEY = 'design-md:ui-anim'
+const HUE_KEY = 'design-md:ui-hue'
 
 /* A document nobody has touched. Compared as text against a freshly created
    one — `createInitialState()` is deterministic, with fixed ids and no
@@ -122,16 +124,24 @@ const SyncBadge = ({ status }) => {
 
 /* The spec version the exported file will carry. Sits next to the storage
    readout because both answer the same question — what am I looking at. */
+/* The build this document last produced.
+ *
+ * Not "the version you typed" — the version is stamped by exporting, because
+ * that is when a file exists to be versioned. Until then there is nothing to
+ * name and the chip says so instead of inventing a number. */
 const VersionChip = ({ version }) => {
   const v = String(version ?? '').trim()
-  /* Prefix a `v` only for a number. "1.2" wants to read as "v1.2"; "alpha"
-     does not want to read as "valpha". */
+  const built = isBuild(v)
   return (
-    <span title="DESIGN.md version — edit it in the Meta tab" style={{
-      fontSize: 10.5, fontFamily: 'var(--mono)', color: 'var(--dim)',
+    <span title={
+      built ? `${describeBuild(v)} — the counter advances each time you export`
+        : v ? `Version "${v}" was typed by hand. Exporting replaces it with a build number.`
+        : 'Not exported yet. The first export stamps a build number.'
+    } style={{
+      fontSize: 10.5, fontFamily: 'var(--mono)', color: built ? 'var(--muted)' : 'var(--dim)',
       whiteSpace: 'nowrap', cursor: 'default',
     }}>
-      {!v ? 'no version' : /^\d/.test(v) ? `v${v}` : v}
+      {built ? v : v || 'unbuilt'}
     </span>
   )
 }
@@ -234,7 +244,63 @@ function UiSpeedControl({ value, onChange }) {
   )
 }
 
-function MacroBar({ onOpenContrast, uiSpeed, setUiSpeed }) {
+/* Editor hue. Rotates every neutral in the chrome — surfaces, borders, text,
+   scrollbars — at its own saturation and lightness, so the tonal structure is
+   untouched and only the cast changes. The semantic colours are deliberately
+   excluded; see the `--ui-h` block in theme.js.
+
+   Sits beside the animation speed because both configure the tool rather than
+   the design, and neither belongs in the exported file. */
+const UI_HUE_DEFAULT = 208
+
+function UiHueControl({ value, onChange }) {
+  const [draft, setDraft] = useState(null)
+  const changed = value !== UI_HUE_DEFAULT
+
+  const commit = raw => {
+    setDraft(null)
+    const n = parseFloat(String(raw).replace(/[^\d.]/g, ''))
+    /* Wrap rather than clamp — hue is a circle, and typing 370 meaning 10 is
+       a reasonable thing to do. */
+    if (Number.isFinite(n)) onChange(((Math.round(n) % 360) + 360) % 360)
+  }
+
+  return (
+    <div style={{ width: 156, flexShrink: 0 }} title="The hue of the editor's own chrome. Saturation and lightness are untouched — only the cast changes.">
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 3 }}>
+        <span style={{ fontSize: 10.5, color: changed ? 'var(--text)' : 'var(--muted)', flex: 1, whiteSpace: 'nowrap' }}>UI Hue</span>
+        <ResetButton onClick={() => onChange(UI_HUE_DEFAULT)} disabled={!changed} />
+      </div>
+      <div style={{ display: 'flex', gap: 4, marginBottom: 3, alignItems: 'center' }}>
+        {/* A sample of the surface the value produces, so the number means
+            something before you drag it. */}
+        <span style={{
+          width: 16, height: 16, borderRadius: 4, flexShrink: 0,
+          background: `hsl(${value} 14% 15%)`, border: '1px solid var(--bdr2)',
+        }} />
+        <input
+          value={draft ?? `${value}°`}
+          onChange={e => setDraft(e.target.value)}
+          onBlur={e => commit(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur() }}
+          style={{
+            flex: 1, minWidth: 0, fontFamily: 'var(--mono)', fontSize: 10.5, padding: '3px 5px',
+            textAlign: 'right', color: 'var(--text-dim)',
+          }} />
+      </div>
+      {/* The track carries the hue circle itself — the control shows its own
+          range rather than making you sweep to find out. */}
+      <input type="range" min={0} max={360} step={1} value={value}
+        onChange={e => onChange(Number(e.target.value))}
+        onDoubleClick={() => onChange(UI_HUE_DEFAULT)}
+        style={{
+          background: 'linear-gradient(to right, hsl(0 45% 45%), hsl(60 45% 45%), hsl(120 45% 45%), hsl(180 45% 45%), hsl(240 45% 45%), hsl(300 45% 45%), hsl(360 45% 45%))',
+        }} />
+    </div>
+  )
+}
+
+function MacroBar({ onOpenContrast, uiSpeed, setUiSpeed, uiHue, setUiHue }) {
   const { state, derived, set } = useStore()
   const setMacro = (key, value) => set(s => ({ ...s, macros: { ...s.macros, [key]: value } }), `macro:${key}`)
   const reset = () => set(s => ({ ...s, macros: { ...DEFAULT_MACROS } }))
@@ -287,6 +353,7 @@ function MacroBar({ onOpenContrast, uiSpeed, setUiSpeed }) {
           not the design, and the separation should be visible. */}
       <div style={{ marginLeft: 'auto', paddingLeft: 20, display: 'flex', alignItems: 'flex-end', gap: 14, flexShrink: 0 }}>
         <UiSpeedControl value={uiSpeed} onChange={setUiSpeed} />
+        <UiHueControl value={uiHue} onChange={setUiHue} />
       </div>
     </div>
   )
@@ -585,13 +652,30 @@ const ago = at => {
 
 function RestoreToast({ offer, onRestore, onDismiss }) {
   const [leaving, setLeaving] = useState(false)
-  if (!offer) return null
 
   const close = after => {
     const ms = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--t'), 10) || 0
     setLeaving(true)
     setTimeout(after, ms)
   }
+
+  /* Thirty seconds, then it withdraws the offer quietly.
+   *
+   * Longer than the notice bar's ten because this one is asking a question
+   * rather than reporting something — you have to read it, decide whether you
+   * want the old project back, and reach for a button. But it can't sit there
+   * forever either: an offer that never expires is a permanent obstruction in
+   * the corner of a tool you're trying to work in.
+   *
+   * Nothing is lost when it goes. The previous document is still in
+   * localStorage; this was only the shortcut back to it. */
+  useEffect(() => {
+    if (!offer || leaving) return
+    const t = setTimeout(() => close(onDismiss), 30000)
+    return () => clearTimeout(t)
+  }, [offer, leaving, onDismiss])
+
+  if (!offer) return null
   const when = ago(offer.at)
 
   return (
@@ -770,6 +854,15 @@ function Shell() {
       return Number.isFinite(saved) && saved >= 0 && saved <= UI_ANIM_MAX ? saved : UI_ANIM_DEFAULT
     } catch { return UI_ANIM_DEFAULT }
   })
+  /* Kept in localStorage rather than in the document: it's a preference about
+     the tool, and it should follow you between projects rather than travelling
+     inside a file you hand to someone else. */
+  const [uiHue, setUiHue] = useState(() => {
+    try {
+      const saved = parseInt(localStorage.getItem(HUE_KEY), 10)
+      return Number.isFinite(saved) && saved >= 0 && saved <= 360 ? saved : UI_HUE_DEFAULT
+    } catch { return UI_HUE_DEFAULT }
+  })
 
   /* The document's own typefaces, requested here rather than in the Typography
      panel. The preview renders on every tab, so panel-scoped loading meant the
@@ -786,6 +879,12 @@ function Shell() {
     document.documentElement.classList.toggle('no-anim', uiSpeed === 0)
     try { localStorage.setItem(ANIM_KEY, String(uiSpeed)) } catch { /* ignore */ }
   }, [uiSpeed])
+
+  /* Drives `--ui-h`, which every chrome neutral is expressed against. */
+  useEffect(() => {
+    document.documentElement.style.setProperty('--ui-h', String(uiHue))
+    try { localStorage.setItem(HUE_KEY, String(uiHue)) } catch { /* ignore */ }
+  }, [uiHue])
   const [notice, setNotice] = useState(null)
   const [projectId, setProjectId] = useState(null)
   const [editToken, setEditToken] = useState(null)
@@ -943,7 +1042,22 @@ function Shell() {
     URL.revokeObjectURL(url)
   }
 
-  const download = () => saveAs(generateFile(state, derived).text, 'DESIGN.md', 'text/markdown')
+  /* Stamp the build, then emit against the stamped state.
+   *
+   * `set` is async, so the state in scope is still the old one when this
+   * returns — generating from it would ship the previous build number in a
+   * file the header claims is the new one. So the version is computed once
+   * and threaded into both. */
+  const stampBuild = () => {
+    const version = nextBuild(state.meta.version)
+    set(s => ({ ...s, meta: { ...s.meta, version } }), 'meta:version')
+    return { ...state, meta: { ...state.meta, version } }
+  }
+
+  const download = () => {
+    const stamped = stampBuild()
+    saveAs(generateFile(stamped, derived).text, 'DESIGN.md', 'text/markdown')
+  }
 
   /* The surface as a standalone page, for handing to someone who has the
      DESIGN.md but not this app.
@@ -989,20 +1103,23 @@ function Shell() {
         import('./emit/tokens.js'),
         import('./emit/zip.js'),
       ])
-      const slug = html.slugify(state.meta.name)
+      /* One stamp for the whole package, so the DESIGN.md, the README and
+         every token file in the zip name the same build. */
+      const stamped = stampBuild()
+      const slug = html.slugify(stamped.meta.name)
       const files = {
-        'README.md': tokens.packageReadme(state),
-        'DESIGN.md': generateFile(state, derived).text,
-        'tokens.css': tokens.tokensCss(state, derived),
-        'tailwind.config.js': tokens.tailwindPreset(state, derived),
-        'tokens.json': tokens.tokensJson(state, derived),
+        'README.md': tokens.packageReadme(stamped),
+        'DESIGN.md': generateFile(stamped, derived).text,
+        'tokens.css': tokens.tokensCss(stamped, derived),
+        'tailwind.config.js': tokens.tailwindPreset(stamped, derived),
+        'tokens.json': tokens.tokensJson(stamped, derived),
       }
       for (const s of SURFACES) {
         const markup = renderToStaticMarkup(
           <div className="dmd-frame"><div className="dmd"><s.Component layout={derived.componentLayout} /></div></div>
         )
         files[`html-examples/${s.id}.html`] =
-          html.previewHtml({ state, derived, markup, surface: s.label, mode: state.color.mode })
+          html.previewHtml({ state: stamped, derived, markup, surface: s.label, mode: stamped.color.mode })
       }
       const url = URL.createObjectURL(zip(files))
       const a = document.createElement('a')
@@ -1062,7 +1179,7 @@ function Shell() {
             {/* Two letters in the same box the single D had, so the mark
                 keeps its size — tighter tracking rather than a smaller face,
                 which would make it read as secondary next to the wordmark. */}
-            <div style={{ width: 26, height: 26, borderRadius: 7, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--display)', fontWeight: 800, fontSize: 11.5, letterSpacing: '-0.04em', color: '#0b0b0e', flexShrink: 0 }}>MD</div>
+            <div style={{ width: 26, height: 26, borderRadius: 7, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--display)', fontWeight: 800, fontSize: 11.5, letterSpacing: '-0.04em', color: 'var(--bg)', flexShrink: 0 }}>MD</div>
             <span style={{ fontFamily: 'var(--display)', fontWeight: 700, fontSize: 15, letterSpacing: '-0.025em', whiteSpace: 'nowrap' }}>
               MD<span style={{ color: 'var(--muted)', fontWeight: 400 }}>esigner</span>
             </span>
@@ -1112,7 +1229,7 @@ function Shell() {
           </div>
         </header>
 
-        <MacroBar onOpenContrast={() => setTab('roles')} uiSpeed={uiSpeed} setUiSpeed={setUiSpeed} />
+        <MacroBar onOpenContrast={() => setTab('roles')} uiSpeed={uiSpeed} setUiSpeed={setUiSpeed} uiHue={uiHue} setUiHue={setUiHue} />
 
         <NoticeBar notice={notice} onClose={() => setNotice(null)} />
 
@@ -1149,7 +1266,7 @@ function Shell() {
                       padding: '4px 10px', gap: 6, display: 'inline-flex', alignItems: 'center',
                       minWidth: 88, justifyContent: 'center',
                       ...(justSaved
-                        ? { background: 'var(--success)', color: '#0b0b0e' }
+                        ? { background: 'var(--success)', color: 'var(--bg)' }
                         : { color: dirty ? 'var(--warn)' : 'var(--muted)', borderColor: dirty ? 'rgba(216,164,65,.4)' : 'var(--bdr)' }),
                       transition: 'background var(--t) var(--ease), color var(--t) var(--ease), border-color var(--t) var(--ease)',
                     }}>
