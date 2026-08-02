@@ -12,6 +12,7 @@
    so those two never drift into behaving differently. */
 import { createPortal } from 'react-dom'
 import ColorPicker from './ColorPicker.jsx'
+import { viewport } from './zoom.js'
 
 const WIDTH = 520
 
@@ -50,11 +51,17 @@ export default function TokenColorPicker({
      rather than as having opened somewhere odd. Centring it is unambiguous:
      it is clearly a panel that appeared, and it is clearly about the thing you
      just clicked because nothing else is open. */
-  const rect = anchor?.getBoundingClientRect()
+  /* The rect and the window bounds are both reported in viewport pixels, with
+     the UI scale already applied; `left` and `bottom` are lengths on an
+     element the scale is about to apply again. `vp` converts once so every
+     number below is in the same space. */
+  const vp = viewport()
+  const r = anchor?.getBoundingClientRect()
+  const rect = r && { left: vp.x(r.left), top: vp.x(r.top), bottom: vp.x(r.bottom) }
   const left = rect
-    ? Math.min(Math.max(10, rect.left), window.innerWidth - WIDTH - 10)
-    : Math.max(10, (window.innerWidth - WIDTH) / 2)
-  const below = rect ? window.innerHeight - rect.bottom : 0
+    ? Math.min(Math.max(10, rect.left), vp.w - WIDTH - 10)
+    : Math.max(10, (vp.w - WIDTH) / 2)
+  const below = rect ? vp.h - rect.bottom : 0
   const openUp = !!rect && below < 340 && rect.top > below
   const following = isRef(value)
 
@@ -63,7 +70,7 @@ export default function TokenColorPicker({
       <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 2000 }} />
       <div className="anim-pop" style={{
         position: 'fixed', left,
-        ...(openUp ? { bottom: window.innerHeight - rect.top + 8 } : { top: rect ? rect.bottom + 8 : 80 }),
+        ...(openUp ? { bottom: vp.h - rect.top + 8 } : { top: rect ? rect.bottom + 8 : 80 }),
         zIndex: 2001, width: WIDTH,
         background: 'var(--surf2)', border: '1px solid var(--bdr2)', borderRadius: 10,
         boxShadow: '0 18px 44px rgba(0,0,0,.6)', padding: 12,

@@ -39,6 +39,34 @@ const ANIM_KEY = 'design-md:ui-anim'
 const HUE_KEY = 'design-md:ui-hue'
 const THEME_KEY = 'design-md:ui-theme'
 const BRIGHT_KEY = 'design-md:ui-bright'
+const SCALE_KEY = 'design-md:ui-scale'
+
+/* ── UI scale ──
+ *
+ * The chrome is drawn in absolute pixels — 10.5px labels, 12.5px body, 24px
+ * rows — because that is what makes a dense tool legible at one size. It also
+ * makes it exactly one size, and that size is small. Anyone who wants it
+ * bigger currently has browser zoom, which scales the whole page including
+ * the preview's own scrollbars and leaves the layout guessing about the
+ * viewport.
+ *
+ * So: `zoom` on the app root, which multiplies every used length underneath
+ * it without a single value here changing. Not `transform: scale()` — that
+ * paints a scaled copy of a box that still occupies its original size, so the
+ * layout would be wrong at every edge and fixed positioning would break
+ * outright. Not a rem rewrite either; that is the textbook answer and it means
+ * touching several hundred literals for a control most people will move once.
+ *
+ * The preview scales with everything else, deliberately. Holding it at true
+ * size while the chrome grows would leave the one thing you are trying to look
+ * at as the only thing still small, which inverts the point. The exported
+ * values are untouched either way — this changes what you see, never what the
+ * document says.
+ */
+const UI_SCALE = { min: 75, max: 150, def: 100, step: 5 }
+/* Snap window either side of 100%. Wide enough to land on it without care,
+   narrow enough that 95 and 105 stay reachable. */
+const SCALE_SNAP = 3
 
 /* A document nobody has touched. Compared as text against a freshly created
    one — `createInitialState()` is deterministic, with fixed ids and no
@@ -289,6 +317,49 @@ function UiSpeedControl({ value, onChange }) {
 const UI_B = { dark: { min: 0, max: 33, def: 11 }, light: { min: 67, max: 100, def: 78 } }
 const UI_B_DEFAULTS = { dark: UI_B.dark.def, light: UI_B.light.def }
 
+/* How large the whole editor draws. See the UI_SCALE block for why this is
+   `zoom` rather than a rem rewrite. */
+function UiScaleControl({ value, onChange }) {
+  const [draft, setDraft] = useState(null)
+  const changed = value !== UI_SCALE.def
+
+  const commit = input => {
+    setDraft(null)
+    const n = parseFloat(String(input).replace(/[^\d.]/g, ''))
+    if (!Number.isFinite(n)) return
+    onChange(Math.max(UI_SCALE.min, Math.min(UI_SCALE.max, Math.round(n))))
+  }
+  /* Same snap-near-default the hue slider has: 100% is the size everything was
+     drawn at, so it should be the easy one to get back to by dragging. */
+  const slide = n => onChange(Math.abs(n - UI_SCALE.def) <= SCALE_SNAP ? UI_SCALE.def : n)
+
+  return (
+    <div style={{ width: '100%', minWidth: 0 }}
+      title="Scales the whole editor, preview included. Nothing in the document changes — only how large it is drawn.">
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 3 }}>
+        <span style={{ fontSize: 10.5, color: changed ? 'var(--text)' : 'var(--muted)', flex: 1, whiteSpace: 'nowrap' }}>
+          UI Scale
+        </span>
+        <ResetButton onClick={() => onChange(UI_SCALE.def)} disabled={!changed} />
+      </div>
+      <div style={{ display: 'flex', gap: 4, marginBottom: 3 }}>
+        <input
+          value={draft ?? `${value}%`}
+          onChange={e => setDraft(e.target.value)}
+          onBlur={e => commit(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur() }}
+          style={{
+            flex: 1, minWidth: 0, fontFamily: 'var(--mono)', fontSize: 10.5, padding: '3px 5px',
+            textAlign: 'right', color: 'var(--text-dim)',
+          }} />
+      </div>
+      <input type="range" min={UI_SCALE.min} max={UI_SCALE.max} step={1} value={value}
+        onChange={e => slide(Number(e.target.value))}
+        onDoubleClick={() => onChange(UI_SCALE.def)} />
+    </div>
+  )
+}
+
 function UiBrightnessControl({ value, onChange, theme }) {
   const r = UI_B[theme]
   const [draft, setDraft] = useState(null)
@@ -448,7 +519,7 @@ function GlobalMetrics() {
  * the top of the window cost a whole row of chrome for controls nobody
  * touches twice in a session.
  */
-function ToolsMenu({ uiSpeed, setUiSpeed, uiHue, setUiHue, uiTheme, setUiTheme, uiBright, setUiBright }) {
+function ToolsMenu({ uiSpeed, setUiSpeed, uiHue, setUiHue, uiTheme, setUiTheme, uiBright, setUiBright, uiScale, setUiScale }) {
   const [open, setOpen] = useState(false)
   const boxRef = useRef(null)
   const btnRef = useRef(null)
@@ -474,7 +545,7 @@ function ToolsMenu({ uiSpeed, setUiSpeed, uiHue, setUiHue, uiTheme, setUiTheme, 
   return (
     <div style={{ position: 'relative', flexShrink: 0 }}>
       <button ref={btnRef} className="btn-ghost" onClick={() => setOpen(o => !o)}
-        title="Editor settings — theme, animation, chrome hue"
+        title="Editor settings — theme, scale, animation, chrome hue"
         aria-expanded={open}
         style={{ padding: '6px 10px', gap: 6, color: open ? 'var(--accent)' : 'var(--muted)' }}>
         <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
@@ -513,6 +584,7 @@ function ToolsMenu({ uiSpeed, setUiSpeed, uiHue, setUiHue, uiTheme, setUiTheme, 
             <ThemeToggle value={uiTheme} onChange={setUiTheme} />
             <UiBrightnessControl theme={uiTheme} value={uiBright[uiTheme]}
               onChange={v => setUiBright(b => ({ ...b, [uiTheme]: v }))} />
+            <UiScaleControl value={uiScale} onChange={setUiScale} />
             <UiHueControl value={uiHue} onChange={setUiHue} />
             <UiSpeedControl value={uiSpeed} onChange={setUiSpeed} />
           </div>
@@ -1382,6 +1454,14 @@ function Shell() {
     } catch { return UI_HUE_DEFAULT }
   })
 
+  const [uiScale, setUiScale] = useState(() => {
+    try {
+      const saved = parseInt(localStorage.getItem(SCALE_KEY), 10)
+      return Number.isFinite(saved) && saved >= UI_SCALE.min && saved <= UI_SCALE.max
+        ? saved : UI_SCALE.def
+    } catch { return UI_SCALE.def }
+  })
+
   /* The document's own typefaces, requested here rather than in the Typography
      panel. The preview renders on every tab, so panel-scoped loading meant the
      mock screens spent most of their life showing a fallback face — the one
@@ -1403,6 +1483,19 @@ function Shell() {
     document.documentElement.style.setProperty('--ui-h', String(uiHue))
     try { localStorage.setItem(HUE_KEY, String(uiHue)) } catch { /* ignore */ }
   }, [uiHue])
+
+  /* Drives `--ui-zoom`, the unitless factor the app root multiplies by.
+   *
+   * On the root element rather than on the app's own div, because the two
+   * things that have to agree about it are the zoom and the viewport height —
+   * `100vh` is not affected by zoom, so a zoomed root would overflow by
+   * exactly the zoom factor and `overflow: hidden` would eat the bottom of the
+   * page. The root div divides by this to compensate, and the popovers that
+   * position themselves from pointer coordinates divide by it too. */
+  useEffect(() => {
+    document.documentElement.style.setProperty('--ui-zoom', String(uiScale / 100))
+    try { localStorage.setItem(SCALE_KEY, String(uiScale)) } catch { /* ignore */ }
+  }, [uiScale])
 
   useEffect(() => {
     document.documentElement.style.setProperty('--ui-b', String(uiBright[uiTheme]))
@@ -1720,7 +1813,18 @@ function Shell() {
   return (
     <>
       <style>{APP_CSS}</style>
-      <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
+      {/* The zoom itself is on `body` (see theme.css) so that portalled
+          overlays are inside it — the token colour picker renders into
+          document.body and would otherwise be the one panel still drawn at
+          100% while everything around it grew.
+          *
+          The height divides the zoom back out: `vh` is a viewport unit and
+          does not scale, so a zoomed 100vh overflows by exactly the zoom
+          factor and the hidden overflow swallows the bottom of the app. */}
+      <div style={{
+        display: 'flex', flexDirection: 'column', overflow: 'hidden',
+        height: 'calc(100vh / var(--ui-zoom, 1))',
+      }}>
 
         <header style={{ display: 'flex', alignItems: 'center', gap: 13, padding: '0 20px', height: 50, borderBottom: '1px solid var(--bdr)', background: 'var(--surf)', flexShrink: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 9, flex: 1, minWidth: 0 }}>
@@ -1793,6 +1897,7 @@ function Shell() {
               It also should not scroll out of reach: whatever else is too
               narrow to fit, the settings stay put. */}
             <ToolsMenu uiSpeed={uiSpeed} setUiSpeed={setUiSpeed} uiHue={uiHue} setUiHue={setUiHue}
+              uiScale={uiScale} setUiScale={setUiScale}
               uiTheme={uiTheme} setUiTheme={setUiTheme} uiBright={uiBright} setUiBright={setUiBright} />
         </header>
 
