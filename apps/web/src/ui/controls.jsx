@@ -4,6 +4,23 @@ import { useState, useEffect } from 'react'
 /** How close to the default a drag has to land before it snaps there. */
 export const SNAP_FRACTION = 0.025
 
+/* The editor's own spacing, on a 4px base.
+ *
+ * This existed as a spread of hand-picked numbers — 1, 3, 4, 6, 7, 8, 9, 10,
+ * 11, 12, 13, 14, every value in the range — which is an embarrassing thing
+ * for a tool that exists to stop people doing exactly that. Nesting reads as
+ * nesting only when each level steps by a predictable amount, so cards, the
+ * subcards inside them and the rows inside those each get one value and use
+ * it everywhere.
+ */
+export const PAD = {
+  card: 12,   // inside a card
+  sub: 8,     // inside a subcard
+  gap: 8,     // between subcards
+  row: 4,     // between rows within a subcard
+  label: 6,   // a subcard's heading to its first row
+}
+
 export function SectionHeader({ title, desc, count, right }) {
   return (
     <div style={{ marginBottom: 18, display: 'flex', alignItems: 'flex-start', gap: 12 }}>
@@ -88,7 +105,7 @@ export function Collapsible({ title, note, children, defaultOpen = false, right,
         transition: 'grid-template-rows var(--t) var(--ease)',
       }}>
         <div style={{ overflow: 'hidden', minHeight: 0 }}>
-          {mounted && <div style={{ padding: '4px 12px 14px', borderTop: '1px solid var(--bdr)' }}>{children}</div>}
+          {mounted && <div style={{ padding: `4px ${PAD.card}px ${PAD.card}px`, borderTop: '1px solid var(--bdr)' }}>{children}</div>}
         </div>
       </div>
     </div>

@@ -10,7 +10,7 @@ import { useStore } from '../state/store.jsx'
 import { COMPONENT_LIBRARY, COMPONENT_GROUPS } from '../state/components.js'
 import { SPEC_COMPONENT_PROPS } from '../emit/yaml.js'
 import { LAYOUT_BY_NAME, fieldActive } from '../state/componentLayout.js'
-import { SectionHeader, Toggle, ResetButton, Banner, Collapsible, Expand, FilterField, Segmented } from '../ui/controls.jsx'
+import { SectionHeader, Toggle, ResetButton, Banner, Collapsible, Expand, FilterField, Segmented, PAD } from '../ui/controls.jsx'
 import { useRevealWithin, revealStyle } from '../ui/reveal.js'
 import TokenColorPicker, { paletteGroups } from '../ui/TokenColorPicker.jsx'
 import { RAMP_STEPS, resolveRef } from '../color/ramp.js'
@@ -201,7 +201,7 @@ function PropRow({ entryName, propKey, defaultValue, override, onSet, onReset, d
 
       {/* Direct control for the values worth nudging by feel rather than typing. */}
       {(spaceTarget || hasSizeSlider) && (
-        <div style={{ display: 'grid', gridTemplateColumns: '128px minmax(0,1fr)', gap: 8, alignItems: 'center', marginBottom: 3 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '128px minmax(0,1fr)', gap: 8, alignItems: 'center', marginBottom: PAD.row }}>
           <span />
           {spaceTarget ? (
             <input type="range" min={0} max={derived.spacing.length - 1} step={1} value={spaceTarget.idx}
@@ -244,16 +244,16 @@ function EntryBlock({ title, entryName, props, overrides, onSet, onReset, derive
 
   return (
     <div data-entry={entryName} style={{
-      padding: '7px 8px',
-      marginBottom: 10,
+      padding: PAD.sub,
+      marginBottom: PAD.gap,
       ...revealStyle(targeted),
     }}>
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 4 }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: PAD.label }}>
         <code style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--accent)' }}>{entryName}</code>
         {title && <span style={{ fontSize: 10, color: 'var(--dim)' }}>{title}</span>}
         {targeted && <span className="chip" style={{ color: 'var(--accent)', borderColor: 'rgba(220,144,85,.4)' }}>from preview</span>}
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: PAD.row }}>
         {shown.map(([k, v]) => (
           <PropRow key={k} entryName={entryName} propKey={k} defaultValue={String(v)}
             override={overrides[`${entryName}.${k}`]} onSet={onSet} onReset={onReset}
@@ -275,16 +275,16 @@ function LayoutBlock({ def, values, onSet }) {
     <div style={{
       /* Same box as an EntryBlock, so the composition card and the property
          rows below it line up on both edges. */
-      marginBottom: 12, padding: '8px 8px 9px', borderRadius: 8,
+      marginBottom: PAD.gap, padding: PAD.sub, borderRadius: 8,
       background: 'var(--surf)', border: '1px solid var(--bdr)',
     }}>
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 3 }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: PAD.label }}>
         <span style={{ fontSize: 12, fontWeight: 500 }}>{def.label}</span>
         {changed > 0 && <span className="chip" style={{ color: 'var(--accent)' }}>{changed} changed</span>}
         <span style={{ flex: 1 }} />
         <span className="chip" title="Emitted as guidance in the Components section — the DESIGN.md component schema has no slot for arrangement">prose</span>
       </div>
-      <p className="panel-note" style={{ marginBottom: 9 }}>{def.desc}</p>
+      <p className="panel-note" style={{ marginBottom: PAD.sub }}>{def.desc}</p>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {def.fields.map(field => (
@@ -337,7 +337,7 @@ function ComponentBlock({ def, cfg, layout, onSetLayout, onToggle, onSet, onRese
       borderRadius: 9, overflow: 'hidden', opacity: enabled ? 1 : 0.55,
       transition: 'border-color var(--t) var(--ease)',
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '8px 11px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '8px 12px' }}>
         <input type="checkbox" checked={enabled} onChange={e => onToggle(def.name, e.target.checked)}
           style={{ width: 14, height: 14, accentColor: 'var(--accent)', padding: 0, flexShrink: 0 }} />
         <button onClick={() => setOpen(o => !o)} disabled={!enabled}
@@ -351,7 +351,7 @@ function ComponentBlock({ def, cfg, layout, onSetLayout, onToggle, onSet, onRese
         {open && enabled && <FilterField value={query} onChange={setQuery} placeholder="gap, colourâ€¦" width={124} />}
       </div>
       <Expand open={open && enabled}>
-        <div style={{ padding: '11px 13px', borderTop: '1px solid var(--bdr)', background: 'var(--surf2)' }}>
+        <div style={{ padding: PAD.card, borderTop: '1px solid var(--bdr)', background: 'var(--surf2)' }}>
           {query && (
             <div style={{ fontSize: 10.5, color: 'var(--muted)', marginBottom: 8 }}>
               Showing properties matching <code style={{ fontFamily: 'var(--mono)', color: 'var(--accent)' }}>{query}</code>
