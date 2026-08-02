@@ -228,7 +228,7 @@ Round-tripping is **byte-identical for the YAML layer**. The prose layer can't b
 
 ## Deployment
 
-The web app deploys to Vercel and the API to Cloudflare Workers. `apps/web/vercel.json` rewrites `/api/*` to the Worker and serves `/p/:id` from `index.html`.
+The web app deploys to Vercel and the API to Cloudflare Workers. The root `vercel.json` carries the build settings, rewrites `/api/*` to the Worker and serves `/p/:id` from `index.html` — it lives at the root rather than in `apps/web` so importing the repo needs no per-project configuration.
 
 Before the first deploy, create a real database and put its id in `apps/api/wrangler.toml` — the one committed there is a local-development placeholder:
 
