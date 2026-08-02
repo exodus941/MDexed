@@ -61,7 +61,10 @@ export default function Settings({ onInspect }) {
         </div>
 
         <div className="row" style={{ justifyContent: 'space-between' }}>
-          <button className="btn btn-ghost" {...ins('button-ghost')}><Ico d={IconTrash} />Reset to defaults</button>
+          {/* Destructive — it throws away everything on the page — but a
+              secondary action sitting beside Save, so it takes the ghost
+              treatment in the danger colour rather than a filled red. */}
+          <button className="btn btn-danger-ghost" {...ins('button-danger-ghost')}><Ico d={IconTrash} />Reset to defaults</button>
           <div className="row">
             <button className="btn btn-secondary" disabled {...ins('button-primary-disabled')}>Discard</button>
             <button className="btn btn-primary" {...ins('button-primary')}><Ico d={IconCheck} />Save changes</button>

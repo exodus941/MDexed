@@ -115,7 +115,13 @@ export default function Dashboard({ onInspect, layout }) {
             <p className="muted small" {...txt('body-sm', 'text-muted')}>Halcyon Group renews in 6 days and has an overdue balance.</p>
             <div className="row" style={{ marginTop: 'var(--space-md, 16px)' }}>
               <button className="btn btn-primary btn-sm" {...ins('button-primary')}>Send reminder</button>
-              <button className="btn btn-ghost btn-sm" {...ins('button-ghost')}>Dismiss</button>
+              {/* Destructive, but not what the card is for — dismissing an
+                  overdue renewal loses the reminder, so it should read as
+                  destructive without competing with the primary action. That
+                  is the whole case for danger-ghost, and putting it here means
+                  the variant is visible and clickable rather than only
+                  existing in the Components tab. */}
+              <button className="btn btn-danger-ghost btn-sm" {...ins('button-danger-ghost')}>Dismiss</button>
             </div>
           </div>
         </div>

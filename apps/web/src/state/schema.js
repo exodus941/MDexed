@@ -65,6 +65,13 @@ export const ROLE_GROUPS = [
       { name: 'warning-subtle',  desc: 'Warning background',         light: 'warning.100', dark: 'warning.900' },
       { name: 'warning-fg',      desc: 'Content on warning fill',    light: 'neutral.50',  dark: 'neutral.950' },
       { name: 'danger',          desc: 'Destructive fill',           light: 'danger.600',  dark: 'danger.400'  },
+      /* Accent has had a hover role since the start; danger never did, so a
+         destructive button's hover was defined as `danger` — the colour it
+         already was — and the most consequential button in the app was the one
+         that did not respond to the pointer. Steps the same direction accent
+         does: darker on paper, lighter in the dark, because a hover has to
+         move away from the page rather than always down. */
+      { name: 'danger-hover',    desc: 'Destructive hover',          light: 'danger.700',  dark: 'danger.300'  },
       { name: 'danger-subtle',   desc: 'Destructive background',     light: 'danger.100',  dark: 'danger.900'  },
       { name: 'danger-fg',       desc: 'Content on destructive fill',light: 'neutral.50',  dark: 'neutral.950' },
     ],

@@ -177,17 +177,30 @@ body{zoom:var(--ui-zoom,1);background:var(--bg);color:var(--text);font-family:va
  * to keep every select in the app consistent is a better deal than a wrapper
  * element around each one. */
 input,textarea,select{font-family:var(--sans);font-size:14px;line-height:1.4;color:var(--text);background:var(--surf3);border:1px solid var(--bdr);border-radius:6px;padding:8px 12px;outline:none;transition:border-color var(--t) var(--ease),background var(--t) var(--ease);width:100%}
-/* One height for every field, whatever type size it carries. Left to its own
-   line box a 14px field is 34.8px and an 11.5px one is 33.8, so two fields in
-   the same row disagree by a pixel and any table built around them cannot land
-   on a whole number. A minimum rather than a height, so a textarea still
-   grows. */
-/* A height, not a minimum. A minimum only lifts fields that are too short —
-   a 14px field's own line box already comes to 37.6, so it sailed past a 36px
-   floor while an 11.5px one was raised to meet it, and the two sat two pixels
-   apart. Single-line fields are exactly 36; textarea is left to grow. */
-input:not([type=range]):not([type=checkbox]):not([type=radio]),select{height:36px}
-textarea{min-height:36px}
+/* ── Field height, on a 4px grid ──
+ *
+ * Two rules, and the second is the one that keeps the first honest.
+ *
+ * The height is declared, not discovered. Left to its own line box a 14px
+ * field comes to 37.6px and an 11.5px one to 33.8 — two fields in the same row
+ * disagreeing by four pixels, neither of them a number anyone chose. A
+ * declared height ends that, but only if the content actually fits inside it,
+ * or the browser overflows the box and the text is sheared instead.
+ *
+ * So the line box is declared too, and both sit on the 4px grid the rest of
+ * the editor uses. The arithmetic has to close:
+ *
+ *     height = border(2) + padding(2 × 8) + line-height(18)  = 36
+ *     dense  = border(2) + padding(2 × 5) + line-height(16)  = 28
+ *
+ * If a larger type size ever needs more room, the next height is 40 and then
+ * 44 — never 37.6. Raise the step, raise the line box with it, and check the
+ * sum still closes. */
+:root{--field-h:36px;--field-line:18px;--field-h-dense:28px;--field-line-dense:16px}
+input:not([type=range]):not([type=checkbox]):not([type=radio]),select{height:var(--field-h);line-height:var(--field-line)}
+/* A textarea is the one field that has to grow, so it gets the height as a
+   floor and its own reading line-height. */
+textarea{height:auto;min-height:var(--field-h);line-height:1.5}
 
 /* ── Dense fields ──
  *
@@ -203,10 +216,10 @@ textarea{min-height:36px}
  * sized at the call site, and there is no third size to drift into. */
 .dense input:not([type=range]):not([type=checkbox]):not([type=radio]),
 .dense select,
-.dense textarea{padding:5px 8px;font-size:10.5px;border-radius:5px}
+.dense textarea{padding:5px 8px;font-size:10.5px;border-radius:5px;line-height:var(--field-line-dense)}
 .dense input:not([type=range]):not([type=checkbox]):not([type=radio]),
-.dense select{height:28px}
-.dense textarea{height:auto;min-height:28px}
+.dense select{height:var(--field-h-dense);line-height:var(--field-line-dense)}
+.dense textarea{height:auto;min-height:var(--field-h-dense)}
 .dense select{padding-right:26px;background-position:right 8px center;background-size:10px 10px}
 input:focus,textarea:focus,select:focus{border-color:var(--accent);background:var(--surf2)}
 select{-webkit-appearance:none;appearance:none;padding-right:34px;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238e969d' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");background-repeat:no-repeat;background-position:right 12px center;background-size:11px 11px}
