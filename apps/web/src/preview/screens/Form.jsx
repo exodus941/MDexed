@@ -3,9 +3,51 @@
    those pairings can't quietly break. */
 import { inspectProps, text } from '../inspect.js'
 import { Ico, Check, Switch, IconCheck, IconX, IconTrash, IconChevron, IconCalendar } from '../icons.jsx'
-export default function Form({ onInspect }) {
+/* One place that knows how a field is assembled, so the composition settings
+   are demonstrated rather than described. Every field on this screen goes
+   through it.
+
+   Defined at module scope, not inside Form: a component created during render
+   is a new type on every render, so React would unmount and remount every
+   field — and anything you were typing in the preview would lose focus. */
+function Field({ fl, ins, txt, entry, label, required, help, error, children }) {
+  const inline = fl.label === 'inline'
+  const marker = fl.required === 'asterisk' && required ? <span style={{ color: 'var(--c-danger, #c00)' }}> *</span>
+    : fl.required === 'optional' && !required ? <span className="muted"> (optional)</span>
+    : null
+  const labelEl = fl.label === 'hidden'
+    ? null
+    : <label className="label" {...txt('caption', 'text-muted')}>{label}{marker}</label>
+  /* "Replaces help" is the default because a field that grows taller the
+     moment it fails validation shifts everything below it. */
+  const helpEl = help && !(error && fl.error === 'replace')
+    ? <span className="caption" {...txt('caption', 'text-muted')}>{help}</span> : null
+  const errorEl = error
+    ? <span className="caption" style={{ color: 'var(--c-danger, #c2453c)' }} {...txt('caption', 'danger')}>{error}</span> : null
+
+  const body = (
+    <>
+      {fl.help === 'under-label' && helpEl}
+      {children}
+      {fl.help !== 'under-label' && helpEl}
+      {errorEl}
+    </>
+  )
+
+  return (
+    <div className="field" {...ins(entry)}
+      style={inline ? { display: 'grid', gridTemplateColumns: '112px 1fr', gap: 'var(--space-sm, 12px)', alignItems: 'baseline' } : undefined}>
+      {labelEl}
+      {inline ? <div className="field">{body}</div> : body}
+    </div>
+  )
+}
+
+export default function Form({ onInspect, layout }) {
   const ins = entry => inspectProps(entry, onInspect)
   const txt = (typeName, roleName = 'text') => inspectProps(text(typeName, roleName), onInspect)
+  const fl = layout?.input ?? {}
+
   return (
     <div style={{ maxWidth: 620, margin: '0 auto' }} className="stack">
       <div>
@@ -17,48 +59,41 @@ export default function Form({ onInspect }) {
 
       <div className="card stack" {...ins('card')}>
         <div className="grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
-          <div className="field" {...ins('input')}>
-            <label className="label" {...txt("caption", "text-muted")}>Legal name</label>
+          <Field fl={fl} ins={ins} txt={txt} entry="input" label="Legal name" required>
             <input className="input" defaultValue="Northwind Trading Co." />
-          </div>
-          <div className="field" {...ins('input')}>
-            <label className="label" {...txt("caption", "text-muted")}>Trading name</label>
+          </Field>
+          <Field fl={fl} ins={ins} txt={txt} entry="input" label="Trading name">
             <input className="input" placeholder="Optional" />
-          </div>
+          </Field>
         </div>
 
-        <div className="field" {...ins('input-invalid')}>
-          <label className="label" {...txt("caption", "text-muted")}>Billing email</label>
+        <Field fl={fl} ins={ins} txt={txt} entry="input-invalid" label="Billing email" required
+          help="Invoices and receipts are sent here."
+          error="Enter a complete email address.">
           <input className="input is-invalid" defaultValue="accounts@northwind" />
-          <span className="caption" style={{ color: "var(--c-danger, #c2453c)" }} {...txt("caption", "danger")}>Enter a complete email address.</span>
-        </div>
+        </Field>
 
-        <div className="field" {...ins('textarea')}>
-          <label className="label" {...txt("caption", "text-muted")}>Registered address</label>
+        <Field fl={fl} ins={ins} txt={txt} entry="textarea" label="Registered address" required>
           <textarea className="input" rows={3} defaultValue={'44 Wharf Road\nBristol BS1 4TR'} />
-        </div>
+        </Field>
 
         <div className="grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
-          <div className="field" {...ins('input-disabled')}>
-            <label className="label" {...txt("caption", "text-muted")}>VAT number</label>
+          <Field fl={fl} ins={ins} txt={txt} entry="input-disabled" label="VAT number" help="Verified — contact support to change this.">
             <input className="input" disabled defaultValue="GB 429 8841 22" />
-            <span className="caption" {...txt("caption", "text-muted")}>Verified — contact support to change this.</span>
-          </div>
-          <div className="field" {...ins('select')}>
-            <label className="label" {...txt("caption", "text-muted")}>Payment terms</label>
+          </Field>
+          <Field fl={fl} ins={ins} txt={txt} entry="select" label="Payment terms" required>
             <button className="btn btn-secondary" style={{ width: '100%', justifyContent: 'space-between', height: 'var(--cmp-select-height, 36px)' }}>
               <span>Net 30</span><Ico d={IconChevron} />
             </button>
-          </div>
+          </Field>
         </div>
 
-        <div className="field" {...ins('input')}>
-          <label className="label" {...txt("caption", "text-muted")}>Invoice date</label>
+        <Field fl={fl} ins={ins} txt={txt} entry="input" label="Invoice date" required>
           <div className="input-icon">
             <Ico d={IconCalendar} />
             <input className="input" defaultValue="14 Mar 2026" />
           </div>
-        </div>
+        </Field>
 
         <div className="stack-sm">
           <label className="with-icon" style={{ cursor: 'pointer' }} {...ins('checkbox-checked')}>

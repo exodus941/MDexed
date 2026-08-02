@@ -8,9 +8,11 @@
 import { inspectProps, text } from '../inspect.js'
 import { Ico, IconPlus, IconDownload, IconChart, IconFolder, IconBell, IconAlert, IconMore, IconSend } from '../icons.jsx'
 
-export default function Dashboard({ onInspect }) {
+export default function Dashboard({ onInspect, layout }) {
   const ins = entry => inspectProps(entry, onInspect)
   const txt = (typeName, roleName = 'text') => inspectProps(text(typeName, roleName), onInspect)
+  const al = layout?.alert ?? {}
+  const tb = layout?.table ?? {}
   const rows = [
     ['Northwind Trading', 'Active',   '$12,480', 'AH'],
     ['Meridian Labs',     'Trialing', '$3,200',  'ML'],
@@ -45,11 +47,21 @@ export default function Dashboard({ onInspect }) {
 
         {/* Alerts belong on the screen that would actually raise one. */}
         <div className="alert alert-warning" {...ins('alert-warning')}>
-          <Ico d={IconAlert} />
-          <span className="alert-body" {...txt('body-sm', 'warning')}>Two invoices are more than 30 days overdue.</span>
-          <span className="alert-action">
-            <button className="btn btn-ghost btn-sm" {...ins('button-ghost')}>Review</button>
+          {al.icon !== 'none' && <Ico d={IconAlert} />}
+          <span className="alert-body" {...txt('body-sm', 'warning')}>
+            {al.title === 'bold' && <strong style={{ display: 'block' }}>Payment overdue</strong>}
+            Two invoices are more than 30 days overdue.
+            {al.action === 'below' && (
+              <span style={{ display: 'block', marginTop: 'var(--space-xs, 8px)' }}>
+                <button className="btn btn-ghost btn-sm" {...ins('button-ghost')}>Review</button>
+              </span>
+            )}
           </span>
+          {al.action === 'inline' && (
+            <span className="alert-action">
+              <button className="btn btn-ghost btn-sm" {...ins('button-ghost')}>Review</button>
+            </span>
+          )}
         </div>
 
         <div className="grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
@@ -68,8 +80,12 @@ export default function Dashboard({ onInspect }) {
             <h3 style={{ fontSize: 'var(--font-body-md-size, 16px)' }} {...txt('h6')}>Accounts</h3>
             <span className="badge badge-neutral" {...ins('badge-neutral')}>4 shown</span>
           </div>
-          <table className="table" {...ins('table')}>
-            <thead><tr {...ins('table-header')}><th>Account</th><th>Status</th><th style={{ textAlign: 'right' }}>Balance</th></tr></thead>
+          {/* Numeric alignment, header treatment and row separation all come
+              from the table's composition settings. */}
+          <table className={`table table-rows-${tb.rows ?? 'lines'} table-head-${tb.header ?? 'overline'}`} {...ins('table')}>
+            <thead><tr {...ins('table-header')}>
+              <th>Account</th><th>Status</th><th className={tb.numeric === 'left' ? '' : 'num-col'}>Balance</th>
+            </tr></thead>
             <tbody>
               {rows.map(([name, status, amount, initials]) => (
                 <tr key={name}>
@@ -80,7 +96,7 @@ export default function Dashboard({ onInspect }) {
                     </div>
                   </td>
                   <td><span className={`badge ${badgeFor(status)}`} {...ins(`badge-${badgeFor(status).replace('badge-', '')}`)}>{status}</span></td>
-                  <td style={{ textAlign: 'right' }}><span {...txt('body-sm')}>{amount}</span></td>
+                  <td className={tb.numeric === 'left' ? '' : 'num-col'}><span {...txt('body-sm')}>{amount}</span></td>
                 </tr>
               ))}
             </tbody>

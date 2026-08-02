@@ -39,9 +39,19 @@ const uiDuration = () => {
  *   already open and skips the animation — which is what made a jump from the
  *   preview feel like a hard cut.
  */
-export function Collapsible({ title, note, children, defaultOpen = false, right, openSignal }) {
-  const [open, setOpen] = useState(defaultOpen)
-  const [mounted, setMounted] = useState(defaultOpen)
+export function Collapsible({ title, note, children, defaultOpen = false, right, openSignal, open: openProp, onOpenChange }) {
+  const [ownOpen, setOwnOpen] = useState(defaultOpen)
+  /* Controlled when the caller supplies `open` — needed where the section can
+     be remounted underneath itself (a cross-dissolve) and the open state has
+     to survive in a parent that isn't remounting. */
+  const controlled = openProp !== undefined
+  const open = controlled ? openProp : ownOpen
+  const setOpen = next => {
+    const value = typeof next === 'function' ? next(open) : next
+    if (controlled) onOpenChange?.(value)
+    else setOwnOpen(value)
+  }
+  const [mounted, setMounted] = useState(open)
 
   useEffect(() => { if (openSignal) setOpen(true) }, [openSignal])
 

@@ -273,6 +273,19 @@ export const PREVIEW_CSS = `
 }
 .dmd .table td { padding: ${sp('sm', '8px')} 0; border-bottom: 1px solid ${c('border-subtle', '#eee')}; }
 
+/* ── Table composition ──
+   Driven by the settings in the Components tab rather than hard-coded, so the
+   conventions the exported file states are the ones on screen. */
+.dmd .table-head-plain th { text-transform: none; letter-spacing: normal; font-size: ${ft('body-sm', 'size', '14px')}; font-weight: 600; }
+.dmd .table-rows-zebra td { border-bottom: 0; }
+.dmd .table-rows-zebra tbody tr:nth-child(odd) { background: ${c('bg-subtle', '#f6f6f6')}; }
+.dmd .table-rows-zebra td:first-child { padding-left: ${sp('xs', '8px')}; }
+.dmd .table-rows-zebra td:last-child { padding-right: ${sp('xs', '8px')}; }
+.dmd .table-rows-none td { border-bottom: 0; }
+/* Tabular figures so digits sit in columns between rows, which is the whole
+   reason to right-align a number in the first place. */
+.dmd .table .num-col { text-align: right; font-variant-numeric: tabular-nums; }
+
 .dmd .avatar {
   width: ${cm('avatar', 'size', '32px')}; height: ${cm('avatar', 'size', '32px')};
   border-radius: ${cm('avatar', 'rounded', rd('full', '9999px'))};
