@@ -317,7 +317,7 @@ function SaveFlash({ savedAt }) {
   if (!shown) return null
   return (
     <div key={shown.at} className={leaving ? 'anim-fall' : 'anim-rise'} style={{
-      position: 'fixed', right: 18, bottom: 16, zIndex: 900, pointerEvents: 'none',
+      pointerEvents: 'none',
       display: 'flex', alignItems: 'center', gap: 7,
       /* Opaque. A translucent confirmation over a dark editor is unreadable. */
       background: '#12352a', border: '1px solid rgba(90,173,128,.55)',
@@ -555,12 +555,24 @@ function RestoreToast({ offer, onRestore, onDismiss }) {
 
   return (
     <div className={leaving ? 'anim-fall' : 'anim-rise'} style={{
-      position: 'fixed', left: 18, bottom: 16, zIndex: 900,
-      display: 'flex', alignItems: 'center', gap: 12,
+      display: 'flex', alignItems: 'center', gap: 11,
       background: 'var(--surf2)', border: '1px solid var(--bdr2)',
-      borderRadius: 9, padding: '9px 10px 9px 13px', maxWidth: 400,
+      borderRadius: 9, padding: '9px 10px 9px 11px', maxWidth: 400,
       boxShadow: '0 10px 30px rgba(0,0,0,.5)',
     }}>
+      {/* A restore glyph, in the success green — the one strong colour in the
+          editor chrome, so the eye finds this against a bright preview. */}
+      <span style={{
+        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+        width: 26, height: 26, borderRadius: '50%', flexShrink: 0,
+        background: 'rgba(90,173,128,.16)', color: 'var(--success)',
+      }}>
+        <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          strokeWidth={2.1} strokeLinecap="round" strokeLinejoin="round">
+          <path d="M3 3v6h6" />
+          <path d="M3.5 14a9 9 0 1 0 2.1-9.4L3 7" />
+        </svg>
+      </span>
       <div style={{ minWidth: 0 }}>
         <div style={{ fontSize: 12.5, color: 'var(--text)' }}>
           Started a new project.
@@ -966,8 +978,20 @@ function Shell() {
         </div>
       </div>
 
-      <SaveFlash savedAt={savedAt} />
-      <RestoreToast offer={restorable} onRestore={restorePrevious} onDismiss={() => setRestorable(null)} />
+      {/* One bottom-right stack rather than two independently positioned
+          toasts. The restore offer appears at boot and the save flash fires
+          ~600ms later on the first autosave, so anchoring both to the same
+          corner separately would overlap them on every cold start. */}
+      <div style={{
+        position: 'fixed', right: 18, bottom: 16, zIndex: 900,
+        display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8,
+        pointerEvents: 'none',
+      }}>
+        <div style={{ pointerEvents: 'auto' }}>
+          <RestoreToast offer={restorable} onRestore={restorePrevious} onDismiss={() => setRestorable(null)} />
+        </div>
+        <SaveFlash savedAt={savedAt} />
+      </div>
 
       {showFile && <FileModal onClose={() => setShowFile(false)} />}
       {showNew && (
