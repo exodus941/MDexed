@@ -72,25 +72,51 @@ const Swatch = ({ hex, count, picked, role, onClick }) => (
  * shown is cheap. A wrong guess applied silently poisons every derived token
  * downstream of the seed.
  */
-/* A real grid, because this is a table.
+/* A table. One row per slot, one line per row, columns declared once.
  *
- * It was a flex row with the explanation underneath as a sibling, indented by
- * a hand-added margin — checkbox width plus label width plus two gaps. That
- * number is a restatement of the layout rather than a consequence of it, so it
- * was wrong by six pixels, and every row that wrapped differently drifted
- * further. Columns that are declared once and shared cannot disagree.
+ * The previous version put the explanation on a second line of its own,
+ * indented by a margin that added up the checkbox, the label and two gaps by
+ * hand — arithmetic restating the layout rather than following from it, so it
+ * was off by six pixels and drifted on any row that sized differently. Two
+ * tiers also doubled the height of a list you are meant to scan.
  *
- * Six tracks: checkbox, slot, source, arrow, control, confidence. The
- * explanation is a second grid row starting at the source column, so it sits
- * under the thing it explains rather than under the slot name. Fixed widths on
- * everything but the source, which takes the slack — with the same widths and
- * the same container width, every row resolves identically. */
+ * Everything is a column now, everything truncates, and nothing wraps. The
+ * long text carries a `title` so the full sentence is a hover away rather than
+ * costing every row a second line. */
+const COLUMNS = [
+  { key: 'seed',   label: 'Seed',   w: '104px' },
+  { key: 'type',   label: 'Type',   w: '176px' },
+  { key: 'slug',   label: 'Slug',   w: '196px' },
+  { key: 'sample', label: 'Sample', w: 'minmax(0, 1fr)' },
+  { key: 'match',  label: 'Match',  w: '82px' },
+  { key: 'value',  label: 'Value',  w: '176px' },
+]
+
 const GRID = {
   display: 'grid',
-  gridTemplateColumns: '16px 152px minmax(0, 1fr) 14px 176px 68px',
+  gridTemplateColumns: `16px ${COLUMNS.map(c => c.w).join(' ')}`,
   columnGap: 10,
-  rowGap: 2,
   alignItems: 'center',
+}
+
+/* Every cell that is not a control: one line, clipped, full text on hover. */
+const cell = (extra = {}) => ({
+  minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', ...extra,
+})
+
+function HeaderRow({ ids, off, onSet }) {
+  return (
+    <div style={{
+      ...GRID, padding: '0 0 6px', borderBottom: '1px solid var(--bdr2)',
+      fontSize: 9.5, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase',
+      color: 'var(--dim)',
+    }}>
+      <SelectAll ids={ids} off={off} onSet={onSet} compact />
+      {COLUMNS.map(c => (
+        <div key={c.key} style={cell({ textAlign: c.key === 'match' ? 'right' : 'left' })}>{c.label}</div>
+      ))}
+    </div>
+  )
 }
 
 /* Select all / none, for a group or for the lot.
@@ -99,7 +125,7 @@ const GRID = {
  * on every row and it can show the third state the rows cannot: some on, some
  * off. Clicking an indeterminate box selects everything, which is what you
  * want after unticking two rows and changing your mind. */
-function SelectAll({ ids, off, onSet, label = 'All' }) {
+function SelectAll({ ids, off, onSet, label, compact }) {
   const ref = useRef(null)
   const on = ids.filter(id => !off.has(id)).length
   const all = on === ids.length && ids.length > 0
@@ -107,21 +133,30 @@ function SelectAll({ ids, off, onSet, label = 'All' }) {
 
   useEffect(() => { if (ref.current) ref.current.indeterminate = some }, [some])
 
+  /* In a column header there is one checkbox-width of room, so the count
+     moves to the tooltip rather than the label being dropped entirely. */
+  const box = (
+    <input ref={ref} type="checkbox" checked={all} onChange={() => onSet(!all)}
+      title={`${on} of ${ids.length} selected — click to select ${all ? 'none' : 'all'}`}
+      aria-label={`Select all (${on} of ${ids.length})`}
+      style={{ width: 14, height: 14, accentColor: 'var(--accent)', cursor: 'pointer', justifySelf: 'start' }} />
+  )
+  if (compact) return box
+
   return (
     <label style={{
       display: 'inline-flex', alignItems: 'center', gap: 6, cursor: 'pointer',
       fontSize: 10.5, color: on ? 'var(--muted)' : 'var(--dim)', userSelect: 'none',
     }}>
-      <input ref={ref} type="checkbox" checked={all} onChange={() => onSet(!all)}
-        style={{ width: 13, height: 13, accentColor: 'var(--accent)' }} />
+      {box}
       {label} <span style={{ fontFamily: 'var(--mono)' }}>{on}/{ids.length}</span>
     </label>
   )
 }
 
 const CONFIDENCE = {
-  named:    { label: 'named',    tone: 'var(--success)', hint: 'A custom property in the file names this slot.' },
-  inferred: { label: 'inferred', tone: 'var(--warn)',    hint: 'Worked out from the colours themselves. Worth a look.' },
+  named:    { label: 'By name',  tone: 'var(--success)', hint: 'A custom property in the file names this slot.' },
+  inferred: { label: 'Inferred', tone: 'var(--warn)',    hint: 'Worked out from the colours themselves. Worth a look.' },
 }
 
 /* One row. Colour rows open a grid of every colour in the file; font rows get
@@ -154,53 +189,46 @@ function MapRow({ slot, proposal, on, onToggle, onChange, palette, families }) {
   )
 
   return (
-    <div style={{ ...GRID, padding: '7px 0', borderTop: '1px solid var(--bdr)', opacity: dim ? 0.45 : 1 }}>
-      <input type="checkbox" checked={on} onChange={e => onToggle(e.target.checked)}
-        style={{ width: 14, height: 14, accentColor: 'var(--accent)', justifySelf: 'start' }}
-        aria-label={`Apply ${slot.label}`} />
+    <>
+      <div style={{ ...GRID, padding: '6px 0', borderTop: '1px solid var(--bdr)', opacity: dim ? 0.45 : 1 }}>
+        <input type="checkbox" checked={on} onChange={e => onToggle(e.target.checked)}
+          style={{ width: 14, height: 14, accentColor: 'var(--accent)', justifySelf: 'start' }}
+          aria-label={`Apply ${slot.label}`} />
 
-      <div style={{ minWidth: 0 }}>
-        <div style={{ fontSize: 12.5, color: 'var(--text)', whiteSpace: 'nowrap' }}>{slot.label}</div>
-        <div style={{ fontSize: 10, color: 'var(--dim)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{slot.desc}</div>
-      </div>
+        <div style={cell({ fontSize: 12.5, color: 'var(--text)' })}>{slot.label}</div>
 
-      {/* Source names run long — `--color-brand-primary-hover` is 28
-          characters — so this track takes the slack rather than being cut. */}
-      <code style={{
-        fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--muted)',
-        minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-      }} title={proposal.source}>{proposal.source}</code>
+        <div style={cell({ fontSize: 11, color: 'var(--muted)' })} title={slot.desc}>{slot.desc}</div>
 
-      <span aria-hidden style={{ color: 'var(--dim)', textAlign: 'center' }}>→</span>
+        <code style={cell({ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--muted)' })}
+          title={proposal.source}>{proposal.source}</code>
 
-      {control}
+        {/* The reason for the match. Long by nature — it has to be, since it
+            is what makes an inferred row judgeable without opening the
+            stylesheet — so it takes the slack column and the rest on hover. */}
+        <div style={cell({ fontSize: 11, color: 'var(--dim)' })} title={proposal.why}>{proposal.why}</div>
 
-      <span title={conf.hint} style={{
-        textAlign: 'right', whiteSpace: 'nowrap',
-        fontSize: 9.5, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase',
-        color: conf.tone,
-      }}>{conf.label}</span>
+        <div style={cell({
+          textAlign: 'right', fontSize: 10, fontWeight: 700, letterSpacing: '.05em', color: conf.tone,
+        })} title={conf.hint}>{conf.label}</div>
 
-      {/* Second grid row, starting at the source column so it reads as a
-          footnote to the match rather than to the slot name. Always visible
-          rather than behind a hover — it is the only thing that makes an
-          "inferred" row checkable without going and reading the stylesheet. */}
-      <div style={{ gridColumn: '3 / -1', fontSize: 11, color: 'var(--dim)' }}>
-        {proposal.why}
+        {control}
       </div>
 
       {picking && !dim && (
-        <div style={{ gridColumn: '3 / -1', display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
-          {palette.map(hex => (
-            <button key={hex} title={hex} onClick={() => { onChange(hex); setPicking(false) }}
-              style={{
-                width: 30, height: 24, borderRadius: 4, cursor: 'pointer', padding: 0, background: hex,
-                border: hex === proposal.value ? '2px solid var(--accent)' : '1px solid rgba(255,255,255,.12)',
-              }} />
-          ))}
+        <div style={{ ...GRID, padding: '0 0 8px' }}>
+          <div />
+          <div style={{ gridColumn: '2 / -1', display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+            {palette.map(hex => (
+              <button key={hex} title={hex} onClick={() => { onChange(hex); setPicking(false) }}
+                style={{
+                  width: 30, height: 24, borderRadius: 4, cursor: 'pointer', padding: 0, background: hex,
+                  border: hex === proposal.value ? '2px solid var(--accent)' : '1px solid rgba(255,255,255,.12)',
+                }} />
+            ))}
+          </div>
         </div>
       )}
-    </div>
+    </>
   )
 }
 
@@ -396,12 +424,15 @@ export default function ImportModal({ onClose, onApply, onOpenDocument }) {
                 if (!inGroup.length) return null
                 const ids = inGroup.map(s => s.id)
                 return (
-                  <Section key={group} title={group}
-                    right={<SelectAll ids={ids} off={off} onSet={on => setOff(s => {
+                  <Section key={group} title={group}>
+                    {/* The group's select-all lives in the column header, in
+                        the checkbox column, directly above the boxes it
+                        controls. */}
+                    <HeaderRow ids={ids} off={off} onSet={on => setOff(s => {
                       const next = new Set(s)
                       for (const id of ids) { if (on) next.delete(id); else next.add(id) }
                       return next
-                    })} />}>
+                    })} />
                     <div style={{ borderBottom: '1px solid var(--bdr)' }}>
                       {inGroup.map(slot => (
                         <MapRow key={slot.id} slot={slot} proposal={rows[slot.id]}
