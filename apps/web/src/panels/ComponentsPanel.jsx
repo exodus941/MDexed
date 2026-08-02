@@ -5,13 +5,13 @@
    will carry in the file, so the hyphenated flattening the spec requires
    (`button-primary-hover`) is visible while you work rather than a surprise
    at export. */
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useStore } from '../state/store.jsx'
 import { COMPONENT_LIBRARY, COMPONENT_GROUPS } from '../state/components.js'
 import { SPEC_COMPONENT_PROPS } from '../emit/yaml.js'
 import { LAYOUT_BY_NAME, fieldActive } from '../state/componentLayout.js'
 import { SectionHeader, Toggle, ResetButton, Banner, Collapsible, Expand, FilterField, Segmented } from '../ui/controls.jsx'
-import { useReveal, revealStyle } from '../ui/reveal.js'
+import { useRevealWithin, revealStyle } from '../ui/reveal.js'
 
 /* Which token group a property should draw from. Offering `{colors.*}` for a
    padding field is noise; offering nothing at all is what made these look like
@@ -201,20 +201,25 @@ const matches = (query, entryName, key, value) => {
 
 function EntryBlock({ title, entryName, props, overrides, onSet, onReset, derived, mode, inspect, query }) {
   /* The jump targets the exact entry â€” clicking a small button lands on
-     `button-sm`, not merely somewhere inside Button. */
+     `button-sm`, not merely somewhere inside Button. The scrolling is the
+     owning ComponentBlock's job; this only marks itself. */
   const targeted = inspect?.entry === entryName
-  const ref = useReveal(targeted, inspect?.at)
 
   /* Filtered after the hooks â€” an early return above them would change the
      hook order between renders. */
   const shown = Object.entries(props).filter(([k, v]) => matches(query, entryName, k, overrides[`${entryName}.${k}`] ?? v))
   if (!shown.length) return null
 
+  /* Geometry is identical whether or not this entry is the jump target: the
+     highlight adds a background and a ring, never padding or margin. It used
+     to bleed 8px into the parent on both sides when highlighted, so the one
+     entry you had just jumped to was visibly wider than all its siblings. */
+
   return (
-    <div ref={ref} style={{
+    <div data-entry={entryName} style={{
+      padding: '7px 8px',
       marginBottom: 10,
       ...revealStyle(targeted),
-      ...(targeted && { padding: '7px 8px', margin: '0 -8px 10px' }),
     }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 4 }}>
         <code style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--accent)' }}>{entryName}</code>
@@ -241,7 +246,9 @@ function LayoutBlock({ def, values, onSet }) {
 
   return (
     <div style={{
-      marginBottom: 12, padding: '9px 10px', borderRadius: 8,
+      /* Same box as an EntryBlock, so the composition card and the property
+         rows below it line up on both edges. */
+      marginBottom: 12, padding: '8px 8px 9px', borderRadius: 8,
       background: 'var(--surf)', border: '1px solid var(--bdr)',
     }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 3 }}>
@@ -273,11 +280,18 @@ function ComponentBlock({ def, cfg, layout, onSetLayout, onToggle, onSet, onRese
   const enabled = cfg.enabled[def.name] ?? def.on
   const overrides = cfg.overrides ?? {}
 
-  /* A click in the gallery opens the owning component and scrolls to it. */
+  /* A click in the preview opens the owning component and scrolls to it.
+     The whole block is brought into view from its header down, not just the
+     matched entry — you clicked a modal, so you should be able to see that
+     you're in Modal and reach its other entries without scrolling back up. */
   const targeted = inspect && entriesFor(def, cfg).includes(inspect.entry)
-  /* Only opens the component â€” the matching EntryBlock does the scrolling, so
-     the view lands on the exact entry rather than the top of the block. */
   useEffect(() => { if (targeted) setOpen(true) }, [targeted, inspect?.at])
+
+  const rowSelector = useMemo(
+    () => (targeted ? `[data-entry="${CSS.escape(inspect.entry)}"]` : null),
+    [targeted, inspect?.entry],
+  )
+  const ref = useRevealWithin(targeted, inspect?.at, rowSelector)
 
   const entryCount =
     (def.base ? 1 : 0) +
@@ -288,7 +302,9 @@ function ComponentBlock({ def, cfg, layout, onSetLayout, onToggle, onSet, onRese
   const touched = Object.keys(overrides).filter(k => k === def.name || k.startsWith(`${def.name}.`) || k.startsWith(`${def.name}-`)).length
 
   return (
-    <div style={{
+    <div ref={ref} style={{
+      /* Breathing room above the header when a jump scrolls this to the top. */
+      scrollMarginTop: 12,
       background: 'var(--surf2)',
       border: `1px solid ${targeted ? 'var(--accent)' : open ? 'rgba(220,144,85,.35)' : 'var(--bdr)'}`,
       borderRadius: 9, overflow: 'hidden', opacity: enabled ? 1 : 0.55,

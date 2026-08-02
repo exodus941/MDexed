@@ -61,10 +61,11 @@ function TokenRow({ token, overrides, onOverride, onReset, families, inspect }) 
   ]
   const anyOverride = fields.some(f => overrides[`${token.name}.${f.k}`] != null)
   const stack = families[token.family]?.stack ?? 'inherit'
+  /* Constant padding: the highlight must not resize the row it lands on. */
 
   return (
     <div ref={rowRef} style={{
-      borderBottom: '1px solid var(--bdr)', padding: targeted ? '8px' : '8px 0',
+      borderBottom: '1px solid var(--bdr)', padding: '8px',
       ...revealStyle(targeted),
     }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 9, marginBottom: 6 }}>

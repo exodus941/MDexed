@@ -108,6 +108,21 @@ export function loadDocumentFonts(families, catalog = []) {
   }
 }
 
+/**
+ * One Google Fonts stylesheet URL covering every family a document uses, for
+ * an exported page that has to stand on its own. Fixed weights rather than
+ * axis ranges — the export is a static reference, not somewhere anyone is
+ * about to drag a variable-axis slider.
+ */
+export function fontsHref(families) {
+  const names = [...new Set(Object.values(families ?? {}).map(f => f?.family).filter(Boolean))]
+  if (!names.length) return null
+  const spec = names
+    .map(n => `family=${n.replace(/ /g, '+')}:wght@${DOCUMENT_WEIGHTS.join(';')}`)
+    .join('&')
+  return `https://fonts.googleapis.com/css2?${spec}&display=swap`
+}
+
 /** CSS font-family value with a category-appropriate fallback. */
 export function stackFor(family, category) {
   if (!family) return 'system-ui, sans-serif'

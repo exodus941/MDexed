@@ -436,7 +436,7 @@ export default function ColorPanel() {
               onDelete={() => deleteSeed(seed.id)} />
           ))}
         </div>
-        <button className="btn-add" onClick={addSeed}>+ Add seed</button>
+        <button className="btn-add" onClick={addSeed}>+ Add Seed</button>
         <datalist id="dmd-seed-names">
           {SEED_NAME_SUGGESTIONS.filter(n => !color.seeds.some(s => s.name === n)).map(n => <option key={n} value={n} />)}
         </datalist>
