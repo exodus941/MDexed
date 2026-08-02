@@ -230,7 +230,11 @@ Round-tripping is **byte-identical for the YAML layer**. The prose layer can't b
 
 The web app deploys to Vercel and the API to Cloudflare Workers. The root `vercel.json` carries the build settings, rewrites `/api/*` to the Worker and serves `/p/:id` from `index.html` — it lives at the root rather than in `apps/web` so importing the repo needs no per-project configuration.
 
-Before the first deploy, create a real database and put its id in `apps/api/wrangler.toml` — the one committed there is a local-development placeholder:
+**The web app deploys itself.** The Vercel project is connected to the Git repository, so every push to `main` builds and goes live. Nothing to run.
+
+The Worker does not — Cloudflare has no equivalent hook here, so changes under `apps/api` need `npm run deploy -w apps/api` to reach production. It is easy to change the API and wonder why the deployed site hasn't noticed.
+
+Before the first Worker deploy, create a real database and put its id in `apps/api/wrangler.toml` — the one committed there is a local-development placeholder:
 
 ```bash
 npx wrangler d1 create design-md-editor
