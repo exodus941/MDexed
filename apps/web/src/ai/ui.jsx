@@ -67,27 +67,43 @@ export function AiHeader() {
 
   const chosen = models.find(m => m.id === model)
   return (
-    /* Bottom-aligned, not centred.
+    /* Centred on the select, not on the column.
      *
-     * The left column is a label stacked on a select; the right is two lines
-     * of text. Centring the two made the text float in the middle of a taller
-     * neighbour, which read as a blank line beneath it and put the whole card
-     * off its axis. Aligning to the bottom sits the note on the select's
-     * baseline, where it belongs — it describes the select. */
-    <div style={{ ...box, display: 'flex', alignItems: 'flex-end', gap: 10 }}>
+     * The left side is a label stacked on a select, so aligning the note to
+     * the column centres it against both and it drifts up into the label's
+     * band; aligning to the bottom pins it to the select's last pixel. What
+     * it should track is the select itself, since that is what it describes.
+     *
+     * So the note is pushed down past the label — 10.5px at 1.5 line-height,
+     * plus the 4px gap — and then centres in the space that remains, which is
+     * exactly the select's height. Derived rather than nudged, so it stays
+     * right if the label's size changes. */
+    <div style={{ ...box, display: 'flex', alignItems: 'stretch', gap: 10 }}>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <label style={{ marginBottom: 4 }}>Model</label>
+        <label style={{ marginBottom: LABEL_GAP }}>Model</label>
         <select value={model ?? ''} onChange={e => setModel(e.target.value)} style={{ width: '100%', display: 'block' }}>
           {models.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
         </select>
       </div>
-      <div style={{ fontSize: 11, color: 'var(--muted)', lineHeight: 1.5, maxWidth: 190, flexShrink: 0, paddingBottom: 7 }}>
-        {models.length} free models{chosen?.context ? `, ${Math.round(chosen.context / 1000)}k context` : ''}.
-        {' '}Free tiers are rate-limited.
+      <div style={{
+        display: 'flex', alignItems: 'center', flexShrink: 0,
+        paddingTop: LABEL_BAND, maxWidth: 190,
+      }}>
+        <span style={{ fontSize: 11, color: 'var(--muted)', lineHeight: 1.5 }}>
+          {models.length} free models{chosen?.context ? `, ${Math.round(chosen.context / 1000)}k context` : ''}.
+          {' '}Free tiers are rate-limited.
+        </span>
       </div>
     </div>
   )
 }
+
+/* The vertical space a field label occupies above its control: the global
+   `label` rule is 10.5px at line-height 1.5, plus the gap beneath it. Named
+   rather than written as 20, so the note beside a select stays aligned if the
+   label's type ever changes. */
+const LABEL_GAP = 4
+const LABEL_BAND = Math.round(10.5 * 1.5) + LABEL_GAP
 
 const Note = ({ children }) => <div style={box}><p className="panel-note">{children}</p></div>
 
