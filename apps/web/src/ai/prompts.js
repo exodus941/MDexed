@@ -88,7 +88,13 @@ export function contextFor(sectionKey, state, derived) {
         state.meta.description ? `Description: ${state.meta.description}` : '',
         state.directives.references?.length ? `Style references: ${state.directives.references.join(', ')}` : '',
         `Target stack: ${state.directives.framework}.`,
-        `In ${mode} mode: accent ${roles.accent}, surface ${roles.surface}, text ${roles.text}. Display face ${t.families.display?.family}.`,
+        `In ${mode} mode: accent ${roles.accent}, surface ${roles.surface}, text ${roles.text}.`,
+        /* All three faces, named. Given only the display family, a model fills
+           the gap with "system sans-serif" and writes a rule the system does
+           not contain — the exact failure the system prompt forbids, caused by
+           context it was never given. */
+        `Typefaces: ${['display', 'body', 'mono']
+          .map(r => `${r} ${t.families[r]?.family ?? 'unset'}`).join(', ')}. There are no others.`,
       ].filter(Boolean).join('\n')
 
     default:

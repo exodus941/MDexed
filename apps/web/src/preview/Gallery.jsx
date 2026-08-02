@@ -215,20 +215,26 @@ export default function Gallery({ onInspect }) {
           {[['success', IconCheck, 'Invoice sent to Northwind Trading.'],
             ['warning', IconInfo, 'Two invoices are overdue by more than 30 days.'],
             ['danger', IconInfo, 'Payment failed — the card on file has expired.']].map(([tone, icon, body]) => (
-            <div key={tone} className="with-icon" {...ins(`alert-${tone}`)} style={{
-              alignItems: 'flex-start',
-              background: `var(--c-${tone}-subtle, #eee)`, color: `var(--c-${tone}, #333)`,
-              border: `1px solid var(--c-${tone}, #ccc)`,
-              borderRadius: 'var(--radius-md, 8px)',
-              padding: 'var(--space-xs, 8px) var(--space-sm, 12px)',
-              fontSize: 'var(--font-body-sm-size, 14px)',
-            }}>
-              <Ico d={icon} />{body}
+            <div key={tone} className={`alert alert-${tone}`} {...ins(`alert-${tone}`)}>
+              <Ico d={icon} />
+              <span className="alert-body" {...txt('body-sm')}>{body}</span>
             </div>
           ))}
+          {/* Deliberately long, so the first-line alignment is visible rather
+              than merely asserted. */}
+          <div className="alert alert-warning" {...ins('alert-warning')}>
+            <Ico d={IconInfo} />
+            <span className="alert-body" {...txt('body-sm')}>
+              Three invoices have been outstanding for more than sixty days, and two of those
+              accounts have no payment method on file — chase them before the quarter closes.
+            </span>
+            <span className="alert-action">
+              <button className="btn btn-ghost btn-sm" {...ins('button-ghost')}>Review</button>
+            </span>
+          </div>
           <div className="card card-overlay row" style={{ maxWidth: 340 }} {...ins("card-overlay")}>
             <Ico d={IconCheck} />
-            <span className="small" style={{ flex: 1 }}>Changes saved</span>
+            <span className="small" style={{ flex: 1 }} {...txt('body-sm')}>Changes saved</span>
             <button className="btn btn-ghost btn-sm" {...ins("button-ghost")}>Undo</button>
           </div>
         </div>

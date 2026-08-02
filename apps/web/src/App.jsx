@@ -28,7 +28,18 @@ import HistoryPanel from './panels/HistoryPanel.jsx'
 const API_BASE = '/api/v1'
 const TOKEN_KEY = 'design-md:tokens'
 const DRAFT_KEY = 'design-md:draft'
+const DRAFT_AT_KEY = 'design-md:draft-at'
+/* The document from the last session, rotated aside at boot so a fresh start
+   never destroys it. Exactly one generation is kept. */
+const PREV_KEY = 'design-md:previous'
+const PREV_AT_KEY = 'design-md:previous-at'
 const ANIM_KEY = 'design-md:ui-anim'
+
+/* A document nobody has touched. Compared as text against a freshly created
+   one — `createInitialState()` is deterministic, with fixed ids and no
+   timestamps, so this is exact rather than heuristic. */
+const PRISTINE_DOC = JSON.stringify(createInitialState())
+const isPristineDoc = raw => raw === PRISTINE_DOC
 
 const getStoredToken = id => {
   try { return JSON.parse(localStorage.getItem(TOKEN_KEY) || '{}')[id] || null } catch { return null }
@@ -515,6 +526,61 @@ function TitleField({ name, onCommit }) {
   )
 }
 
+/* ── Restore offer ──
+   Deliberately a toast and not a modal. Starting fresh is the common case and
+   shouldn't need dismissing; the previous session is one click away for the
+   times it isn't. Stays until acted on rather than timing out — a restore you
+   missed because you were reading is worse than a toast that lingers. */
+const ago = at => {
+  if (!at) return null
+  const mins = Math.round((Date.now() - at) / 60000)
+  if (mins < 1) return 'moments ago'
+  if (mins < 60) return `${mins} minute${mins === 1 ? '' : 's'} ago`
+  const hrs = Math.round(mins / 60)
+  if (hrs < 24) return `${hrs} hour${hrs === 1 ? '' : 's'} ago`
+  const days = Math.round(hrs / 24)
+  return `${days} day${days === 1 ? '' : 's'} ago`
+}
+
+function RestoreToast({ offer, onRestore, onDismiss }) {
+  const [leaving, setLeaving] = useState(false)
+  if (!offer) return null
+
+  const close = after => {
+    const ms = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--t'), 10) || 0
+    setLeaving(true)
+    setTimeout(after, ms)
+  }
+  const when = ago(offer.at)
+
+  return (
+    <div className={leaving ? 'anim-fall' : 'anim-rise'} style={{
+      position: 'fixed', left: 18, bottom: 16, zIndex: 900,
+      display: 'flex', alignItems: 'center', gap: 12,
+      background: 'var(--surf2)', border: '1px solid var(--bdr2)',
+      borderRadius: 9, padding: '9px 10px 9px 13px', maxWidth: 400,
+      boxShadow: '0 10px 30px rgba(0,0,0,.5)',
+    }}>
+      <div style={{ minWidth: 0 }}>
+        <div style={{ fontSize: 12.5, color: 'var(--text)' }}>
+          Started a new project.
+        </div>
+        <div style={{ fontSize: 11.5, color: 'var(--muted)', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          “{offer.name}” is saved{when ? ` from ${when}` : ''}.
+        </div>
+      </div>
+      <button className="btn-ghost" style={{ padding: '5px 11px', fontSize: 12, flexShrink: 0 }}
+        onClick={() => close(onRestore)}>
+        Restore
+      </button>
+      <button onClick={() => close(onDismiss)} title="Dismiss"
+        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', fontSize: 17, lineHeight: 1, padding: '2px 5px', flexShrink: 0 }}>
+        ×
+      </button>
+    </div>
+  )
+}
+
 /* ── New document ──
    Opening the app used to drop you straight into whatever was last in
    localStorage with no way out. This is the way out. */
@@ -587,6 +653,8 @@ function Shell() {
   /* Carries a timestamp so clicking the same element twice re-triggers the
      jump rather than being deduplicated as an unchanged value. */
   const [inspect, setInspect] = useState(null)
+  /* The previous session's document, offered rather than loaded. */
+  const [restorable, setRestorable] = useState(null)
   const [uiSpeed, setUiSpeed] = useState(() => {
     try {
       const saved = parseInt(localStorage.getItem(ANIM_KEY), 10)
@@ -663,6 +731,7 @@ function Shell() {
         setSyncStatus('saved')
       } else {
         localStorage.setItem(DRAFT_KEY, JSON.stringify(state))
+        localStorage.setItem(DRAFT_AT_KEY, String(Date.now()))
       }
       setSavedAt({ at: Date.now(), where: cloud ? 'cloud' : 'this browser', reason })
       dirtyRef.current = false
@@ -686,17 +755,46 @@ function Shell() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state])
 
-  /* Local draft, when not viewing a cloud project */
+  /* Opening the app gives you a new document, not whatever you left behind.
+     The previous session isn't discarded, though — it's rotated aside and
+     offered back through a toast.
+
+     The rotation is guarded: an untouched document never displaces the stored
+     one. Without that, opening the app twice without editing would quietly
+     overwrite real work with a pristine default, which is precisely the data
+     loss this flow exists to avoid. */
   useEffect(() => {
     if (window.location.pathname.startsWith('/p/')) return
     try {
-      const raw = localStorage.getItem(DRAFT_KEY)
-      if (!raw) return
-      const { state: migrated, warning } = migrate(JSON.parse(raw))
+      const draft = localStorage.getItem(DRAFT_KEY)
+      if (draft && !isPristineDoc(draft)) {
+        localStorage.setItem(PREV_KEY, draft)
+        localStorage.setItem(PREV_AT_KEY, localStorage.getItem(DRAFT_AT_KEY) ?? '')
+      }
+      localStorage.removeItem(DRAFT_KEY)
+
+      const prev = localStorage.getItem(PREV_KEY)
+      if (!prev || isPristineDoc(prev)) return
+      const at = Number(localStorage.getItem(PREV_AT_KEY))
+      setRestorable({
+        raw: prev,
+        name: JSON.parse(prev)?.meta?.name?.trim() || 'Untitled',
+        at: Number.isFinite(at) && at > 0 ? at : null,
+      })
+    } catch { /* corrupt draft — start fresh rather than crash */ }
+  }, [])
+
+  const restorePrevious = useCallback(() => {
+    if (!restorable) return
+    try {
+      const { state: migrated, warning } = migrate(JSON.parse(restorable.raw))
       load(migrated)
       if (warning) setNotice({ tone: 'warn', text: warning })
-    } catch { /* corrupt draft — start fresh rather than crash */ }
-  }, [load])
+    } catch {
+      setNotice({ tone: 'error', text: 'That saved project could not be read.' })
+    }
+    setRestorable(null)
+  }, [restorable, load])
 
   const saveToCloud = async () => {
     if (projectId) return
@@ -869,6 +967,7 @@ function Shell() {
       </div>
 
       <SaveFlash savedAt={savedAt} />
+      <RestoreToast offer={restorable} onRestore={restorePrevious} onDismiss={() => setRestorable(null)} />
 
       {showFile && <FileModal onClose={() => setShowFile(false)} />}
       {showNew && (

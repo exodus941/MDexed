@@ -44,18 +44,12 @@ export default function Dashboard({ onInspect }) {
         </div>
 
         {/* Alerts belong on the screen that would actually raise one. */}
-        <div className="with-icon" {...ins('alert-warning')} style={{
-          alignItems: 'flex-start',
-          background: 'var(--cmp-alert-warning-background-color, var(--c-warning-subtle, #f7efe0))',
-          color: 'var(--cmp-alert-warning-text-color, var(--c-warning, #b8801f))',
-          border: '1px solid var(--cmp-alert-warning-border-color, var(--c-warning, #b8801f))',
-          borderRadius: 'var(--cmp-alert-rounded, var(--radius-md, 8px))',
-          padding: 'var(--cmp-alert-padding, var(--space-xs, 8px) var(--space-sm, 12px))',
-          fontSize: 'var(--cmp-alert-font-size, var(--font-body-sm-size, 14px))',
-        }}>
+        <div className="alert alert-warning" {...ins('alert-warning')}>
           <Ico d={IconAlert} />
-          <span style={{ flex: 1 }} {...txt('body-sm', 'warning')}>Two invoices are more than 30 days overdue.</span>
-          <button className="btn btn-ghost btn-sm" {...ins('button-ghost')}>Review</button>
+          <span className="alert-body" {...txt('body-sm', 'warning')}>Two invoices are more than 30 days overdue.</span>
+          <span className="alert-action">
+            <button className="btn btn-ghost btn-sm" {...ins('button-ghost')}>Review</button>
+          </span>
         </div>
 
         <div className="grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
