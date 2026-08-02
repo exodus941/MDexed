@@ -100,17 +100,19 @@ export function Finding({ f, compact, action }) {
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
         <Icon level={f.level} fg={t.fg} />
         <div style={{ flex: 1, minWidth: 0 }}>
-          {/* The word as well as the icon. This app tells other people not to
-              signal state with colour alone; the cheapest way to mean it is to
-              follow it here. */}
-          <div style={{ color: 'var(--fg)', fontWeight: 600 }}>
-            <span style={{
-              fontSize: 9.5, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase',
-              color: t.fg, marginRight: 7,
-            }}>{t.word}</span>
+          {/* The severity label and the title were two things saying one
+              thing — "WARNING" next to "emphasis overshoots the target" adds
+              no fact the triangle and the amber had not already given. So the
+              label's treatment moved onto the title and the word went away.
+              The shape of the icon still carries severity without colour,
+              which is the rule this app hands to everyone else. */}
+          <div style={{
+            fontSize: 10.5, fontWeight: 700, letterSpacing: '.07em',
+            textTransform: 'uppercase', color: t.fg,
+          }} title={t.word}>
             {f.title}
           </div>
-          <div style={{ color: 'var(--muted)', marginTop: 2 }}>{f.detail}</div>
+          <div style={{ color: 'var(--muted)', marginTop: 4 }}>{f.detail}</div>
           {/* The fix is the part you act on, so it gets full-strength text and
               a coloured marker rather than being set in the warning colour —
               amber body copy is the thing this restyle was undoing. */}
