@@ -10,7 +10,7 @@ import { useStore } from '../state/store.jsx'
 import { COMPONENT_LIBRARY, COMPONENT_GROUPS } from '../state/components.js'
 import { SPEC_COMPONENT_PROPS } from '../emit/yaml.js'
 import { LAYOUT_BY_NAME, fieldActive } from '../state/componentLayout.js'
-import { SectionHeader, Toggle, ResetButton, Banner, Collapsible, Expand, FilterField, Segmented, PAD } from '../ui/controls.jsx'
+import { SectionHeader, Toggle, ResetButton, Banner, Collapsible, Expand, FilterField, Segmented, PAD, SnapSlider } from '../ui/controls.jsx'
 import { useRevealWithin, revealStyle } from '../ui/reveal.js'
 import TokenColorPicker, { paletteGroups } from '../ui/TokenColorPicker.jsx'
 import { RAMP_STEPS, resolveRef } from '../color/ramp.js'
@@ -29,6 +29,23 @@ const SIZE_PROPS = ['height', 'width', 'size', 'minHeight', 'maxHeight', 'outlin
    are addressed internally; the colour tokens the file emits are hyphenated
    (`accent-700`). This is the one place the two spellings meet. */
 const COLOR_REF = ref => `{colors.${ref.replace('.', '-')}}`
+
+/* Which properties are choices from a named scale, and which scale.
+ *
+ * Every one of these is a comparative decision — you want the next size up,
+ * not a number — and every one of them is derived, so storing the reference
+ * keeps it tracking its macro instead of freezing today's pixel value. */
+const SNAP_SCALES = {
+  rounded:    d => ({ steps: d.rounded, refFor: n => `{rounded.${n}}`, title: 'Corner radius' }),
+  typography: d => ({
+    steps: d.typography.map(t => ({ name: t.name, value: t.fontSize })),
+    refFor: n => n, title: 'Text style',
+  }),
+  iconSize:   d => ({
+    steps: Object.entries(d.icons?.sizes ?? {}).map(([name, px]) => ({ name, value: `${px}px` })),
+    refFor: n => `{icons.${n}}`, title: 'Icon size',
+  }),
+}
 
 const PX_SUGGESTIONS = ['20px', '24px', '28px', '32px', '36px', '40px', '44px', '48px', '56px', '64px']
 const ICON_SUGGESTIONS = ['{icons.sm}', '{icons.md}', '{icons.lg}', '{icons.xl}', '12px', '14px', '16px', '18px', '20px', '24px']
@@ -125,8 +142,9 @@ function PropRow({ entryName, propKey, defaultValue, override, onSet, onReset, d
 
   const key = `${entryName}.${propKey}`
   const spaceTarget = SPACING_PROPS.includes(propKey) ? spacingTarget(current, derived.spacing) : null
+  const snapScale = SNAP_SCALES[propKey]?.(derived)
   const sizePx = SIZE_PROPS.includes(propKey) ? parseFloat(current) : NaN
-  const hasSizeSlider = SIZE_PROPS.includes(propKey) && Number.isFinite(sizePx)
+  const hasSizeSlider = !snapScale && SIZE_PROPS.includes(propKey) && Number.isFinite(sizePx)
 
   const nudgeSpacing = newIdx => {
     const step = derived.spacing[newIdx]
@@ -199,15 +217,29 @@ function PropRow({ entryName, propKey, defaultValue, override, onSet, onReset, d
         <ResetButton onClick={() => onReset(key)} disabled={!set} title="Reset to the default value" />
       </div>
 
-      {/* Direct control for the values worth nudging by feel rather than typing. */}
-      {(spaceTarget || hasSizeSlider) && (
+      {/* Direct control for the values worth nudging by feel rather than typing.
+       *
+       * A scale-valued property gets a SnapSlider that stops on its own named
+       * steps and writes the token reference. `rounded` and `typography` had
+       * nothing but a datalist before, which made choosing a radius a matter
+       * of opening a list, reading names and guessing — for a decision that is
+       * entirely comparative. `iconSize` had a raw 0–80px range with no stops
+       * at all, so it could land anywhere and usually landed off-scale.
+       *
+       * Spacing keeps its own slider because the value may be a shorthand
+       * (`0 {spacing.md}`) with the token in one position, so it edits a slice
+       * of the string rather than replacing it. */}
+      {(spaceTarget || snapScale || hasSizeSlider) && (
         <div style={{ display: 'grid', gridTemplateColumns: '128px minmax(0,1fr)', gap: 8, alignItems: 'center', marginBottom: PAD.row }}>
           <span />
           {spaceTarget ? (
-            <input type="range" min={0} max={derived.spacing.length - 1} step={1} value={spaceTarget.idx}
-              onChange={e => nudgeSpacing(Number(e.target.value))}
-              title={`Spacing step â€” ${derived.spacing[spaceTarget.idx]?.name}`}
-              style={{ height: 13 }} />
+            <SnapSlider steps={derived.spacing} value={`{spacing.${derived.spacing[spaceTarget.idx]?.name}}`}
+              refFor={n => `{spacing.${n}}`}
+              onChange={ref => nudgeSpacing(derived.spacing.findIndex(s => `{spacing.${s.name}}` === ref))}
+              title="Spacing step" />
+          ) : snapScale ? (
+            <SnapSlider steps={snapScale.steps} value={current} refFor={snapScale.refFor}
+              onChange={v => onSet(key, v)} title={snapScale.title} />
           ) : (
             <input type="range" min={0} max={80} step={1} value={sizePx}
               onChange={e => onSet(key, `${e.target.value}px`)}

@@ -2,6 +2,8 @@
    stylesheet, then renders whichever surface is selected inside them. */
 import { useEffect, useState } from 'react'
 import { useStore } from '../state/store.jsx'
+import { CONTRAST_PAIRS } from '../state/schema.js'
+import { check } from '../color/contrast.js'
 import { PREVIEW_CSS, responsiveCss, varsToStyle } from './tokens.js'
 import { buildCssVars } from '../state/derive.js'
 import { gradientCss } from '../color/modes.js'
@@ -110,7 +112,32 @@ function TargetMenu({ menu, onPick, onClose }) {
 /* Which surface is showing is lifted to the shell: the header's HTML export
    has to render whatever is currently on screen, and it can't ask for state
    that lives down here. */
-export default function Canvas({ onInspect, surface, setSurface }) {
+/* How the palette currently grades, beside the palette. Counts the same fixed
+   pairs the Roles panel reports, in whichever mode is being previewed. */
+function ContrastChip({ onOpen }) {
+  const { state, derived } = useStore()
+  const mode = state.color.mode
+  const failing = CONTRAST_PAIRS.filter(p => {
+    const r = check(derived.roles[mode][p.fg], derived.roles[mode][p.bg])
+    return p.ui ? r.ratio < 3 : !r.pass
+  }).length
+
+  return (
+    <button onClick={onOpen} title="Open the contrast checker"
+      style={{
+        display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0, cursor: 'pointer',
+        background: failing ? 'rgb(var(--danger-rgb) / .12)' : 'rgb(var(--success-rgb) / .10)',
+        border: `1px solid ${failing ? 'rgb(var(--danger-rgb) / .35)' : 'rgb(var(--success-rgb) / .3)'}`,
+        color: failing ? 'var(--danger)' : 'var(--success)',
+        borderRadius: 6, padding: '3px 9px', fontSize: 11, fontFamily: 'var(--mono)',
+      }}>
+      <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'currentColor' }} />
+      {failing ? `${failing} contrast` : 'Contrast OK'}
+    </button>
+  )
+}
+
+export default function Canvas({ onInspect, surface, setSurface, onOpenContrast }) {
   const { state, derived, set } = useStore()
   const [menu, setMenu] = useState(null)
   /* null = fill the pane, which is the honest default: the preview is not a
@@ -175,18 +202,35 @@ export default function Canvas({ onInspect, surface, setSurface }) {
         </span>
         <span style={{ width: 1, height: 16, background: 'var(--bdr2)', flexShrink: 0, marginRight: 2 }} />
 
-        {SURFACES.map(s => (
-          <button key={s.id} onClick={() => setSurface(s.id)} className={surface === s.id ? 'seg-on' : 'seg'}>
-            {s.label}
-          </button>
-        ))}
+        {/* Surfaces only. The controls that follow moved to their own line so
+            these can have the width, and so a seventh surface does not push
+            the light/dark toggle off the end. Room here for a pinned tab and
+            chevrons the day this list outgrows the bar, matching the editor
+            side. */}
+        <div className="no-bar" style={{ display: 'flex', gap: 6, minWidth: 0, overflowX: 'auto' }}>
+          {SURFACES.map(s => (
+            <button key={s.id} onClick={() => setSurface(s.id)} style={{ flexShrink: 0 }}
+              className={surface === s.id ? 'seg-on' : 'seg'}>
+              {s.label}
+            </button>
+          ))}
+        </div>
         <div style={{ flex: 1 }} />
+      </div>
 
+      {/* Line two: how the surface is shown, rather than which surface.
+          Same height and rules as the editor's action row, so the two panes
+          stay on one grid. */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 8, padding: '0 12px', height: 38,
+        borderBottom: '1px solid var(--bdr)', borderTop: '1px solid var(--bdr)',
+        background: 'var(--surf)', flexShrink: 0,
+      }}>
         {/* Widths come from the breakpoints this document actually declares,
             so the control tests the system rather than some generic set of
             phone sizes. Each snaps just inside its breakpoint — the point is
             to see the layout the breakpoint produces, not the boundary. */}
-        <div style={{ display: 'flex', gap: 2, background: 'var(--surf3)', padding: 2, borderRadius: 6, border: '1px solid var(--bdr)' }}>
+        <div style={{ display: 'flex', gap: 2, background: 'var(--surf3)', padding: 2, borderRadius: 6, border: '1px solid var(--bdr)', flexShrink: 0 }}>
           {widths.map(w => (
             <button key={w.label} onClick={() => setWidth(w.px)}
               className={width === w.px ? 'seg-on' : 'seg'} style={{ padding: '2px 8px', fontSize: 11 }}
@@ -196,13 +240,20 @@ export default function Canvas({ onInspect, surface, setSurface }) {
           ))}
         </div>
 
-        <div style={{ display: 'flex', gap: 2, background: 'var(--surf3)', padding: 2, borderRadius: 6, border: '1px solid var(--bdr)' }}>
+        <div style={{ display: 'flex', gap: 2, background: 'var(--surf3)', padding: 2, borderRadius: 6, border: '1px solid var(--bdr)', flexShrink: 0 }}>
           {['light', 'dark'].map(m => (
             <button key={m} onClick={() => setMode(m)} className={mode === m ? 'seg-on' : 'seg'} style={{ padding: '2px 10px' }}>
               {m === 'light' ? 'Light' : 'Dark'}
             </button>
           ))}
         </div>
+
+        <div style={{ flex: 1 }} />
+
+        {/* Back beside the thing it describes. It was on the macro bar, which
+            is where you set values, not where you look at them — and the
+            palette it grades is the one rendering two inches below this. */}
+        <ContrastChip onOpen={onOpenContrast} />
       </div>
 
       {/* Keyed on the mode as well as the surface: the custom properties live
