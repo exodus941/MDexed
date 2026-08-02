@@ -45,6 +45,12 @@ label{display:block;font-size:10.5px;font-weight:500;text-transform:uppercase;le
 .btn-outline:hover{background:rgba(220,144,85,.13)}
 .btn-outline:disabled{opacity:.5;cursor:progress}
 .btn-outline:disabled:hover{background:transparent}
+/* The full package — the one export that contains all the others, so it gets
+   its own colour rather than competing with the accent beside it. */
+.btn-package{font-family:var(--sans);font-size:13px;font-weight:500;cursor:pointer;border:1px solid transparent;border-radius:6px;padding:8px 16px;background:var(--success);color:#0b0b0e;transition:filter var(--t) var(--ease)}
+.btn-package:hover{filter:brightness(1.1)}
+.btn-package:disabled{opacity:.55;cursor:progress}
+.btn-package:disabled:hover{filter:none}
 /* An unlocked seed shows its open padlock only on hover — the affordance is
    discoverable without all five swatches shouting at once. */
 .seed-lock:hover > span{opacity:1!important}
