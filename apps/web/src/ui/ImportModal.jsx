@@ -79,12 +79,35 @@ const Swatch = ({ hex, count, picked, role, onClick }) => (
  * thing forcing everything else narrow. The reason still matters, so it is the
  * Match chip's tooltip now; nothing was lost but the width. */
 const COLUMNS = [
-  { key: 'seed',  label: 'Seed' },
-  { key: 'type',  label: 'Type' },
-  { key: 'slug',  label: 'Slug' },
-  { key: 'match', label: 'Match' },
-  { key: 'value', label: 'Value', right: true },
+  { key: 'seed',   label: 'Seed' },
+  { key: 'type',   label: 'Type' },
+  { key: 'slug',   label: 'Slug' },
+  /* The reason for the match. Prose, so it gets the slack column and clips
+     with the full sentence on hover rather than setting the row height. */
+  { key: 'source', label: 'Source', flex: true },
+  { key: 'match',  label: 'Match' },
+  { key: 'value',  label: 'Value', right: true },
 ]
+
+/* ── Spacing, in one place ──
+ *
+ * Every one of these was a separate literal picked in isolation, which is how
+ * a table ends up with a 6px row, a 7px header and a 24px group heading that
+ * do not belong to the same rhythm. One scale, declared once.
+ *
+ * COL_GAP is padding *inside* each cell rather than the grid's `column-gap`,
+ * and that is not a stylistic preference. Cells carry the row rule on their
+ * own top border — they have to, since a single grid cannot also have row
+ * wrapper elements — so a real gap between columns cuts the rule into
+ * segments with holes where the gaps are. Padding keeps the cells touching,
+ * which keeps the line continuous, and still puts 24px between the text. */
+const COL_GAP = 24
+const ROW_Y = 10          // above and below a row's text
+const HEAD_Y = 9          // header text to its rule
+const GROUP_TOP = 26      // air above a group heading
+const GROUP_BOT = 10      // group heading to its column header
+const PANEL_X = 22        // modal's own side padding
+const PANEL_Y = 18
 
 /* One grid for all three tables, not one per table.
  *
@@ -103,20 +126,74 @@ const COLUMNS = [
  * rather than being cut. The slack lands on Slug, the most variable of them. */
 const GRID = {
   display: 'grid',
-  gridTemplateColumns: 'auto auto auto minmax(max-content, 1fr) auto auto',
-  columnGap: 24,
-  alignItems: 'center',
+  /* checkbox, then the six columns. Everything hugs its content except the
+     Source column, which absorbs the slack. */
+  gridTemplateColumns: `auto ${COLUMNS.map(c => (c.flex ? 'minmax(0, 1fr)' : 'auto')).join(' ')}`,
+  /* Zero. The gap is cell padding — see COL_GAP. */
+  columnGap: 0,
+  /* Stretch, not center. Centring shrink-wraps each cell to its own content,
+     so in a row where the tallest thing is a 30px control the shorter cells
+     float in the middle — and since each cell draws the row rule on its own
+     top border, the rule becomes a staircase across seven different heights.
+     Stretching puts every top edge on the same line. Cells centre their own
+     content instead. */
+  alignItems: 'stretch',
 }
 
-/* Cells sit in the grid, so they carry the row's rule and dimming themselves.
-   `nowrap` without a truncation width: the column grows instead. */
-const cell = (dim, extra = {}) => ({
-  minWidth: 0, whiteSpace: 'nowrap', padding: '9px 0',
-  borderTop: '1px solid var(--bdr)', opacity: dim ? 0.45 : 1, ...extra,
+/* The header's rule is the full-strength one; the rules between rows are the
+   same line at half, so ten of them do not read as a grate. */
+const RULE = '1px solid var(--bdr)'
+const RULE_SOFT = '1px solid color-mix(in srgb, var(--bdr) 50%, transparent)'
+
+/**
+ * A cell. Carries the row's rule and dimming itself, because a single grid
+ * spanning three tables cannot also have per-row wrapper elements.
+ *
+ * @param first  the first row under a header — its rule would double with the
+ *               header's own, so it goes without
+ * @param last   the rightmost column, which needs no trailing gap
+ */
+const cell = (dim, { first, last, ...extra } = {}) => ({
+  display: 'flex', alignItems: 'center',
+  minWidth: 0, whiteSpace: 'nowrap',
+  paddingTop: ROW_Y, paddingBottom: ROW_Y, paddingRight: last ? 0 : COL_GAP,
+  borderTop: first ? 'none' : RULE_SOFT,
+  opacity: dim ? 0.45 : 1, ...extra,
 })
 
-const headCell = (extra = {}) => ({
-  whiteSpace: 'nowrap', padding: '0 0 7px', borderBottom: '1px solid var(--bdr2)',
+/* Text that has to clip needs a block inside the flex cell — `text-overflow`
+   applies to a block box, not to a flex container's own text. */
+const clip = { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }
+
+/* ── The Value control ──
+ *
+ * One box, three contents. It was three: a select and a number input taking
+ * the global `input, textarea, select` padding of 8px 12px, and a button with
+ * padding of its own — all three then given `height: 30`.
+ *
+ * With `box-sizing: border-box` that is 30 minus 16 of padding minus 2 of
+ * border, leaving a twelve-pixel content box for a line that needs sixteen.
+ * The text was not misaligned, it was being cut off at the bottom, which is
+ * why it read as sheared rather than as low.
+ *
+ * So: no fixed height. Padding and line-height decide the box, identically
+ * for all three, and they land on the same 30px by construction instead of by
+ * assertion. The select gets room on the right for its own arrow, which is
+ * drawn by the browser inside the padding box and will sit on the text if it
+ * is not given space. */
+const CONTROL = {
+  width: '100%',
+  fontFamily: 'var(--mono)',
+  fontSize: 11.5,
+  lineHeight: 1.4,
+  padding: '6px 10px',
+}
+
+const headCell = ({ last, ...extra } = {}) => ({
+  display: 'flex', alignItems: 'flex-end',
+  whiteSpace: 'nowrap',
+  paddingBottom: HEAD_Y, paddingRight: last ? 0 : COL_GAP,
+  borderBottom: RULE,
   fontSize: 9.5, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase',
   color: 'var(--dim)', ...extra,
 })
@@ -163,7 +240,7 @@ const CONFIDENCE = {
 
 /* One row. Colour rows open a grid of every colour in the file; font rows get
    the families found; dimension rows get a number. */
-function MapRow({ slot, proposal, on, onToggle, onChange, palette, families }) {
+function MapRow({ slot, proposal, on, onToggle, onChange, palette, families, first }) {
   const [picking, setPicking] = useState(false)
   const conf = CONFIDENCE[proposal.confidence]
   const dim = !on
@@ -173,13 +250,13 @@ function MapRow({ slot, proposal, on, onToggle, onChange, palette, families }) {
     <button onClick={() => setPicking(p => !p)} disabled={dim}
       title="Choose a different colour from the file"
       style={{
-        width: '100%', height: 30, borderRadius: 6, cursor: dim ? 'default' : 'pointer',
+        ...CONTROL, borderRadius: 6, cursor: dim ? 'default' : 'pointer',
         background: proposal.value, border: '1px solid var(--bdr2)',
-        color: bestOn(proposal.value), fontFamily: 'var(--mono)', fontSize: 11,
+        color: bestOn(proposal.value),
       }}>{proposal.value}</button>
   ) : slot.kind === 'font' ? (
     <select value={proposal.value} disabled={dim} onChange={e => onChange(e.target.value)}
-      style={{ width: '100%', height: 30, fontFamily: 'var(--mono)', fontSize: 11 }}>
+      style={{ ...CONTROL, paddingRight: 26 }}>
       {[proposal.value, ...families.filter(f => f !== proposal.value)].map(f => (
         <option key={f} value={f}>{f}</option>
       ))}
@@ -187,45 +264,47 @@ function MapRow({ slot, proposal, on, onToggle, onChange, palette, families }) {
   ) : (
     <input type="number" value={proposal.value} disabled={dim} min={0} step={1}
       onChange={e => onChange(Number(e.target.value))}
-      style={{ width: '100%', height: 30, textAlign: 'right', fontFamily: 'var(--mono)', fontSize: 11 }} />
+      style={{ ...CONTROL, textAlign: 'right' }} />
   )
 
   return (
     <>
-      <div style={cell(dim, { display: 'flex' })}>
+      <div style={cell(dim, { first, display: 'flex' })}>
         <input type="checkbox" checked={on} onChange={e => onToggle(e.target.checked)}
           style={{ width: 14, height: 14, accentColor: 'var(--accent)' }}
           aria-label={`Apply ${slot.label}`} />
       </div>
 
-      <div style={cell(dim, { fontSize: 12.5, color: 'var(--text)' })}>{slot.label}</div>
+      <div style={cell(dim, { first, fontSize: 12.5, color: 'var(--text)' })}>{slot.label}</div>
 
-      <div style={cell(dim, { fontSize: 11, color: 'var(--muted)' })}>{slot.desc}</div>
+      <div style={cell(dim, { first, fontSize: 11, color: 'var(--muted)' })}>{slot.desc}</div>
 
-      <code style={cell(dim, {
-        fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--muted)',
-        overflow: 'hidden', textOverflow: 'ellipsis',
-      })} title={proposal.source}>{proposal.source}</code>
+      <code style={cell(dim, { first, fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--muted)' })}>
+        {proposal.source}
+      </code>
 
-      {/* A chip, and the reason for the match is its tooltip.
-       *
-       * The reason had a column of its own and did not deserve one — a
-       * sentence of prose in a table of tokens, too long to read at a glance
-       * and the only thing forcing every other column to be narrow. It still
-       * matters, because it is what makes an inferred row judgeable without
-       * opening the stylesheet, so it hangs off the chip that summarises it. */}
-      <div style={cell(dim, {})}>
-        <span className="chip" style={{ color: conf.tone, borderColor: conf.tone }}
-          title={`${conf.hint}\n\n${proposal.why}`}>
+      {/* Where the match came from. The one piece of prose in the table, so it
+          takes the slack column and clips; the full sentence is the tooltip.
+          It is what makes an inferred row judgeable without going and reading
+          the stylesheet, which is why it is worth a column at all. */}
+      <div style={cell(dim, { first, fontSize: 11, color: 'var(--dim)' })} title={proposal.why}>
+        <span style={clip}>{proposal.why}</span>
+      </div>
+
+      <div style={cell(dim, { first })}>
+        <span className="chip" style={{ color: conf.tone, borderColor: conf.tone }} title={conf.hint}>
           {conf.label}
         </span>
       </div>
 
-      <div style={cell(dim, { width: 176, justifySelf: 'end' })}>{control}</div>
+      <div style={cell(dim, { first, last: true, width: 176, justifyContent: 'flex-end' })}>
+        <div style={{ width: '100%' }}>{control}</div>
+      </div>
 
       {picking && !dim && (
         <div style={{
-          gridColumn: '1 / -1', display: 'flex', flexWrap: 'wrap', gap: 4, padding: '0 0 10px',
+          gridColumn: '1 / -1', display: 'flex', flexWrap: 'wrap', gap: 4,
+          paddingBottom: ROW_Y, marginTop: -2,
         }}>
           {palette.map(hex => (
             <button key={hex} title={hex} onClick={() => { onChange(hex); setPicking(false) }}
@@ -334,12 +413,12 @@ export default function ImportModal({ onClose, onApply, onOpenDocument }) {
         width: `min(1240px, ${vw(94)})`, maxHeight: vh(88),
         display: 'flex', flexDirection: 'column', overflow: 'hidden',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: PAD.gap, padding: `${PAD.card}px ${PAD.card + 4}px`, borderBottom: '1px solid var(--bdr)', fontSize: 15, lineHeight: 1.5 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: PAD.gap, padding: `${PANEL_Y}px ${PANEL_X}px`, borderBottom: '1px solid var(--bdr)', fontSize: 15, lineHeight: 1.5 }}>
           <span style={{ fontFamily: 'var(--display)', fontWeight: 700, flex: 1 }}>Import a reference</span>
           <CloseButton onClick={onClose} label="Close" size={11} />
         </div>
 
-        <div style={{ padding: PAD.card + 4, overflowY: 'auto', minHeight: 0 }}>
+        <div style={{ padding: `${PANEL_Y}px ${PANEL_X}px ${PANEL_Y + 6}px`, overflowY: 'auto', minHeight: 0 }}>
           {!kind && (
             <>
               <p className="panel-note" style={{ marginBottom: PAD.card }}>
@@ -399,23 +478,29 @@ export default function ImportModal({ onClose, onApply, onOpenDocument }) {
 
           {kind === 'css' && found && (
             <>
-              <div style={{ display: 'flex', alignItems: 'center', gap: PAD.gap, marginBottom: PAD.gap }}>
-                <span style={{ fontSize: 12, color: 'var(--muted)', flex: 1 }}>
-                  {found.counts.colours} colours, {found.counts.families} families
-                  {found.counts.vars > 0 && `, ${found.counts.vars} custom properties`}
-                </span>
-                <button className="btn-ghost" style={ghost} onClick={reset}>Start over</button>
+              {/* Three stacked blocks that were four, eight and eight pixels
+                  apart, which is why the top of this read as one crowded
+                  paragraph with a checkbox in it. Same scale as the table. */}
+              {/* Start over has moved to the footer, beside the other two
+                  buttons. It is an action, and the actions belong together —
+                  up here it was a button floating in a line of statistics. */}
+              <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 14 }}>
+                {found.counts.colours} colours, {found.counts.families} families
+                {found.counts.vars > 0 && `, ${found.counts.vars} custom properties`}
               </div>
 
-              <p className="panel-note" style={{ marginBottom: PAD.gap }}>
+              <p className="panel-note" style={{ marginBottom: 20 }}>
                 Only selected elements from the following list go into a <strong>seed</strong>, and the
                 scales, roles and components are generated from there.
               </p>
 
+              {/* One rule above, not one above and one below — the second was
+                  landing a few pixels from the first group heading and reading
+                  as a box drawn round nothing. */}
               {Object.keys(rows).length > 0 && (
                 <div style={{
-                  display: 'flex', alignItems: 'center', gap: PAD.gap, marginBottom: PAD.gap,
-                  padding: `${PAD.row}px 0`, borderTop: '1px solid var(--bdr)', borderBottom: '1px solid var(--bdr)',
+                  display: 'flex', alignItems: 'center', gap: PAD.gap,
+                  padding: '14px 0 18px', borderTop: RULE,
                 }}>
                   <SelectAll label="Select all" ids={Object.keys(rows)} off={off}
                     onSet={on => setOff(on ? new Set() : new Set(Object.keys(rows)))} />
@@ -429,7 +514,7 @@ export default function ImportModal({ onClose, onApply, onOpenDocument }) {
                 </p>
               ) : (
                 <div style={GRID}>
-                  {GROUPS.map(group => {
+                  {GROUPS.map((group, gi) => {
                     const inGroup = SLOTS.filter(s => s.group === group && rows[s.id])
                     if (!inGroup.length) return null
                     const ids = inGroup.map(s => s.id)
@@ -437,7 +522,10 @@ export default function ImportModal({ onClose, onApply, onOpenDocument }) {
                       <Fragment key={group}>
                         <div style={{
                           gridColumn: '1 / -1', fontSize: 12, fontWeight: 500, color: 'var(--text)',
-                          padding: '18px 0 8px',
+                          /* No extra air above the first heading — the block
+                             already has the panel's own padding above it. */
+                          paddingTop: gi === 0 ? 0 : GROUP_TOP,
+                          paddingBottom: GROUP_BOT,
                         }}>{group}</div>
 
                         {/* The group's select-all sits in the checkbox column
@@ -450,12 +538,15 @@ export default function ImportModal({ onClose, onApply, onOpenDocument }) {
                             return next
                           })} />
                         </div>
-                        {COLUMNS.map(c => (
-                          <div key={c.key} style={headCell(c.right ? { textAlign: 'right' } : {})}>{c.label}</div>
+                        {COLUMNS.map((c, ci) => (
+                          <div key={c.key} style={headCell({
+                            last: ci === COLUMNS.length - 1,
+                            ...(c.right ? { textAlign: 'right' } : null),
+                          })}>{c.label}</div>
                         ))}
 
-                        {inGroup.map(slot => (
-                          <MapRow key={slot.id} slot={slot} proposal={rows[slot.id]}
+                        {inGroup.map((slot, i) => (
+                          <MapRow key={slot.id} first={i === 0} slot={slot} proposal={rows[slot.id]}
                             on={!off.has(slot.id)} onToggle={v => toggle(slot.id, v)}
                             onChange={v => setValue(slot.id, v)}
                             palette={palette} families={families} />
@@ -469,12 +560,16 @@ export default function ImportModal({ onClose, onApply, onOpenDocument }) {
           )}
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: PAD.row, padding: `${PAD.gap}px ${PAD.card + 4}px`, borderTop: '1px solid var(--bdr)' }}>
-          {/* The stylesheet case said the same thing the paragraph at the top
-              says, one screen further down. One statement, once. */}
-          <span style={{ fontSize: 11, color: 'var(--dim)', flex: 1 }}>
-            {kind === 'document' ? 'Replaces every panel. Undo works.' : 'Undo works.'}
-          </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: PAD.row, padding: `${PANEL_Y - 4}px ${PANEL_X}px`, borderTop: '1px solid var(--bdr)' }}>
+          {/* Start over on the left, the other two on the right. No copy: the
+              paragraph at the top already says what happens, and "Undo works"
+              is true of every action in the app — saying it here made it read
+              as a caveat. The DESIGN.md case keeps its line, because that one
+              genuinely does replace the whole document. */}
+          {kind === 'css'
+            ? <button className="btn-ghost" style={ghost} onClick={reset}>Start over</button>
+            : <span style={{ fontSize: 11, color: 'var(--dim)' }}>Replaces every panel. Undo works.</span>}
+          <div style={{ flex: 1 }} />
           <button className="btn-ghost" style={ghost} onClick={onClose}>Cancel</button>
           {kind === 'document' ? (
             <button className="btn-primary" style={{ padding: BTN.sm, fontSize: 12 }}
