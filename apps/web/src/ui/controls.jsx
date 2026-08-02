@@ -347,8 +347,8 @@ export function OverrideBadge({ onReset, title = 'Overridden — click to relink
   return (
     <button onClick={onReset} title={title}
       style={{
-        display: 'inline-flex', alignItems: 'center', gap: 4, background: 'rgba(220,144,85,.12)',
-        border: '1px solid rgba(220,144,85,.3)', color: 'var(--accent)', borderRadius: 4,
+        display: 'inline-flex', alignItems: 'center', gap: 4, background: 'rgb(var(--accent-rgb) / .12)',
+        border: '1px solid rgb(var(--accent-rgb) / .3)', color: 'var(--accent)', borderRadius: 4,
         padding: '2px 6px', fontSize: 9.5, fontFamily: 'var(--mono)', cursor: 'pointer', lineHeight: 1.6,
       }}>
       <span style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--accent)' }} />
@@ -401,9 +401,9 @@ export function CloseButton({ onClick, label = 'Dismiss', line = LINE, size = 9 
 export function Banner({ tone = 'info', children, onDismiss }) {
   const tones = {
     info:    { bg: 'var(--surf3)',           fg: 'var(--muted)',   bd: 'var(--bdr)' },
-    warn:    { bg: 'rgba(216,164,65,.10)',   fg: 'var(--warn)',    bd: 'rgba(216,164,65,.3)' },
-    error:   { bg: 'rgba(222,92,92,.10)',    fg: 'var(--danger)',  bd: 'rgba(222,92,92,.32)' },
-    success: { bg: 'rgba(90,173,128,.10)',   fg: 'var(--success)', bd: 'rgba(90,173,128,.3)' },
+    warn:    { bg: 'rgb(var(--warn-rgb) / .10)',   fg: 'var(--warn)',    bd: 'rgb(var(--warn-rgb) / .3)' },
+    error:   { bg: 'rgb(var(--danger-rgb) / .10)',    fg: 'var(--danger)',  bd: 'rgb(var(--danger-rgb) / .32)' },
+    success: { bg: 'rgb(var(--success-rgb) / .10)',   fg: 'var(--success)', bd: 'rgb(var(--success-rgb) / .3)' },
   }[tone]
   return (
     <div style={{

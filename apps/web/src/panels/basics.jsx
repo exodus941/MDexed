@@ -42,7 +42,7 @@ export function MetaTab() {
                 background: 'var(--surf)', border: '1px solid var(--bdr)', borderRadius: 9,
                 cursor: 'pointer', color: 'var(--text)', fontFamily: 'var(--sans)',
               }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(220,144,85,.35)' }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgb(var(--accent-rgb) / .35)' }}
               onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--bdr)' }}>
               <div style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
                 {p.swatches.map(c => <div key={c} style={{ width: 16, height: 26, background: c, borderRadius: 3, border: '1px solid rgba(255,255,255,.07)' }} />)}

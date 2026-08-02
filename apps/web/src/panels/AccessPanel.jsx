@@ -20,8 +20,8 @@ import { audit, summarise, REQUIREMENTS } from '../a11y/audit.js'
 import { SectionHeader, Collapsible, Banner, PAD } from '../ui/controls.jsx'
 
 const TONE = {
-  fail: { fg: 'var(--danger)',  bg: 'rgba(222,92,92,.10)',  bd: 'rgba(222,92,92,.32)', label: 'Fails' },
-  warn: { fg: 'var(--warn)',    bg: 'rgba(216,164,65,.10)', bd: 'rgba(216,164,65,.30)', label: 'Warns' },
+  fail: { fg: 'var(--danger)',  bg: 'rgb(var(--danger-rgb) / .10)',  bd: 'rgb(var(--danger-rgb) / .32)', label: 'Fails' },
+  warn: { fg: 'var(--warn)',    bg: 'rgb(var(--warn-rgb) / .10)', bd: 'rgb(var(--warn-rgb) / .30)', label: 'Warns' },
   note: { fg: 'var(--muted)',   bg: 'var(--surf3)',         bd: 'var(--bdr)',           label: 'Worth a look' },
 }
 

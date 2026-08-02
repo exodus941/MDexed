@@ -127,7 +127,7 @@ export default function FontPicker({ value, onChange, label, role }) {
                       style={{
                         position: 'absolute', top: idx * ROW_H, left: 0, right: 0, height: ROW_H,
                         display: 'flex', alignItems: 'center', gap: 9, padding: '0 11px',
-                        background: active ? 'rgba(220,144,85,.12)' : 'none', border: 'none',
+                        background: active ? 'rgb(var(--accent-rgb) / .12)' : 'none', border: 'none',
                         borderLeft: active ? '2px solid var(--accent)' : '2px solid transparent',
                         cursor: 'pointer', textAlign: 'left', width: '100%',
                       }}>

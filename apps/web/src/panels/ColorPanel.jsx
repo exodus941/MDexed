@@ -43,7 +43,7 @@ const Lock = ({ locked, size = 12 }) => (
 function SeedRow({ seed, ramps, onChange, onRename, onDelete, onLock, open, onToggle }) {
   const anchor = ramps[seed.name]?.anchor
   return (
-    <div style={{ background: 'var(--surf2)', border: `1px solid ${open ? 'rgba(220,144,85,.35)' : 'var(--bdr)'}`, borderRadius: 9, overflow: 'hidden', transition: 'border-color var(--t) var(--ease)' }}>
+    <div style={{ background: 'var(--surf2)', border: `1px solid ${open ? 'rgb(var(--accent-rgb) / .35)' : 'var(--bdr)'}`, borderRadius: 9, overflow: 'hidden', transition: 'border-color var(--t) var(--ease)' }}>
       <div onClick={onToggle} style={{ display: 'grid', gridTemplateColumns: '30px 1fr auto auto auto', gap: 10, alignItems: 'center', padding: `${PAD.sub}px ${PAD.card}px`, cursor: 'pointer' }}>
         <div className="swatch" style={{ width: 26, height: 26, background: seed.hex }} />
         <div style={{ minWidth: 0 }}>
@@ -166,7 +166,7 @@ function GradientRow({ grad, css, options, resolved, onChange, onDelete }) {
   })
 
   return (
-    <div style={{ background: 'var(--surf2)', border: `1px solid ${open ? 'rgba(220,144,85,.35)' : 'var(--bdr)'}`, borderRadius: 9, overflow: 'hidden' }}>
+    <div style={{ background: 'var(--surf2)', border: `1px solid ${open ? 'rgb(var(--accent-rgb) / .35)' : 'var(--bdr)'}`, borderRadius: 9, overflow: 'hidden' }}>
       <div onClick={() => setOpen(o => !o)} style={{ display: 'grid', gridTemplateColumns: '84px 1fr auto auto auto', gap: 10, alignItems: 'center', padding: `${PAD.sub}px ${PAD.card}px`, cursor: 'pointer' }}>
         <div style={{ height: 26, borderRadius: 5, background: css, border: '1px solid rgba(255,255,255,.08)' }} />
         <code style={{ fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--text)' }}>{grad.name}</code>

@@ -28,8 +28,8 @@ function References({ value, onChange }) {
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 8 }}>
         {value.map(r => (
           <span key={r} style={{
-            display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(220,144,85,.12)',
-            border: '1px solid rgba(220,144,85,.3)', color: 'var(--accent)', borderRadius: 5,
+            display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgb(var(--accent-rgb) / .12)',
+            border: '1px solid rgb(var(--accent-rgb) / .3)', color: 'var(--accent)', borderRadius: 5,
             padding: '3px 6px 3px 9px', fontSize: 12,
           }}>
             {r}
