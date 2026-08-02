@@ -11,6 +11,7 @@ import { check } from '../color/contrast.js'
 import { SPEC_COMPONENT_PROPS } from './yaml.js'
 import { LAYOUT_COMPONENTS, layoutRows, layoutSentences } from '../state/componentLayout.js'
 import { audit, REQUIREMENTS as A11Y_REQUIREMENTS } from '../a11y/audit.js'
+import { purposeOf } from '../color/modes.js'
 
 const cell = v => String(v ?? '').replace(/\|/g, '\\|').replace(/\n+/g, ' ').trim()
 
@@ -129,10 +130,30 @@ function gradientSection(state, derived) {
     }
   }
   const used = gradients.filter(g => usage.get(g.name).length)
-  const unused = gradients.filter(g => !usage.get(g.name).length)
+  /* Genuinely unplaced: no component uses it and no purpose was stated. A
+     gradient with a purpose is placed, even without a component to hang it on. */
+  const unused = gradients.filter(g => !usage.get(g.name).length && !purposeOf(g.purpose)?.selector)
 
-  const applyRows = used.flatMap(g =>
-    usage.get(g.name).map(u => [`\`.${u.entry}\``, `\`${kebabCss(u.prop)}\``, `\`var(--gradient-${g.name})\``]))
+  /* Two sources of placement, and they answer different questions. A
+     component reference is a fact — this entry carries this gradient. A
+     stated purpose is an instruction — put it here, even though no component
+     in the matrix can hold it, which is most of the interesting cases
+     (a page background, a hero, text clipped to a gradient). */
+  const applyRows = [
+    ...used.flatMap(g =>
+      usage.get(g.name).map(u => [`\`.${u.entry}\``, `\`${kebabCss(u.prop)}\``, `\`var(--gradient-${g.name})\``])),
+    ...gradients.filter(g => g.purpose && purposeOf(g.purpose)?.selector && !usage.get(g.name).length)
+      .map(g => {
+        const p = purposeOf(g.purpose)
+        return [`\`${p.selector}\``, p.value === 'title' ? '`background-image` + `background-clip: text`' : '`background-image`',
+          `\`var(--gradient-${g.name})\``]
+      }),
+  ]
+
+  /* The designer's own sentences. These carry the judgement a selector cannot
+     — when to reach for it, and when not to. */
+  const noteRows = gradients.filter(g => g.note?.trim() || g.purpose)
+    .map(g => [`\`--gradient-${g.name}\``, purposeOf(g.purpose)?.label ?? '—', g.note?.trim() || '—'])
 
   /* A worked example beats a rule. Uses the first real pairing where there is
      one, so the snippet is about this system rather than a generic one. */
@@ -157,6 +178,9 @@ function gradientSection(state, derived) {
     applyRows.length && '**Where each one goes.** Apply exactly these; do not invent new placements.',
     applyRows.length && table(['Element', 'Property', 'Value'], applyRows),
     example,
+
+    noteRows.length > 0 && '**What each one is for.**',
+    noteRows.length > 0 && table(['Token', 'Role', 'Notes'], noteRows),
 
     /* Named but unassigned. Saying nothing invites two opposite mistakes:
        dropping it, or sprinkling it wherever it seems to fit. Neither is what

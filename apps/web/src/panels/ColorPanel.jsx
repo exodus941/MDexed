@@ -11,8 +11,11 @@ import { isValidColor } from '../color/convert.js'
 import { bestOn } from '../color/contrast.js'
 import ColorPicker from '../ui/ColorPicker.jsx'
 import TokenColorPicker, { paletteGroups } from '../ui/TokenColorPicker.jsx'
-import { GRADIENT_TYPES } from '../color/modes.js'
-import { SectionHeader, Collapsible, Expand, Slider, NumField, Toggle, OverrideBadge, ConfirmDelete, Banner, PAD } from '../ui/controls.jsx'
+import { GRADIENT_TYPES, GRADIENT_PURPOSES, purposeOf } from '../color/modes.js'
+import { SectionHeader, Collapsible, Expand, Slider, NumField, Toggle, OverrideBadge, ConfirmDelete, Banner, PAD, BTN } from '../ui/controls.jsx'
+import { useAi } from '../ai/ui.jsx'
+import { complete } from '../ai/client.js'
+import { systemPrompt, gradientNotePrompt } from '../ai/prompts.js'
 
 const PROTECTED_SEEDS = ['accent', 'neutral']
 
@@ -142,6 +145,95 @@ function RampRow({ name, ramp, overrides, onOverride, onResetStep }) {
 /* ── Gradients ──
    Stops reference roles or scale steps, so a gradient follows the palette
    instead of freezing hex values into it. */
+/* What the gradient is for, and where it goes.
+ *
+ * The one field that decides whether a gradient survives the trip to an
+ * agent. `backgroundImage` is not among the spec's eight legal component
+ * properties, so a gradient can never be attached to a component in the
+ * frontmatter — it reaches the far end as prose or not at all. A named
+ * placement is the difference between prose an agent can act on and a
+ * glossary entry it skims.
+ *
+ * A fixed list first, free text second. The list gives the emitter a CSS
+ * selector to lead with; the sentence carries the judgement the list cannot.
+ */
+function GradientPurpose({ grad, css, onChange }) {
+  const { configured, model } = useAi()
+  const [busy, setBusy] = useState(false)
+  const [draft, setDraft] = useState(null)
+  const purpose = purposeOf(grad.purpose)
+
+  const refine = async () => {
+    setBusy(true); setDraft('')
+    try {
+      let out = ''
+      await complete({
+        model, system: systemPrompt(),
+        prompt: gradientNotePrompt({
+          name: grad.name, css, purpose: purpose?.label ?? 'unspecified',
+          selector: purpose?.selector, existing: grad.note,
+        }),
+        onChunk: t => { out += t; setDraft(out) },
+      })
+      setDraft(out.trim())
+    } catch { setDraft(null) } finally { setBusy(false) }
+  }
+
+  return (
+    <div style={{ marginBottom: 11 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 8 }}>
+        <div>
+          <label>Purpose</label>
+          <select value={grad.purpose ?? ''} onChange={e => onChange({ ...grad, purpose: e.target.value || undefined })}
+            style={{ fontSize: 12, padding: '6px 8px' }}>
+            <option value="">Unspecified</option>
+            {GRADIENT_PURPOSES.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
+          </select>
+        </div>
+        <div style={{ alignSelf: 'end', paddingBottom: 7, fontSize: 10.5, color: 'var(--dim)', lineHeight: 1.45 }}>
+          {purpose
+            ? <>{purpose.desc}{purpose.selector && <> · <code style={{ fontFamily: 'var(--mono)' }}>{purpose.selector}</code></>}</>
+            : 'Without one, the file lists this gradient but cannot tell an agent where to use it.'}
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: PAD.label }}>
+        <label style={{ marginBottom: 0, flex: 1 }}>Notes for the implementer</label>
+        {configured && (
+          <button className="btn-ghost" onClick={refine} disabled={busy}
+            style={{ padding: BTN.xs, fontSize: 10.5 }}
+            title="Draft or tighten this note with the model chosen in the Rationale tab">
+            {busy ? 'Writing…' : grad.note?.trim() ? 'Refine' : 'Draft'}
+          </button>
+        )}
+      </div>
+      <textarea value={grad.note ?? ''} onChange={e => onChange({ ...grad, note: e.target.value })}
+        placeholder="When to reach for this one, and when not to. Goes into the file verbatim."
+        style={{ minHeight: 54, fontSize: 12, lineHeight: 1.5 }} />
+
+      {/* Never overwritten in place — the same rule the Rationale tab follows. */}
+      {draft != null && (
+        <div style={{
+          marginTop: PAD.row, padding: PAD.sub, borderRadius: 7,
+          background: 'rgb(var(--accent-rgb) / .07)', border: '1px solid rgb(var(--accent-rgb) / .3)',
+        }}>
+          <div style={{ fontSize: 12, lineHeight: 1.5, color: 'var(--text)', marginBottom: PAD.row }}>
+            {draft || <span style={{ color: 'var(--dim)' }}>…</span>}
+          </div>
+          {!busy && (
+            <div style={{ display: 'flex', gap: PAD.row }}>
+              <button className="btn-primary" style={{ padding: BTN.xs, fontSize: 11 }}
+                onClick={() => { onChange({ ...grad, note: draft }); setDraft(null) }}>Use it</button>
+              <button className="btn-ghost" style={{ padding: BTN.xs, fontSize: 11 }}
+                onClick={() => setDraft(null)}>Discard</button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function GradientRow({ grad, css, options, resolved, onChange, onDelete }) {
   const [open, setOpen] = useState(false)
   const [openStop, setOpenStop] = useState(null)
@@ -197,6 +289,8 @@ function GradientRow({ grad, css, options, resolved, onChange, onDelete }) {
               </select>
             </div>
           </div>
+
+          <GradientPurpose grad={grad} css={css} onChange={onChange} />
 
           {grad.type === 'linear' && (
             <Slider label="Angle" value={grad.angle ?? 90} onChange={v => onChange({ ...grad, angle: v })}

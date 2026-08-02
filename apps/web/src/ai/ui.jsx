@@ -67,14 +67,21 @@ export function AiHeader() {
 
   const chosen = models.find(m => m.id === model)
   return (
-    <div style={{ ...box, display: 'flex', alignItems: 'center', gap: 10 }}>
+    /* Bottom-aligned, not centred.
+     *
+     * The left column is a label stacked on a select; the right is two lines
+     * of text. Centring the two made the text float in the middle of a taller
+     * neighbour, which read as a blank line beneath it and put the whole card
+     * off its axis. Aligning to the bottom sits the note on the select's
+     * baseline, where it belongs — it describes the select. */
+    <div style={{ ...box, display: 'flex', alignItems: 'flex-end', gap: 10 }}>
       <div style={{ flex: 1, minWidth: 0 }}>
         <label style={{ marginBottom: 4 }}>Model</label>
-        <select value={model ?? ''} onChange={e => setModel(e.target.value)} style={{ width: '100%' }}>
+        <select value={model ?? ''} onChange={e => setModel(e.target.value)} style={{ width: '100%', display: 'block' }}>
           {models.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
         </select>
       </div>
-      <div style={{ fontSize: 11, color: 'var(--muted)', lineHeight: 1.5, maxWidth: 190, flexShrink: 0 }}>
+      <div style={{ fontSize: 11, color: 'var(--muted)', lineHeight: 1.5, maxWidth: 190, flexShrink: 0, paddingBottom: 7 }}>
         {models.length} free models{chosen?.context ? `, ${Math.round(chosen.context / 1000)}k context` : ''}.
         {' '}Free tiers are rate-limited.
       </div>

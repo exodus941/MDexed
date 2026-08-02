@@ -43,6 +43,39 @@ export function generateCounterpart(roles, from = 'light') {
    instead, and drives a CSS variable for the preview. */
 export const GRADIENT_TYPES = ['linear', 'radial']
 
+/* ── What a gradient is for ──
+ *
+ * A gradient can never be a component property — `backgroundImage` is not one
+ * of the spec's legal eight — so it reaches an agent as prose or not at all.
+ * Prose that says only "here is a gradient called brand-sweep" gives it
+ * nothing to act on. Prose that says where the gradient belongs does.
+ *
+ * A fixed list rather than free text for the first field, because a value an
+ * agent can match against a CSS selector is worth more than a sentence it has
+ * to interpret. The detail field underneath is where the sentence goes.
+ *
+ * `selector` is the hint the emitted file leads with; `label` is what the
+ * panel shows. Where the two differ it is because a designer says "page
+ * background" and a stylesheet says `body`.
+ */
+export const GRADIENT_PURPOSES = [
+  { value: 'page',       label: 'Page background',      selector: 'body, .page',      desc: 'Behind everything' },
+  { value: 'hero',       label: 'Hero / banner',        selector: '.hero',            desc: 'Large feature area at the top of a page' },
+  { value: 'section',    label: 'Section background',   selector: 'section',          desc: 'A band of content set apart from the page' },
+  { value: 'card',       label: 'Card surface',         selector: '.card',            desc: 'A raised container' },
+  { value: 'button',     label: 'Button fill',          selector: '.btn-primary',     desc: 'A primary action' },
+  { value: 'nav',        label: 'Nav / sidebar',        selector: 'nav, .sidebar',    desc: 'Persistent navigation' },
+  { value: 'header',     label: 'App header bar',       selector: 'header',           desc: 'The top chrome of an app' },
+  { value: 'title',      label: 'Title text',           selector: 'h1, .display',     desc: 'Clipped to text with background-clip' },
+  { value: 'overlay',    label: 'Overlay / scrim',      selector: '.scrim',           desc: 'Over an image, usually to carry text' },
+  { value: 'divider',    label: 'Divider / rule',       selector: 'hr',               desc: 'A fading horizontal line' },
+  { value: 'chart',      label: 'Chart / data fill',    selector: '.chart-series',    desc: 'Area fills and bars' },
+  { value: 'accent',     label: 'Accent detail',        selector: '.accent-bar',      desc: 'A small emphasis element' },
+  { value: 'decorative', label: 'Decorative only',      selector: null,               desc: 'No fixed placement — use at your discretion' },
+]
+
+export const purposeOf = value => GRADIENT_PURPOSES.find(p => p.value === value) ?? null
+
 /** Resolve a stop's colour, which may be a role name, a scale ref, or a hex. */
 export const resolveStop = (value, roles, resolveRef, ramps) => {
   if (!value) return '#000000'
