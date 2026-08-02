@@ -1,9 +1,10 @@
 /* The preview pane. Injects the derived custom properties and the shared
    stylesheet, then renders whichever surface is selected inside them. */
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useStore } from '../state/store.jsx'
 import { CONTRAST_PAIRS } from '../state/schema.js'
 import { check } from '../color/contrast.js'
+import { audit } from '../a11y/audit.js'
 import { PREVIEW_CSS, responsiveCss, varsToStyle } from './tokens.js'
 import { buildCssVars } from '../state/derive.js'
 import { gradientCss } from '../color/modes.js'
@@ -137,7 +138,114 @@ function ContrastChip({ onOpen }) {
   )
 }
 
-export default function Canvas({ onInspect, surface, setSurface, onOpenContrast }) {
+/* Everything the audit found, beside the thing it is judging.
+ *
+ * This was a tab. A tab is somewhere you go, and nobody goes to an
+ * accessibility tab — and once there, four fifths of the page was a fixed
+ * list of requirements that never changed no matter what you did, so it read
+ * as static even though the findings underneath it were live.
+ *
+ * The requirements were never for the screen anyway. They go into the
+ * exported file, where an agent reads them; keeping a copy here to be
+ * scrolled past was the mistake. What is left is the part that is actually
+ * about *your* system, and it belongs next to the contrast chip because both
+ * answer the same question: is what I am looking at all right.
+ *
+ * Green when clean, because a system with nothing wrong should say so rather
+ * than showing a zero.
+ */
+function WarningsChip({ onJump }) {
+  const { state, derived } = useStore()
+  const [open, setOpen] = useState(false)
+  const boxRef = useRef(null)
+  const btnRef = useRef(null)
+
+  const findings = useMemo(() => audit(state, derived), [state, derived])
+  const fails = findings.filter(f => f.level === 'fail')
+  const rest = findings.filter(f => f.level !== 'fail')
+  const count = findings.length
+
+  useEffect(() => {
+    if (!open) return
+    const inside = t => boxRef.current?.contains(t) || btnRef.current?.contains(t)
+    const onDown = e => { if (!inside(e.target)) setOpen(false) }
+    const onKey = e => { if (e.key === 'Escape') setOpen(false) }
+    document.addEventListener('pointerdown', onDown, true)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('pointerdown', onDown, true)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [open])
+
+  /* A failure is a documented violation and reads red. Warnings are amber.
+     Nothing at all is green and says so in words. */
+  const tone = fails.length ? 'danger' : count ? 'warn' : 'success'
+  const label = fails.length
+    ? `${fails.length} failing`
+    : count ? `${count} warning${count === 1 ? '' : 's'}` : 'No warnings'
+
+  return (
+    <div style={{ position: 'relative', flexShrink: 0 }}>
+      <button ref={btnRef} onClick={() => setOpen(o => !o)} aria-expanded={open}
+        title={count ? 'What the accessibility audit found in this system' : 'The accessibility audit found nothing'}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 5, cursor: 'pointer',
+          background: `rgb(var(--${tone}-rgb) / .12)`,
+          border: `1px solid rgb(var(--${tone}-rgb) / .35)`,
+          color: `var(--${tone})`,
+          borderRadius: 6, padding: '3px 9px', fontSize: 11, fontFamily: 'var(--mono)',
+        }}>
+        <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'currentColor' }} />
+        {label}
+      </button>
+
+      {open && count > 0 && (
+        <div ref={boxRef} className="anim-pop" style={{
+          position: 'absolute', top: 'calc(100% + 6px)', right: 0, zIndex: 500,
+          background: 'var(--surf2)', border: '1px solid var(--bdr2)', borderRadius: 10,
+          boxShadow: '0 12px 32px var(--shade)', width: 330, maxHeight: 420, overflowY: 'auto',
+        }}>
+          <div style={{
+            fontSize: 10, textTransform: 'uppercase', letterSpacing: '.1em', fontWeight: 700,
+            color: 'var(--text-dim)', padding: '11px 14px 10px', borderBottom: '1px solid var(--bdr)',
+            position: 'sticky', top: 0, background: 'var(--surf2)',
+          }}>
+            Accessibility
+          </div>
+          <div style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {[...fails, ...rest].map(f => (
+              <div key={f.id} style={{
+                background: `rgb(var(--${f.level === 'fail' ? 'danger' : 'warn'}-rgb) / .09)`,
+                border: `1px solid rgb(var(--${f.level === 'fail' ? 'danger' : 'warn'}-rgb) / .28)`,
+                borderRadius: 7, padding: 9,
+              }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 4 }}>
+                  <span style={{ fontSize: 12, color: 'var(--text)', flex: 1, minWidth: 0 }}>{f.title}</span>
+                  {f.mode && <span className="chip" style={{ flexShrink: 0 }}>{f.mode}</span>}
+                </div>
+                <p style={{ margin: 0, fontSize: 11, lineHeight: 1.5, color: 'var(--muted)' }}>{f.detail}</p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 7 }}>
+                  <span style={{ fontFamily: 'var(--mono)', fontSize: 9.5, color: 'var(--dim)', flex: 1, minWidth: 0 }}>
+                    {f.criterion}
+                  </span>
+                  {f.tab && (
+                    <button className="btn-ghost" style={{ padding: '2px 8px', fontSize: 10.5 }}
+                      onClick={() => { onJump?.(f.tab, f.entry); setOpen(false) }}>
+                      Fix it
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+export default function Canvas({ onInspect, surface, setSurface, onOpenContrast, onJump }) {
   const { state, derived, set } = useStore()
   const [menu, setMenu] = useState(null)
   /* null = fill the pane, which is the honest default: the preview is not a
@@ -254,6 +362,7 @@ export default function Canvas({ onInspect, surface, setSurface, onOpenContrast 
             is where you set values, not where you look at them — and the
             palette it grades is the one rendering two inches below this. */}
         <ContrastChip onOpen={onOpenContrast} />
+        <WarningsChip onJump={onJump} />
       </div>
 
       {/* Keyed on the mode as well as the surface: the custom properties live

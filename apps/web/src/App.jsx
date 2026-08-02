@@ -22,7 +22,6 @@ import RolesPanel from './panels/RolesPanel.jsx'
 import TypographyPanel from './panels/TypographyPanel.jsx'
 import ComponentsPanel from './panels/ComponentsPanel.jsx'
 import DirectivesPanel from './panels/DirectivesPanel.jsx'
-import AccessPanel from './panels/AccessPanel.jsx'
 import { LayoutPanel, ShapePanel, DepthPanel, MotionPanel } from './panels/system.jsx'
 import { MetaTab, RationaleTab } from './panels/basics.jsx'
 import HistoryPanel from './panels/HistoryPanel.jsx'
@@ -1280,7 +1279,6 @@ const TABS = [
   { id: 'motion',     label: 'Motion',     Panel: MotionPanel },
   { id: 'components', label: 'Components', Panel: ComponentsPanel },
   { id: 'directives', label: 'Directives', Panel: DirectivesPanel },
-  { id: 'access',     label: 'Access',     Panel: AccessPanel },
   { id: 'rationale',  label: 'Rationale',  Panel: RationaleTab },
   { id: 'history',    label: 'History',    Panel: HistoryPanel },
 ]
@@ -1797,7 +1795,7 @@ function Shell() {
 
           {/* Route by target kind: components, colour roles and text styles
               each live on their own tab. */}
-          <Canvas surface={surface} setSurface={setSurface} onOpenContrast={() => setTab('roles')} onInspect={t => {
+          <Canvas surface={surface} setSurface={setSurface} onOpenContrast={() => setTab('roles')} onJump={navigate} onInspect={t => {
             setInspect({ entry: t.target, kind: t.kind, at: Date.now() })
             setTab(KIND_TAB[t.kind] ?? 'components')
           }} />
