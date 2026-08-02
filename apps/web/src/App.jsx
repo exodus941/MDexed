@@ -478,10 +478,12 @@ function SaveFlash({ savedAt }) {
 const BAR_H = 42
 
 /* Pixels per 16ms tick at the inner and outer edges of a chevron, so roughly
-   125 to 690 px/s. The floor is slow enough to place a tab precisely; the
-   ceiling crosses a full strip in well under a second. */
-const SCROLL_SLOW = 2
-const SCROLL_FAST = 11
+   84 to 920 px/s. The floor is slow enough to walk a tab into place one at a
+   time; the ceiling crosses the whole strip in well under a second. An eleven
+   to one spread sounds extreme written down, and reads as one control rather
+   than two, because the position you pick is the speed you get. */
+const SCROLL_SLOW = 1.35
+const SCROLL_FAST = 14.7
 
 /* Declared here rather than inside TabStrip.
  *
@@ -491,19 +493,41 @@ const SCROLL_FAST = 11
  * they scrolled on hover: the button under the cursor was replaced mid-scroll,
  * and the pointerleave that should have stopped it fired on a node that no
  * longer existed. The scroll ran on with the cursor somewhere else entirely. */
-function Chevron({ dir, onEnter, onLeave, onClick }) {
+/*
+ * Three states, because a control must not vanish from under the cursor.
+ *
+ *   live     there is somewhere to go; hovering scrolls
+ *   spent    the end has been reached, but the pointer is still here, so it
+ *            stays put and dims instead of disappearing mid-gesture
+ *   leaving  the pointer has gone; fade out and collapse to nothing
+ *
+ * The middle state is the whole point. Reaching the end used to unmount the
+ * button instantly, which yanked it out from under the cursor and snapped
+ * 40px of tabs sideways in the same frame. Now the end of travel is just a
+ * change of appearance, and the layout only moves once you have stopped
+ * pointing at the thing that is about to move.
+ *
+ * The exit animates `width` rather than opacity alone: collapsing the flex
+ * item is what lets the tabs slide into the space, and doing it in the same
+ * keyframe as the fade means the gap closes exactly as the button goes.
+ */
+function Chevron({ dir, state, onEnter, onLeave, onClick }) {
+  const spent = state === 'spent'
   return (
-    <button data-chevron={dir} onClick={onClick} title={dir < 0 ? 'Scroll left' : 'Scroll right'}
-      onPointerEnter={onEnter} onPointerLeave={onLeave} onPointerCancel={onLeave}
+    <button data-chevron={dir} title={dir < 0 ? 'Scroll left' : 'Scroll right'}
+      onClick={spent ? undefined : onClick} disabled={spent}
+      onPointerEnter={spent ? undefined : onEnter} onPointerLeave={onLeave} onPointerCancel={onLeave}
+      className={state === 'leaving' ? 'chev chev-out' : 'chev'}
       style={{
         flexShrink: 0, display: 'flex', alignItems: 'center',
         justifyContent: dir < 0 ? 'flex-start' : 'flex-end',
-        width: 40, height: '100%', border: 'none', cursor: 'pointer',
+        width: 40, height: '100%', border: 'none',
+        cursor: spent ? 'default' : 'pointer',
+        opacity: state === 'leaving' ? 0 : spent ? 0.3 : 1,
         color: 'var(--muted)', padding: dir < 0 ? '0 0 0 10px' : '0 10px 0 0',
         /* Wide hit area, with a fade so tabs slide under it rather than
            colliding with a hard edge. */
         background: `linear-gradient(to ${dir < 0 ? 'right' : 'left'}, var(--surf) 55%, transparent)`,
-        transition: 'color var(--t) var(--ease)',
       }}>
       <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"
         style={{ transform: dir < 0 ? 'rotate(180deg)' : 'none' }}>
@@ -517,6 +541,45 @@ function TabStrip({ tabs, active, onSelect, right }) {
   const ref = useRef(null)
   const [edges, setEdges] = useState({ left: false, right: false })
   const [menuOpen, setMenuOpen] = useState(false)
+  /* What each chevron is doing, which lags `edges` on purpose: null, 'live',
+     'spent' or 'leaving'. See the Chevron comment for why. */
+  const [phase, setPhase] = useState({ left: null, right: null })
+  const [hovered, setHovered] = useState(null)
+  const menuRef = useRef(null)
+  const triggerRef = useRef(null)
+
+  /* Dismissal, without a click-catching overlay.
+   *
+   * This used to be a fixed, full-screen div at z-index 70. It caught the
+   * outside click, and it also caught the wheel: the cursor was over the
+   * editor or the preview, but the event landed on an element that could not
+   * scroll, so neither pane moved and the menu just sat there.
+   *
+   * Listening on the document instead leaves both panes uncovered, so a wheel
+   * scrolls the thing under the cursor natively. All this has to do is get
+   * out of the way, which is what closing on the same gesture achieves.
+   *
+   * `passive` on the wheel listener because it never calls preventDefault:
+   * the scroll is the browser's to perform, and marking it passive means the
+   * browser does not have to wait on this handler before doing it. */
+  useEffect(() => {
+    if (!menuOpen) return
+    const inside = t => menuRef.current?.contains(t) || triggerRef.current?.contains(t)
+    const onDown = e => { if (!inside(e.target)) setMenuOpen(false) }
+    /* Wheel closes wherever it happens, including over the menu: a list of
+       thirteen tabs is not scrollable, so a wheel there is a scroll aimed at
+       whatever is behind it. */
+    const onWheel = () => setMenuOpen(false)
+    const onKey = e => { if (e.key === 'Escape') setMenuOpen(false) }
+    document.addEventListener('pointerdown', onDown, true)
+    document.addEventListener('wheel', onWheel, { passive: true })
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('pointerdown', onDown, true)
+      document.removeEventListener('wheel', onWheel)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [menuOpen])
 
   /* Only writes state when an edge actually flips.
    *
@@ -534,6 +597,43 @@ function TabStrip({ tabs, active, onSelect, right }) {
     }
     setEdges(prev => (prev.left === next.left && prev.right === next.right ? prev : next))
   }, [])
+
+  /* Drive the phases off the edges and the pointer.
+   *
+   * The only interesting transition is losing an edge: if the pointer is on
+   * that chevron it goes `spent` and holds its place, otherwise it starts
+   * leaving immediately. Regaining an edge always goes straight back to
+   * `live`, including mid-exit, so scrolling back the other way catches a
+   * half-faded chevron rather than waiting for it to finish disappearing. */
+  useEffect(() => {
+    setPhase(prev => {
+      const next = { ...prev }
+      for (const side of ['left', 'right']) {
+        if (edges[side]) next[side] = 'live'
+        else if (prev[side] === 'live' || prev[side] === 'spent') {
+          next[side] = hovered === side ? 'spent' : 'leaving'
+        }
+      }
+      return next.left === prev.left && next.right === prev.right ? prev : next
+    })
+  }, [edges, hovered])
+
+  /* Unmount once the exit has played. The duration is read live rather than
+     captured, so turning UI animation off mid-exit doesn't strand a chevron
+     at zero width. */
+  useEffect(() => {
+    const going = ['left', 'right'].filter(s => phase[s] === 'leaving')
+    if (!going.length) return
+    const ms = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--t'), 10) || 0
+    const t = setTimeout(() => {
+      setPhase(prev => {
+        const next = { ...prev }
+        for (const s of going) if (next[s] === 'leaving') next[s] = null
+        return next.left === prev.left && next.right === prev.right ? prev : next
+      })
+    }, ms)
+    return () => clearTimeout(t)
+  }, [phase])
 
   useEffect(() => {
     measure()
@@ -582,40 +682,43 @@ function TabStrip({ tabs, active, onSelect, right }) {
     }, 16)
   }, [stopScroll, measure])
 
-  /* Belt and braces: stop the moment the pointer is anywhere that isn't a
-     chevron.
+  /* One listener owns everything that depends on where the pointer is:
+     whether to scroll, how fast, and which chevron is being pointed at.
+     Splitting those across three handlers means three answers that can
+     disagree by a frame.
 
-     `pointerleave` alone is not enough to rely on. A chevron hides itself
-     once its edge is reached, so it can vanish from under the cursor without
-     ever firing one; the pointer can leave the window entirely; and any
-     remount swaps the node the listener was attached to. All three end with
-     the strip scrolling on its own, which is the one failure mode that makes
-     the feature worse than the clicks it replaced. This catches every case
-     from a single listener that watches where the pointer actually is. */
+     It has to be a window listener rather than the button's own
+     `pointerleave`. A chevron can leave from under a stationary cursor when
+     the strip stops overflowing, the pointer can leave the window entirely,
+     and a remount swaps the node any element listener was bound to. All three
+     end with the strip scrolling on its own, which is the failure that makes
+     this worse than the clicks it replaced. */
   useEffect(() => {
     const check = e => {
       const chevron = e.target?.closest?.('[data-chevron]')
-      if (!chevron) return stopScroll()
+      if (!chevron) { stopScroll(); setHovered(null); return }
+      const dir = Number(chevron.dataset.chevron)
+      /* Which side, so a chevron that runs out of travel while you are on it
+         knows to hold its place rather than disappear mid-gesture. */
+      setHovered(dir < 0 ? 'left' : 'right')
       /* Faster the closer you are to the outer edge, which is the direction
          you are travelling. Nudging into the chevron creeps; pushing to the
-         edge of the strip runs. The same listener that decides whether to
-         scroll at all also decides how fast, so there is one source of truth
-         for where the pointer is. */
+         edge of the strip runs. */
       const box = chevron.getBoundingClientRect()
       const into = (e.clientX - box.left) / (box.width || 1)
-      const outward = Number(chevron.dataset.chevron) < 0 ? 1 - into : into
-      const t = Math.min(1, Math.max(0, outward))
+      const t = Math.min(1, Math.max(0, dir < 0 ? 1 - into : into))
       speed.current = SCROLL_SLOW + (SCROLL_FAST - SCROLL_SLOW) * t
     }
     window.addEventListener('pointermove', check, { passive: true })
     window.addEventListener('pointerdown', check, { passive: true })
-    document.addEventListener('pointerleave', stopScroll)
-    window.addEventListener('blur', stopScroll)
+    const gone = () => { stopScroll(); setHovered(null) }
+    document.addEventListener('pointerleave', gone)
+    window.addEventListener('blur', gone)
     return () => {
       window.removeEventListener('pointermove', check)
       window.removeEventListener('pointerdown', check)
-      document.removeEventListener('pointerleave', stopScroll)
-      window.removeEventListener('blur', stopScroll)
+      document.removeEventListener('pointerleave', gone)
+      window.removeEventListener('blur', gone)
       stopScroll()
     }
   }, [stopScroll])
@@ -634,7 +737,7 @@ function TabStrip({ tabs, active, onSelect, right }) {
       {/* Name and arrow are one control — the whole thing opens the menu, and
           the underline spans the full hit area rather than just the label. */}
       <div style={{ display: 'flex', alignItems: 'stretch', flexShrink: 0, paddingLeft: 14 }}>
-        <button onClick={() => setMenuOpen(o => !o)} title="Switch tab"
+        <button ref={triggerRef} onClick={() => setMenuOpen(o => !o)} title="Switch tab"
           style={{
             display: 'flex', alignItems: 'center', gap: 8, padding: '0 14px 0 10px',
             background: 'none', border: 'none', cursor: 'pointer',
@@ -653,13 +756,11 @@ function TabStrip({ tabs, active, onSelect, right }) {
       </div>
 
       {menuOpen && (
-        <>
-          <div onClick={() => setMenuOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 70 }} />
-          <div className="anim-pop" style={{
-            position: 'absolute', top: BAR_H - 2, left: 10, zIndex: 71, minWidth: 176,
-            background: 'var(--surf2)', border: '1px solid var(--bdr2)', borderRadius: 9,
-            boxShadow: '0 12px 32px rgba(0,0,0,.55)', padding: 5,
-          }}>
+        <div ref={menuRef} className="anim-pop" style={{
+          position: 'absolute', top: BAR_H - 2, left: 10, zIndex: 71, minWidth: 176,
+          background: 'var(--surf2)', border: '1px solid var(--bdr2)', borderRadius: 9,
+          boxShadow: '0 12px 32px rgba(0,0,0,.55)', padding: 5,
+        }}>
             {tabs.map(t => (
               <button key={t.id} onClick={() => { onSelect(t.id); setMenuOpen(false) }}
                 style={{
@@ -669,14 +770,13 @@ function TabStrip({ tabs, active, onSelect, right }) {
                 }}
                 onMouseEnter={e => { if (t.id !== active) e.currentTarget.style.background = 'var(--surf3)' }}
                 onMouseLeave={e => { if (t.id !== active) e.currentTarget.style.background = 'none' }}>
-                {t.label}
-              </button>
-            ))}
-          </div>
-        </>
+              {t.label}
+            </button>
+          ))}
+        </div>
       )}
 
-      {edges.left && <Chevron dir={-1} onEnter={() => startScroll(-1)} onLeave={stopScroll} onClick={() => nudge(-1)} />}
+      {phase.left && <Chevron dir={-1} state={phase.left} onEnter={() => startScroll(-1)} onLeave={stopScroll} onClick={() => nudge(-1)} />}
       <div ref={ref} className="no-bar" onScroll={measure}
         style={{ display: 'flex', flex: 1, minWidth: 0, overflowX: 'auto' }}>
         {rest.map(t => (
@@ -691,7 +791,7 @@ function TabStrip({ tabs, active, onSelect, right }) {
             onMouseLeave={e => { e.currentTarget.style.color = 'var(--muted)' }}>{t.label}</button>
         ))}
       </div>
-      {edges.right && <Chevron dir={1} onEnter={() => startScroll(1)} onLeave={stopScroll} onClick={() => nudge(1)} />}
+      {phase.right && <Chevron dir={1} state={phase.right} onEnter={() => startScroll(1)} onLeave={stopScroll} onClick={() => nudge(1)} />}
       {right && (
         <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0, paddingLeft: 10, borderLeft: '1px solid var(--bdr)', marginLeft: 6 }}>
           {right}

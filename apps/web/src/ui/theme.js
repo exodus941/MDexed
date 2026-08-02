@@ -83,6 +83,18 @@ label{display:block;font-size:10.5px;font-weight:500;text-transform:uppercase;le
 .btn-add:hover{background:rgba(220,144,85,.13)}
 .btn-delete{background:none;border:none;cursor:pointer;color:var(--dim);border-radius:4px;transition:color var(--t) var(--ease);display:flex;align-items:center;justify-content:center;padding:4px}
 .btn-delete:hover{color:var(--danger)}
+/* Tab-strip chevrons. Opacity transitions so reaching the end of travel dims
+   the button rather than blinking it; the exit collapses the width in the
+   same keyframe as the fade, so the tabs slide into the gap exactly as it
+   closes rather than snapping across afterwards. */
+.chev{transition:color var(--t) var(--ease),opacity var(--t) var(--ease)}
+/* Width only. Opacity stays on the transition above, so the fade continues
+   from wherever the button already was: a spent chevron is at 0.3, and
+   animating a keyframe from 1 would flash it back to full brightness on its
+   way out. */
+@keyframes dmd-chev-out{from{width:40px}to{width:0}}
+.chev-out{animation:dmd-chev-out var(--t) var(--ease) forwards;overflow:hidden;pointer-events:none;padding:0!important}
+
 /* The shared close control. Dimmed until pointed at, so it never competes
    with the message it sits beside. */
 /* File drop target. A dashed box reads as "put something here" in a way no
