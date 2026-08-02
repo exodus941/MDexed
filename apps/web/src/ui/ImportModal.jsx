@@ -105,9 +105,11 @@ const COL_GAP = 24
 const ROW_Y = 10          // above and below a row's text
 const HEAD_Y = 9          // header text to its rule
 const GROUP_TOP = 26      // air above a group heading
-const GROUP_BOT = 10      // group heading to its column header
+const GROUP_BOT = 14      // group heading to its column header
 const PANEL_X = 22        // modal's own side padding
 const PANEL_Y = 18
+const CARD_X = 16         // a card's inner edge to its first and last column
+const CARD_Y = 12         // a card's inner edge to its header and last row
 
 /* One grid for all three tables, not one per table.
  *
@@ -153,13 +155,36 @@ const RULE_SOFT = '1px solid color-mix(in srgb, var(--bdr) 50%, transparent)'
  *               header's own, so it goes without
  * @param last   the rightmost column, which needs no trailing gap
  */
-const cell = (dim, { first, last, ...extra } = {}) => ({
+const cell = (dim, { first, last, lead, bottom, ...extra } = {}) => ({
   display: 'flex', alignItems: 'center',
   minWidth: 0, whiteSpace: 'nowrap',
-  paddingTop: ROW_Y, paddingBottom: ROW_Y, paddingRight: last ? 0 : COL_GAP,
+  paddingTop: ROW_Y,
+  paddingBottom: bottom ? ROW_Y + CARD_Y : ROW_Y,
+  paddingLeft: lead ? CARD_X : 0,
+  paddingRight: last ? CARD_X : COL_GAP,
   borderTop: first ? 'none' : RULE_SOFT,
   opacity: dim ? 0.45 : 1, ...extra,
 })
+
+/* The card each table sits in.
+ *
+ * It has to span every column *and* keep its children on the parent's tracks,
+ * which is exactly what `subgrid` is for — three independent grids would each
+ * size to their own contents and the tables would stop lining up with one
+ * another, which is the thing the single grid was built to prevent.
+ *
+ * No padding on the card itself: padding on a subgrid container shifts its
+ * tracks off the parent's. The inset comes from the cells instead — CARD_X on
+ * the first and last columns, CARD_Y folded into the header's top and the last
+ * row's bottom. */
+const CARD = {
+  gridColumn: '1 / -1',
+  display: 'grid',
+  gridTemplateColumns: 'subgrid',
+  background: 'var(--surf2)',
+  border: '1px solid var(--bdr)',
+  borderRadius: 10,
+}
 
 /* Text that has to clip needs a block inside the flex cell — `text-overflow`
    applies to a block box, not to a flex container's own text. */
@@ -189,10 +214,12 @@ const CONTROL = {
   padding: '6px 10px',
 }
 
-const headCell = ({ last, ...extra } = {}) => ({
+const headCell = ({ last, lead, ...extra } = {}) => ({
   display: 'flex', alignItems: 'flex-end',
   whiteSpace: 'nowrap',
-  paddingBottom: HEAD_Y, paddingRight: last ? 0 : COL_GAP,
+  paddingTop: CARD_Y, paddingBottom: HEAD_Y,
+  paddingLeft: lead ? CARD_X : 0,
+  paddingRight: last ? CARD_X : COL_GAP,
   borderBottom: RULE,
   fontSize: 9.5, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase',
   color: 'var(--dim)', ...extra,
@@ -240,7 +267,7 @@ const CONFIDENCE = {
 
 /* One row. Colour rows open a grid of every colour in the file; font rows get
    the families found; dimension rows get a number. */
-function MapRow({ slot, proposal, on, onToggle, onChange, palette, families, first }) {
+function MapRow({ slot, proposal, on, onToggle, onChange, palette, families, first, bottom }) {
   const [picking, setPicking] = useState(false)
   const conf = CONFIDENCE[proposal.confidence]
   const dim = !on
@@ -269,17 +296,17 @@ function MapRow({ slot, proposal, on, onToggle, onChange, palette, families, fir
 
   return (
     <>
-      <div style={cell(dim, { first, display: 'flex' })}>
+      <div style={cell(dim, { first, bottom, lead: true, display: 'flex' })}>
         <input type="checkbox" checked={on} onChange={e => onToggle(e.target.checked)}
           style={{ width: 14, height: 14, accentColor: 'var(--accent)' }}
           aria-label={`Apply ${slot.label}`} />
       </div>
 
-      <div style={cell(dim, { first, fontSize: 12.5, color: 'var(--text)' })}>{slot.label}</div>
+      <div style={cell(dim, { first, bottom, fontSize: 12.5, color: 'var(--text)' })}>{slot.label}</div>
 
-      <div style={cell(dim, { first, fontSize: 11, color: 'var(--muted)' })}>{slot.desc}</div>
+      <div style={cell(dim, { first, bottom, fontSize: 11, color: 'var(--muted)' })}>{slot.desc}</div>
 
-      <code style={cell(dim, { first, fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--muted)' })}>
+      <code style={cell(dim, { first, bottom, fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--muted)' })}>
         {proposal.source}
       </code>
 
@@ -287,17 +314,17 @@ function MapRow({ slot, proposal, on, onToggle, onChange, palette, families, fir
           takes the slack column and clips; the full sentence is the tooltip.
           It is what makes an inferred row judgeable without going and reading
           the stylesheet, which is why it is worth a column at all. */}
-      <div style={cell(dim, { first, fontSize: 11, color: 'var(--dim)' })} title={proposal.why}>
+      <div style={cell(dim, { first, bottom, fontSize: 11, color: 'var(--dim)' })} title={proposal.why}>
         <span style={clip}>{proposal.why}</span>
       </div>
 
-      <div style={cell(dim, { first })}>
+      <div style={cell(dim, { first, bottom })}>
         <span className="chip" style={{ color: conf.tone, borderColor: conf.tone }} title={conf.hint}>
           {conf.label}
         </span>
       </div>
 
-      <div style={cell(dim, { first, last: true, width: 176, justifyContent: 'flex-end' })}>
+      <div style={cell(dim, { first, bottom, last: true, width: 176, justifyContent: 'flex-end' })}>
         <div style={{ width: '100%' }}>{control}</div>
       </div>
 
@@ -493,26 +520,17 @@ export default function ImportModal({ onClose, onApply, onOpenDocument }) {
                 <Stat label="Custom properties" value={found.counts.vars} />
               </div>
 
-              <p className="panel-note" style={{ marginBottom: GROUP_TOP }}>
+              {/* ROW_Y here and GROUP_TOP on the heading below add to the same
+                  36px every other group boundary uses. */}
+              <p className="panel-note" style={{ marginBottom: ROW_Y }}>
                 Only selected elements from the following list go into a <strong>seed</strong>, and the
                 scales, roles and components are generated from there.
               </p>
 
-              {/* Spaced exactly like a table row, because that is what it is:
-                  a rule on top, ROW_Y of padding either side, and the heading
-                  under it taking its usual GROUP_TOP. That makes the air above
-                  and below this identical to the air between a table's last
-                  row and the next group heading — the same 36px, arrived at
-                  the same way rather than by matching a number by eye. */}
-              {Object.keys(rows).length > 0 && (
-                <div style={{
-                  display: 'flex', alignItems: 'center', gap: PAD.gap,
-                  padding: `${ROW_Y}px 0`, borderTop: RULE,
-                }}>
-                  <SelectAll label="Select all" ids={Object.keys(rows)} off={off}
-                    onSet={on => setOff(on ? new Set() : new Set(Object.keys(rows)))} />
-                </div>
-              )}
+              {/* There was a global select-all here, with a rule above it that
+                  belonged to nothing and sat against the checkbox. It was also
+                  redundant: everything arrives selected, and the three group
+                  boxes cover every row between them. */}
 
               {Object.keys(rows).length === 0 ? (
                 <p className="panel-note">
@@ -527,8 +545,14 @@ export default function ImportModal({ onClose, onApply, onOpenDocument }) {
                     const ids = inGroup.map(s => s.id)
                     return (
                       <Fragment key={group}>
+                        {/* A heading has to outrank the rows under it. At 12px
+                            and weight 500 this was the same size as the Seed
+                            column beside it, so "Colours" read as another row
+                            rather than as the name of the table. */}
                         <div style={{
-                          gridColumn: '1 / -1', fontSize: 12, fontWeight: 500, color: 'var(--text)',
+                          gridColumn: '1 / -1',
+                          fontFamily: 'var(--display)', fontSize: 15.5, fontWeight: 600,
+                          letterSpacing: '-0.01em', color: 'var(--text)',
                           /* Every heading the same, the first included — the
                              select-all row above it is spaced like a table
                              row, so this gap is the same gap as everywhere
@@ -537,29 +561,32 @@ export default function ImportModal({ onClose, onApply, onOpenDocument }) {
                           paddingBottom: GROUP_BOT,
                         }}>{group}</div>
 
-                        {/* The group's select-all sits in the checkbox column
-                            of its own header, directly above the boxes it
-                            controls. */}
-                        <div style={headCell({ display: 'flex' })}>
-                          <SelectAll ids={ids} off={off} compact onSet={on => setOff(s => {
-                            const next = new Set(s)
-                            for (const id of ids) { if (on) next.delete(id); else next.add(id) }
-                            return next
-                          })} />
-                        </div>
-                        {COLUMNS.map((c, ci) => (
-                          <div key={c.key} style={headCell({
-                            last: ci === COLUMNS.length - 1,
-                            ...(c.right ? { textAlign: 'right' } : null),
-                          })}>{c.label}</div>
-                        ))}
+                        <div style={CARD}>
+                          {/* The group's select-all sits in the checkbox column
+                              of its own header, directly above the boxes it
+                              controls. */}
+                          <div style={headCell({ lead: true, display: 'flex' })}>
+                            <SelectAll ids={ids} off={off} compact onSet={on => setOff(s => {
+                              const next = new Set(s)
+                              for (const id of ids) { if (on) next.delete(id); else next.add(id) }
+                              return next
+                            })} />
+                          </div>
+                          {COLUMNS.map((c, ci) => (
+                            <div key={c.key} style={headCell({
+                              last: ci === COLUMNS.length - 1,
+                              ...(c.right ? { justifyContent: 'flex-end' } : null),
+                            })}>{c.label}</div>
+                          ))}
 
-                        {inGroup.map((slot, i) => (
-                          <MapRow key={slot.id} first={i === 0} slot={slot} proposal={rows[slot.id]}
-                            on={!off.has(slot.id)} onToggle={v => toggle(slot.id, v)}
-                            onChange={v => setValue(slot.id, v)}
-                            palette={palette} families={families} />
-                        ))}
+                          {inGroup.map((slot, i) => (
+                            <MapRow key={slot.id} slot={slot} proposal={rows[slot.id]}
+                              first={i === 0} bottom={i === inGroup.length - 1}
+                              on={!off.has(slot.id)} onToggle={v => toggle(slot.id, v)}
+                              onChange={v => setValue(slot.id, v)}
+                              palette={palette} families={families} />
+                          ))}
+                        </div>
                       </Fragment>
                     )
                   })}
@@ -589,7 +616,7 @@ export default function ImportModal({ onClose, onApply, onOpenDocument }) {
             <button className="btn-primary" disabled={!anything}
               style={{ padding: BTN.sm, fontSize: 12, opacity: anything ? 1 : .45, cursor: anything ? 'pointer' : 'not-allowed' }}
               onClick={() => { onApply(toImport(rows, accepted)); onClose() }}>
-              Apply {accepted.size > 0 && `${accepted.size} ${accepted.size === 1 ? 'Value' : 'Values'}`}
+              Apply {accepted.size} of {Object.keys(rows).length} Values
             </button>
           )}
         </div>
