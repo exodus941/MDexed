@@ -14,7 +14,9 @@ import { parseFile } from '../src/emit/parse.js'
 import { diffWords, diffStats } from '../src/ai/diff.js'
 import { contextFor, refinePrompt, draftPrompt, systemPrompt } from '../src/ai/prompts.js'
 import { PROSE_SECTIONS } from '../src/state/schema.js'
-import { APP_CSS } from '../src/ui/theme.js'
+/* theme.js re-exports a `?raw` import, which is a Vite feature Node cannot
+   resolve, so the chrome stylesheet is read from disk instead. */
+const APP_CSS = fs.readFileSync(new URL('../src/ui/theme.css', import.meta.url), 'utf8')
 import { PREVIEW_CSS } from '../src/preview/tokens.js'
 
 const line = s => console.log(s)
