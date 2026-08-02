@@ -107,6 +107,194 @@ export default {
 `
 }
 
+/* ── tailwind.css (v4) ────────────────────────────────────────────────────
+   Tailwind 4 moved configuration out of JavaScript and into CSS. A project on
+   v4 has no `tailwind.config.js` to merge a preset into, so the v3 file above
+   is the wrong artefact for it entirely, not merely an old one. Both ship,
+   because both versions are in use.
+
+   `@theme` declares the tokens *and* generates the utilities, so one block
+   gets `bg-surface`, `text-accent`, `rounded-lg` and the rest. Values point
+   at the custom properties from tokens.css rather than at hex, which is what
+   keeps a single class correct in both themes. */
+export function tailwindV4Css(state, derived) {
+  const line = (k, v) => `  ${k}: ${v};`
+  const out = []
+
+  for (const role of Object.keys(derived.roles.light)) out.push(line(`--color-${role}`, `var(--c-${role})`))
+  for (const [name, ramp] of Object.entries(derived.ramps)) {
+    for (const step of RAMP_STEPS) out.push(line(`--color-${name}-${step}`, ramp.steps[step]))
+  }
+  out.push('')
+  for (const s of derived.spacing) out.push(line(`--spacing-${s.name}`, `var(--space-${s.name})`))
+  out.push('')
+  for (const r of derived.rounded) out.push(line(`--radius-${r.name}`, `var(--radius-${r.name})`))
+  out.push('')
+  for (const k of Object.keys(derived.elevation)) {
+    if (derived.elevation[k] !== 'none') out.push(line(`--shadow-${k}`, `var(--shadow-${k})`))
+  }
+  out.push('')
+  for (const t of derived.typography) out.push(line(`--text-${t.name}`, `var(--font-${t.name}-size)`))
+  out.push('')
+  for (const [k, v] of Object.entries(derived.families)) out.push(line(`--font-${k}`, v.stack))
+  out.push('')
+  for (const [k, v] of Object.entries(derived.motion.durations)) out.push(line(`--animate-duration-${k}`, v))
+  out.push('')
+  for (const b of state.layout?.breakpoints ?? []) out.push(line(`--breakpoint-${b.name}`, `${b.px}px`))
+
+  return `${stamp('tailwind.css')}
+/* Tailwind v4. Import it once, after tokens.css:
+ *
+ *   @import "tailwindcss";
+ *   @import "./tokens.css";
+ *   @import "./tailwind.css";
+ *
+ * On Tailwind v3 use tailwind.config.js instead; this file does nothing there.
+ */
+
+@theme {
+${out.join('\n')}
+}
+`
+}
+
+/* ── tokens.ts ────────────────────────────────────────────────────────────
+   For the code that is not a stylesheet: styled-components, emotion,
+   vanilla-extract, React Native, a chart library that wants a colour, a build
+   script that wants the breakpoints.
+
+   Literal hex rather than `var(--c-*)`, because none of those consumers can
+   resolve a custom property. That means the two themes have to be separate
+   objects here, which is also what makes `theme(mode).surface` read the way
+   it does.
+
+   `as const` throughout is the point of shipping TypeScript at all: role
+   names autocomplete, and a typo is a compile error rather than a silently
+   undefined colour. */
+export function tokensTs(state, derived) {
+  const obj = (o, indent = 2) => {
+    const pad = ' '.repeat(indent)
+    const body = Object.entries(o)
+      .map(([k, v]) => `${pad}${/^[A-Za-z_$][\w$]*$/.test(k) ? k : JSON.stringify(k)}: ${
+        typeof v === 'object' && v !== null ? `{\n${obj(v, indent + 2)}\n${pad}}` : JSON.stringify(v)
+      },`)
+      .join('\n')
+    return body
+  }
+  const block = (name, o, doc) =>
+    `${doc}\nexport const ${name} = {\n${obj(o)}\n} as const\n`
+
+  const scale = Object.fromEntries(
+    Object.entries(derived.ramps).map(([n, r]) => [n, Object.fromEntries(RAMP_STEPS.map(s => [s, r.steps[s]]))])
+  )
+  const type = Object.fromEntries(derived.typography.map(t => [t.name, {
+    fontFamily: derived.families[t.family]?.stack ?? '',
+    fontSize: t.fontSize,
+    fontWeight: t.fontWeight,
+    lineHeight: t.lineHeight,
+    letterSpacing: t.letterSpacing,
+  }]))
+
+  return `${stamp('tokens.ts')}
+/* Values, not custom properties: this file is for consumers that cannot
+ * resolve \`var()\` — CSS-in-JS, React Native, charts, build scripts. If you
+ * are writing a stylesheet, use tokens.css instead, because that one follows
+ * the theme without a re-render.
+ */
+
+${block('color', { light: derived.roles.light, dark: derived.roles.dark },
+    '/** Semantic roles, per theme. */')}
+${block('scale', scale, '/** The raw ramps, when a role does not exist for what you need. */')}
+${block('spacing', Object.fromEntries(derived.spacing.map(s => [s.name, s.value])), '/** Spacing scale. */')}
+${block('radius', Object.fromEntries(derived.rounded.map(r => [r.name, r.value])), '/** Corner radii. */')}
+${block('typography', type, '/** Text styles, ready to spread into a style object. */')}
+${block('shadow', Object.fromEntries(Object.entries(derived.elevation).filter(([, v]) => v !== 'none')), '/** Elevation. */')}
+${block('duration', derived.motion.durations, '/** Motion durations. */')}
+${block('easing', derived.motion.easings, '/** Motion curves. */')}
+${block('breakpoint', Object.fromEntries((state.layout?.breakpoints ?? []).map(b => [b.name, `${b.px}px`])), '/** Breakpoints, in px. */')}
+/** \`light\` or \`dark\`. */
+export type Mode = keyof typeof color
+
+/** Every semantic role name. A typo here is a compile error. */
+export type ColorRole = keyof typeof color.light
+
+/** Roles for one theme: \`theme('dark').surface\`. */
+export const theme = (mode: Mode) => color[mode]
+
+export default { color, scale, spacing, radius, typography, shadow, duration, easing, breakpoint, theme }
+`
+}
+
+/* ── _tokens.scss ─────────────────────────────────────────────────────────
+   Sass is still what a great many existing codebases are built in, and none
+   of them can use a Tailwind preset or a TypeScript module.
+
+   Variables point at the custom properties rather than at hex, so the theme
+   still switches at runtime; Sass resolves at build time and would otherwise
+   freeze whichever theme was compiled. The maps exist for the thing Sass is
+   actually better at than CSS, which is generating a rule per token in a
+   loop. */
+export function tokensScss(state, derived) {
+  const v = (name, value) => `$${name}: ${value};`
+  const map = (name, entries) =>
+    `$${name}: (\n${entries.map(([k, val]) => `  "${k}": ${val},`).join('\n')}\n);`
+
+  const roles = Object.keys(derived.roles.light)
+
+  return `${stamp('_tokens.scss')}
+//
+//   @use "tokens" as t;
+//   .card { background: t.$c-surface; padding: t.$space-md; }
+//
+// Import tokens.css once as well. These variables resolve to custom
+// properties, so the theme switches at runtime — a Sass variable holding a
+// hex would freeze whichever theme happened to compile.
+
+@use "sass:map";
+
+// ── Colour roles ──
+${roles.map(r => v(`c-${r}`, `var(--c-${r})`)).join('\n')}
+
+// ── Spacing ──
+${derived.spacing.map(s => v(`space-${s.name}`, `var(--space-${s.name})`)).join('\n')}
+
+// ── Radius ──
+${derived.rounded.map(r => v(`radius-${r.name}`, `var(--radius-${r.name})`)).join('\n')}
+
+// ── Type ──
+${derived.typography.map(t => v(`text-${t.name}`, `var(--font-${t.name}-size)`)).join('\n')}
+${Object.entries(derived.families).map(([k, f]) => v(`font-${k}`, f.stack)).join('\n')}
+
+// ── Elevation ──
+${Object.entries(derived.elevation).filter(([, val]) => val !== 'none').map(([k]) => v(`shadow-${k}`, `var(--shadow-${k})`)).join('\n')}
+
+// ── Motion ──
+${Object.entries(derived.motion.durations).map(([k, val]) => v(`duration-${k}`, val)).join('\n')}
+${Object.entries(derived.motion.easings).map(([k, val]) => v(`ease-${k}`, val)).join('\n')}
+
+// ── Breakpoints ──
+${(state.layout?.breakpoints ?? []).map(b => v(`bp-${b.name}`, `${b.px}px`)).join('\n')}
+
+// ── Maps, for iterating ──
+${map('colors', roles.map(r => [r, `var(--c-${r})`]))}
+
+${map('spacings', derived.spacing.map(s => [s.name, `var(--space-${s.name})`]))}
+
+${map('radii', derived.rounded.map(r => [r.name, `var(--radius-${r.name})`]))}
+
+${map('breakpoints', (state.layout?.breakpoints ?? []).map(b => [b.name, `${b.px}px`]))}
+
+// Mobile-first media query: \`@include t.above("md") { ... }\`
+// \`map.get\` rather than the global \`map-get\`, which Dart Sass has deprecated
+// and will remove.
+@mixin above($name) {
+  $width: map.get($breakpoints, $name);
+  @if $width == null { @error "Unknown breakpoint: #{$name}"; }
+  @media (min-width: #{$width}) { @content; }
+}
+`
+}
+
 /* ── tokens.json ──────────────────────────────────────────────────────────
    W3C Design Tokens Community Group format, which Style Dictionary, Figma
    and most token pipelines already read. Both themes are present as separate
@@ -155,13 +343,27 @@ export function packageReadme(state) {
 Generated by the design.md editor. Every file here derives from the same
 source, so none of them can disagree with another.
 
+You will not need all of these. Take \`tokens.css\` plus whichever one matches
+your stack, and ignore the rest.
+
 | File | What it's for |
 | --- | --- |
 | \`DESIGN.md\` | The system in full — values *and* the reasoning. Give this to a coding agent. |
-| \`tokens.css\` | Custom properties for both themes. Import once; use \`var(--c-accent)\`. |
-| \`tailwind.config.js\` | A Tailwind preset. Merge it, don't replace your config. |
+| \`tokens.css\` | Custom properties for both themes. Start here whatever else you use. |
+| \`tokens.ts\` | Literal values for CSS-in-JS, React Native, charts, scripts. Typed, so role names autocomplete. |
+| \`tailwind.css\` | Tailwind **v4**. An \`@theme\` block; import it after \`tokens.css\`. |
+| \`tailwind.config.js\` | Tailwind **v3**. A preset — merge it, don't replace your config. |
+| \`_tokens.scss\` | Sass variables, maps and a breakpoint mixin. |
 | \`tokens.json\` | W3C Design Tokens format, for Style Dictionary, Figma and similar. |
 | \`html-examples/\` | Every preview surface as a standalone page. Open one and read the markup. |
+
+Both Tailwind files are present because v3 and v4 configure themselves in
+different places and neither can read the other's. Use the one matching your
+version; the other does nothing.
+
+\`tokens.ts\` holds hex rather than \`var()\`, because none of its consumers can
+resolve a custom property — which is why it has a separate object per theme.
+Everything else points at \`tokens.css\`, so the theme switches at runtime.
 
 ## Using it with an agent
 
