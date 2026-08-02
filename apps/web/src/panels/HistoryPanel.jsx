@@ -9,10 +9,10 @@
 import { useState, useMemo } from 'react'
 import { useStore } from '../state/store.jsx'
 import { LOG_LIMIT_DEFAULT, LOG_LIMIT_MAX } from '../state/store.jsx'
-import { CHANGE_CATEGORIES, CATEGORY_BY_ID, canRevert, revertChange } from '../state/changelog.js'
+import { CHANGE_CATEGORIES, CATEGORY_BY_ID, canRevert, revertChange, planRewind } from '../state/changelog.js'
 import { gradientCss } from '../color/modes.js'
 import { resolveRef } from '../color/ramp.js'
-import { SectionHeader, Collapsible, NumField, Banner, ConfirmDelete, PAD } from '../ui/controls.jsx'
+import { SectionHeader, Collapsible, NumField, Banner, ConfirmDelete, PAD, BTN, CloseButton } from '../ui/controls.jsx'
 
 const pad = n => String(n).padStart(2, '0')
 const clock = ts => { const d = new Date(ts); return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}` }
@@ -137,6 +137,20 @@ export default function HistoryPanel() {
     if (updater) set(updater, `revert:${entry.tag}`)
   }
 
+  /* Rewind everything back to a chosen point. Held as a plan rather than run
+     on click: the confirmation has to state how many changes it will undo and
+     how many it cannot, and those numbers come from the plan itself. */
+  const [rewind, setRewind] = useState(null)
+  const askRewind = entry => {
+    const index = log.findIndex(e => e === entry)
+    if (index < 0) return
+    setRewind({ entry, ...planRewind(log, index) })
+  }
+  const doRewind = () => {
+    if (rewind?.updater) set(rewind.updater, `rewind:${rewind.applied}`)
+    setRewind(null)
+  }
+
   /* Gradient snapshots store references; they're resolved for display against
      whatever the palette is now. */
   const ctx = { roles: derived.roles[state.color.mode], ramps: derived.ramps, resolveRef }
@@ -235,7 +249,7 @@ export default function HistoryPanel() {
             {group.items.map(e => {
               const cat = CATEGORY_BY_ID[e.category] ?? CATEGORY_BY_ID.system
               return (
-                <div key={e.id} style={{
+                <div key={e.id} className="log-row" style={{
                   display: 'grid', gridTemplateColumns: '8px 1fr auto', gap: 10,
                   padding: PAD.sub, borderBottom: '1px solid var(--bdr)',
                 }}>
@@ -267,6 +281,23 @@ export default function HistoryPanel() {
                         Revert
                       </button>
                     )}
+                    {/* Hidden until the row is pointed at, because it is the
+                        destructive one and should not sit there inviting a
+                        stray click on every row at once. Revealed on keyboard
+                        focus too — hover-only would put it out of reach of
+                        anyone not using a mouse. */}
+                    <button className="rewind-btn" onClick={() => askRewind(e)}
+                      title="Undo this change and everything after it"
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 4, background: 'none',
+                        border: '1px solid rgb(var(--danger-rgb) / .35)', borderRadius: 5, cursor: 'pointer',
+                        color: 'var(--danger)', padding: '2px 8px', fontSize: 10.5, fontFamily: 'var(--sans)',
+                      }}>
+                      <svg width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="11 17 6 12 11 7" /><polyline points="18 17 13 12 18 7" />
+                      </svg>
+                      Rewind to here
+                    </button>
                     <span style={{ fontFamily: 'var(--mono)', fontSize: 10.5, color: 'var(--dim)' }}>{clock(e.at)}</span>
                   </div>
                 </div>
@@ -293,6 +324,77 @@ export default function HistoryPanel() {
             : <span style={{ fontSize: 11, color: 'var(--dim)' }}>Already empty</span>}
         </div>
       </Collapsible>
+
+      {rewind && (
+        <RewindConfirm plan={rewind} onCancel={() => setRewind(null)} onConfirm={doRewind} />
+      )}
+    </div>
+  )
+}
+
+/* ── Confirming a rewind ──
+ *
+ * The one action in the log that cannot be shrugged off, so it states its
+ * consequences in numbers before it happens rather than describing them
+ * afterwards. Three facts, in the order that decides whether you press it:
+ * how many changes go, how many cannot be undone, and where you land.
+ *
+ * The count of unrevertible changes is the honest part. Prose edits log word
+ * counts rather than the prose, so a rewind across one cannot restore it —
+ * saying so up front is the difference between a tool you trust and one that
+ * quietly does less than it promised. */
+function RewindConfirm({ plan, onCancel, onConfirm }) {
+  const { entry, applied, skipped, total } = plan
+  const nothing = applied === 0
+
+  return (
+    <div onClick={onCancel} className="anim-fade" style={{
+      position: 'fixed', inset: 0, background: 'rgba(0,0,0,.72)', zIndex: 1000,
+      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,
+    }}>
+      <div onClick={e => e.stopPropagation()} className="anim-rise" style={{
+        background: 'var(--surf)', border: '1px solid var(--bdr)', borderRadius: 12,
+        width: '100%', maxWidth: 440, overflow: 'hidden',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: `${PAD.card}px ${PAD.card + 4}px`, borderBottom: '1px solid var(--bdr)', fontSize: 15, lineHeight: 1.5 }}>
+          <span style={{ fontFamily: 'var(--display)', fontWeight: 700, flex: 1 }}>Rewind to this point?</span>
+          <CloseButton onClick={onCancel} label="Cancel" size={11} />
+        </div>
+
+        <div style={{ padding: PAD.card + 4, display: 'flex', flexDirection: 'column', gap: PAD.gap }}>
+          <p style={{ fontSize: 12.5, lineHeight: 1.6, color: 'var(--text-dim)', margin: 0 }}>
+            This undoes <strong style={{ color: 'var(--text)' }}>{total} change{total === 1 ? '' : 's'}</strong>,
+            everything from now back to and including{' '}
+            <strong style={{ color: 'var(--text)' }}>{entry.label}</strong> at {clock(entry.at)}.
+          </p>
+
+          {skipped > 0 && (
+            <Banner tone="warn">
+              {skipped} of them cannot be put back. The log records what changed, not every value —
+              prose is stored as a word count — so {applied === 0 ? 'none' : `only ${applied}`} of these
+              will actually be undone. The rest stay as they are.
+            </Banner>
+          )}
+
+          <p style={{ fontSize: 11.5, lineHeight: 1.55, color: 'var(--muted)', margin: 0 }}>
+            It lands in the undo stack as one step, so Ctrl+Z takes the whole rewind back.
+          </p>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: PAD.row, padding: `${PAD.gap}px ${PAD.card + 4}px`, borderTop: '1px solid var(--bdr)' }}>
+          <span style={{ flex: 1 }} />
+          <button className="btn-ghost" style={{ padding: BTN.sm, fontSize: 12 }} onClick={onCancel}>Cancel</button>
+          <button onClick={onConfirm} disabled={nothing}
+            style={{
+              padding: BTN.sm, fontSize: 12, fontFamily: 'var(--sans)', fontWeight: 500,
+              border: '1px solid transparent', borderRadius: 6,
+              background: 'var(--danger)', color: 'var(--bg)',
+              cursor: nothing ? 'not-allowed' : 'pointer', opacity: nothing ? .45 : 1,
+            }}>
+            {nothing ? 'Nothing to undo' : `Undo ${applied} change${applied === 1 ? '' : 's'}`}
+          </button>
+        </div>
+      </div>
     </div>
   )
 }
