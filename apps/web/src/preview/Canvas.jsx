@@ -6,6 +6,7 @@ import { PREVIEW_CSS, varsToStyle } from './tokens.js'
 import { buildCssVars } from '../state/derive.js'
 import { gradientCss } from '../color/modes.js'
 import CrossFade from '../ui/CrossFade.jsx'
+import { inspectProps, role } from './inspect.js'
 import { resolveRef } from '../color/ramp.js'
 import Dashboard from './screens/Dashboard.jsx'
 import Form from './screens/Form.jsx'
@@ -166,7 +167,13 @@ export default function Canvas({ onInspect, surface, setSurface }) {
           snapping. */}
       <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'auto', padding: 16 }}>
         <CrossFade id={`${surface}:${mode}`}>
-          <div className="dmd" style={{ ...varsToStyle(vars), borderRadius: 10, border: '1px solid var(--bdr)' }}>
+          {/* The page itself is a token too. Clicking empty space lands on the
+              `bg` role — which is also how you discover that the background
+              is drawn from the neutral scale, since that is not guessable
+              from looking at it. Inner elements stop propagation, so this
+              only fires on genuinely blank areas. */}
+          <div className="dmd" style={{ ...varsToStyle(vars), borderRadius: 10, border: '1px solid var(--bdr)' }}
+            {...(onInspect ? inspectProps(role('bg', 'Page background · bg'), handleInspect) : {})}>
             {/* Every surface is inspectable, not just the gallery. */}
             <Component onInspect={onInspect ? handleInspect : undefined} layout={derived.componentLayout} />
           </div>

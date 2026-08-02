@@ -6,7 +6,7 @@ import { useState, useRef } from 'react'
 import { useStore } from '../state/store.jsx'
 import { uid } from '../state/schema.js'
 import { RAMP_STEPS, DEFAULT_SHAPE, resolveRef } from '../color/ramp.js'
-import { generatePalette, HARMONIES } from '../color/palette.js'
+import { generatePalette, HARMONIES, INTENSITIES } from '../color/palette.js'
 import { isValidColor } from '../color/convert.js'
 import { bestOn } from '../color/contrast.js'
 import ColorPicker from '../ui/ColorPicker.jsx'
@@ -271,6 +271,7 @@ export default function ColorPanel() {
   const { ramps } = derived
   const [openSeed, setOpenSeed] = useState(null)
   const [harmony, setHarmony] = useState('analogous')
+  const [intensity, setIntensity] = useState('balanced')
 
   const upd = (fn, tag) => set(s => ({ ...s, color: fn(s.color) }), tag)
 
@@ -288,7 +289,7 @@ export default function ColorPanel() {
      anonymous colour edit — and so the entry can carry the whole before/after
      palette rather than a single hex. */
   const roll = () => upd(c => {
-    const next = generatePalette(c.seeds, harmony)
+    const next = generatePalette(c.seeds, harmony, intensity)
     return { ...c, seeds: c.seeds.map(s => next[s.id] ? { ...s, hex: next[s.id] } : s) }
   }, `palette:${harmony}`)
   const lockedCount = color.seeds.filter(s => s.locked).length
@@ -326,6 +327,11 @@ export default function ColorPanel() {
         <div style={{ background: 'var(--surf2)', border: '1px solid var(--bdr)', borderRadius: 9, padding: 11, marginBottom: 10 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 9 }}>
             <span style={{ fontSize: 12, color: 'var(--text)', flex: 1 }}>Generate a palette</span>
+            <select value={intensity} onChange={e => setIntensity(e.target.value)}
+              title="How saturated the run is — and how much colour the neutral carries, which is what tints the page"
+              style={{ width: 'auto', fontSize: 11.5, padding: '4px 7px' }}>
+              {INTENSITIES.map(i => <option key={i.id} value={i.id}>{i.label}</option>)}
+            </select>
             <select value={harmony} onChange={e => setHarmony(e.target.value)}
               style={{ width: 'auto', fontSize: 11.5, padding: '4px 7px' }}>
               {HARMONIES.map(h => <option key={h.id} value={h.id}>{h.label}</option>)}
@@ -367,6 +373,9 @@ export default function ColorPanel() {
           <p className="panel-note">
             Lock the ones you like, then generate again — locked colours anchor the hue and weight of everything else.
             Status seeds stay inside the hue bands that still read as success, warning and danger.
+            {' '}<strong style={{ color: 'var(--text-dim)', fontWeight: 500 }}>The page background comes from the neutral seed</strong>,
+            not the accent — so a deep blue or oxblood interface starts by giving <code style={{ fontFamily: 'var(--mono)', fontSize: 10.5 }}>neutral</code> that
+            colour, or by running the generator on <strong style={{ color: 'var(--text-dim)', fontWeight: 500 }}>Vivid</strong>, which lets the neutral carry real chroma.
           </p>
         </div>
 

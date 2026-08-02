@@ -20,6 +20,23 @@ export const HARMONIES = [
   { id: 'free',          label: 'Free',          offsets: null },
 ]
 
+/* How far the generator is willing to go.
+
+   The old behaviour was Balanced and nothing else: every run landed at
+   mid-lightness, mid-chroma, and a neutral so close to grey it may as well
+   have been grey. Pleasant, and incapable of producing a system with any
+   nerve.
+
+   `neutralChroma` is the consequential one. The neutral scale is what `bg`,
+   `surface` and every border resolve to, so it — not the accent — decides
+   whether the page reads as white-with-a-blue-button or as a blue room. At
+   Vivid it carries enough chroma to be a colour in its own right. */
+export const INTENSITIES = [
+  { id: 'muted',    label: 'Muted',    chroma: [0.045, 0.10], neutralChroma: [0.002, 0.008], light: [0.52, 0.64] },
+  { id: 'balanced', label: 'Balanced', chroma: [0.11, 0.19],  neutralChroma: [0.004, 0.018], light: [0.48, 0.62] },
+  { id: 'vivid',    label: 'Vivid',    chroma: [0.19, 0.30],  neutralChroma: [0.022, 0.060], light: [0.44, 0.60] },
+]
+
 /* Hue bands a colour has to sit in to still read as its meaning. */
 const ROLE_HUE_BAND = {
   success: [130, 165],
@@ -40,8 +57,9 @@ const wrap = h => ((h % 360) + 360) % 360
  * @param harmony  id from HARMONIES
  * @returns a map of seed id → new hex, for unlocked seeds only
  */
-export function generatePalette(seeds, harmony = 'analogous') {
+export function generatePalette(seeds, harmony = 'analogous', intensity = 'balanced') {
   const scheme = HARMONIES.find(h => h.id === harmony) ?? HARMONIES[0]
+  const int = INTENSITIES.find(i => i.id === intensity) ?? INTENSITIES[1]
 
   /* Anchor on a locked colour if there is one — that's the point of locking.
      Prefer a chromatic lock over a neutral, which carries no usable hue. */
@@ -53,8 +71,15 @@ export function generatePalette(seeds, harmony = 'analogous') {
 
   /* Keep the overall saturation and weight of a locked palette rather than
      drifting away from it. */
-  const baseChroma = anchor ? Math.max(0.09, Math.min(0.22, anchor.ok.c)) : rand(0.11, 0.19)
-  const baseLight = anchor ? Math.max(0.42, Math.min(0.68, anchor.ok.l)) : rand(0.48, 0.62)
+  /* A lock still dictates the weight of the run, but the intensity setting
+     bounds it — otherwise picking Vivid with a muted colour locked would
+     quietly do nothing. */
+  const baseChroma = anchor
+    ? Math.max(int.chroma[0], Math.min(int.chroma[1] * 1.2, anchor.ok.c))
+    : rand(...int.chroma)
+  const baseLight = anchor
+    ? Math.max(0.40, Math.min(0.70, anchor.ok.l))
+    : rand(...int.light)
 
   const out = {}
   let step = 0
@@ -65,10 +90,13 @@ export function generatePalette(seeds, harmony = 'analogous') {
 
     if (NEUTRAL_NAMES.has(name)) {
       /* Neutrals aren't grey — a trace of the accent hue keeps a palette
-         feeling like one family rather than a colour plus some grey. */
+         feeling like one family rather than a colour plus some grey. How much
+         of a trace is the intensity setting's job, and at Vivid it stops being
+         a trace: this is the seed the page background is built from, so a
+         saturated one is what makes a deep-blue or oxblood UI possible at all. */
       out[seed.id] = toHex(toGamut(fromOklch({
         l: rand(0.46, 0.56),
-        c: rand(0.004, 0.018),
+        c: rand(...int.neutralChroma),
         h: wrap(baseHue + rand(-12, 12)),
       })))
       continue
@@ -76,9 +104,11 @@ export function generatePalette(seeds, harmony = 'analogous') {
 
     const band = ROLE_HUE_BAND[name]
     if (band) {
+      /* Status colours follow the intensity too, but never drop so low they
+         stop reading as a signal. */
       out[seed.id] = toHex(toGamut(fromOklch({
         l: rand(0.50, 0.60),
-        c: rand(0.11, 0.17),
+        c: Math.max(0.10, rand(...int.chroma) * 0.9),
         h: rand(band[0], band[1]),
       })))
       continue
