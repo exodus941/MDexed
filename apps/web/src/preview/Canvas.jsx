@@ -398,8 +398,20 @@ export default function Canvas({ onInspect, surface, setSurface, onOpenContrast,
             advances while the page is compositing — so in a pane that isn't
             being painted it sticks at its starting value and the surface
             silently never resizes. The same trap the exit animations hit. */}
+        {/* The surface's own scale, cancelling the body zoom it sits inside.
+         *
+         * `--ui-zoom` is already applied by the time anything here is drawn,
+         * so dividing it out and multiplying by `--preview-zoom` leaves the
+         * surface at exactly the preview scale — 1 by default, meaning one
+         * preview pixel is one screen pixel however large the chrome is. The
+         * width label above stays outside this: it reports the surface's
+         * logical width, which is a fact about the layout rather than part of
+         * it, and belongs with the chrome. */}
         <CrossFade id={`${surface}:${mode}`}
-          style={width ? { width, margin: '0 auto' } : undefined}>
+          style={{
+            zoom: 'calc(var(--preview-zoom, 1) / var(--ui-zoom, 1))',
+            ...(width ? { width, margin: '0 auto' } : null),
+          }}>
           {/* The frame is what the container queries measure — see
               `responsiveCss`. It carries no padding of its own so the width
               the control asks for is the width the breakpoints see. */}

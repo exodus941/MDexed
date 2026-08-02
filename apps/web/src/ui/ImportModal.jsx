@@ -72,9 +72,26 @@ const Swatch = ({ hex, count, picked, role, onClick }) => (
  * shown is cheap. A wrong guess applied silently poisons every derived token
  * downstream of the seed.
  */
-/* One set of column widths for every row, so the five columns line up down the
-   whole table rather than each row solving its own layout. */
-const COL = { slot: 148, control: 176, conf: 66 }
+/* A real grid, because this is a table.
+ *
+ * It was a flex row with the explanation underneath as a sibling, indented by
+ * a hand-added margin — checkbox width plus label width plus two gaps. That
+ * number is a restatement of the layout rather than a consequence of it, so it
+ * was wrong by six pixels, and every row that wrapped differently drifted
+ * further. Columns that are declared once and shared cannot disagree.
+ *
+ * Six tracks: checkbox, slot, source, arrow, control, confidence. The
+ * explanation is a second grid row starting at the source column, so it sits
+ * under the thing it explains rather than under the slot name. Fixed widths on
+ * everything but the source, which takes the slack — with the same widths and
+ * the same container width, every row resolves identically. */
+const GRID = {
+  display: 'grid',
+  gridTemplateColumns: '16px 152px minmax(0, 1fr) 14px 176px 68px',
+  columnGap: 10,
+  rowGap: 2,
+  alignItems: 'center',
+}
 
 /* Select all / none, for a group or for the lot.
  *
@@ -114,67 +131,66 @@ function MapRow({ slot, proposal, on, onToggle, onChange, palette, families }) {
   const conf = CONFIDENCE[proposal.confidence]
   const dim = !on
 
+  /* The control column, one of three shapes but always the same box. */
+  const control = slot.kind === 'color' ? (
+    <button onClick={() => setPicking(p => !p)} disabled={dim}
+      title="Choose a different colour from the file"
+      style={{
+        width: '100%', height: 30, borderRadius: 6, cursor: dim ? 'default' : 'pointer',
+        background: proposal.value, border: '1px solid var(--bdr2)',
+        color: bestOn(proposal.value), fontFamily: 'var(--mono)', fontSize: 11,
+      }}>{proposal.value}</button>
+  ) : slot.kind === 'font' ? (
+    <select value={proposal.value} disabled={dim} onChange={e => onChange(e.target.value)}
+      style={{ width: '100%', height: 30, fontFamily: 'var(--mono)', fontSize: 11 }}>
+      {[proposal.value, ...families.filter(f => f !== proposal.value)].map(f => (
+        <option key={f} value={f}>{f}</option>
+      ))}
+    </select>
+  ) : (
+    <input type="number" value={proposal.value} disabled={dim} min={0} step={1}
+      onChange={e => onChange(Number(e.target.value))}
+      style={{ width: '100%', height: 30, textAlign: 'right', fontFamily: 'var(--mono)', fontSize: 11 }} />
+  )
+
   return (
-    <div style={{ padding: `${PAD.row}px 0`, borderTop: '1px solid var(--bdr)', opacity: dim ? 0.45 : 1 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: PAD.gap }}>
-        <input type="checkbox" checked={on} onChange={e => onToggle(e.target.checked)}
-          style={{ width: 14, height: 14, accentColor: 'var(--accent)', flexShrink: 0 }}
-          aria-label={`Apply ${slot.label}`} />
+    <div style={{ ...GRID, padding: '7px 0', borderTop: '1px solid var(--bdr)', opacity: dim ? 0.45 : 1 }}>
+      <input type="checkbox" checked={on} onChange={e => onToggle(e.target.checked)}
+        style={{ width: 14, height: 14, accentColor: 'var(--accent)', justifySelf: 'start' }}
+        aria-label={`Apply ${slot.label}`} />
 
-        <div style={{ width: COL.slot, flexShrink: 0 }}>
-          <div style={{ fontSize: 12.5, color: 'var(--text)', whiteSpace: 'nowrap' }}>{slot.label}</div>
-          <div style={{ fontSize: 10, color: 'var(--dim)', whiteSpace: 'nowrap' }}>{slot.desc}</div>
-        </div>
-
-        {/* Source names run long — `--color-brand-primary-hover` is 28
-            characters — so this takes the slack rather than being clipped. */}
-        <code style={{
-          fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--muted)',
-          flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-        }} title={proposal.source}>{proposal.source}</code>
-
-        <span aria-hidden style={{ color: 'var(--dim)', flexShrink: 0 }}>→</span>
-
-        {slot.kind === 'color' && (
-          <button onClick={() => setPicking(p => !p)} disabled={dim}
-            title="Choose a different colour from the file"
-            style={{
-              width: COL.control, height: 30, borderRadius: 6, flexShrink: 0, cursor: dim ? 'default' : 'pointer',
-              background: proposal.value, border: '1px solid var(--bdr2)',
-              color: bestOn(proposal.value), fontFamily: 'var(--mono)', fontSize: 11,
-            }}>{proposal.value}</button>
-        )}
-        {slot.kind === 'font' && (
-          <select value={proposal.value} disabled={dim} onChange={e => onChange(e.target.value)}
-            style={{ width: COL.control, flexShrink: 0, fontFamily: 'var(--mono)', fontSize: 11 }}>
-            {[proposal.value, ...families.filter(f => f !== proposal.value)].map(f => (
-              <option key={f} value={f}>{f}</option>
-            ))}
-          </select>
-        )}
-        {slot.kind === 'dimension' && (
-          <input type="number" value={proposal.value} disabled={dim} min={0} step={1}
-            onChange={e => onChange(Number(e.target.value))}
-            style={{ width: COL.control, flexShrink: 0, textAlign: 'right', fontFamily: 'var(--mono)', fontSize: 11 }} />
-        )}
-
-        <span title={conf.hint} style={{
-          width: COL.conf, flexShrink: 0, textAlign: 'right', whiteSpace: 'nowrap',
-          fontSize: 9.5, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase',
-          color: conf.tone,
-        }}>{conf.label}</span>
+      <div style={{ minWidth: 0 }}>
+        <div style={{ fontSize: 12.5, color: 'var(--text)', whiteSpace: 'nowrap' }}>{slot.label}</div>
+        <div style={{ fontSize: 10, color: 'var(--dim)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{slot.desc}</div>
       </div>
 
-      {/* The reason, always visible rather than behind a hover. It is the only
-          thing that makes an "inferred" row checkable without going and
-          reading the stylesheet yourself. Indented to the source column so it
-          reads as a footnote to the match rather than to the slot name. */}
-      <div style={{ fontSize: 11, color: 'var(--dim)', marginLeft: 20 + COL.slot + PAD.gap * 2, marginTop: 2 }}>
+      {/* Source names run long — `--color-brand-primary-hover` is 28
+          characters — so this track takes the slack rather than being cut. */}
+      <code style={{
+        fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--muted)',
+        minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+      }} title={proposal.source}>{proposal.source}</code>
+
+      <span aria-hidden style={{ color: 'var(--dim)', textAlign: 'center' }}>→</span>
+
+      {control}
+
+      <span title={conf.hint} style={{
+        textAlign: 'right', whiteSpace: 'nowrap',
+        fontSize: 9.5, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase',
+        color: conf.tone,
+      }}>{conf.label}</span>
+
+      {/* Second grid row, starting at the source column so it reads as a
+          footnote to the match rather than to the slot name. Always visible
+          rather than behind a hover — it is the only thing that makes an
+          "inferred" row checkable without going and reading the stylesheet. */}
+      <div style={{ gridColumn: '3 / -1', fontSize: 11, color: 'var(--dim)' }}>
         {proposal.why}
       </div>
 
       {picking && !dim && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: PAD.row, marginLeft: 24 }}>
+        <div style={{ gridColumn: '3 / -1', display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
           {palette.map(hex => (
             <button key={hex} title={hex} onClick={() => { onChange(hex); setPicking(false) }}
               style={{
