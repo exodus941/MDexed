@@ -13,7 +13,7 @@ export function MetaTab() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       <SectionHeader title="Project" desc="Metadata written into the DESIGN.md frontmatter" />
 
-      <Collapsible title="Project info" note={state.meta.name || 'untitled'} defaultOpen>
+      <Collapsible title="Project Info" note={state.meta.name || 'untitled'} defaultOpen>
         <div style={{ marginBottom: 14 }}>
           <label>System name</label>
           <input value={state.meta.name} onChange={e => up('name', e.target.value)} placeholder="My Design System" />
@@ -30,7 +30,7 @@ export function MetaTab() {
         </div>
       </Collapsible>
 
-      <Collapsible title="Start from a preset" note={String(PRESETS.length)}>
+      <Collapsible title="Start from a Preset" note={String(PRESETS.length)}>
         <p className="panel-note" style={{ marginBottom: 10 }}>
           Replaces every token but keeps your name and rationale. Undo works if you change your mind.
         </p>
@@ -66,7 +66,7 @@ export function RationaleTab() {
 
   return (
     <AiProvider>
-      <SectionHeader title="Design rationale"
+      <SectionHeader title="Design Rationale"
         desc="The reasoning behind the tokens. Generated tables are appended to each section automatically — write only the why."
         right={<span className="chip">{written}/{PROSE_SECTIONS.length}</span>} />
       <div style={{ marginBottom: 14 }}>

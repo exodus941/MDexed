@@ -479,7 +479,7 @@ export default function ComponentsPanel({ inspect }) {
         the file. {proseOnly} propert{proseOnly === 1 ? 'y is' : 'ies are'} taking that route right now.
       </Banner>
 
-      <Collapsible title="What gets emitted">
+      <Collapsible title="What Gets Emitted">
         <div style={{ display: 'flex', gap: 14 }}>
           <Toggle label="Emit sizes" checked={cfg.emitSizes} onChange={v => upd(c => ({ ...c, emitSizes: v }))} />
           <Toggle label="Emit states" checked={cfg.emitStates} onChange={v => upd(c => ({ ...c, emitStates: v }))} />
@@ -505,7 +505,7 @@ export default function ComponentsPanel({ inspect }) {
       })}
 
       {cfg.custom?.length > 0 && (
-        <Collapsible title="Imported components" note={String(cfg.custom.length)}>
+        <Collapsible title="Imported Components" note={String(cfg.custom.length)}>
           <p className="panel-note" style={{ marginBottom: 8 }}>Carried over from an imported file. Emitted verbatim.</p>
           {cfg.custom.map(c => (
             <div key={c.name} style={{ marginBottom: 8 }}>

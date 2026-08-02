@@ -417,7 +417,7 @@ function GlobalMetrics() {
 
   return (
     <div>
-      <SectionHeader title="Global metrics"
+      <SectionHeader title="Global Metrics"
         desc="Five multipliers that reshape every dependent token at once. Everything below them in the app is derived, so these move the whole system rather than one value."
         right={
           <button className="btn-ghost" onClick={reset} disabled={!anyChanged} style={{ padding: BTN.sm, fontSize: 11.5 }}>

@@ -69,16 +69,16 @@ export default function DirectivesPanel() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-      <SectionHeader title="Voice & directives" desc="What the agent should aim for, and what it must never do." />
+      <SectionHeader title="Voice & Directives" desc="What the agent should aim for, and what it must never do." />
 
-      <Collapsible title="Style references" note={String(d.references.length)} defaultOpen>
+      <Collapsible title="Style References" note={String(d.references.length)} defaultOpen>
         <p className="panel-note" style={{ marginBottom: 10 }}>
           Models hold strong priors on labels like these. A couple of words here moves output further than most token changes.
         </p>
         <References value={d.references} onChange={val => setDir('references', val)} />
       </Collapsible>
 
-      <Collapsible title="Hard constraints" note={`${activeCount} active`} defaultOpen>
+      <Collapsible title="Hard Constraints" note={`${activeCount} active`} defaultOpen>
         <Banner tone="info">Negative constraints are the instructions models follow most reliably. These become the Do's and Don'ts section.</Banner>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 7, margin: '11px 0' }}>
           {d.antiPatterns.map(a => (
@@ -96,7 +96,7 @@ export default function DirectivesPanel() {
           placeholder="Add your own constraint, then press Enter" style={{ fontSize: 12.5 }} />
       </Collapsible>
 
-      <Collapsible title="Output preferences" note={d.framework} defaultOpen>
+      <Collapsible title="Output Preferences" note={d.framework} defaultOpen>
         <div style={{ marginBottom: 11 }}>
           <label>Target stack</label>
           <select value={d.framework} onChange={e => setDir('framework', e.target.value)} style={{ fontSize: 12.5, padding: '6px 8px' }}>
@@ -113,7 +113,7 @@ export default function DirectivesPanel() {
           placeholder="Anything else an agent should know before it writes a line of UI…" style={{ minHeight: 72 }} />
       </Collapsible>
 
-      <Collapsible title="Copy and formatting" defaultOpen>
+      <Collapsible title="Copy and Formatting" defaultOpen>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div>
             <label>Casing</label>
