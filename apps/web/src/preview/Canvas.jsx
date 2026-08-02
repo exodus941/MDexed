@@ -18,6 +18,7 @@ import Landing from './screens/Landing.jsx'
 import Settings from './screens/Settings.jsx'
 import Dialog from './screens/Dialog.jsx'
 import Gallery from './Gallery.jsx'
+import { viewport } from '../ui/zoom.js'
 
 export const SURFACES = [
   { id: 'dashboard', label: 'Dashboard', Component: Dashboard },
@@ -91,11 +92,19 @@ function TargetMenu({ menu, onPick, onClose }) {
     </>
   )
 
+  /* All four numbers in the same space. `menu.x/y` come from a pointer event
+     and the viewport bounds from `window`, both of which are reported with the
+     UI scale already in them — while `left`/`top` are lengths on an element
+     that the scale is about to multiply. Convert once, at the boundary. */
+  const vp = viewport()
+
   return (
     <>
       <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 800 }} />
       <div className="anim-pop" style={{
-        position: 'fixed', left: Math.min(menu.x, window.innerWidth - 280), top: Math.min(menu.y + 8, window.innerHeight - 40 - menu.targets.length * 32),
+        position: 'fixed',
+        left: Math.min(vp.x(menu.x), vp.w - 280),
+        top: Math.min(vp.x(menu.y) + 8, vp.h - 40 - menu.targets.length * 32),
         zIndex: 801,
         background: 'var(--surf2)', border: '1px solid var(--bdr2)', borderRadius: 9,
         boxShadow: '0 12px 32px rgba(0,0,0,.55)', padding: 5, minWidth: 240,

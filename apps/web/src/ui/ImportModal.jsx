@@ -22,11 +22,12 @@
  * component follow automatically. Importing further downstream would paste in
  * values that no longer track anything.
  */
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { readCss } from '../emit/cssImport.js'
 import { mapReference, toImport, SLOTS } from '../emit/cssMap.js'
 import { bestOn } from '../color/contrast.js'
 import { PAD, BTN, CloseButton } from './controls.jsx'
+import { vh, vw } from './zoom.js'
 
 const GROUPS = [...new Set(SLOTS.map(s => s.group))]
 
@@ -71,6 +72,36 @@ const Swatch = ({ hex, count, picked, role, onClick }) => (
  * shown is cheap. A wrong guess applied silently poisons every derived token
  * downstream of the seed.
  */
+/* One set of column widths for every row, so the five columns line up down the
+   whole table rather than each row solving its own layout. */
+const COL = { slot: 148, control: 176, conf: 66 }
+
+/* Select all / none, for a group or for the lot.
+ *
+ * A checkbox rather than two links, because it is the same control as the one
+ * on every row and it can show the third state the rows cannot: some on, some
+ * off. Clicking an indeterminate box selects everything, which is what you
+ * want after unticking two rows and changing your mind. */
+function SelectAll({ ids, off, onSet, label = 'All' }) {
+  const ref = useRef(null)
+  const on = ids.filter(id => !off.has(id)).length
+  const all = on === ids.length && ids.length > 0
+  const some = on > 0 && !all
+
+  useEffect(() => { if (ref.current) ref.current.indeterminate = some }, [some])
+
+  return (
+    <label style={{
+      display: 'inline-flex', alignItems: 'center', gap: 6, cursor: 'pointer',
+      fontSize: 10.5, color: on ? 'var(--muted)' : 'var(--dim)', userSelect: 'none',
+    }}>
+      <input ref={ref} type="checkbox" checked={all} onChange={() => onSet(!all)}
+        style={{ width: 13, height: 13, accentColor: 'var(--accent)' }} />
+      {label} <span style={{ fontFamily: 'var(--mono)' }}>{on}/{ids.length}</span>
+    </label>
+  )
+}
+
 const CONFIDENCE = {
   named:    { label: 'named',    tone: 'var(--success)', hint: 'A custom property in the file names this slot.' },
   inferred: { label: 'inferred', tone: 'var(--warn)',    hint: 'Worked out from the colours themselves. Worth a look.' },
@@ -90,13 +121,15 @@ function MapRow({ slot, proposal, on, onToggle, onChange, palette, families }) {
           style={{ width: 14, height: 14, accentColor: 'var(--accent)', flexShrink: 0 }}
           aria-label={`Apply ${slot.label}`} />
 
-        <div style={{ width: 116, flexShrink: 0 }}>
-          <div style={{ fontSize: 12.5, color: 'var(--text)' }}>{slot.label}</div>
-          <div style={{ fontSize: 10, color: 'var(--dim)' }}>{slot.desc}</div>
+        <div style={{ width: COL.slot, flexShrink: 0 }}>
+          <div style={{ fontSize: 12.5, color: 'var(--text)', whiteSpace: 'nowrap' }}>{slot.label}</div>
+          <div style={{ fontSize: 10, color: 'var(--dim)', whiteSpace: 'nowrap' }}>{slot.desc}</div>
         </div>
 
+        {/* Source names run long — `--color-brand-primary-hover` is 28
+            characters — so this takes the slack rather than being clipped. */}
         <code style={{
-          fontFamily: 'var(--mono)', fontSize: 10.5, color: 'var(--muted)',
+          fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--muted)',
           flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         }} title={proposal.source}>{proposal.source}</code>
 
@@ -106,14 +139,14 @@ function MapRow({ slot, proposal, on, onToggle, onChange, palette, families }) {
           <button onClick={() => setPicking(p => !p)} disabled={dim}
             title="Choose a different colour from the file"
             style={{
-              width: 78, height: 28, borderRadius: 6, flexShrink: 0, cursor: dim ? 'default' : 'pointer',
+              width: COL.control, height: 30, borderRadius: 6, flexShrink: 0, cursor: dim ? 'default' : 'pointer',
               background: proposal.value, border: '1px solid var(--bdr2)',
-              color: bestOn(proposal.value), fontFamily: 'var(--mono)', fontSize: 9.5,
+              color: bestOn(proposal.value), fontFamily: 'var(--mono)', fontSize: 11,
             }}>{proposal.value}</button>
         )}
         {slot.kind === 'font' && (
           <select value={proposal.value} disabled={dim} onChange={e => onChange(e.target.value)}
-            style={{ width: 150, flexShrink: 0, fontFamily: 'var(--mono)', fontSize: 11 }}>
+            style={{ width: COL.control, flexShrink: 0, fontFamily: 'var(--mono)', fontSize: 11 }}>
             {[proposal.value, ...families.filter(f => f !== proposal.value)].map(f => (
               <option key={f} value={f}>{f}</option>
             ))}
@@ -122,11 +155,11 @@ function MapRow({ slot, proposal, on, onToggle, onChange, palette, families }) {
         {slot.kind === 'dimension' && (
           <input type="number" value={proposal.value} disabled={dim} min={0} step={1}
             onChange={e => onChange(Number(e.target.value))}
-            style={{ width: 78, flexShrink: 0, textAlign: 'right', fontFamily: 'var(--mono)', fontSize: 11 }} />
+            style={{ width: COL.control, flexShrink: 0, textAlign: 'right', fontFamily: 'var(--mono)', fontSize: 11 }} />
         )}
 
         <span title={conf.hint} style={{
-          width: 58, flexShrink: 0, textAlign: 'right',
+          width: COL.conf, flexShrink: 0, textAlign: 'right', whiteSpace: 'nowrap',
           fontSize: 9.5, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase',
           color: conf.tone,
         }}>{conf.label}</span>
@@ -134,8 +167,9 @@ function MapRow({ slot, proposal, on, onToggle, onChange, palette, families }) {
 
       {/* The reason, always visible rather than behind a hover. It is the only
           thing that makes an "inferred" row checkable without going and
-          reading the stylesheet yourself. */}
-      <div style={{ fontSize: 10.5, color: 'var(--dim)', marginLeft: 24 + 116 + PAD.gap * 2, marginTop: 2 }}>
+          reading the stylesheet yourself. Indented to the source column so it
+          reads as a footnote to the match rather than to the slot name. */}
+      <div style={{ fontSize: 11, color: 'var(--dim)', marginLeft: 20 + COL.slot + PAD.gap * 2, marginTop: 2 }}>
         {proposal.why}
       </div>
 
@@ -239,7 +273,14 @@ export default function ImportModal({ onClose, onApply, onOpenDocument }) {
     }}>
       <div onClick={e => e.stopPropagation()} className="anim-rise" style={{
         background: 'var(--surf)', border: '1px solid var(--bdr)', borderRadius: 12,
-        width: '100%', maxWidth: 720, maxHeight: '86vh', display: 'flex', flexDirection: 'column', overflow: 'hidden',
+        /* Wide. The mapping table is eleven rows of five columns, and every
+           one of them — a token name, a hex, a family, a sentence explaining
+           the match — is something you read across rather than down. Wrapping
+           any of it turns a scannable table into a wall. Bounded by the window
+           rather than by a maximum, since there is no width at which this
+           stops being easier to read. */
+        width: `min(1240px, ${vw(94)})`, maxHeight: vh(88),
+        display: 'flex', flexDirection: 'column', overflow: 'hidden',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: PAD.gap, padding: `${PAD.card}px ${PAD.card + 4}px`, borderBottom: '1px solid var(--bdr)', fontSize: 15, lineHeight: 1.5 }}>
           <span style={{ fontFamily: 'var(--display)', fontWeight: 700, flex: 1 }}>Import a reference</span>
@@ -314,12 +355,20 @@ export default function ImportModal({ onClose, onApply, onOpenDocument }) {
                 <button className="btn-ghost" style={ghost} onClick={reset}>Start over</button>
               </div>
 
-              <p className="panel-note" style={{ marginBottom: PAD.card }}>
-                Everything below goes into a <strong>seed</strong>, and the scales, roles and components
-                regenerate from there. Any slot you switch off keeps its current value and stays
-                consistent with the rest — nothing is blanked, so there are no holes for an agent to
-                fill by guessing.
+              <p className="panel-note" style={{ marginBottom: PAD.gap }}>
+                Only selected elements from the following list go into a <strong>seed</strong>, and the
+                scales, roles and components are generated from there.
               </p>
+
+              {Object.keys(rows).length > 0 && (
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: PAD.gap, marginBottom: PAD.gap,
+                  padding: `${PAD.row}px 0`, borderTop: '1px solid var(--bdr)', borderBottom: '1px solid var(--bdr)',
+                }}>
+                  <SelectAll label="Select all" ids={Object.keys(rows)} off={off}
+                    onSet={on => setOff(on ? new Set() : new Set(Object.keys(rows)))} />
+                </div>
+              )}
 
               {Object.keys(rows).length === 0 ? (
                 <p className="panel-note">
@@ -329,8 +378,14 @@ export default function ImportModal({ onClose, onApply, onOpenDocument }) {
               ) : GROUPS.map(group => {
                 const inGroup = SLOTS.filter(s => s.group === group && rows[s.id])
                 if (!inGroup.length) return null
+                const ids = inGroup.map(s => s.id)
                 return (
-                  <Section key={group} title={group}>
+                  <Section key={group} title={group}
+                    right={<SelectAll ids={ids} off={off} onSet={on => setOff(s => {
+                      const next = new Set(s)
+                      for (const id of ids) { if (on) next.delete(id); else next.add(id) }
+                      return next
+                    })} />}>
                     <div style={{ borderBottom: '1px solid var(--bdr)' }}>
                       {inGroup.map(slot => (
                         <MapRow key={slot.id} slot={slot} proposal={rows[slot.id]}
@@ -347,10 +402,10 @@ export default function ImportModal({ onClose, onApply, onOpenDocument }) {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: PAD.row, padding: `${PAD.gap}px ${PAD.card + 4}px`, borderTop: '1px solid var(--bdr)' }}>
+          {/* The stylesheet case said the same thing the paragraph at the top
+              says, one screen further down. One statement, once. */}
           <span style={{ fontSize: 11, color: 'var(--dim)', flex: 1 }}>
-            {kind === 'document'
-              ? 'Replaces every panel. Undo works.'
-              : 'Applied to seeds — the scales, roles and components regenerate from them. Undo works.'}
+            {kind === 'document' ? 'Replaces every panel. Undo works.' : 'Undo works.'}
           </span>
           <button className="btn-ghost" style={ghost} onClick={onClose}>Cancel</button>
           {kind === 'document' ? (
@@ -373,11 +428,13 @@ export default function ImportModal({ onClose, onApply, onOpenDocument }) {
 
 const ghost = { padding: BTN.sm, fontSize: 12 }
 
-const Section = ({ title, note, children }) => (
+const Section = ({ title, note, right, children }) => (
   <div style={{ marginBottom: PAD.card + 4 }}>
-    <div style={{ display: 'flex', alignItems: 'baseline', gap: PAD.gap, marginBottom: PAD.label }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: PAD.gap, marginBottom: PAD.label }}>
       <span style={{ fontSize: 12, fontWeight: 500 }}>{title}</span>
       {note && <span style={{ fontSize: 10.5, color: 'var(--dim)' }}>{note}</span>}
+      <div style={{ flex: 1 }} />
+      {right}
     </div>
     {children}
   </div>

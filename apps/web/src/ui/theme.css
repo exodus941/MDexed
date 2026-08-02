@@ -146,7 +146,14 @@
 html.no-anim *,html.no-anim *::before,html.no-anim *::after{
   transition:none!important;animation:none!important;scroll-behavior:auto!important
 }
-body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;line-height:1.5;min-height:100vh}
+/* The UI scale lives here, on body rather than on the app's own root, so that
+   overlays portalled into document.body scale with everything else. `zoom`
+   multiplies used lengths, which is the only way to resize a chrome written in
+   absolute pixels without rewriting every one of them; `min-height` divides it
+   back out because viewport units do not scale. See the UI_SCALE block in
+   App.jsx for the reasoning, and ui/zoom.js for the two places that have to
+   convert a measured coordinate back into this space. */
+body{zoom:var(--ui-zoom,1);background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;line-height:1.5;min-height:calc(100vh / var(--ui-zoom,1))}
 /* Wide enough to grab and dark enough to see. A 6px thumb on a transparent
    track reads as "no scrollbar", which is worse than no styling at all. */
 *{scrollbar-width:thin;scrollbar-color:var(--scroll) transparent}
