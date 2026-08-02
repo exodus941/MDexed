@@ -200,18 +200,30 @@ export const createInitialState = () => ({
      not a design, and a first launch that looks like a wireframe is its own
      kind of failure.
 
-     So the neutral is warm rather than dead grey, which turns the page from
-     #dadbe0 into paper, and the accent carries twice the chroma it did. Both
-     still clear every contrast pair and every colour-alone check.
+     This set came out of the palette generator and is kept for its own sake:
+     a petrol accent against a cool grey-green neutral. Accent, neutral and
+     warning are exactly as generated.
+
+     Success and danger are not. As generated they were a leaf green and a
+     rust, and a green cannot survive beside an amber and a rust. Red-green
+     blindness removes the hue; every status role reads the same ramp step so
+     they already share a lightness; and all three then collapse into one
+     olive. A sweep of the space confirms no green works here, whatever its
+     lightness — the hue has to carry blue, so success is a teal. Danger keeps
+     its hue family and gains chroma, which suits a destructive colour anyway.
+
+     The cost is that accent and success are both teals, thirteen degrees
+     apart, separating on lightness rather than hue. Legible, but close;
+     moving the accent is the fix if it ever grates.
 
      Change these freely — the audit in the Access tab will tell you what it
      costs. */
     seeds: [
-      { id: 'sd-accent',  name: 'accent',  hex: '#4338ca', desc: 'Primary action and emphasis' },
-      { id: 'sd-neutral', name: 'neutral', hex: '#78736b', desc: 'Surfaces, text, borders' },
-      { id: 'sd-success', name: 'success', hex: '#0a8a86', desc: 'Confirmation' },
-      { id: 'sd-warning', name: 'warning', hex: '#c9800f', desc: 'Caution' },
-      { id: 'sd-danger',  name: 'danger',  hex: '#d33a35', desc: 'Destructive and errors' },
+      { id: 'sd-accent',  name: 'accent',  hex: '#006b72', desc: 'Primary action and emphasis' },
+      { id: 'sd-neutral', name: 'neutral', hex: '#627072', desc: 'Surfaces, text, borders' },
+      { id: 'sd-success', name: 'success', hex: '#007974', desc: 'Confirmation' },
+      { id: 'sd-warning', name: 'warning', hex: '#966b00', desc: 'Caution' },
+      { id: 'sd-danger',  name: 'danger',  hex: '#c13e2e', desc: 'Destructive and errors' },
     ],
     shape: { ...DEFAULT_SHAPE },
     roles: defaultRoles(),

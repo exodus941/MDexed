@@ -477,10 +477,12 @@ function ToolsMenu({ uiSpeed, setUiSpeed, uiHue, setUiHue, uiTheme, setUiTheme, 
       <button ref={btnRef} className="btn-ghost" onClick={() => setOpen(o => !o)}
         title="Editor settings — theme, animation, chrome hue"
         aria-expanded={open}
-        style={{ padding: '8px 10px', color: open ? 'var(--accent)' : 'var(--muted)' }}>
-        <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+        style={{ padding: '6px 10px', gap: 6, color: open ? 'var(--accent)' : 'var(--muted)' }}>
+        <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
           <line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" />
         </svg>
+        {/* Three bars alone say "menu" and nothing about which one. */}
+        UI
       </button>
 
       {open && (
@@ -498,12 +500,15 @@ function ToolsMenu({ uiSpeed, setUiSpeed, uiHue, setUiHue, uiTheme, setUiTheme, 
           boxShadow: '0 12px 32px var(--shade)', width: 244,
           padding: '0 0 6px',
         }}>
+          {/* Same treatment as the EDITOR and PREVIEW pane titles: 10px, 700,
+              .1em, --text-dim. Three headings that name a region should not be
+              three slightly different headings. */}
           <div style={{
-            fontSize: 10, textTransform: 'uppercase', letterSpacing: '.09em',
-            color: 'var(--muted)', fontWeight: 600,
+            fontSize: 10, textTransform: 'uppercase', letterSpacing: '.1em',
+            color: 'var(--text-dim)', fontWeight: 700,
             padding: '11px 14px 10px', borderBottom: '1px solid var(--bdr)',
           }}>
-            App UI settings
+            App UI
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: '14px 14px 8px' }}>
             <ThemeToggle value={uiTheme} onChange={setUiTheme} />
