@@ -127,6 +127,17 @@ export const PREVIEW_CSS = `
   background: ${cm('button-danger', 'background-color', c('danger', '#c2453c'))};
   color: ${cm('button-danger', 'text-color', c('danger-fg', '#fff'))};
 }
+/* Destructive without the weight of a filled button. Hovers into the subtle
+   danger tint rather than the accent one, so the colour never changes meaning
+   on the way in. */
+.dmd .btn-danger-ghost {
+  background: ${cm('button-danger-ghost', 'background-color', 'transparent')};
+  color: ${cm('button-danger-ghost', 'text-color', c('danger', '#c2453c'))};
+}
+.dmd .btn-danger-ghost:hover, .dmd .btn-danger-ghost.is-hover {
+  background: ${cm('button-danger-ghost-hover', 'background-color', c('danger-subtle', '#fbe9e7'))};
+  color: ${cm('button-danger-ghost-hover', 'text-color', c('danger', '#c2453c'))};
+}
 .dmd .btn[disabled], .dmd .btn.is-disabled {
   opacity: ${cm('button-primary-disabled', 'opacity', '.5')}; cursor: not-allowed; pointer-events: none;
 }

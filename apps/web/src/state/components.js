@@ -22,6 +22,15 @@ export const COMPONENT_LIBRARY = [
       secondary: { backgroundColor: '{colors.surface}', textColor: '{colors.text}',       borderColor: '{colors.border}' },
       ghost:     { backgroundColor: 'transparent',      textColor: '{colors.text-muted}', borderColor: 'transparent' },
       danger:    { backgroundColor: '{colors.danger}',  textColor: '{colors.danger-fg}',  borderColor: 'transparent' },
+      /* Destructive, but not the thing the screen is for. "Delete" in a row of
+         list actions should not carry the same weight as "Delete" at the foot
+         of a confirmation — one is available, the other is being asked for.
+         Filled danger is the second; this is the first.
+         *
+         Nothing special about it as far as the spec goes: it flattens to
+         `button-danger-ghost` like any other variant and its colours are two
+         of the eight legal properties. */
+      'danger-ghost': { backgroundColor: 'transparent', textColor: '{colors.danger}', borderColor: 'transparent' },
     },
     /* Each size carries its own gap. A 28px button wants less space between
        icon and label than a 44px one; the icon-gap token is the default, and
@@ -32,7 +41,7 @@ export const COMPONENT_LIBRARY = [
       lg: { height: '44px', padding: '0 {spacing.lg}',  typography: 'body-md',  gap: '{spacing.xs}',  iconSize: '{icons.lg}' },
     },
     states: {
-      hover:    { primary: { backgroundColor: '{colors.accent-hover}' }, secondary: { backgroundColor: '{colors.bg-subtle}' }, ghost: { backgroundColor: '{colors.accent-subtle}', textColor: '{colors.accent}' }, danger: { backgroundColor: '{colors.danger}' } },
+      hover:    { primary: { backgroundColor: '{colors.accent-hover}' }, secondary: { backgroundColor: '{colors.bg-subtle}' }, ghost: { backgroundColor: '{colors.accent-subtle}', textColor: '{colors.accent}' }, danger: { backgroundColor: '{colors.danger}' }, 'danger-ghost': { backgroundColor: '{colors.danger-subtle}', textColor: '{colors.danger}' } },
       active:   { primary: { backgroundColor: '{colors.accent-active}' }, secondary: { backgroundColor: '{colors.surface-sunken}' } },
       disabled: { primary: { opacity: '{states.disabledOpacity}' } },
     },

@@ -12,13 +12,19 @@ export const SNAP_FRACTION = 0.025
  * nesting only when each level steps by a predictable amount, so cards, the
  * subcards inside them and the rows inside those each get one value and use
  * it everywhere.
+ *
+ * Doubled from 12/8/8/4/6. The original scale was set when a row was a label
+ * and a field at 26px; rows now carry a field and a slider, and at 4px apart
+ * two of those read as one block rather than two properties. Doubling keeps
+ * the ratios — which is the part that makes nesting legible — and just gives
+ * the whole editor room.
  */
 export const PAD = {
-  card: 12,   // inside a card
-  sub: 8,     // inside a subcard
-  gap: 8,     // between subcards
-  row: 4,     // between rows within a subcard
-  label: 6,   // a subcard's heading to its first row
+  card: 24,   // inside a card
+  sub: 16,    // inside a subcard
+  gap: 16,    // between subcards
+  row: 8,     // between rows within a subcard
+  label: 12,  // a subcard's heading to its first row
 }
 
 /* Button padding, on a 2px grid.
@@ -38,7 +44,21 @@ export const BTN = {
   sm: '4px 10px',   // inline actions inside a panel
   md: '6px 12px',   // the default
   lg: '8px 16px',   // header and primary actions
+  xl: '10px 18px',  // a modal's own actions — see MODAL_BTN
 }
+
+/* The buttons at the foot of a modal.
+ *
+ * Every one of them had been given `BTN.sm` at 12px, which is the size used
+ * for a reset link tucked beside a section heading. They are not that: they
+ * are the decision the modal exists to ask for, and the last thing you look at
+ * before committing. A 28px control asking "replace your whole document?"
+ * undersells the question.
+ *
+ * Exported rather than repeated so the three modals cannot drift apart again,
+ * which is how they got here — each one sized on its own, none of them wrong
+ * next to itself. */
+export const MODAL_BTN = { padding: BTN.xl, fontSize: 13 }
 
 /**
  * A slider that moves between named scale steps, beside a field that accepts
@@ -220,7 +240,7 @@ export function Expand({ open, children }) {
  * Deliberately unlike a chip: inset well, pill shape, brighter edge and a
  * legible magnifier, so an input never reads as a static badge.
  */
-export function FilterField({ value, onChange, placeholder = 'Filter', width = 128 }) {
+export function FilterField({ value, onChange, placeholder = 'Search…', width = 128 }) {
   return (
     <div className={`filter-field${value ? ' has-value' : ''}`}
       style={{ position: 'relative', width, flexShrink: 0 }} onClick={e => e.stopPropagation()}>

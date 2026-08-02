@@ -182,7 +182,9 @@ export const FRAMEWORKS = ['React + Tailwind', 'React + CSS variables', 'Plain H
  * A fresh copy per call — a shared object literal would let one document's
  * edits leak into the next New. */
 const defaultComponentOverrides = () => ({
-  'button-ghost.textColor': '{colors.danger}',
+  /* Was `{colors.danger}`, which made every ghost button red — a stray from a
+     click-test that came back in the next payload corrected. */
+  'button-ghost.textColor': '{colors.ring}',
   'checkbox.size': '24px',
   'switch.height': '24px',
   'badge-neutral.backgroundColor': '{colors.bg}',

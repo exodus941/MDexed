@@ -26,7 +26,7 @@ import { useState, useEffect, useRef, Fragment } from 'react'
 import { readCss } from '../emit/cssImport.js'
 import { mapReference, toImport, SLOTS } from '../emit/cssMap.js'
 import { bestOn } from '../color/contrast.js'
-import { PAD, BTN, CloseButton } from './controls.jsx'
+import { PAD, BTN, MODAL_BTN, CloseButton } from './controls.jsx'
 import { vh, vw } from './zoom.js'
 
 const GROUPS = [...new Set(SLOTS.map(s => s.group))]
@@ -103,13 +103,20 @@ const COLUMNS = [
  * which keeps the line continuous, and still puts 24px between the text. */
 const COL_GAP = 24
 const ROW_Y = 10          // above and below a row's text
-const HEAD_Y = 9          // header text to its rule
 const GROUP_TOP = 26      // air above a group heading
 const GROUP_BOT = 14      // group heading to its column header
 const PANEL_X = 22        // modal's own side padding
 const PANEL_Y = 18
-const CARD_X = 16         // a card's inner edge to its first and last column
-const CARD_Y = 12         // a card's inner edge to its header and last row
+/* A card's inner barrier, the same on all four sides. Nothing a card contains
+   — text, control, chevron, checkbox — crosses it. */
+const CARD_PAD = 12
+/* Every row is as tall as the tallest thing in it, which is a field: 11.5px
+   at line-height 1.4, plus the global padding and border, is the standard 36.
+   Stating it as a minimum on every cell — the header included — makes the
+   header a row rather than a shorter label strip above one. Left to its own
+   content it came out short against the rows. */
+const FIELD_H = 36
+const CELL_H = FIELD_H + ROW_Y * 2
 
 /* One grid for all three tables, not one per table.
  *
@@ -143,9 +150,15 @@ const GRID = {
 }
 
 /* The header's rule is the full-strength one; the rules between rows are the
-   same line at half, so ten of them do not read as a grate. */
-const RULE = '1px solid var(--bdr)'
-const RULE_SOFT = '1px solid color-mix(in srgb, var(--bdr) 50%, transparent)'
+   same line at half, so ten of them do not read as a grate.
+ *
+ * Drawn as inset shadows rather than borders. A border is part of the box, so
+ * a cell with `min-height: 54` and a 1px rule is 55 while the header — same
+ * minimum, rule on the other side — came out 53. Two pixels of disagreement
+ * between a header and its rows, from a line that was never meant to occupy
+ * space. A shadow paints in the same place and measures nothing. */
+const RULE = 'inset 0 -1px 0 var(--bdr)'
+const RULE_SOFT = 'inset 0 1px 0 color-mix(in srgb, var(--bdr) 50%, transparent)'
 
 /**
  * A cell. Carries the row's rule and dimming itself, because a single grid
@@ -155,16 +168,24 @@ const RULE_SOFT = '1px solid color-mix(in srgb, var(--bdr) 50%, transparent)'
  *               header's own, so it goes without
  * @param last   the rightmost column, which needs no trailing gap
  */
-const cell = (dim, { first, last, lead, bottom, ...extra } = {}) => ({
+const cell = (dim, { first, last, lead, ...extra } = {}) => ({
   display: 'flex', alignItems: 'center',
   minWidth: 0, whiteSpace: 'nowrap',
-  paddingTop: ROW_Y,
-  paddingBottom: bottom ? ROW_Y + CARD_Y : ROW_Y,
-  paddingLeft: lead ? CARD_X : 0,
-  paddingRight: last ? CARD_X : COL_GAP,
-  borderTop: first ? 'none' : RULE_SOFT,
+  minHeight: CELL_H,
+  paddingTop: ROW_Y, paddingBottom: ROW_Y,
+  paddingLeft: lead ? CARD_PAD : 0,
+  paddingRight: last ? CARD_PAD : COL_GAP,
+  boxShadow: first ? 'none' : RULE_SOFT,
   opacity: dim ? 0.45 : 1, ...extra,
 })
+
+/* The card's top and bottom inset, as a full-width row of its own.
+ *
+ * A subgrid container cannot carry padding without shifting its tracks off the
+ * parent's, and folding the inset into the header's and last row's padding
+ * makes those two rows taller than the rest and pushes their text off-centre.
+ * An empty row costs nothing and leaves every real row identical. */
+const Spacer = () => <div style={{ gridColumn: '1 / -1', height: CARD_PAD }} />
 
 /* The card each table sits in.
  *
@@ -174,8 +195,8 @@ const cell = (dim, { first, last, lead, bottom, ...extra } = {}) => ({
  * another, which is the thing the single grid was built to prevent.
  *
  * No padding on the card itself: padding on a subgrid container shifts its
- * tracks off the parent's. The inset comes from the cells instead — CARD_X on
- * the first and last columns, CARD_Y folded into the header's top and the last
+ * tracks off the parent's. The inset comes from the cells instead — CARD_PAD on
+ * the first and last columns, CARD_PAD folded into the header's top and the last
  * row's bottom. */
 const CARD = {
   gridColumn: '1 / -1',
@@ -210,17 +231,26 @@ const CONTROL = {
   width: '100%',
   fontFamily: 'var(--mono)',
   fontSize: 11.5,
-  lineHeight: 1.4,
-  padding: '6px 10px',
+  /* No padding, no height. Both come from the global `input, textarea, select`
+     rule in theme.css, which is where the 12px barrier is defined — including
+     the room a select needs on the right for its chevron. Overriding either
+     here is how this control drifted out of step with the rest of the app in
+     the first place. */
 }
 
+/* The header is a row like any other — same ROW_Y above and below, same
+   centring. It had padding on one side only, which is what made it look
+   squashed and then, once it was tall enough, made its text sit low: extra
+   space above pushes the content down, it does not lift it.
+   The card's own top and bottom insets are spacer rows instead. */
 const headCell = ({ last, lead, ...extra } = {}) => ({
-  display: 'flex', alignItems: 'flex-end',
+  display: 'flex', alignItems: 'center',
   whiteSpace: 'nowrap',
-  paddingTop: CARD_Y, paddingBottom: HEAD_Y,
-  paddingLeft: lead ? CARD_X : 0,
-  paddingRight: last ? CARD_X : COL_GAP,
-  borderBottom: RULE,
+  minHeight: CELL_H,
+  paddingTop: ROW_Y, paddingBottom: ROW_Y,
+  paddingLeft: lead ? CARD_PAD : 0,
+  paddingRight: last ? CARD_PAD : COL_GAP,
+  boxShadow: RULE,
   fontSize: 9.5, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase',
   color: 'var(--dim)', ...extra,
 })
@@ -267,7 +297,7 @@ const CONFIDENCE = {
 
 /* One row. Colour rows open a grid of every colour in the file; font rows get
    the families found; dimension rows get a number. */
-function MapRow({ slot, proposal, on, onToggle, onChange, palette, families, first, bottom }) {
+function MapRow({ slot, proposal, on, onToggle, onChange, palette, families, first }) {
   const [picking, setPicking] = useState(false)
   const conf = CONFIDENCE[proposal.confidence]
   const dim = !on
@@ -277,13 +307,13 @@ function MapRow({ slot, proposal, on, onToggle, onChange, palette, families, fir
     <button onClick={() => setPicking(p => !p)} disabled={dim}
       title="Choose a different colour from the file"
       style={{
-        ...CONTROL, borderRadius: 6, cursor: dim ? 'default' : 'pointer',
+        ...CONTROL, padding: '8px 12px', lineHeight: 1.4, borderRadius: 6, cursor: dim ? 'default' : 'pointer',
         background: proposal.value, border: '1px solid var(--bdr2)',
         color: bestOn(proposal.value),
       }}>{proposal.value}</button>
   ) : slot.kind === 'font' ? (
     <select value={proposal.value} disabled={dim} onChange={e => onChange(e.target.value)}
-      style={{ ...CONTROL, paddingRight: 26 }}>
+      style={CONTROL}>
       {[proposal.value, ...families.filter(f => f !== proposal.value)].map(f => (
         <option key={f} value={f}>{f}</option>
       ))}
@@ -296,17 +326,17 @@ function MapRow({ slot, proposal, on, onToggle, onChange, palette, families, fir
 
   return (
     <>
-      <div style={cell(dim, { first, bottom, lead: true, display: 'flex' })}>
+      <div style={cell(dim, { first, lead: true, display: 'flex' })}>
         <input type="checkbox" checked={on} onChange={e => onToggle(e.target.checked)}
           style={{ width: 14, height: 14, accentColor: 'var(--accent)' }}
           aria-label={`Apply ${slot.label}`} />
       </div>
 
-      <div style={cell(dim, { first, bottom, fontSize: 12.5, color: 'var(--text)' })}>{slot.label}</div>
+      <div style={cell(dim, { first, fontSize: 12.5, color: 'var(--text)' })}>{slot.label}</div>
 
-      <div style={cell(dim, { first, bottom, fontSize: 11, color: 'var(--muted)' })}>{slot.desc}</div>
+      <div style={cell(dim, { first, fontSize: 11, color: 'var(--muted)' })}>{slot.desc}</div>
 
-      <code style={cell(dim, { first, bottom, fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--muted)' })}>
+      <code style={cell(dim, { first, fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--muted)' })}>
         {proposal.source}
       </code>
 
@@ -314,17 +344,17 @@ function MapRow({ slot, proposal, on, onToggle, onChange, palette, families, fir
           takes the slack column and clips; the full sentence is the tooltip.
           It is what makes an inferred row judgeable without going and reading
           the stylesheet, which is why it is worth a column at all. */}
-      <div style={cell(dim, { first, bottom, fontSize: 11, color: 'var(--dim)' })} title={proposal.why}>
+      <div style={cell(dim, { first, fontSize: 11, color: 'var(--dim)' })} title={proposal.why}>
         <span style={clip}>{proposal.why}</span>
       </div>
 
-      <div style={cell(dim, { first, bottom })}>
+      <div style={cell(dim, { first })}>
         <span className="chip" style={{ color: conf.tone, borderColor: conf.tone }} title={conf.hint}>
           {conf.label}
         </span>
       </div>
 
-      <div style={cell(dim, { first, bottom, last: true, width: 176, justifyContent: 'flex-end' })}>
+      <div style={cell(dim, { first, last: true, width: 176, justifyContent: 'flex-end' })}>
         <div style={{ width: '100%' }}>{control}</div>
       </div>
 
@@ -562,6 +592,7 @@ export default function ImportModal({ onClose, onApply, onOpenDocument }) {
                         }}>{group}</div>
 
                         <div style={CARD}>
+                          <Spacer />
                           {/* The group's select-all sits in the checkbox column
                               of its own header, directly above the boxes it
                               controls. */}
@@ -581,11 +612,12 @@ export default function ImportModal({ onClose, onApply, onOpenDocument }) {
 
                           {inGroup.map((slot, i) => (
                             <MapRow key={slot.id} slot={slot} proposal={rows[slot.id]}
-                              first={i === 0} bottom={i === inGroup.length - 1}
+                              first={i === 0}
                               on={!off.has(slot.id)} onToggle={v => toggle(slot.id, v)}
                               onChange={v => setValue(slot.id, v)}
                               palette={palette} families={families} />
                           ))}
+                          <Spacer />
                         </div>
                       </Fragment>
                     )
@@ -603,18 +635,18 @@ export default function ImportModal({ onClose, onApply, onOpenDocument }) {
               as a caveat. The DESIGN.md case keeps its line, because that one
               genuinely does replace the whole document. */}
           {kind === 'css'
-            ? <button className="btn-ghost" style={ghost} onClick={reset}>Start over</button>
+            ? <button className="btn-ghost" style={footBtn} onClick={reset}>Start over</button>
             : <span style={{ fontSize: 11, color: 'var(--dim)' }}>Replaces every panel. Undo works.</span>}
           <div style={{ flex: 1 }} />
-          <button className="btn-ghost" style={ghost} onClick={onClose}>Cancel</button>
+          <button className="btn-ghost" style={footBtn} onClick={onClose}>Cancel</button>
           {kind === 'document' ? (
-            <button className="btn-primary" style={{ padding: BTN.sm, fontSize: 12 }}
+            <button className="btn-primary" style={footBtn}
               onClick={() => { onOpenDocument(text, name || 'the pasted document'); onClose() }}>
               Open It
             </button>
           ) : (
             <button className="btn-primary" disabled={!anything}
-              style={{ padding: BTN.sm, fontSize: 12, opacity: anything ? 1 : .45, cursor: anything ? 'pointer' : 'not-allowed' }}
+              style={{ ...footBtn, opacity: anything ? 1 : .45, cursor: anything ? 'pointer' : 'not-allowed' }}
               onClick={() => { onApply(toImport(rows, accepted)); onClose() }}>
               Apply {accepted.size} of {Object.keys(rows).length} Values
             </button>
@@ -626,6 +658,7 @@ export default function ImportModal({ onClose, onApply, onOpenDocument }) {
 }
 
 const ghost = { padding: BTN.sm, fontSize: 12 }
+const footBtn = MODAL_BTN
 
 const Section = ({ title, note, right, children }) => (
   <div style={{ marginBottom: PAD.card + 4 }}>

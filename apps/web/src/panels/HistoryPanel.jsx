@@ -12,7 +12,7 @@ import { LOG_LIMIT_DEFAULT, LOG_LIMIT_MAX } from '../state/store.jsx'
 import { CHANGE_CATEGORIES, CATEGORY_BY_ID, canRevert, revertChange, planRewind } from '../state/changelog.js'
 import { gradientCss } from '../color/modes.js'
 import { resolveRef } from '../color/ramp.js'
-import { SectionHeader, Collapsible, NumField, Banner, ConfirmDelete, PAD, BTN, CloseButton } from '../ui/controls.jsx'
+import { SectionHeader, Collapsible, NumField, Banner, ConfirmDelete, PAD, BTN, CloseButton , MODAL_BTN } from '../ui/controls.jsx'
 
 const pad = n => String(n).padStart(2, '0')
 const clock = ts => { const d = new Date(ts); return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}` }
@@ -383,10 +383,10 @@ function RewindConfirm({ plan, onCancel, onConfirm }) {
 
         <div style={{ display: 'flex', alignItems: 'center', gap: PAD.row, padding: `${PAD.gap}px ${PAD.card + 4}px`, borderTop: '1px solid var(--bdr)' }}>
           <span style={{ flex: 1 }} />
-          <button className="btn-ghost" style={{ padding: BTN.sm, fontSize: 12 }} onClick={onCancel}>Cancel</button>
+          <button className="btn-ghost" style={MODAL_BTN} onClick={onCancel}>Cancel</button>
           <button onClick={onConfirm} disabled={nothing}
             style={{
-              padding: BTN.sm, fontSize: 12, fontFamily: 'var(--sans)', fontWeight: 500,
+              ...MODAL_BTN, fontFamily: 'var(--sans)', fontWeight: 500,
               border: '1px solid transparent', borderRadius: 6,
               background: 'var(--danger)', color: 'var(--bg)',
               cursor: nothing ? 'not-allowed' : 'pointer', opacity: nothing ? .45 : 1,
