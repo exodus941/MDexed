@@ -677,7 +677,9 @@ function FileModal({ onClose }) {
             {report.ok ? 'Spec valid' : `${report.errors.length} error${report.errors.length === 1 ? '' : 's'}`}
           </span>
           <span className="chip">{(text.length / 1024).toFixed(1)} kB</span>
-          <button className="btn-ghost" style={{ padding: '4px 10px' }}
+          {/* This modal has no footer — the file itself fills it — so Copy is
+              its one action and takes the modal-action size where it stands. */}
+          <button className="btn-ghost" style={MODAL_BTN}
             onClick={() => navigator.clipboard.writeText(text).then(() => { setCopied(true); setTimeout(() => setCopied(false), 1800) })}>
             <Copy />{copied ? 'Copied' : 'Copy'}
           </button>

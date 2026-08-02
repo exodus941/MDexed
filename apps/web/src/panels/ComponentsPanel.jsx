@@ -1,6 +1,6 @@
-﻿/* The component matrix.
+/* The component matrix.
 
-   Nothing here is stored until you change it â€” the library supplies defaults
+   Nothing here is stored until you change it — the library supplies defaults
    and only edits are persisted. Entries are shown under the exact name they
    will carry in the file, so the hyphenated flattening the spec requires
    (`button-primary-hover`) is visible while you work rather than a surprise
@@ -26,7 +26,7 @@ import { EntryAlerts, useFindings } from '../a11y/PanelAlerts.jsx'
 const COLOR_PROPS = ['backgroundColor', 'textColor', 'borderColor', 'outlineColor', 'fill', 'stroke']
 /* Spacing steps are the right vocabulary for gaps between things. */
 const SPACING_PROPS = ['padding', 'gap', 'margin']
-/* Dimensions are not spacing steps â€” a control's height is its own decision,
+/* Dimensions are not spacing steps — a control's height is its own decision,
    so these get plain pixel values rather than `{spacing.*}` references. */
 const SIZE_PROPS = ['height', 'width', 'size', 'minHeight', 'maxHeight', 'outlineOffset', 'iconSize']
 
@@ -165,12 +165,17 @@ function PropRow({ entryName, propKey, defaultValue, override, onSet, onReset, d
     onSet(key, str.slice(0, spaceTarget.at) + `{spacing.${step.name}}` + str.slice(spaceTarget.at + spaceTarget.length))
   }
 
+  /* `dense` puts every field in here on the compact size defined in theme.css,
+     rather than each input carrying its own padding — which is what left this
+     column improvising a size that nothing else in the app shared. */
   return (
-    <div style={{ padding: '1px 0' }}>
-      {/* Fixed row height and an always-present reset button: the row used to
-          grow by a pixel the moment a value was set, because the badge only
-          existed once there was an override. */}
-      <div style={{ display: 'grid', gridTemplateColumns: '128px minmax(0,1fr) 96px 16px 20px', gap: 8, alignItems: 'center', height: 26 }}>
+    <div className="dense" style={{ padding: '1px 0' }}>
+      {/* An always-present reset button: the row used to grow by a pixel the
+          moment a value was set, because the badge only existed once there was
+          an override. The height comes from the field rather than being pinned
+          here — a fixed 26px row with a taller field in it collides with the
+          row below, which is exactly what happened. */}
+      <div style={{ display: 'grid', gridTemplateColumns: '128px minmax(0,1fr) 96px 16px 20px', gap: 8, alignItems: 'center' }}>
         <code style={{ fontFamily: 'var(--mono)', fontSize: 10.5, color: legal ? 'var(--text-dim)' : 'var(--warn)' }}>{propKey}</code>
 
         <input list={options.length ? listId : undefined}
@@ -178,7 +183,7 @@ function PropRow({ entryName, propKey, defaultValue, override, onSet, onReset, d
           onChange={e => onSet(key, e.target.value)}
           title={options.length ? 'Pick a token or type a value' : 'Type a value'}
           style={{
-            fontFamily: 'var(--mono)', fontSize: 10.5, padding: '3px 6px',
+            fontFamily: 'var(--mono)',
             color: set ? 'var(--accent)' : 'var(--muted)',
             borderColor: set ? 'rgb(var(--accent-rgb) / .4)' : 'var(--bdr)',
           }} />
@@ -225,7 +230,7 @@ function PropRow({ entryName, propKey, defaultValue, override, onSet, onReset, d
         }}>!</span>
 
         {/* The orange border already says "overridden", so this is just the
-            way back â€” dimmed, not hidden, so the row never reflows. */}
+            way back — dimmed, not hidden, so the row never reflows. */}
         <ResetButton onClick={() => onReset(key)} disabled={!set} title="Reset to the default value" />
       </div>
 
@@ -241,8 +246,10 @@ function PropRow({ entryName, propKey, defaultValue, override, onSet, onReset, d
        * Spacing keeps its own slider because the value may be a shorthand
        * (`0 {spacing.md}`) with the token in one position, so it edits a slice
        * of the string rather than replacing it. */}
+      {/* The slider belongs to the row above it, so it sits closer to that row
+          than the next property does — 3px here against the list's own gap. */}
       {(spaceTarget || snapScale || hasSizeSlider) && (
-        <div style={{ display: 'grid', gridTemplateColumns: '128px minmax(0,1fr)', gap: 8, alignItems: 'center', marginBottom: PAD.row }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '128px minmax(0,1fr)', gap: 8, alignItems: 'center', marginTop: 3 }}>
           <span />
           {spaceTarget ? (
             <SnapSlider steps={derived.spacing} value={`{spacing.${derived.spacing[spaceTarget.idx]?.name}}`}
@@ -271,12 +278,12 @@ const matches = (query, entryName, key, value) => {
 }
 
 function EntryBlock({ title, entryName, props, overrides, onSet, onReset, derived, mode, inspect, query, colorGroups, def, sampleVars }) {
-  /* The jump targets the exact entry â€” clicking a small button lands on
+  /* The jump targets the exact entry — clicking a small button lands on
      `button-sm`, not merely somewhere inside Button. The scrolling is the
      owning ComponentBlock's job; this only marks itself. */
   const targeted = inspect?.entry === entryName
 
-  /* Filtered after the hooks â€” an early return above them would change the
+  /* Filtered after the hooks — an early return above them would change the
      hook order between renders. */
   const shown = Object.entries(props).filter(([k, v]) => matches(query, entryName, k, overrides[`${entryName}.${k}`] ?? v))
   if (!shown.length) return null
@@ -308,7 +315,10 @@ function EntryBlock({ title, entryName, props, overrides, onSet, onReset, derive
        * It collapses back to one column under 560px, where two columns would
        * leave neither wide enough to read. */}
       <div className={WIDE_SAMPLE.has(def.name) ? 'entry-stack' : 'entry-split'}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: PAD.row, minWidth: 0 }}>
+        {/* PAD.row was 4px between rows that were 26px tall and had no
+            sliders. Now a row can be a field plus a slider, and 4px between
+            two of those reads as one continuous block. */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: PAD.sub, minWidth: 0 }}>
           {shown.map(([k, v]) => (
             <PropRow key={k} entryName={entryName} propKey={k} defaultValue={String(v)}
               override={overrides[`${entryName}.${k}`]} onSet={onSet} onReset={onReset}
@@ -434,7 +444,7 @@ function ComponentBlock({ def, cfg, layout, onSetLayout, onToggle, onSet, onRese
         </button>
         {/* Search within the component: a Button expands to 15 entries and
             scrolling for `gap` is a waste of a scroll wheel. */}
-        {open && enabled && <FilterField value={query} onChange={setQuery} placeholder="gap, colourâ€¦" width={124} />}
+        {open && enabled && <FilterField value={query} onChange={setQuery} width={124} />}
       </div>
       <Expand open={open && enabled}>
         <div style={{ padding: PAD.card, borderTop: '1px solid var(--bdr)', background: 'var(--surf2)', display: 'flex', flexDirection: 'column', gap: PAD.gap }}>
@@ -542,7 +552,7 @@ export default function ComponentsPanel({ inspect }) {
         A property marked with this isn't one of the eight the DESIGN.md schema allows
         (<code style={{ fontFamily: 'var(--mono)', fontSize: 10.5 }}>{SPEC_COMPONENT_PROPS.join(', ')}</code>),
         so it can't sit in the YAML frontmatter. It's written into the Components section of the file as a table
-        instead â€” it still reaches the agent and is applied the same way, it just travels in a different part of
+        instead — it still reaches the agent and is applied the same way, it just travels in a different part of
         the file. {proseOnly} propert{proseOnly === 1 ? 'y is' : 'ies are'} taking that route right now.
       </Banner>
 
@@ -588,7 +598,7 @@ export default function ComponentsPanel({ inspect }) {
             <div key={c.name} style={{ marginBottom: 8 }}>
               <code style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--text-dim)' }}>{c.name}</code>
               <div style={{ fontSize: 10.5, color: 'var(--dim)', fontFamily: 'var(--mono)', marginTop: 2 }}>
-                {c.properties.map(p => `${p.key}: ${p.value}`).join(' Â· ')}
+                {c.properties.map(p => `${p.key}: ${p.value}`).join(' · ')}
               </div>
             </div>
           ))}

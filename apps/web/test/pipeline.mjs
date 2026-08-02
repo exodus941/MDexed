@@ -324,5 +324,33 @@ line('\n- prompt construction -')
     'toImport: an unchecked slot is absent, so the document keeps its own value')
 }
 
+/* ── Source encoding ──
+ *
+ * A placeholder rendered as "gap, colourâ€¦" in the running app. The file had
+ * been read as Latin-1 and written back as UTF-8 somewhere in a batch edit, so
+ * every em-dash and ellipsis in it became three characters. It survived a
+ * build, a test run and a deploy, because nothing here was looking — mojibake
+ * is valid JavaScript.
+ *
+ * `â€` cannot occur in correctly-encoded prose, and a BOM has no business in a
+ * source file, so both are cheap to assert and catch the whole family. */
+{
+  line('\n- source encoding -')
+  const root = new URL('../src/', import.meta.url)
+  const walk = dir => fs.readdirSync(dir, { withFileTypes: true }).flatMap(e => {
+    const p = new URL(e.name + (e.isDirectory() ? '/' : ''), dir)
+    return e.isDirectory() ? walk(p) : (/\.(jsx?|css)$/.test(e.name) ? [p] : [])
+  })
+  const files = walk(root)
+  const bad = []
+  for (const f of files) {
+    const text = fs.readFileSync(f, 'utf8')
+    if (/Ã¢â|â€|Â[ ·]/.test(text)) bad.push(`${f.pathname.split('/src/')[1]} (mojibake)`)
+    if (text.charCodeAt(0) === 0xFEFF) bad.push(`${f.pathname.split('/src/')[1]} (BOM)`)
+  }
+  assert(files.length > 40, `walked the source tree (${files.length} files)`)
+  assert(bad.length === 0, `every source file is clean UTF-8${bad.length ? ` — ${bad.join(', ')}` : ''}`)
+}
+
 line(`\n${failures === 0 ? 'ALL PASS' : `${failures} FAILURE(S)`}\n`)
 process.exit(failures ? 1 : 0)
