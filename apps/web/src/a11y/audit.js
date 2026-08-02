@@ -9,11 +9,18 @@
  * Every check here runs against the derived tokens — the same values the
  * preview renders and the file exports — so a pass is a statement about what
  * ships, not about intent. And every one of them is computable from the
- * system alone. Things that depend on markup (alt text, heading order, label
- * association) are out of scope by definition: they belong to the code an
- * agent writes, not to the tokens it writes from. Those get emitted as
+ * system alone. Things that depend on markup (alt text, label association,
+ * focus restoration) are out of scope by definition: they belong to the code
+ * an agent writes, not to the tokens it writes from. Those get emitted as
  * requirements into DESIGN.md instead, which is the only leverage a token
  * file has over them.
+ *
+ * The line between the two moves, though, and it moves in one direction. A
+ * rule about markup often has a token-level precondition — heading order is
+ * markup, but a type scale where h3 outsizes h2 makes the correct markup look
+ * wrong, and that is arithmetic. Every requirement worth re-examining for a
+ * precondition like that has been; see REQUIREMENTS at the foot of the file
+ * for which six survived the examination and which six did not.
  *
  * Findings are advice, not gates. A design system that fails 2.5.5 on purpose
  * — a dense data tool for mouse users — is a legitimate design system. What
@@ -53,7 +60,7 @@ function nonTextContrast(state, derived, mode) {
     const v = ratio(c[fg], c[bg])
     if (v == null || v >= 3) return
     out.push({
-      id: `nontext:${fg}:${bg}:${mode}`,
+      req: 'contrast', id: `nontext:${fg}:${bg}:${mode}`,
       level: opts.level ?? FAIL, criterion: '1.4.11 Non-text contrast (AA)',
       mode, tab: 'roles', entry: fg,
       title: label,
@@ -96,7 +103,7 @@ function nonTextContrast(state, derived, mode) {
     const v = ratio(c['border-subtle'], c.surface)
     if (v != null && v < 1.2) {
       out.push({
-        id: `nontext:hairline:${mode}`, level: NOTE, criterion: 'Practice',
+        req: 'contrast', id: `nontext:hairline:${mode}`, level: NOTE, criterion: 'Practice',
         mode, tab: 'roles', entry: 'border-subtle',
         title: 'Hairlines are effectively invisible',
         detail: `border-subtle on surface is ${v}:1. Decorative rules are exempt from 1.4.11, but at this separation the line isn't dividing anything.`,
@@ -116,7 +123,7 @@ function focusChecks(state) {
 
   if (f.style === 'none') {
     out.push({
-      id: 'focus:none', level: FAIL, criterion: '2.4.7 Focus visible (AA)',
+      req: 'keyboard', id: 'focus:none', level: FAIL, criterion: '2.4.7 Focus visible (AA)',
       tab: 'directives',
       title: 'There is no focus indicator',
       detail: 'Keyboard users have no way to tell where they are. This is the single most common way a design system locks people out.',
@@ -126,7 +133,7 @@ function focusChecks(state) {
 
   if (f.style !== 'none' && (f.width ?? 0) < 2) {
     out.push({
-      id: 'focus:width', level: WARN, criterion: '2.4.13 Focus appearance (AAA)',
+      req: 'keyboard', id: 'focus:width', level: WARN, criterion: '2.4.13 Focus appearance (AAA)',
       tab: 'directives',
       title: `A ${f.width}px focus ring is thinner than the guidance`,
       detail: '2.4.13 asks for a perimeter at least 2px thick. A hairline ring is easy to lose on a busy screen and disappears entirely at low zoom.',
@@ -140,7 +147,7 @@ function focusChecks(state) {
      removes the margin for error that offset buys you. */
   if (f.style !== 'none' && (f.offset ?? 0) === 0) {
     out.push({
-      id: 'focus:offset', level: NOTE, criterion: 'Practice',
+      req: 'keyboard', id: 'focus:offset', level: NOTE, criterion: 'Practice',
       tab: 'directives',
       title: 'The focus ring sits flush against controls',
       detail: 'With no offset the ring has to contrast against the control it surrounds, rather than against the page behind it. It works, but it fails on any control whose fill happens to be near the ring colour.',
@@ -158,7 +165,7 @@ function targetSize(state, derived) {
 
   if (declared > 0 && declared < 24) {
     out.push({
-      id: 'target:declared', level: FAIL, criterion: '2.5.8 Target size minimum (AA)',
+      req: 'keyboard', id: 'target:declared', level: FAIL, criterion: '2.5.8 Target size minimum (AA)',
       tab: 'directives',
       title: `The declared minimum target is ${declared}px`,
       detail: '2.5.8 sets the floor at 24×24 CSS pixels. Below that, pointer accuracy — not just touch — starts costing people clicks.',
@@ -193,7 +200,7 @@ function targetSize(state, derived) {
        minimum there is nothing making the claim, and it fails. */
     const covered = declared >= 24
     out.push({
-      id: `target:${name}`, level: covered ? WARN : FAIL,
+      req: 'keyboard', id: `target:${name}`, level: covered ? WARN : FAIL,
       criterion: '2.5.8 Target size minimum (AA)',
       tab: 'components', entry: name,
       title: `${name} draws at ${v}px`,
@@ -211,7 +218,7 @@ function targetSize(state, derived) {
      one collective note rather than a row each. */
   if (declared >= 24 && declared < 44) {
     out.push({
-      id: 'target:aaa', level: NOTE, criterion: '2.5.5 Target size enhanced (AAA)',
+      req: 'keyboard', id: 'target:aaa', level: NOTE, criterion: '2.5.5 Target size enhanced (AAA)',
       tab: 'directives',
       title: `Targets are ${declared}px, below the 44px comfortable size`,
       detail: 'Fine for a dense desktop tool, costly on touch. Worth being a decision rather than a default.',
@@ -234,7 +241,7 @@ function textChecks(state, derived) {
     const size = px(String(body.fontSize).match(/,\s*([^,)]+),/)?.[1] ?? body.fontSize)
     if (size != null && size < 14) {
       out.push({
-        id: 'text:body-size', level: size < 12 ? FAIL : WARN, criterion: 'Practice',
+        req: 'contrast', id: 'text:body-size', level: size < 12 ? FAIL : WARN, criterion: 'Practice',
         tab: 'type', entry: 'body-md',
         title: `Body text is ${size}px`,
         detail: 'There is no WCAG minimum for font size, which is exactly why systems drift down. Below 14px, reading speed drops measurably for anyone over forty; below 12px it fails for most people at arm\'s length.',
@@ -246,7 +253,7 @@ function textChecks(state, derived) {
     const lh = parseFloat(body.lineHeight)
     if (Number.isFinite(lh) && lh < 1.5) {
       out.push({
-        id: 'text:leading', level: WARN, criterion: '1.4.12 Text spacing (AA)',
+        req: 'contrast', id: 'text:leading', level: WARN, criterion: '1.4.12 Text spacing (AA)',
         tab: 'type', entry: 'body-md',
         title: `Body line-height is ${r1(lh)}`,
         detail: '1.4.12 requires that a user can force 1.5 line-height without breaking the layout. Shipping below it is allowed — but a layout built around tight leading is usually the layout that breaks when someone turns it up.',
@@ -258,7 +265,7 @@ function textChecks(state, derived) {
     const ls = parseFloat(body.letterSpacing)
     if (Number.isFinite(ls) && ls < -0.02) {
       out.push({
-        id: 'text:tracking', level: NOTE, criterion: 'Practice',
+        req: 'contrast', id: 'text:tracking', level: NOTE, criterion: 'Practice',
         tab: 'type', entry: 'body-md',
         title: `Body tracking is ${body.letterSpacing}`,
         detail: 'Negative tracking on body copy closes the gaps that dyslexic readers use to separate words. It belongs on display sizes, not paragraphs.',
@@ -274,7 +281,7 @@ function textChecks(state, derived) {
     const weight = parseInt(t.fontWeight, 10)
     if (size != null && size <= 14 && Number.isFinite(weight) && weight < 400) {
       out.push({
-        id: `text:thin:${t.name}`, level: WARN, criterion: 'Practice',
+        req: 'contrast', id: `text:thin:${t.name}`, level: WARN, criterion: 'Practice',
         tab: 'type', entry: t.name,
         title: `${t.name} is ${size}px at weight ${weight}`,
         detail: 'Light weights below 15px lose stroke contrast on standard-density displays, which hits low-vision readers first and everyone else on a bad monitor.',
@@ -287,7 +294,7 @@ function textChecks(state, derived) {
   const measure = state.type?.measure ?? state.layout?.maxMeasure
   if (measure && measure > 80) {
     out.push({
-      id: 'text:measure', level: WARN, criterion: '1.4.8 Visual presentation (AAA)',
+      req: 'contrast', id: 'text:measure', level: WARN, criterion: '1.4.8 Visual presentation (AAA)',
       tab: 'type',
       title: `Measure is ${measure} characters`,
       detail: '1.4.8 caps a line at 80 characters. Past that the eye loses the return sweep and re-reads lines — the effect is strongest for readers with attention or tracking difficulties.',
@@ -306,7 +313,7 @@ function motionChecks(state, derived) {
 
   if (!state.motion?.reducedMotion) {
     out.push({
-      id: 'motion:policy', level: FAIL, criterion: '2.3.3 Animation from interactions (AAA)',
+      req: 'motion', id: 'motion:policy', level: FAIL, criterion: '2.3.3 Animation from interactions (AAA)',
       tab: 'motion',
       title: 'No reduced-motion policy',
       detail: 'Without a stated policy an agent will emit transitions with no `prefers-reduced-motion` block, and vestibular users get the full set. This is one line of CSS that nobody writes unless told to.',
@@ -319,7 +326,7 @@ function motionChecks(state, derived) {
     if (ms == null) continue
     if (ms > 5000) {
       out.push({
-        id: `motion:long:${name}`, level: FAIL, criterion: '2.2.2 Pause, stop, hide (A)',
+        req: 'motion', id: `motion:long:${name}`, level: FAIL, criterion: '2.2.2 Pause, stop, hide (A)',
         tab: 'motion', entry: name,
         title: `The ${name} duration is ${ms}ms`,
         detail: 'Anything moving for more than five seconds needs a control to pause it.',
@@ -327,7 +334,7 @@ function motionChecks(state, derived) {
       })
     } else if (ms > 700) {
       out.push({
-        id: `motion:slow:${name}`, level: NOTE, criterion: 'Practice',
+        req: 'motion', id: `motion:slow:${name}`, level: NOTE, criterion: 'Practice',
         tab: 'motion', entry: name,
         title: `The ${name} duration is ${ms}ms`,
         detail: 'Past roughly 400ms a transition stops reading as responsive and starts reading as lag. Fine for a page transition, wrong for a hover.',
@@ -345,14 +352,104 @@ function motionChecks(state, derived) {
   })
   if (overshoot.length > 0 && state.motion?.reducedMotion !== 'none') {
     out.push({
-      id: 'motion:overshoot', level: WARN, criterion: '2.3.3 Animation from interactions (AAA)',
+      req: 'motion', id: 'motion:overshoot', level: WARN, criterion: '2.3.3 Animation from interactions (AAA)',
       tab: 'motion', entry: overshoot[0][0],
       title: `${overshoot.map(([k]) => k).join(', ')} overshoot${overshoot.length === 1 ? 's' : ''} the target`,
-      detail: 'Bounce and elastic curves reverse direction, and it is the reversal — not the speed — that provokes vestibular symptoms. Your reduced-motion setting keeps animating, so the overshoot survives it.',
-      fix: 'Either set reduced motion to remove animation entirely, or state that overshoot curves fall back to a standard ease under the media query.',
+      detail: `${overshoot.map(([k]) => k).join(', ')} ${overshoot.length === 1 ? 'is a curve' : 'are curves'} that go past the end value and come back. That reversal — not the speed — is what provokes vestibular symptoms, and your reduced-motion setting is "crossfade", which keeps animating rather than stopping. So the overshoot is still there for people who asked for less motion.`,
+      fix: `Two ways out, both on this panel. Set Reduced motion to "none", which drops animation entirely under the media query — or open ${overshoot.map(([k]) => k).join(' / ')} in the easing editor and pull the handles back inside the 0–1 box so the curve settles instead of bouncing. Keep the bounce if you want it; it only has to disappear under the query.`,
     })
   }
 
+  return out
+}
+
+/* ── Reflow · WCAG 1.4.10 (AA) ──
+ *
+ * The requirement is that the layout survives 200% zoom and a 320px viewport.
+ * Whether it *does* is a property of markup, and no token file can promise it.
+ * What a token file can be is the reason it doesn't: 1.4.10's 320px figure is
+ * a 1280px viewport at 400% zoom, and if the smallest breakpoint in the system
+ * sits above 320 then the system has simply never described that width. An
+ * agent reading it has no rule to follow and will pick one, which is the whole
+ * failure mode this app exists to prevent.
+ *
+ * A fixed container wider than the viewport it applies at is the same mistake
+ * one level down, and that one is arithmetic.
+ */
+function reflowChecks(state) {
+  const out = []
+  const bps = state.layout?.breakpoints ?? []
+  const containers = state.layout?.containers ?? {}
+  if (bps.length === 0) return out
+
+  const smallest = bps.reduce((a, b) => (b.px < a.px ? b : a))
+  if (smallest.px > 320) {
+    out.push({
+      id: 'reflow:no-320', level: NOTE, criterion: '1.4.10 Reflow (AA)', req: 'zoom',
+      tab: 'layout', entry: smallest.name,
+      title: `Nothing is defined below ${smallest.px}px`,
+      detail: `The narrowest breakpoint is ${smallest.name} at ${smallest.px}px, so the system says nothing about 320px — which is what a 1280px viewport becomes at 400% zoom. Whatever an agent builds there, it builds without you.`,
+      fix: 'Either add a breakpoint at or below 320px, or state in Layout that the base (unqualified) styles are the 320px case.',
+      measured: `${smallest.px}px`,
+    })
+  }
+
+  for (const [name, width] of Object.entries(containers)) {
+    const bp = bps.find(b => b.name === name)
+    const w = px(width)
+    if (w == null || w <= 320) continue
+    /* A container only has to fit inside the viewport that activates it. The
+       one at the smallest tier is the one that can reach a 320px screen. */
+    if (bp && bp.px <= 320 || (!bp && w > 320 && name === smallest.name)) {
+      out.push({
+        id: `reflow:container:${name}`, level: FAIL, criterion: '1.4.10 Reflow (AA)', req: 'zoom',
+        tab: 'layout', entry: name,
+        title: `The ${name} container is ${w}px wide`,
+        detail: `It applies from ${bp?.px ?? smallest.px}px up, so on a 320px viewport it overflows by ${w - 320}px and the page scrolls sideways.`,
+        measured: `${w}px`,
+      })
+    }
+  }
+  return out
+}
+
+/* ── Heading order · WCAG 1.3.1 (A) ──
+ *
+ * "Heading levels describe the outline, never the type size" is advice about
+ * markup — but a type scale can make it impossible to follow. If h3 renders
+ * larger than h2, then anyone choosing a level by how it looks picks the wrong
+ * one, and choosing by how it looks is exactly what people do. Two levels at
+ * the same size is the milder version: the outline is then invisible, so the
+ * only thing keeping it correct is discipline.
+ */
+function headingOrder(derived) {
+  const order = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6']
+  const sizes = new Map(
+    (derived.typography ?? []).filter(t => order.includes(t.name)).map(t => [t.name, t.computedPx ?? px(t.fontSize)]),
+  )
+  const out = []
+  for (let i = 0; i < order.length - 1; i++) {
+    const a = order[i], b = order[i + 1]
+    const sa = sizes.get(a), sb = sizes.get(b)
+    if (sa == null || sb == null) continue
+    if (sb > sa) {
+      out.push({
+        id: `heading:inverted:${a}`, level: FAIL, criterion: '1.3.1 Info and relationships (A)', req: 'headings',
+        tab: 'type', entry: b,
+        title: `${b} is larger than ${a}`,
+        detail: `${b} renders at ${r1(sb)}px against ${a} at ${r1(sa)}px. The visual hierarchy now contradicts the document outline, so picking a heading by appearance produces the wrong level.`,
+        measured: `${r1(sb)}px vs ${r1(sa)}px`,
+      })
+    } else if (Math.abs(sa - sb) < 0.5) {
+      out.push({
+        id: `heading:flat:${a}`, level: NOTE, criterion: '1.3.1 Info and relationships (A)', req: 'headings',
+        tab: 'type', entry: b,
+        title: `${a} and ${b} are the same size`,
+        detail: `Both render at ${r1(sa)}px, so nothing on screen distinguishes one level from the next. That is legal, but the outline becomes invisible and stays correct only by discipline.`,
+        measured: `${r1(sa)}px`,
+      })
+    }
+  }
   return out
 }
 
@@ -398,7 +495,7 @@ function colourAlone(derived, mode) {
 
     if (worst < 0.09 && dl < 0.12) {
       out.push({
-        id: `colour-alone:${a}:${b}:${mode}`, level: FAIL, criterion: '1.4.1 Use of colour (A)',
+        req: 'colour', id: `colour-alone:${a}:${b}:${mode}`, level: FAIL, criterion: '1.4.1 Use of colour (A)',
         mode, tab: 'roles', entry: a,
         title: `${label} are the same colour to red-green vision`,
         detail: `Simulated for deuteranopia and protanopia they sit ${r1(worst * 100)} apart on a perceptual scale where about 2 is the threshold of a visible difference, and their lightness differs by only ${r1(dl * 100)}% — so neither hue nor brightness separates them. Around one man in twelve cannot tell these apart.`,
@@ -409,7 +506,7 @@ function colourAlone(derived, mode) {
       })
     } else if (worst < 0.09) {
       out.push({
-        id: `colour-alone:${a}:${b}:${mode}`, level: WARN, criterion: '1.4.1 Use of colour (A)',
+        req: 'colour', id: `colour-alone:${a}:${b}:${mode}`, level: WARN, criterion: '1.4.1 Use of colour (A)',
         mode, tab: 'roles', entry: a,
         title: `${label} share a hue under red-green vision`,
         detail: `Simulated they sit only ${r1(worst * 100)} apart in hue, so lightness is doing all the work — ${r1(dl * 100)}% of it. That survives, but barely, and not at small sizes or low brightness.`,
@@ -452,7 +549,7 @@ function disabledCheck(state, derived, mode) {
   if (lc >= 30) return []
 
   return [{
-    id: `disabled:${mode}`, level: WARN, criterion: '1.4.3 exempt — practice',
+    req: 'contrast', id: `disabled:${mode}`, level: WARN, criterion: '1.4.3 exempt — practice',
     mode, tab: 'directives',
     title: `Disabled text lands at Lc ${r1(lc)}`,
     detail: `At ${Math.round(o * 100)}% opacity, disabled labels effectively vanish. WCAG exempts disabled controls, so nothing will flag this downstream — but a user who can't read the disabled button can't work out why it's disabled either.`,
@@ -466,19 +563,34 @@ function disabledCheck(state, derived, mode) {
  * Emitted into the file rather than reported here, because they are true of
  * every system and an agent needs them stated. This is the list that turns
  * DESIGN.md from a palette into something that constrains behaviour. */
+/* The twelve requirements, and — honestly — which of them this app can hold
+ * you to.
+ *
+ * `checked: true` means some check above can catch a violation from the tokens
+ * alone, and a violation will surface as an alert in the panel that caused it.
+ * `checked: false` means the requirement is about markup or behaviour: whether
+ * a control is a real `<button>`, whether focus returns after a modal closes,
+ * whether an image's alt text says anything. Nothing in a token file predicts
+ * those, and pretending otherwise would be worse than admitting it — a green
+ * badge that means "unmeasured" is how systems ship inaccessible.
+ *
+ * Six and six. The unchecked half is the half that most needs saying, which is
+ * why all twelve go into DESIGN.md regardless: the agent writing the markup is
+ * the only party that can satisfy them.
+ */
 export const REQUIREMENTS = [
-  { id: 'semantics',  text: 'Use the semantic element. A control that acts like a button is a `<button>`, not a styled `<div>` with a click handler.' },
-  { id: 'labels',     text: 'Every input has a programmatic label. A placeholder is not a label — it disappears the moment someone types.' },
-  { id: 'headings',   text: 'Heading levels describe the document outline, never the type size. Style an h2 to look small rather than reaching for h4.' },
-  { id: 'order',      text: 'Keep the DOM order and the visual order the same. Reordering with CSS breaks keyboard and screen-reader navigation silently.' },
-  { id: 'keyboard',   text: 'Everything reachable by mouse is reachable by keyboard, in a sensible order, with visible focus at each stop.' },
-  { id: 'escape',     text: 'Modals and popovers trap focus while open, restore it on close, and close on Escape.' },
-  { id: 'live',       text: 'Anything that changes without a page load — toasts, validation, async results — is announced through a live region.' },
-  { id: 'alt',        text: 'Images that carry meaning have alt text; decorative ones carry an empty alt so they are skipped.' },
-  { id: 'zoom',       text: 'The layout survives 200% zoom and a 320px viewport without horizontal scrolling.' },
-  { id: 'colour',     text: 'Never signal state with colour alone. Pair every colour cue with an icon, a shape, or a word.' },
-  { id: 'motion',     text: 'Respect `prefers-reduced-motion`. Transitions that move or scale must have a non-moving fallback.' },
-  { id: 'contrast',   text: 'Do not lower any contrast in this file. The values here are the floor, not a starting point.' },
+  { id: 'semantics',  checked: false, text: 'Use the semantic element. A control that acts like a button is a `<button>`, not a styled `<div>` with a click handler.' },
+  { id: 'labels',     checked: false, text: 'Every input has a programmatic label. A placeholder is not a label — it disappears the moment someone types.' },
+  { id: 'headings',   checked: true, text: 'Heading levels describe the document outline, never the type size. Style an h2 to look small rather than reaching for h4.' },
+  { id: 'order',      checked: false, text: 'Keep the DOM order and the visual order the same. Reordering with CSS breaks keyboard and screen-reader navigation silently.' },
+  { id: 'keyboard',   checked: true, text: 'Everything reachable by mouse is reachable by keyboard, in a sensible order, with visible focus at each stop.' },
+  { id: 'escape',     checked: false, text: 'Modals and popovers trap focus while open, restore it on close, and close on Escape.' },
+  { id: 'live',       checked: false, text: 'Anything that changes without a page load — toasts, validation, async results — is announced through a live region.' },
+  { id: 'alt',        checked: false, text: 'Images that carry meaning have alt text; decorative ones carry an empty alt so they are skipped.' },
+  { id: 'zoom',       checked: true, text: 'The layout survives 200% zoom and a 320px viewport without horizontal scrolling.' },
+  { id: 'colour',     checked: true, text: 'Never signal state with colour alone. Pair every colour cue with an icon, a shape, or a word.' },
+  { id: 'motion',     checked: true, text: 'Respect `prefers-reduced-motion`. Transitions that move or scale must have a non-moving fallback.' },
+  { id: 'contrast',   checked: true, text: 'Do not lower any contrast in this file. The values here are the floor, not a starting point.' },
 ]
 
 /** Every finding, worst first, both modes. */
@@ -488,6 +600,8 @@ export function audit(state, derived) {
     ...targetSize(state, derived),
     ...textChecks(state, derived),
     ...motionChecks(state, derived),
+    ...reflowChecks(state),
+    ...headingOrder(derived),
     ...['light', 'dark'].flatMap(mode => [
       ...nonTextContrast(state, derived, mode),
       ...colourAlone(derived, mode),

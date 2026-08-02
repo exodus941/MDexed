@@ -14,6 +14,7 @@ import ColorPicker from '../ui/ColorPicker.jsx'
 import { SectionHeader, Collapsible, Expand, Segmented, OverrideBadge, Banner, FilterField, PAD } from '../ui/controls.jsx'
 import { useReveal, revealStyle } from '../ui/reveal.js'
 import CrossFade from '../ui/CrossFade.jsx'
+import PanelAlerts from '../a11y/PanelAlerts.jsx'
 
 /* `open` is owned by the panel, not the row. Switching Light/Dark/Both
    cross-dissolves, which remounts these; state kept here would be wiped by an
@@ -219,6 +220,7 @@ export default function RolesPanel({ inspect }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <PanelAlerts tab="roles" />
       <SectionHeader title="Semantic Roles" desc="What each colour is for. This is what the exported file leads with."
         right={overrideCount > 0 ? <span className="chip">{overrideCount} overridden</span> : null} />
 

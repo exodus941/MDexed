@@ -1,4 +1,4 @@
-# MDesigner
+# MDexed
 
 A visual editor for authoring [DESIGN.md](https://github.com/google-labs-code/design.md) files, the open format that gives coding agents a persistent, structured understanding of a design system.
 
