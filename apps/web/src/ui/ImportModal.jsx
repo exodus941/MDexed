@@ -22,7 +22,7 @@
  * component follow automatically. Importing further downstream would paste in
  * values that no longer track anything.
  */
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, Fragment } from 'react'
 import { readCss } from '../emit/cssImport.js'
 import { mapReference, toImport, SLOTS } from '../emit/cssMap.js'
 import { bestOn } from '../color/contrast.js'
@@ -74,50 +74,52 @@ const Swatch = ({ hex, count, picked, role, onClick }) => (
  */
 /* A table. One row per slot, one line per row, columns declared once.
  *
- * The previous version put the explanation on a second line of its own,
- * indented by a margin that added up the checkbox, the label and two gaps by
- * hand — arithmetic restating the layout rather than following from it, so it
- * was off by six pixels and drifted on any row that sized differently. Two
- * tiers also doubled the height of a list you are meant to scan.
- *
- * Everything is a column now, everything truncates, and nothing wraps. The
- * long text carries a `title` so the full sentence is a hover away rather than
- * costing every row a second line. */
+ * There was a sixth column holding the reason for each match — a sentence of
+ * prose among five columns of tokens, unreadable at a glance and the only
+ * thing forcing everything else narrow. The reason still matters, so it is the
+ * Match chip's tooltip now; nothing was lost but the width. */
 const COLUMNS = [
-  { key: 'seed',   label: 'Seed',   w: '104px' },
-  { key: 'type',   label: 'Type',   w: '176px' },
-  { key: 'slug',   label: 'Slug',   w: '196px' },
-  { key: 'sample', label: 'Sample', w: 'minmax(0, 1fr)' },
-  { key: 'match',  label: 'Match',  w: '82px' },
-  { key: 'value',  label: 'Value',  w: '176px' },
+  { key: 'seed',  label: 'Seed' },
+  { key: 'type',  label: 'Type' },
+  { key: 'slug',  label: 'Slug' },
+  { key: 'match', label: 'Match' },
+  { key: 'value', label: 'Value', right: true },
 ]
 
+/* One grid for all three tables, not one per table.
+ *
+ * Content-sized columns and shared alignment are in tension: three separate
+ * grids sizing themselves to their own contents will each land on different
+ * widths, and the three tables stop lining up. A single container solves both
+ * — every column sizes to the longest thing anywhere in it, and there is only
+ * one set of tracks so nothing can disagree. Group headings are full-width
+ * rows inside the same grid.
+ *
+ * Which means rows cannot be wrapper elements: a wrapper would be one grid
+ * item, not seven. Each cell carries its own top border and dimming instead,
+ * which is how a real grid table does it.
+ *
+ * `auto` on the four text columns so a longer token name widens its column
+ * rather than being cut. The slack lands on Slug, the most variable of them. */
 const GRID = {
   display: 'grid',
-  gridTemplateColumns: `16px ${COLUMNS.map(c => c.w).join(' ')}`,
-  columnGap: 10,
+  gridTemplateColumns: 'auto auto auto minmax(max-content, 1fr) auto auto',
+  columnGap: 24,
   alignItems: 'center',
 }
 
-/* Every cell that is not a control: one line, clipped, full text on hover. */
-const cell = (extra = {}) => ({
-  minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', ...extra,
+/* Cells sit in the grid, so they carry the row's rule and dimming themselves.
+   `nowrap` without a truncation width: the column grows instead. */
+const cell = (dim, extra = {}) => ({
+  minWidth: 0, whiteSpace: 'nowrap', padding: '9px 0',
+  borderTop: '1px solid var(--bdr)', opacity: dim ? 0.45 : 1, ...extra,
 })
 
-function HeaderRow({ ids, off, onSet }) {
-  return (
-    <div style={{
-      ...GRID, padding: '0 0 6px', borderBottom: '1px solid var(--bdr2)',
-      fontSize: 9.5, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase',
-      color: 'var(--dim)',
-    }}>
-      <SelectAll ids={ids} off={off} onSet={onSet} compact />
-      {COLUMNS.map(c => (
-        <div key={c.key} style={cell({ textAlign: c.key === 'match' ? 'right' : 'left' })}>{c.label}</div>
-      ))}
-    </div>
-  )
-}
+const headCell = (extra = {}) => ({
+  whiteSpace: 'nowrap', padding: '0 0 7px', borderBottom: '1px solid var(--bdr2)',
+  fontSize: 9.5, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase',
+  color: 'var(--dim)', ...extra,
+})
 
 /* Select all / none, for a group or for the lot.
  *
@@ -190,42 +192,48 @@ function MapRow({ slot, proposal, on, onToggle, onChange, palette, families }) {
 
   return (
     <>
-      <div style={{ ...GRID, padding: '6px 0', borderTop: '1px solid var(--bdr)', opacity: dim ? 0.45 : 1 }}>
+      <div style={cell(dim, { display: 'flex' })}>
         <input type="checkbox" checked={on} onChange={e => onToggle(e.target.checked)}
-          style={{ width: 14, height: 14, accentColor: 'var(--accent)', justifySelf: 'start' }}
+          style={{ width: 14, height: 14, accentColor: 'var(--accent)' }}
           aria-label={`Apply ${slot.label}`} />
-
-        <div style={cell({ fontSize: 12.5, color: 'var(--text)' })}>{slot.label}</div>
-
-        <div style={cell({ fontSize: 11, color: 'var(--muted)' })} title={slot.desc}>{slot.desc}</div>
-
-        <code style={cell({ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--muted)' })}
-          title={proposal.source}>{proposal.source}</code>
-
-        {/* The reason for the match. Long by nature — it has to be, since it
-            is what makes an inferred row judgeable without opening the
-            stylesheet — so it takes the slack column and the rest on hover. */}
-        <div style={cell({ fontSize: 11, color: 'var(--dim)' })} title={proposal.why}>{proposal.why}</div>
-
-        <div style={cell({
-          textAlign: 'right', fontSize: 10, fontWeight: 700, letterSpacing: '.05em', color: conf.tone,
-        })} title={conf.hint}>{conf.label}</div>
-
-        {control}
       </div>
 
+      <div style={cell(dim, { fontSize: 12.5, color: 'var(--text)' })}>{slot.label}</div>
+
+      <div style={cell(dim, { fontSize: 11, color: 'var(--muted)' })}>{slot.desc}</div>
+
+      <code style={cell(dim, {
+        fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--muted)',
+        overflow: 'hidden', textOverflow: 'ellipsis',
+      })} title={proposal.source}>{proposal.source}</code>
+
+      {/* A chip, and the reason for the match is its tooltip.
+       *
+       * The reason had a column of its own and did not deserve one — a
+       * sentence of prose in a table of tokens, too long to read at a glance
+       * and the only thing forcing every other column to be narrow. It still
+       * matters, because it is what makes an inferred row judgeable without
+       * opening the stylesheet, so it hangs off the chip that summarises it. */}
+      <div style={cell(dim, {})}>
+        <span className="chip" style={{ color: conf.tone, borderColor: conf.tone }}
+          title={`${conf.hint}\n\n${proposal.why}`}>
+          {conf.label}
+        </span>
+      </div>
+
+      <div style={cell(dim, { width: 176, justifySelf: 'end' })}>{control}</div>
+
       {picking && !dim && (
-        <div style={{ ...GRID, padding: '0 0 8px' }}>
-          <div />
-          <div style={{ gridColumn: '2 / -1', display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-            {palette.map(hex => (
-              <button key={hex} title={hex} onClick={() => { onChange(hex); setPicking(false) }}
-                style={{
-                  width: 30, height: 24, borderRadius: 4, cursor: 'pointer', padding: 0, background: hex,
-                  border: hex === proposal.value ? '2px solid var(--accent)' : '1px solid rgba(255,255,255,.12)',
-                }} />
-            ))}
-          </div>
+        <div style={{
+          gridColumn: '1 / -1', display: 'flex', flexWrap: 'wrap', gap: 4, padding: '0 0 10px',
+        }}>
+          {palette.map(hex => (
+            <button key={hex} title={hex} onClick={() => { onChange(hex); setPicking(false) }}
+              style={{
+                width: 30, height: 24, borderRadius: 4, cursor: 'pointer', padding: 0, background: hex,
+                border: hex === proposal.value ? '2px solid var(--accent)' : '1px solid rgba(255,255,255,.12)',
+              }} />
+          ))}
         </div>
       )}
     </>
@@ -419,31 +427,44 @@ export default function ImportModal({ onClose, onApply, onOpenDocument }) {
                   Nothing in this file mapped to a slot. It may not be a stylesheet, or it may hold only
                   layout rules — neither is a failure, but there is nothing here to import.
                 </p>
-              ) : GROUPS.map(group => {
-                const inGroup = SLOTS.filter(s => s.group === group && rows[s.id])
-                if (!inGroup.length) return null
-                const ids = inGroup.map(s => s.id)
-                return (
-                  <Section key={group} title={group}>
-                    {/* The group's select-all lives in the column header, in
-                        the checkbox column, directly above the boxes it
-                        controls. */}
-                    <HeaderRow ids={ids} off={off} onSet={on => setOff(s => {
-                      const next = new Set(s)
-                      for (const id of ids) { if (on) next.delete(id); else next.add(id) }
-                      return next
-                    })} />
-                    <div style={{ borderBottom: '1px solid var(--bdr)' }}>
-                      {inGroup.map(slot => (
-                        <MapRow key={slot.id} slot={slot} proposal={rows[slot.id]}
-                          on={!off.has(slot.id)} onToggle={v => toggle(slot.id, v)}
-                          onChange={v => setValue(slot.id, v)}
-                          palette={palette} families={families} />
-                      ))}
-                    </div>
-                  </Section>
-                )
-              })}
+              ) : (
+                <div style={GRID}>
+                  {GROUPS.map(group => {
+                    const inGroup = SLOTS.filter(s => s.group === group && rows[s.id])
+                    if (!inGroup.length) return null
+                    const ids = inGroup.map(s => s.id)
+                    return (
+                      <Fragment key={group}>
+                        <div style={{
+                          gridColumn: '1 / -1', fontSize: 12, fontWeight: 500, color: 'var(--text)',
+                          padding: '18px 0 8px',
+                        }}>{group}</div>
+
+                        {/* The group's select-all sits in the checkbox column
+                            of its own header, directly above the boxes it
+                            controls. */}
+                        <div style={headCell({ display: 'flex' })}>
+                          <SelectAll ids={ids} off={off} compact onSet={on => setOff(s => {
+                            const next = new Set(s)
+                            for (const id of ids) { if (on) next.delete(id); else next.add(id) }
+                            return next
+                          })} />
+                        </div>
+                        {COLUMNS.map(c => (
+                          <div key={c.key} style={headCell(c.right ? { textAlign: 'right' } : {})}>{c.label}</div>
+                        ))}
+
+                        {inGroup.map(slot => (
+                          <MapRow key={slot.id} slot={slot} proposal={rows[slot.id]}
+                            on={!off.has(slot.id)} onToggle={v => toggle(slot.id, v)}
+                            onChange={v => setValue(slot.id, v)}
+                            palette={palette} families={families} />
+                        ))}
+                      </Fragment>
+                    )
+                  })}
+                </div>
+              )}
             </>
           )}
         </div>
