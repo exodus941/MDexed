@@ -227,6 +227,13 @@ line('\n- prompt construction -')
   assert(refine.includes(derived.roles.light.accent), 'refine carries the real accent value')
   const draft = draftPrompt(PROSE_SECTIONS[2], state, derived)
   assert(draft.includes(state.type.families.display.family), 'draft carries the real display family')
+
+  /* Given only the display face, a model fills the gap with "system
+     sans-serif" and states a rule the system doesn't contain. */
+  const overview = contextFor('overview', state, derived)
+  for (const role of ['display', 'body', 'mono']) {
+    assert(overview.includes(state.type.families[role].family), `overview names the ${role} face`)
+  }
   const longest = Math.max(...PROSE_SECTIONS.map(s => draftPrompt(s, state, derived).length + systemPrompt().length))
   assert(longest < 24_000, `the largest prompt stays under the server cap (${longest} chars)`)
 }

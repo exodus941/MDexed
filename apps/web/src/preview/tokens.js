@@ -192,6 +192,47 @@ export const PREVIEW_CSS = `
 .dmd .badge-danger  { background: ${cm('badge-danger', 'background-color', c('danger-subtle', '#f7e8e7'))};  color: ${cm('badge-danger', 'text-color', c('danger', '#c2453c'))}; }
 .dmd .badge-neutral { background: ${cm('badge-neutral', 'background-color', c('bg-subtle', '#f0f0f0'))};      color: ${cm('badge-neutral', 'text-color', c('text-muted', '#666'))}; }
 
+/* ── Alerts ──
+   Anything beside a block of text — the icon, a trailing action — is centred
+   on the *first line*, not on the block and not on the padding box. Those two
+   look identical while the message fits on one line and fall apart the moment
+   it wraps: centring on the block drifts the icon downward as lines are added,
+   and flex-start pins it to the cap height instead of the line's optical
+   middle.
+
+   The --line-box property is one line of the alert's own text: 1em resolves
+   against the alert's font-size, multiplied by its leading. Slots are fixed to
+   exactly that height and centre their contents, so an element taller than a
+   line — a button — overflows the slot symmetrically and still reads as
+   centred on line one.
+
+   (No backticks in this comment: it lives inside a template literal, and one
+   stray backtick ends the string and turns the CSS below into JavaScript.) */
+.dmd .alert {
+  --line-box: calc(1em * ${ft('body-sm', 'leading', '1.55')});
+  display: flex;
+  align-items: flex-start;
+  gap: var(--icon-gap, 8px);
+  background-color: ${cm('alert', 'background-color', c('bg-subtle', '#f4f4f4'))};
+  color: ${cm('alert', 'text-color', c('text', '#111'))};
+  border: 1px solid currentColor;
+  border-radius: ${cm('alert', 'rounded', rd('md', '8px'))};
+  padding: ${cm('alert', 'padding', `${sp('xs', '8px')} ${sp('sm', '12px')}`)};
+  font-size: ${cm('alert', 'font-size', ft('body-sm', 'size', '14px'))};
+  line-height: ${ft('body-sm', 'leading', '1.55')};
+}
+.dmd .alert > .icon,
+.dmd .alert > .alert-action {
+  height: var(--line-box);
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+.dmd .alert > .alert-body { flex: 1; min-width: 0; }
+.dmd .alert-success { background-color: ${cm('alert-success', 'background-color', c('success-subtle', '#e6f2eb'))}; color: ${cm('alert-success', 'text-color', c('success', '#3f8f63'))}; }
+.dmd .alert-warning { background-color: ${cm('alert-warning', 'background-color', c('warning-subtle', '#f7efe0'))}; color: ${cm('alert-warning', 'text-color', c('warning', '#c08a2e'))}; }
+.dmd .alert-danger  { background-color: ${cm('alert-danger', 'background-color', c('danger-subtle', '#f7e8e7'))};  color: ${cm('alert-danger', 'text-color', c('danger', '#c2453c'))}; }
+
 /* ── Structure ── */
 /* Icon + label pairings, wherever they appear. One gap token governs them all. */
 .dmd .with-icon { display: inline-flex; align-items: center; gap: var(--icon-gap, 8px); }
