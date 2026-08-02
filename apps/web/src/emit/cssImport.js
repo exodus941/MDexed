@@ -19,6 +19,9 @@ const clean = css => css
   .replace(/"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'/g, m => (/[,{]/.test(m) ? ' ' : m))
 
 const COLOUR_RE = /#[0-9a-f]{3,8}\b|\b(?:rgba?|hsla?|oklch|lab|lch|color)\([^)]*\)/gi
+/* Custom-property declarations. The value runs to the first `;` or `}` that
+   isn't inside parentheses, so `--x: rgb(0, 0, 0)` survives its own comma. */
+const VAR_RE = /--([\w-]+)\s*:\s*((?:[^;{}()]|\([^()]*\))+)/g
 const FAMILY_RE = /font-family\s*:\s*([^;}]+)/gi
 const RADIUS_RE = /border-radius\s*:\s*([^;}]+)/gi
 const SPACE_RE = /(?:padding|margin|gap|row-gap|column-gap)(?:-(?:top|right|bottom|left|inline|block))?\s*:\s*([^;}]+)/gi
@@ -68,9 +71,42 @@ export function readCss(source) {
   for (const m of css.matchAll(RADIUS_RE)) px(radii, m[1])
   for (const m of css.matchAll(SIZE_RE)) px(sizes, m[1])
 
+  /* ── Custom properties ──
+   *
+   * The one place a stylesheet says what it *meant* rather than what it did.
+   * `#006b72` seen forty times is evidence; `--color-brand-primary: #006b72`
+   * is a statement. Frequency can only ever rank; a name can identify.
+   *
+   * Kept in source order and untallied — a custom property is declared once
+   * and counting it would say nothing. Values that are themselves `var()`
+   * references are dropped: an alias tells you about the alias, not the token.
+   */
+  const vars = []
+  const seenVars = new Set()
+  for (const m of css.matchAll(VAR_RE)) {
+    const name = m[1].toLowerCase()
+    const value = m[2].trim().replace(/\s+/g, ' ')
+    if (!value || value.startsWith('var(') || seenVars.has(name)) continue
+    seenVars.add(name)
+    const colour = parseColor(value)
+    const dim = /^(-?\d*\.?\d+)(px|rem|em)$/.exec(value)
+    vars.push({
+      name, value,
+      kind: colour && colour.alpha !== 0 ? 'color'
+        : dim ? 'dimension'
+        : /^-?\d*\.?\d+$/.test(value) ? 'number'
+        : 'text',
+      hex: colour && colour.alpha !== 0 ? toHex({ ...colour, alpha: 1 }).toLowerCase() : null,
+      /* rem is resolved against 16px, the only root size a stylesheet in
+         isolation can be assumed to have. */
+      px: dim ? Math.abs(parseFloat(dim[1])) * (dim[2] === 'px' ? 1 : 16) : null,
+    })
+  }
+
   const byCount = m => [...m.entries()].sort((a, b) => b[1] - a[1])
 
   return {
+    vars,
     colours: rankColours(colours),
     families: ranked(families).slice(0, 12),
     /* The most-used step is the likeliest base unit — a system's base appears
@@ -78,7 +114,7 @@ export function readCss(source) {
     spacingBase: guessBase(byCount(spacing)),
     radiusBase: byCount(radii)[0]?.[0] ?? null,
     fontBase: guessFontBase(byCount(sizes)),
-    counts: { colours: colours.size, families: families.size, spacing: spacing.size },
+    counts: { colours: colours.size, families: families.size, spacing: spacing.size, vars: vars.length },
   }
 }
 

@@ -24,8 +24,11 @@
  */
 import { useState, useEffect } from 'react'
 import { readCss } from '../emit/cssImport.js'
+import { mapReference, toImport, SLOTS } from '../emit/cssMap.js'
 import { bestOn } from '../color/contrast.js'
 import { PAD, BTN, CloseButton } from './controls.jsx'
+
+const GROUPS = [...new Set(SLOTS.map(s => s.group))]
 
 /* A stylesheet never opens with a YAML fence, and a DESIGN.md always does.
    That is the whole heuristic, and it is right far more often than anything
@@ -51,10 +54,105 @@ const Swatch = ({ hex, count, picked, role, onClick }) => (
   </button>
 )
 
-/* The seats worth filling from an import. Status colours are deliberately
-   absent — a stylesheet's green is rarely *the* success green, and getting
-   that wrong is worse than leaving the default. */
-const SEATS = ['accent', 'neutral']
+/* ── The mapping table ──
+ *
+ * What used to be here: two seats, accent and neutral, and a wall of swatches
+ * to click into them. Status colours were left out on the grounds that "a
+ * stylesheet's green is rarely *the* success green".
+ *
+ * That was true of frequency alone, which was the only evidence being used. It
+ * stops being true the moment the name is read: `--color-success-600` is not a
+ * guess. And where there is no name, hue is a far better prior than nothing —
+ * a colour 4° from canonical green is a green.
+ *
+ * So every slot is proposed, and the price of proposing more is paid by
+ * confirming: nothing applies until the table is accepted, each row says where
+ * it came from, and each row can be changed or switched off. A wrong guess
+ * shown is cheap. A wrong guess applied silently poisons every derived token
+ * downstream of the seed.
+ */
+const CONFIDENCE = {
+  named:    { label: 'named',    tone: 'var(--success)', hint: 'A custom property in the file names this slot.' },
+  inferred: { label: 'inferred', tone: 'var(--warn)',    hint: 'Worked out from the colours themselves. Worth a look.' },
+}
+
+/* One row. Colour rows open a grid of every colour in the file; font rows get
+   the families found; dimension rows get a number. */
+function MapRow({ slot, proposal, on, onToggle, onChange, palette, families }) {
+  const [picking, setPicking] = useState(false)
+  const conf = CONFIDENCE[proposal.confidence]
+  const dim = !on
+
+  return (
+    <div style={{ padding: `${PAD.row}px 0`, borderTop: '1px solid var(--bdr)', opacity: dim ? 0.45 : 1 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: PAD.gap }}>
+        <input type="checkbox" checked={on} onChange={e => onToggle(e.target.checked)}
+          style={{ width: 14, height: 14, accentColor: 'var(--accent)', flexShrink: 0 }}
+          aria-label={`Apply ${slot.label}`} />
+
+        <div style={{ width: 116, flexShrink: 0 }}>
+          <div style={{ fontSize: 12.5, color: 'var(--text)' }}>{slot.label}</div>
+          <div style={{ fontSize: 10, color: 'var(--dim)' }}>{slot.desc}</div>
+        </div>
+
+        <code style={{
+          fontFamily: 'var(--mono)', fontSize: 10.5, color: 'var(--muted)',
+          flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        }} title={proposal.source}>{proposal.source}</code>
+
+        <span aria-hidden style={{ color: 'var(--dim)', flexShrink: 0 }}>→</span>
+
+        {slot.kind === 'color' && (
+          <button onClick={() => setPicking(p => !p)} disabled={dim}
+            title="Choose a different colour from the file"
+            style={{
+              width: 78, height: 28, borderRadius: 6, flexShrink: 0, cursor: dim ? 'default' : 'pointer',
+              background: proposal.value, border: '1px solid var(--bdr2)',
+              color: bestOn(proposal.value), fontFamily: 'var(--mono)', fontSize: 9.5,
+            }}>{proposal.value}</button>
+        )}
+        {slot.kind === 'font' && (
+          <select value={proposal.value} disabled={dim} onChange={e => onChange(e.target.value)}
+            style={{ width: 150, flexShrink: 0, fontFamily: 'var(--mono)', fontSize: 11 }}>
+            {[proposal.value, ...families.filter(f => f !== proposal.value)].map(f => (
+              <option key={f} value={f}>{f}</option>
+            ))}
+          </select>
+        )}
+        {slot.kind === 'dimension' && (
+          <input type="number" value={proposal.value} disabled={dim} min={0} step={1}
+            onChange={e => onChange(Number(e.target.value))}
+            style={{ width: 78, flexShrink: 0, textAlign: 'right', fontFamily: 'var(--mono)', fontSize: 11 }} />
+        )}
+
+        <span title={conf.hint} style={{
+          width: 58, flexShrink: 0, textAlign: 'right',
+          fontSize: 9.5, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase',
+          color: conf.tone,
+        }}>{conf.label}</span>
+      </div>
+
+      {/* The reason, always visible rather than behind a hover. It is the only
+          thing that makes an "inferred" row checkable without going and
+          reading the stylesheet yourself. */}
+      <div style={{ fontSize: 10.5, color: 'var(--dim)', marginLeft: 24 + 116 + PAD.gap * 2, marginTop: 2 }}>
+        {proposal.why}
+      </div>
+
+      {picking && !dim && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: PAD.row, marginLeft: 24 }}>
+          {palette.map(hex => (
+            <button key={hex} title={hex} onClick={() => { onChange(hex); setPicking(false) }}
+              style={{
+                width: 30, height: 24, borderRadius: 4, cursor: 'pointer', padding: 0, background: hex,
+                border: hex === proposal.value ? '2px solid var(--accent)' : '1px solid rgba(255,255,255,.12)',
+              }} />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
 
 export const IMPORT_FORMATS = 'A DESIGN.md (.md) to open, or a stylesheet (.css) to sample colours, typefaces and spacing from'
 
@@ -63,23 +161,31 @@ export default function ImportModal({ onClose, onApply, onOpenDocument }) {
   const [name, setName] = useState('')
   const [kind, setKind] = useState(null)     // null | 'document' | 'css'
   const [found, setFound] = useState(null)
-  const [picks, setPicks] = useState({})
-  const [family, setFamily] = useState(null)
-  const [seat, setSeat] = useState('accent')
+  /* The proposals, editable. Confirming is the point of the screen, so the
+     table is state rather than a derived view — changing a swatch changes what
+     will be applied, not what was suggested. */
+  const [rows, setRows] = useState({})
+  const [off, setOff] = useState(() => new Set())
   const [over, setOver] = useState(false)
+
+  const ingest = source => {
+    const f = readCss(source)
+    setFound(f)
+    setRows(mapReference(f).proposals)
+    setOff(new Set())
+  }
 
   const read = (source, filename = '') => {
     setText(source); setName(filename)
-    setPicks({}); setFamily(null)
-    if (!source.trim()) { setKind(null); setFound(null); return }
+    if (!source.trim()) { setKind(null); setFound(null); setRows({}); return }
     if (looksLikeDocument(source, filename)) { setKind('document'); setFound(null); return }
-    setKind('css'); setFound(readCss(source))
+    setKind('css'); ingest(source)
   }
 
   /* Reading it the other way is one click, because the heuristic is a
      heuristic — a CSS file with a licence header in `---` fences would trip
      it, and being wrong should cost nothing. */
-  const readAsCss = () => { setKind('css'); setFound(readCss(text)) }
+  const readAsCss = () => { setKind('css'); ingest(text) }
 
   const onFile = e => {
     const f = e.target.files?.[0]
@@ -105,17 +211,24 @@ export default function ImportModal({ onClose, onApply, onOpenDocument }) {
     return () => window.removeEventListener('paste', onPaste)
   }, [kind])
 
-  const pick = hex => setPicks(p => {
-    const next = { ...p }
-    /* Clicking a colour already assigned to the current seat clears it. */
-    if (next[seat] === hex) delete next[seat]
-    else next[seat] = hex
+  const setValue = (id, value) => setRows(r => ({ ...r, [id]: { ...r[id], value } }))
+  const toggle = (id, on) => setOff(s => {
+    const next = new Set(s)
+    if (on) next.delete(id); else next.add(id)
     return next
   })
-  const roleOf = hex => Object.keys(picks).find(k => picks[k] === hex)
 
-  const anything = Object.keys(picks).length > 0 || family
-    || found?.spacingBase || found?.radiusBase || found?.fontBase
+  /* Every colour in the file, deduplicated, as the choices a colour row can be
+     changed to — including the ones the matcher never claimed, since a name it
+     didn't recognise is exactly the case where you need to reach in by hand. */
+  const palette = found ? [...new Set([
+    ...found.colours.map(c => c.value),
+    ...found.vars.filter(v => v.hex).map(v => v.hex),
+  ])] : []
+  const families = found ? found.families.map(f => f.value) : []
+
+  const accepted = new Set(Object.keys(rows).filter(id => !off.has(id)))
+  const anything = accepted.size > 0
 
   const reset = () => read('')
 
@@ -193,63 +306,42 @@ export default function ImportModal({ onClose, onApply, onOpenDocument }) {
 
           {kind === 'css' && found && (
             <>
-              <div style={{ display: 'flex', alignItems: 'center', gap: PAD.gap, marginBottom: PAD.card }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: PAD.gap, marginBottom: PAD.gap }}>
                 <span style={{ fontSize: 12, color: 'var(--muted)', flex: 1 }}>
-                  {found.counts.colours} colours, {found.counts.families} families, {found.counts.spacing} spacing values
+                  {found.counts.colours} colours, {found.counts.families} families
+                  {found.counts.vars > 0 && `, ${found.counts.vars} custom properties`}
                 </span>
                 <button className="btn-ghost" style={ghost} onClick={reset}>Start over</button>
               </div>
 
-              <Section title="Colours" note={`Click a swatch to assign it to ${seat}`}>
-                <div style={{ display: 'flex', gap: PAD.row, marginBottom: PAD.gap }}>
-                  {SEATS.map(s => (
-                    <button key={s} className={seat === s ? 'seg-on' : 'seg'} onClick={() => setSeat(s)}>
-                      {s}{picks[s] ? ' ✓' : ''}
-                    </button>
-                  ))}
-                </div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: PAD.row }}>
-                  {found.colours.map(c => (
-                    <Swatch key={c.value} hex={c.value} count={c.count}
-                      picked={!!roleOf(c.value)} role={roleOf(c.value)} onClick={() => pick(c.value)} />
-                  ))}
-                </div>
-                <p className="panel-note" style={{ marginTop: PAD.row, fontSize: 10.5 }}>
-                  Saturated colours first, then greys with the mid-tones leading — a mid grey makes a
-                  better neutral than near-black. Status colours aren’t offered: a stylesheet’s green is
-                  rarely <em>the</em> success green.
-                </p>
-              </Section>
+              <p className="panel-note" style={{ marginBottom: PAD.card }}>
+                Everything below goes into a <strong>seed</strong>, and the scales, roles and components
+                regenerate from there. Any slot you switch off keeps its current value and stays
+                consistent with the rest — nothing is blanked, so there are no holes for an agent to
+                fill by guessing.
+              </p>
 
-              {found.families.length > 0 && (
-                <Section title="Typefaces">
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: PAD.row }}>
-                    {found.families.map(f => (
-                      <button key={f.value} className={family === f.value ? 'seg-on' : 'seg'}
-                        onClick={() => setFamily(family === f.value ? null : f.value)}
-                        title={`seen ${f.count}×`}>
-                        {f.value} <span style={{ opacity: .6 }}>{f.count}×</span>
-                      </button>
-                    ))}
-                  </div>
-                  <p className="panel-note" style={{ marginTop: PAD.row, fontSize: 10.5 }}>
-                    Applied as the body face. It has to exist in Google Fonts to load — otherwise the name
-                    is kept and the fallback renders.
-                  </p>
-                </Section>
-              )}
-
-              <Section title="Measurements">
-                <div style={{ display: 'flex', gap: PAD.gap, flexWrap: 'wrap' }}>
-                  <Stat label="Spacing base" value={found.spacingBase ? `${found.spacingBase}px` : 'no pattern'} />
-                  <Stat label="Radius" value={found.radiusBase ? `${found.radiusBase}px` : 'none found'} />
-                  <Stat label="Body size" value={found.fontBase ? `${found.fontBase}px` : 'none found'} />
-                </div>
-                <p className="panel-note" style={{ marginTop: PAD.row, fontSize: 10.5 }}>
-                  The spacing base is whichever small number divides most of the values found. “No pattern”
-                  means the stylesheet doesn’t have a scale — which is worth knowing on its own.
+              {Object.keys(rows).length === 0 ? (
+                <p className="panel-note">
+                  Nothing in this file mapped to a slot. It may not be a stylesheet, or it may hold only
+                  layout rules — neither is a failure, but there is nothing here to import.
                 </p>
-              </Section>
+              ) : GROUPS.map(group => {
+                const inGroup = SLOTS.filter(s => s.group === group && rows[s.id])
+                if (!inGroup.length) return null
+                return (
+                  <Section key={group} title={group}>
+                    <div style={{ borderBottom: '1px solid var(--bdr)' }}>
+                      {inGroup.map(slot => (
+                        <MapRow key={slot.id} slot={slot} proposal={rows[slot.id]}
+                          on={!off.has(slot.id)} onToggle={v => toggle(slot.id, v)}
+                          onChange={v => setValue(slot.id, v)}
+                          palette={palette} families={families} />
+                      ))}
+                    </div>
+                  </Section>
+                )
+              })}
             </>
           )}
         </div>
@@ -269,8 +361,8 @@ export default function ImportModal({ onClose, onApply, onOpenDocument }) {
           ) : (
             <button className="btn-primary" disabled={!anything}
               style={{ padding: BTN.sm, fontSize: 12, opacity: anything ? 1 : .45, cursor: anything ? 'pointer' : 'not-allowed' }}
-              onClick={() => { onApply({ seeds: picks, family, ...found }); onClose() }}>
-              Apply
+              onClick={() => { onApply(toImport(rows, accepted)); onClose() }}>
+              Apply {accepted.size > 0 && `${accepted.size} ${accepted.size === 1 ? 'Value' : 'Values'}`}
             </button>
           )}
         </div>
