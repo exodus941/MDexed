@@ -5,6 +5,7 @@ import { useStore } from '../state/store.jsx'
 import { PREVIEW_CSS, varsToStyle } from './tokens.js'
 import { buildCssVars } from '../state/derive.js'
 import { gradientCss } from '../color/modes.js'
+import CrossFade from '../ui/CrossFade.jsx'
 import { resolveRef } from '../color/ramp.js'
 import Dashboard from './screens/Dashboard.jsx'
 import Form from './screens/Form.jsx'
@@ -157,11 +158,17 @@ export default function Canvas({ onInspect }) {
         </div>
       </div>
 
+      {/* Keyed on the mode as well as the surface: the custom properties live
+          on the `.dmd` wrapper *inside* the fade, so the outgoing layer keeps
+          the old palette and light↔dark genuinely cross-dissolves rather than
+          snapping. */}
       <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'auto', padding: 16 }}>
-        <div className="dmd" style={{ ...varsToStyle(vars), borderRadius: 10, border: '1px solid var(--bdr)' }}>
-          {/* Every surface is inspectable, not just the gallery. */}
-          <Component onInspect={onInspect ? handleInspect : undefined} />
-        </div>
+        <CrossFade id={`${surface}:${mode}`}>
+          <div className="dmd" style={{ ...varsToStyle(vars), borderRadius: 10, border: '1px solid var(--bdr)' }}>
+            {/* Every surface is inspectable, not just the gallery. */}
+            <Component onInspect={onInspect ? handleInspect : undefined} layout={derived.componentLayout} />
+          </div>
+        </CrossFade>
       </div>
 
       <TargetMenu menu={menu} onClose={() => setMenu(null)} onPick={t => onInspect?.(t)} />

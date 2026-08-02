@@ -5,6 +5,7 @@
    render: at zero saturation or zero brightness the hue is unrecoverable from
    RGB, so dragging into a corner would otherwise reset the hue to red. */
 import { useState, useRef, useEffect, useCallback } from 'react'
+import CrossFade from './CrossFade.jsx'
 import {
   parseColor, toHex, hexFrom, isValidColor,
   toRgb255, fromRgb255, toHsl360, fromHsl360, toHsb360, fromHsb360,
@@ -140,7 +141,9 @@ export default function ColorPicker({ value, onChange, alpha: allowAlpha = false
         )}
       </div>
 
-      {/* Numeric entry */}
+      {/* Numeric entry. Switching model swaps one set of fields for another,
+          which is a tab change in everything but name — dissolve it. */}
+      <CrossFade id={model}>
       {model === 'HEX' && (
         <input
           value={hexDraft}
@@ -195,6 +198,7 @@ export default function ColorPicker({ value, onChange, alpha: allowAlpha = false
           )}
         </div>
       )}
+      </CrossFade>
     </div>
   )
 }

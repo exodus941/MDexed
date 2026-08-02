@@ -9,6 +9,7 @@
 import { PROSE_SECTIONS, CONTRAST_PAIRS, ROLE_GROUPS } from '../state/schema.js'
 import { check } from '../color/contrast.js'
 import { SPEC_COMPONENT_PROPS } from './yaml.js'
+import { LAYOUT_COMPONENTS, layoutRows, layoutSentences } from '../state/componentLayout.js'
 
 const cell = v => String(v ?? '').replace(/\|/g, '\\|').replace(/\n+/g, ' ').trim()
 
@@ -223,6 +224,20 @@ function componentsBody(state, derived) {
   const iconTable = table(['Size', 'Value'], Object.entries(icons.sizes ?? {}).map(([k, v]) => [`\`${k}\``, `${v}px`]))
   const f = state.focus
 
+  /* Composition — where the icon goes, how the actions sit. The eight legal
+     component properties describe appearance, not arrangement, so this is the
+     only place it can be said. Stated as rules rather than settings, because
+     that is the form an agent acts on. */
+  const composition = LAYOUT_COMPONENTS.flatMap(def => {
+    const values = derived.componentLayout?.[def.name]
+    if (!values) return []
+    return [
+      `**${def.label}**`,
+      table(['Setting', 'Value'], layoutRows(def, values)),
+      bullets(layoutSentences(def, values)),
+    ]
+  })
+
   return joinBlocks(
     bullets([
       'Variants and states are flattened into the component name: `button-primary`, `button-primary-hover`, `button-sm`.',
@@ -230,6 +245,8 @@ function componentsBody(state, derived) {
     ]),
     proseOnly.length && '**Additional component properties** (outside the DESIGN.md component schema, applied the same way):',
     proseOnly.length && table(['Component', 'Property', 'Value'], proseOnly),
+
+    ...composition,
 
     '**Iconography**',
     bullets([

@@ -17,6 +17,8 @@ Rules:
 - British English. No headings, no bullet characters unless asked. No preamble,
   no sign-off, no restating the request. Return only the prose itself.`
 
+import { LAYOUT_COMPONENTS, layoutSentences } from '../state/componentLayout.js'
+
 const list = (label, rows) => (rows.length ? `${label}:\n${rows.join('\n')}` : '')
 
 /** The token facts relevant to one section, so the model isn't guessing. */
@@ -69,7 +71,13 @@ export function contextFor(sectionKey, state, derived) {
         `Components: ${derived.components.slice(0, 24).map(c => c.name).join(', ')}`,
         `Icons: ${state.icons.library}, stroke ${state.icons.strokeWidth}.`,
         `Focus ring: ${state.focus.width}px ${state.focus.style} in ${state.focus.role}, offset ${state.focus.offset}px.`,
-      ].join('\n')
+        /* Composition is a deliberate choice with no frontmatter slot, so the
+           model needs it here or it will write around it. */
+        ...LAYOUT_COMPONENTS.map(def => {
+          const values = derived.componentLayout?.[def.name]
+          return values ? list(def.label, layoutSentences(def, values).map(s => `  ${s}`)) : ''
+        }),
+      ].filter(Boolean).join('\n')
 
     case 'dosDonts':
       return list('Constraints already active', (state.directives.antiPatterns ?? []).filter(a => a.on).map(a => `  ${a.text}`))

@@ -77,6 +77,14 @@ label{display:block;font-size:10.5px;font-weight:500;text-transform:uppercase;le
    compositing — which left the toast stuck invisible. */
 .anim-fall{animation:dmd-fall var(--t) var(--ease) forwards}
 
+/* Cross dissolve. Both layers animate for the same duration and overlap
+   completely, so there is never a frame of empty pane between two tabs.
+   Linear rather than eased: an eased pair crosses below 50% opacity in the
+   middle and shows a dip. */
+@keyframes dmd-xfade-out{from{opacity:1}to{opacity:0}}
+.xfade-out{animation:dmd-xfade-out var(--t) linear forwards}
+.xfade-in{animation:dmd-fade var(--t) linear both}
+
 .seg,.seg-on{font-family:var(--sans);font-size:12px;cursor:pointer;border:none;border-radius:5px;padding:5px 11px;background:transparent;color:var(--muted);transition:background var(--t) var(--ease),color var(--t) var(--ease);white-space:nowrap}
 .seg:hover{color:var(--text);background:var(--surf3)}
 .seg-on{background:var(--surf3);color:var(--text);font-weight:500}

@@ -3,6 +3,7 @@
    Category comes from which top-level branch of the document changed, found by
    reference comparison — cheap, and correct even when a caller forgot to tag
    its update. The tag, where there is one, supplies the detail. */
+import { resolveAllLayouts } from './componentLayout.js'
 
 export const CHANGE_CATEGORIES = [
   { id: 'colour',     label: 'Colour',     colour: '#dc9055' },
@@ -82,6 +83,7 @@ const TAG_LABELS = {
   dur: t => `Duration · ${t}`,
   ease: t => `Easing · ${t}`,
   comp: t => `Component · ${t}`,
+  clayout: t => `Composition · ${t}`,
   prop: () => 'Component property',
   meta: t => `Project ${t}`,
   prose: t => `Rationale · ${t}`,
@@ -200,6 +202,14 @@ export function detailFor(tag, before, after) {
     case 'space:base':
     case 'radius:base':
       return null
+    case 'clayout': {
+      const [name, field] = rest.split('.')
+      return pair(
+        resolveAllLayouts(before.components?.layout)[name]?.[field],
+        resolveAllLayouts(after.components?.layout)[name]?.[field],
+        'value', `${name} ${field}`,
+      )
+    }
     case 'prose': {
       const a = (before.prose?.[rest] ?? '').trim(), b = (after.prose?.[rest] ?? '').trim()
       if (a === b) return null

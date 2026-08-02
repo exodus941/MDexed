@@ -9,7 +9,8 @@ import { useState, useEffect } from 'react'
 import { useStore } from '../state/store.jsx'
 import { COMPONENT_LIBRARY, COMPONENT_GROUPS } from '../state/components.js'
 import { SPEC_COMPONENT_PROPS } from '../emit/yaml.js'
-import { SectionHeader, Toggle, ResetButton, Banner, Collapsible, Expand, FilterField } from '../ui/controls.jsx'
+import { LAYOUT_BY_NAME, fieldActive } from '../state/componentLayout.js'
+import { SectionHeader, Toggle, ResetButton, Banner, Collapsible, Expand, FilterField, Segmented } from '../ui/controls.jsx'
 import { useReveal, revealStyle } from '../ui/reveal.js'
 
 /* Which token group a property should draw from. Offering `{colors.*}` for a
@@ -231,7 +232,42 @@ function EntryBlock({ title, entryName, props, overrides, onSet, onReset, derive
   )
 }
 
-function ComponentBlock({ def, cfg, onToggle, onSet, onReset, derived, mode, inspect }) {
+/* Composition rules — how the parts of a component are arranged, as opposed to
+   what colour they are. None of it is expressible in the spec's eight
+   properties, so it is emitted as guidance; the note says so plainly rather
+   than letting the difference be a surprise at export. */
+function LayoutBlock({ def, values, onSet }) {
+  const changed = def.fields.filter(f => values[f.k] !== f.default).length
+
+  return (
+    <div style={{
+      marginBottom: 12, padding: '9px 10px', borderRadius: 8,
+      background: 'var(--surf)', border: '1px solid var(--bdr)',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 3 }}>
+        <span style={{ fontSize: 12, fontWeight: 500 }}>{def.label}</span>
+        {changed > 0 && <span className="chip" style={{ color: 'var(--accent)' }}>{changed} changed</span>}
+        <span style={{ flex: 1 }} />
+        <span className="chip" title="Emitted as guidance in the Components section — the DESIGN.md component schema has no slot for arrangement">prose</span>
+      </div>
+      <p className="panel-note" style={{ marginBottom: 9 }}>{def.desc}</p>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {def.fields.map(field => (
+          <Expand key={field.k} open={fieldActive(field, values)}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingBottom: 2 }}>
+              <span style={{ fontSize: 11.5, color: 'var(--muted)', minWidth: 104 }}>{field.label}</span>
+              <Segmented size="sm" value={values[field.k]} onChange={v => onSet(def.name, field.k, v)}
+                options={field.options.map(o => ({ value: o.value, label: o.label }))} />
+            </div>
+          </Expand>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function ComponentBlock({ def, cfg, layout, onSetLayout, onToggle, onSet, onReset, derived, mode, inspect }) {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const enabled = cfg.enabled[def.name] ?? def.on
@@ -278,6 +314,9 @@ function ComponentBlock({ def, cfg, onToggle, onSet, onReset, derived, mode, ins
               Showing properties matching <code style={{ fontFamily: 'var(--mono)', color: 'var(--accent)' }}>{query}</code>
             </div>
           )}
+          {!query && LAYOUT_BY_NAME[def.name] && (
+            <LayoutBlock def={LAYOUT_BY_NAME[def.name]} values={layout[def.name]} onSet={onSetLayout} />
+          )}
           {def.base && <EntryBlock entryName={def.name} title="base" props={def.base} overrides={overrides} onSet={onSet} onReset={onReset} derived={derived} mode={mode} inspect={inspect} query={query} />}
           {Object.entries(def.variants ?? {}).map(([v, props]) => (
             <EntryBlock key={v} entryName={`${def.name}-${v}`} title="variant" props={props} overrides={overrides} onSet={onSet} onReset={onReset} derived={derived} mode={mode} inspect={inspect} query={query} />
@@ -314,6 +353,10 @@ export default function ComponentsPanel({ inspect }) {
     return { ...c, overrides: next }
   }, `comp:${key}`)
   const onReset = key => upd(c => { const n = { ...c.overrides }; delete n[key]; return { ...c, overrides: n } })
+  const onSetLayout = (name, field, value) => upd(c => ({
+    ...c,
+    layout: { ...c.layout, [name]: { ...c.layout?.[name], [field]: value } },
+  }), `clayout:${name}.${field}`)
 
   const proseOnly = derived.components.reduce((n, c) =>
     n + c.properties.filter(p => !SPEC_COMPONENT_PROPS.includes(p.key)).length, 0)
@@ -353,6 +396,7 @@ export default function ComponentsPanel({ inspect }) {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
               {defs.map(def => (
                 <ComponentBlock key={def.name} def={def} cfg={cfg} onToggle={onToggle} onSet={onSet} onReset={onReset}
+                  layout={derived.componentLayout} onSetLayout={onSetLayout}
                   derived={derived} mode={state.color.mode} inspect={inspect} />
               ))}
             </div>

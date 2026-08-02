@@ -265,7 +265,11 @@ export const createInitialState = () => ({
 
   /* `custom` holds components that came from an imported file or an older
      document — names the library knows nothing about, emitted verbatim. */
-  components: { enabled: {}, overrides: {}, custom: [], emitStates: true, emitSizes: true },
+  /* `layout` holds composition rules — icon placement, alignment, action
+     arrangement — that have no slot in the spec's eight component properties
+     and are emitted as guidance instead. Absent in older documents; readers go
+     through `resolveAllLayouts`, which fills the defaults. */
+  components: { enabled: {}, overrides: {}, custom: [], emitStates: true, emitSizes: true, layout: {} },
 
   voice: {
     casing: 'sentence',        // sentence | title

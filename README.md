@@ -22,7 +22,7 @@ Open <http://localhost:5173>. Vite proxies `/api` through to the Worker on 8787.
 | --- | --- |
 | `npm run dev` | Both servers, side by side |
 | `npm run dev:web` / `npm run dev:api` | One at a time |
-| `npm test` | 88-assertion regression suite over the pure layer |
+| `npm test` | 102-assertion regression suite over the pure layer |
 | `npm run build` | Production build |
 | `npm run db:migrate:local` | Apply migrations to the local D1 database |
 
@@ -97,6 +97,8 @@ Duration scale (125 / 250 / 500ms by default), three personality presets, a **dr
 ### Components
 **14 components** across 7 groups, expanding to **48 flattened entries** — variants, sizes and six interaction states, named the way the spec expects (`button-primary-hover`).
 
+**Composition** is separate from appearance, and sits alongside the component it governs. A modal's icon placement (none, beside the title, above it), icon size, icon treatment, alignment, title-to-body gap, action arrangement and corner close control are all editable, and the Overlays surface re-renders as you change them. None of it fits the spec's eight component properties, so it is emitted as a settings table plus imperative rules in the Components section — the same route elevation and motion take. Settings that stop applying (icon size when there is no icon) disappear from the panel and from the file.
+
 - Each card has a **search** matching entry names, property keys and values.
 - Property fields offer token pickers scoped to the property type, with resolved previews: swatches for colours, computed px for dimensions, a bar for gradients.
 - Per-component and per-size **icon sizing** and gaps.
@@ -121,7 +123,17 @@ Every edit since this browser first opened the project, with before/after values
 
 Six surfaces — **Dashboard, Landing, Form, Settings, Overlays, Gallery** — with a light/dark toggle. Everything is styled from the 335 CSS custom properties `derive()` produces, so there is no second set of values the preview could drift toward.
 
-**Click anything** to jump to its definition. Clicks resolve innermost-first, so a button inside a card is the button. Elements with two owners — a heading has both a colour role and a text style — offer a choice. The target opens, scrolls into view and highlights. Alt-click interacts with the control instead.
+**Click anything** to jump to its definition. Clicks resolve innermost-first, so a button inside a card is the button — and the card is still on offer, because a click also collects what its containers answer to. A run of text opens into its font and its colour, which live on different tabs. The target opens, scrolls into view and highlights. Alt-click interacts with the control instead.
+
+---
+
+## Editor motion
+
+One slider in the header — **UI Animation** — governs every transition the editor makes, as `--t`. It is not the same thing as the Motion tab: that one defines *your* system's durations, this one defines the tool's.
+
+Content that swaps **cross-dissolves** rather than cutting: editor tabs, preview surfaces, the light/dark toggle, the colour picker's model tabs, the AI review's diff/plain toggle. Both trees are on screen at once for the duration — the outgoing layer is the element as it was at the moment of the switch, which is why light↔dark genuinely dissolves between two palettes instead of snapping. Set the slider to 0 and every swap is instantaneous, with no layering at all.
+
+Jumps from the preview scroll once, after any accordion has finished opening, at the same duration. `prefers-reduced-motion` is honoured throughout.
 
 ---
 
@@ -165,7 +177,8 @@ apps/
   web/                         Vite + React 19
     src/
       state/                   schema, derivation, store, migrations,
-                               component library, presets, changelog
+                               component library and composition,
+                               presets, changelog
       color/                   conversion (culori), scale generation,
                                WCAG + APCA contrast, palette harmonies, modes
       type/                    modular scale, Google Fonts catalogue
@@ -182,7 +195,7 @@ apps/
     migrations/                D1 schema
 ```
 
-Roughly 9,400 lines across 49 source files.
+Roughly 10,000 lines across 52 source files.
 
 ### API
 
@@ -207,7 +220,7 @@ One `persist()` path serves both destinations, so "saved" means one thing. Local
 
 ## Testing
 
-`npm test` runs 88 assertions over the pure layer — derivation, macro behaviour, generated scales, fluid sizing, component expansion, spec conformance, round-tripping, migration, presets, preview fidelity, contrast, the word diff and prompt construction. No framework; plain assertions, because that's where the correctness risk lives.
+`npm test` runs 102 assertions over the pure layer — derivation, macro behaviour, generated scales, fluid sizing, component expansion, spec conformance, round-tripping, migration, presets, preview fidelity, contrast, component composition, the word diff and prompt construction. No framework; plain assertions, because that's where the correctness risk lives.
 
 Round-tripping is **byte-identical for the YAML layer**. The prose layer can't be: properties outside the spec's eight exist only in generated markdown, which import strips by design. That loss is reported on import rather than being silent.
 
