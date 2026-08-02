@@ -22,9 +22,14 @@ export const APP_CSS = `
   --text:hsl(var(--ui-h) 5% 87%);--muted:hsl(var(--ui-h) 3% 46%);--dim:hsl(var(--ui-h) 9% 27%);
   --text-dim:hsl(var(--ui-h) 4% 74%);
   --scroll:hsl(var(--ui-h) 11% 25%);--scroll-hover:hsl(var(--ui-h) 10% 34%);
-  /* The hue circle, at the saturation and lightness the chrome swatch uses,
-     so the track previews what the slider actually produces. */
-  --spectrum:linear-gradient(to right,hsl(0 65% 52%),hsl(60 65% 52%),hsl(120 65% 52%),hsl(180 65% 52%),hsl(240 65% 52%),hsl(300 65% 52%),hsl(360 65% 52%));
+  /* The full hue circle, 0 to 360, so every position on the track shows the
+     hue it selects. Stops every 30° rather than every 60°: the gradient
+     interpolates in sRGB, and across a 60° span that cuts the corner through
+     a desaturated middle — the greens and cyans came out muddy. */
+  --spectrum:linear-gradient(to right,
+    hsl(0 70% 55%),hsl(30 70% 55%),hsl(60 70% 55%),hsl(90 70% 55%),
+    hsl(120 70% 55%),hsl(150 70% 55%),hsl(180 70% 55%),hsl(210 70% 55%),
+    hsl(240 70% 55%),hsl(270 70% 55%),hsl(300 70% 55%),hsl(330 70% 55%),hsl(360 70% 55%));
   --accent:#dc9055;--success:#5aad80;--danger:#de5c5c;--warn:#d8a441;
   --display:'Plus Jakarta Sans',system-ui,sans-serif;--sans:'Plus Jakarta Sans',system-ui,sans-serif;--mono:'JetBrains Mono',monospace;
   /* One duration for the whole editor. Snappier than this reads as jumpy. */
@@ -170,11 +175,16 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;bac
 
    The thumb carries the hue it is currently pointing at, so the control
    states its own value. A ring keeps it findable at the yellows, where a
-   bare swatch would vanish into the track under it. */
-.hue-slider::-webkit-slider-runnable-track{height:6px;border-radius:3px;background:var(--spectrum)}
-.hue-slider::-moz-range-track{height:6px;border-radius:3px;background:var(--spectrum)}
-.hue-slider::-webkit-slider-thumb{width:14px;height:14px;margin-top:-4px;background:hsl(var(--hue) 65% 52%);box-shadow:0 0 0 2px var(--surf),0 0 0 3px rgba(255,255,255,.5)}
-.hue-slider::-moz-range-thumb{width:14px;height:14px;background:hsl(var(--hue) 65% 52%);box-shadow:0 0 0 2px var(--surf),0 0 0 3px rgba(255,255,255,.5)}
+   bare swatch would vanish into the track under it.
+
+   The selectors need the input[type=range] prefix. A bare .hue-slider is
+   specificity (0,1,0) and the generic track rule above is (0,1,1) — a type
+   selector plus an attribute selector — so the grey won and the spectrum was
+   never painted, in either place it had been tried. */
+input[type=range].hue-slider::-webkit-slider-runnable-track{height:6px;border-radius:3px;background:var(--spectrum)}
+input[type=range].hue-slider::-moz-range-track{height:6px;border-radius:3px;background:var(--spectrum)}
+input[type=range].hue-slider::-webkit-slider-thumb{width:14px;height:14px;margin-top:-4px;background:hsl(var(--hue) 70% 55%);box-shadow:0 0 0 2px var(--surf),0 0 0 3px rgba(255,255,255,.55)}
+input[type=range].hue-slider::-moz-range-thumb{width:14px;height:14px;background:hsl(var(--hue) 70% 55%);box-shadow:0 0 0 2px var(--surf),0 0 0 3px rgba(255,255,255,.55)}
 
 .num{font-family:var(--mono);font-size:12px;padding:4px 6px;text-align:right}
 .num::-webkit-outer-spin-button,.num::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}

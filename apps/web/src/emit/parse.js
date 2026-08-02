@@ -142,7 +142,11 @@ export function parseFile(text) {
     meta: {
       name: doc.name ?? base.meta.name,
       description: doc.description ?? '',
-      version: doc.version ?? 'alpha',
+      /* Empty rather than a placeholder. `version` is a build number stamped
+         by exporting, so a file that carries none has genuinely never been
+         built — inventing one here also broke the round trip, since the
+         re-export then emitted a field the original didn't have. */
+      version: doc.version ?? '',
     },
     macros: { ...DEFAULT_MACROS },
     color: {
