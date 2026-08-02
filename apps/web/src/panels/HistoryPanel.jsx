@@ -307,7 +307,7 @@ export default function HistoryPanel() {
         </div>
       ))}
 
-      <Collapsible title="Log settings" note={`${logLimit} kept`}>
+      <Collapsible title="Log Settings" note={`${logLimit} kept`}>
         <div style={{ display: 'flex', alignItems: 'flex-end', gap: 12 }}>
           <NumField label="Entries to keep" value={logLimit} min={20} max={LOG_LIMIT_MAX} step={50}
             width={130} onChange={setLogLimit} />

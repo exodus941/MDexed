@@ -490,7 +490,7 @@ export default function ColorPanel() {
         </datalist>
       </Collapsible>
 
-      <Collapsible title="Scale shape" note="advanced">
+      <Collapsible title="Scale Shape" note="advanced">
         <p className="panel-note" style={{ marginBottom: 12 }}>
           Steps are generated in OKLCH so they step evenly by eye rather than by arithmetic.
         </p>
@@ -516,7 +516,7 @@ export default function ColorPanel() {
         </div>
       </Collapsible>
 
-      <Collapsible title="Generated scales" note={stepOverrides ? `${stepOverrides} overridden` : `${Object.keys(ramps).length}`} defaultOpen>
+      <Collapsible title="Generated Scales" note={stepOverrides ? `${stepOverrides} overridden` : `${Object.keys(ramps).length}`} defaultOpen>
         <p className="panel-note" style={{ marginBottom: 10 }}>Click any step to override it.</p>
         {Object.entries(ramps).map(([name, ramp]) => (
           <RampRow key={name} name={name} ramp={ramp} overrides={color.stepOverrides ?? {}}
@@ -554,7 +554,7 @@ export default function ColorPanel() {
         </p>
       </Collapsible>
 
-      <Collapsible title="What gets exported">
+      <Collapsible title="What Gets Exported">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <Toggle label="Include the numbered scales" checked={color.emitRamps}
             onChange={v => upd(c => ({ ...c, emitRamps: v }))}
@@ -566,7 +566,7 @@ export default function ColorPanel() {
       </Collapsible>
 
       {color.custom?.length > 0 && (
-        <Collapsible title="Custom tokens" note={String(color.custom.length)}>
+        <Collapsible title="Custom Tokens" note={String(color.custom.length)}>
           <p className="panel-note" style={{ marginBottom: 8 }}>Carried over from an imported file. Emitted verbatim.</p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             {color.custom.map(c => (

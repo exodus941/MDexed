@@ -163,7 +163,7 @@ export default function TypographyPanel({ inspect }) {
                 {role === 'mono' ? 'const total = 1,234.56;' : 'Handgloves 0123'}
               </div>
               <div style={{ marginTop: 9 }}>
-                <Collapsible title="Axes and features" note={meta?.axes?.length ? `${meta.axes.length} axes` : 'static'}>
+                <Collapsible title="Axes and Features" note={meta?.axes?.length ? `${meta.axes.length} axes` : 'static'}>
                   <div style={{ marginBottom: 12 }}>
                     <AxisControls familyMeta={meta} values={t.axes?.[role]} onChange={(tag, v) => setAxis(role, tag, v)} />
                   </div>
@@ -193,7 +193,7 @@ export default function TypographyPanel({ inspect }) {
         <NumField label="Max measure" value={t.measure} min={40} max={110} suffix="ch" onChange={v => setField('measure', v)} width={120} />
       </Collapsible>
 
-      <Collapsible title="Fluid sizing" note={t.fluid.enabled ? 'on' : 'off'}>
+      <Collapsible title="Fluid Sizing" note={t.fluid.enabled ? 'on' : 'off'}>
         <p className="panel-note" style={{ marginBottom: 10 }}>
           Emits <code>clamp()</code> so type interpolates with the viewport instead of stepping at breakpoints.
         </p>
@@ -213,7 +213,7 @@ export default function TypographyPanel({ inspect }) {
         )}
       </Collapsible>
 
-      <Collapsible title="Generated styles" note={String(generated.length)} defaultOpen
+      <Collapsible title="Generated Styles" note={String(generated.length)} defaultOpen
         openSignal={inspect?.at}>
         <p className="panel-note" style={{ marginBottom: 8 }}>Type in any field to override it.</p>
         {loading && <Banner tone="info">Loading the font catalogue…</Banner>}

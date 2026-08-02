@@ -135,7 +135,7 @@ export default function AccessPanel({ onNavigate }) {
         </Collapsible>
       ))}
 
-      <Collapsible title="Requirements in the exported file"
+      <Collapsible title="Requirements in the Exported File"
         note={String(REQUIREMENTS.length)} defaultOpen={false}>
         <p className="panel-note" style={{ marginBottom: PAD.gap }}>
           These can’t be checked from tokens — they’re properties of markup, not of a palette. They

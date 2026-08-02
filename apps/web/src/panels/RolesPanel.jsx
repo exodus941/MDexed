@@ -219,7 +219,7 @@ export default function RolesPanel({ inspect }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-      <SectionHeader title="Semantic roles" desc="What each colour is for. This is what the exported file leads with."
+      <SectionHeader title="Semantic Roles" desc="What each colour is for. This is what the exported file leads with."
         right={overrideCount > 0 ? <span className="chip">{overrideCount} overridden</span> : null} />
 
       <Collapsible title="Modes" defaultOpen>

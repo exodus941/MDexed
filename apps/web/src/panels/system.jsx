@@ -95,7 +95,7 @@ export function LayoutPanel() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       <SectionHeader title="Layout" desc="One spacing scale, one grid. The Density macro moves the whole scale." />
 
-      <Collapsible title="Spacing scale" note={`${state.space.base}px base`} defaultOpen>
+      <Collapsible title="Spacing Scale" note={`${state.space.base}px base`} defaultOpen>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 11 }}>
           <NumField label="Base unit" value={state.space.base} min={2} max={8} suffix="px" width={104}
             onChange={v => upd('space', c => ({ ...c, base: v }), 'space:base')} />
@@ -104,7 +104,7 @@ export function LayoutPanel() {
         <ScaleRows items={derived.spacing} overrides={state.space.overrides} onOverride={setOverride} onReset={resetStep} />
       </Collapsible>
 
-      <Collapsible title="Breakpoints and containers" note={`${state.layout.breakpoints.length}`} defaultOpen>
+      <Collapsible title="Breakpoints and Containers" note={`${state.layout.breakpoints.length}`} defaultOpen>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           {state.layout.breakpoints.map((b, i) => (
             <div key={b.name} style={{ display: 'grid', gridTemplateColumns: '46px 1fr 1fr', gap: 8, alignItems: 'center' }}>
@@ -154,7 +154,7 @@ export function ShapePanel() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       <SectionHeader title="Shape" desc="Radii, borders, icons and focus — the details agents most often invent." />
 
-      <Collapsible title="Corner radius" note={`${state.radius.base}px base`} defaultOpen>
+      <Collapsible title="Corner Radius" note={`${state.radius.base}px base`} defaultOpen>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 11 }}>
           <NumField label="Base radius" value={state.radius.base} min={0} max={24} suffix="px" width={104}
             onChange={v => upd('radius', c => ({ ...c, base: v }), 'radius:base')} />
@@ -173,7 +173,7 @@ export function ShapePanel() {
         </div>
       </Collapsible>
 
-      <Collapsible title="Border widths">
+      <Collapsible title="Border Widths">
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           {Object.entries(state.radius.borderWidths ?? {}).map(([k, v]) => (
             <NumField key={k} label={k} value={v} min={0} max={8} step={0.5} suffix="px" onChange={n => setBorder(k, n)} />
@@ -240,7 +240,7 @@ export function ShapePanel() {
         </div>
       </Collapsible>
 
-      <Collapsible title="Focus and states" defaultOpen>
+      <Collapsible title="Focus and States" defaultOpen>
         <Banner tone="info">Focus rings are the single most consistently omitted detail in generated UI. Specifying one here means it appears.</Banner>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, margin: '11px 0' }}>
           <NumField label="Ring width" value={state.focus.width} min={1} max={6} suffix="px" onChange={v => setFocus('width', v)} />
