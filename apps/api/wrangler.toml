@@ -3,11 +3,12 @@ main = "src/index.ts"
 compatibility_date = "2025-04-01"
 compatibility_flags = ["nodejs_compat"]
 
-# D1 binding. The database_id below is a placeholder for local development.
-# Before `wrangler deploy`, run `wrangler d1 create design-md-editor`
-# and replace the database_id with the real one.
+# D1 binding. Local development ignores database_id entirely and uses a file
+# under .wrangler; anything targeting --remote needs the real one, which comes
+# from `wrangler d1 create design-md-editor` (or `wrangler d1 list` if the
+# database already exists).
 [[d1_databases]]
 binding = "DB"
 database_name = "design-md-editor"
-database_id = "828044ce-9de2-4ddf-b34e-8857c7ed93a4"
+database_id = "b1ac7b9b-1bfc-4470-8b46-33a6abaccdcd"
 migrations_dir = "migrations"
