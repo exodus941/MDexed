@@ -1,6 +1,7 @@
 /* Pipeline regression test: derivation, macros, spec conformance, round trip.
    Run with `npm test`. No framework — plain assertions over the pure layer,
    which is where the correctness risk actually lives. */
+import fs from 'node:fs'
 import { load as yamlLoad } from 'js-yaml'
 import { createInitialState, CONTRAST_PAIRS } from '../src/state/schema.js'
 import { derive, buildCssVars } from '../src/state/derive.js'
@@ -13,6 +14,8 @@ import { parseFile } from '../src/emit/parse.js'
 import { diffWords, diffStats } from '../src/ai/diff.js'
 import { contextFor, refinePrompt, draftPrompt, systemPrompt } from '../src/ai/prompts.js'
 import { PROSE_SECTIONS } from '../src/state/schema.js'
+import { APP_CSS } from '../src/ui/theme.js'
+import { PREVIEW_CSS } from '../src/preview/tokens.js'
 
 const line = s => console.log(s)
 let failures = 0
@@ -236,6 +239,36 @@ line('\n- prompt construction -')
   }
   const longest = Math.max(...PROSE_SECTIONS.map(s => draftPrompt(s, state, derived).length + systemPrompt().length))
   assert(longest < 24_000, `the largest prompt stays under the server cap (${longest} chars)`)
+}
+
+
+/* ── Stylesheets survive being template literals ──
+ *
+ * APP_CSS and PREVIEW_CSS are one enormous backtick string each, so a backtick
+ * typed inside a CSS comment terminates the literal early. The file often
+ * still parses, the app renders nothing, and the build can stay green because
+ * the resulting error lands somewhere unrelated. It has happened four times.
+ *
+ * Checking the exported string rather than counting backticks in the source:
+ * a parity check passes when there are two strays, which is exactly what a
+ * pair of backticks around one word produces — the case that actually keeps
+ * happening. A truncated literal cannot contain the rule that closes it. */
+{
+  line('\n- stylesheet literals -')
+  const BT = String.fromCharCode(96)
+  const sheets = [
+    ['APP_CSS', APP_CSS, '.dropzone'],
+    ['PREVIEW_CSS', PREVIEW_CSS, '.dmd .nav-item'],
+  ]
+  for (const [name, css, tail] of sheets) {
+    /* Reaching the closing rule is the real test. An escaped backtick is
+       legal and harmless — it lands in a CSS comment and nothing cares — so
+       flagging every backtick cries wolf. What cannot happen is the literal
+       ending early, and a truncated sheet cannot contain its own last rule. */
+    assert(css.includes(tail), `${name} runs to the end (${tail} present)`)
+    assert(css.split('{').length === css.split('}').length, `${name} has balanced braces`)
+    assert(!/`\s*$/.test(css), `${name} does not end mid-literal`)
+  }
 }
 
 line(`\n${failures === 0 ? 'ALL PASS' : `${failures} FAILURE(S)`}\n`)

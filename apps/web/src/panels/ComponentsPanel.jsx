@@ -14,6 +14,10 @@ import { SectionHeader, Toggle, ResetButton, Banner, Collapsible, Expand, Filter
 import { useRevealWithin, revealStyle } from '../ui/reveal.js'
 import TokenColorPicker, { paletteGroups } from '../ui/TokenColorPicker.jsx'
 import { RAMP_STEPS, resolveRef } from '../color/ramp.js'
+import EntrySample from '../preview/EntrySample.jsx'
+import { PREVIEW_CSS, varsToStyle } from '../preview/tokens.js'
+import { buildCssVars } from '../state/derive.js'
+import { gradientCss } from '../color/modes.js'
 
 /* Which token group a property should draw from. Offering `{colors.*}` for a
    padding field is noise; offering nothing at all is what made these look like
@@ -46,6 +50,13 @@ const SNAP_SCALES = {
     refFor: n => `{icons.${n}}`, title: 'Icon size',
   }),
 }
+
+/* Components whose sample needs the full width to read.
+   A modal squeezed into a 168px column is not a modal, and a table loses its
+   columns entirely. These stack above the properties instead, which costs
+   height but is the only way the sample says anything true. Everything else
+   sits beside its fields, where it stays in view while you drag a slider. */
+const WIDE_SAMPLE = new Set(['modal', 'table', 'card', 'alert', 'textarea'])
 
 const PX_SUGGESTIONS = ['20px', '24px', '28px', '32px', '36px', '40px', '44px', '48px', '56px', '64px']
 const ICON_SUGGESTIONS = ['{icons.sm}', '{icons.md}', '{icons.lg}', '{icons.xl}', '12px', '14px', '16px', '18px', '20px', '24px']
@@ -258,7 +269,7 @@ const matches = (query, entryName, key, value) => {
   return entryName.toLowerCase().includes(q) || key.toLowerCase().includes(q) || String(value).toLowerCase().includes(q)
 }
 
-function EntryBlock({ title, entryName, props, overrides, onSet, onReset, derived, mode, inspect, query, colorGroups }) {
+function EntryBlock({ title, entryName, props, overrides, onSet, onReset, derived, mode, inspect, query, colorGroups, def, sampleVars }) {
   /* The jump targets the exact entry â€” clicking a small button lands on
      `button-sm`, not merely somewhere inside Button. The scrolling is the
      owning ComponentBlock's job; this only marks itself. */
@@ -285,12 +296,30 @@ function EntryBlock({ title, entryName, props, overrides, onSet, onReset, derive
         {title && <span style={{ fontSize: 10, color: 'var(--dim)' }}>{title}</span>}
         {targeted && <span className="chip" style={{ color: 'var(--accent)', borderColor: 'rgb(var(--accent-rgb) / .4)' }}>from preview</span>}
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: PAD.row }}>
-        {shown.map(([k, v]) => (
-          <PropRow key={k} entryName={entryName} propKey={k} defaultValue={String(v)}
-            override={overrides[`${entryName}.${k}`]} onSet={onSet} onReset={onReset}
-            derived={derived} mode={mode} colorGroups={colorGroups} />
-        ))}
+      {/* Sample on the right, properties on the left.
+       *
+       * Above would have been the obvious place and the wrong one: these
+       * cards run to a dozen property rows, so a stacked preview pushes the
+       * fields it belongs to off the screen exactly when you are adjusting
+       * them. Beside them, the sample stays in view while you drag a slider,
+       * which is the entire point of having it.
+       *
+       * It collapses back to one column under 560px, where two columns would
+       * leave neither wide enough to read. */}
+      <div className={WIDE_SAMPLE.has(def.name) ? 'entry-stack' : 'entry-split'}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: PAD.row, minWidth: 0 }}>
+          {shown.map(([k, v]) => (
+            <PropRow key={k} entryName={entryName} propKey={k} defaultValue={String(v)}
+              override={overrides[`${entryName}.${k}`]} onSet={onSet} onReset={onReset}
+              derived={derived} mode={mode} colorGroups={colorGroups} />
+          ))}
+        </div>
+        {!query && (
+          <div className="entry-sample-slot">
+            <EntrySample def={def} entryName={entryName}
+              focus={derived.focus} roles={derived.roles[mode]} />
+          </div>
+        )}
       </div>
     </div>
   )
@@ -333,7 +362,7 @@ function LayoutBlock({ def, values, onSet }) {
   )
 }
 
-function ComponentBlock({ def, cfg, layout, onSetLayout, onToggle, onSet, onReset, derived, mode, inspect, colorGroups }) {
+function ComponentBlock({ def, cfg, layout, onSetLayout, onToggle, onSet, onReset, derived, mode, inspect, colorGroups, sampleVars }) {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const enabled = cfg.enabled[def.name] ?? def.on
@@ -403,21 +432,21 @@ function ComponentBlock({ def, cfg, layout, onSetLayout, onToggle, onSet, onRese
            * unreachable from the preview follows, because the only way to
            * reach it is to scroll here deliberately, and someone scrolling
            * deliberately can scroll one block further. */}
-          {def.base && <EntryBlock entryName={def.name} title="base" props={def.base} overrides={overrides} onSet={onSet} onReset={onReset} derived={derived} mode={mode} inspect={inspect} query={query} colorGroups={colorGroups} />}
+          {def.base && <EntryBlock entryName={def.name} title="base" props={def.base} overrides={overrides} onSet={onSet} onReset={onReset} derived={derived} mode={mode} inspect={inspect} query={query} colorGroups={colorGroups} def={def} sampleVars={sampleVars} />}
           {!query && LAYOUT_BY_NAME[def.name] && (
             <LayoutBlock def={LAYOUT_BY_NAME[def.name]} values={layout[def.name]} onSet={onSetLayout} />
           )}
           {Object.entries(def.variants ?? {}).map(([v, props]) => (
-            <EntryBlock key={v} entryName={`${def.name}-${v}`} title="variant" props={props} overrides={overrides} onSet={onSet} onReset={onReset} derived={derived} mode={mode} inspect={inspect} query={query} colorGroups={colorGroups} />
+            <EntryBlock key={v} entryName={`${def.name}-${v}`} title="variant" props={props} overrides={overrides} onSet={onSet} onReset={onReset} derived={derived} mode={mode} inspect={inspect} query={query} colorGroups={colorGroups} def={def} sampleVars={sampleVars} />
           ))}
           {cfg.emitSizes && Object.entries(def.sizes ?? {}).map(([s, props]) => (
-            <EntryBlock key={s} entryName={`${def.name}-${s}`} title="size" props={props} overrides={overrides} onSet={onSet} onReset={onReset} derived={derived} mode={mode} inspect={inspect} query={query} colorGroups={colorGroups} />
+            <EntryBlock key={s} entryName={`${def.name}-${s}`} title="size" props={props} overrides={overrides} onSet={onSet} onReset={onReset} derived={derived} mode={mode} inspect={inspect} query={query} colorGroups={colorGroups} def={def} sampleVars={sampleVars} />
           ))}
           {cfg.emitStates && Object.entries(def.states ?? {}).flatMap(([stateName, byVariant]) =>
             Object.entries(byVariant).map(([variant, props]) => (
               <EntryBlock key={`${stateName}-${variant}`}
                 entryName={variant === '_' ? `${def.name}-${stateName}` : `${def.name}-${variant}-${stateName}`}
-                title="state" props={props} overrides={overrides} onSet={onSet} onReset={onReset} derived={derived} mode={mode} inspect={inspect} query={query} colorGroups={colorGroups} />
+                title="state" props={props} overrides={overrides} onSet={onSet} onReset={onReset} derived={derived} mode={mode} inspect={inspect} query={query} colorGroups={colorGroups} def={def} sampleVars={sampleVars} />
             ))
           )}
         </div>
@@ -452,6 +481,13 @@ export default function ComponentsPanel({ inspect }) {
 
   /* The same swatch grid the gradient stops use. Built once here rather than
      per property row — there are 48 entries and this walks every scale. */
+  /* The same custom properties the preview pane injects, for the mode being
+     shown. Built once here rather than per entry — there are 48 of them. */
+  const sampleVars = useMemo(() => varsToStyle(buildCssVars({
+    ...derived, elevationCfg: state.elevation,
+    gradients: derived.gradients.map(g => ({ ...g, css: gradientCss(g, { roles: derived.roles[state.color.mode], ramps: derived.ramps, resolveRef }) })),
+  }, state.color.mode)), [derived, state.elevation, state.color.mode])
+
   const colorGroups = useMemo(() => paletteGroups({
     seeds: state.color.seeds,
     roles: derived.roles[state.color.mode],
@@ -462,7 +498,12 @@ export default function ComponentsPanel({ inspect }) {
   }), [state.color.seeds, state.color.mode, derived.roles, derived.ramps])
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+    /* The preview's custom properties, set once for the whole panel. Every
+       .dmd sample below inherits them. */
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10, ...sampleVars }}>
+      {/* Every rule in here is scoped to .dmd, so a second copy in this pane
+          styles the entry samples and reaches nothing else. */}
+      <style>{PREVIEW_CSS}</style>
       <SectionHeader title="Components" desc="Variants, sizes and states, flattened the way the spec expects."
         right={<span className="chip">{derived.components.length} entries</span>} />
 
@@ -497,7 +538,8 @@ export default function ComponentsPanel({ inspect }) {
               {defs.map(def => (
                 <ComponentBlock key={def.name} def={def} cfg={cfg} onToggle={onToggle} onSet={onSet} onReset={onReset}
                   layout={derived.componentLayout} onSetLayout={onSetLayout}
-                  derived={derived} mode={state.color.mode} inspect={inspect} colorGroups={colorGroups} />
+                  derived={derived} mode={state.color.mode} inspect={inspect} colorGroups={colorGroups}
+                  sampleVars={sampleVars} />
               ))}
             </div>
           </Collapsible>
