@@ -477,6 +477,12 @@ function SaveFlash({ savedAt }) {
    when there's actually something off-screen in that direction. */
 const BAR_H = 42
 
+/* Pixels per 16ms tick at the inner and outer edges of a chevron, so roughly
+   125 to 690 px/s. The floor is slow enough to place a tab precisely; the
+   ceiling crosses a full strip in well under a second. */
+const SCROLL_SLOW = 2
+const SCROLL_FAST = 11
+
 /* Declared here rather than inside TabStrip.
  *
  * A component defined in a render body is a new component *type* on every
@@ -487,7 +493,7 @@ const BAR_H = 42
  * longer existed. The scroll ran on with the cursor somewhere else entirely. */
 function Chevron({ dir, onEnter, onLeave, onClick }) {
   return (
-    <button data-chevron onClick={onClick} title={dir < 0 ? 'Scroll left' : 'Scroll right'}
+    <button data-chevron={dir} onClick={onClick} title={dir < 0 ? 'Scroll left' : 'Scroll right'}
       onPointerEnter={onEnter} onPointerLeave={onLeave} onPointerCancel={onLeave}
       style={{
         flexShrink: 0, display: 'flex', alignItems: 'center',
@@ -558,13 +564,20 @@ function TabStrip({ tabs, active, onSelect, right }) {
    * interval it owned would be torn down mid-scroll.
    */
   const scroller = useRef(0)
+  /* Pixels per tick, live. Set from the pointer's depth into the chevron so
+     the speed can change without restarting the timer. */
+  const speed = useRef(SCROLL_SLOW)
   const stopScroll = useCallback(() => { clearInterval(scroller.current); scroller.current = 0 }, [])
   const startScroll = useCallback(dir => {
     stopScroll()
+    /* Start slow. The pointermove below corrects within a frame, but without
+       this the first tick would inherit whatever speed the other chevron was
+       left at. */
+    speed.current = SCROLL_SLOW
     scroller.current = setInterval(() => {
       const el = ref.current
       if (!el) return stopScroll()
-      el.scrollBy({ left: dir * 5, behavior: 'auto' })
+      el.scrollBy({ left: dir * speed.current, behavior: 'auto' })
       measure()
     }, 16)
   }, [stopScroll, measure])
@@ -580,7 +593,20 @@ function TabStrip({ tabs, active, onSelect, right }) {
      the feature worse than the clicks it replaced. This catches every case
      from a single listener that watches where the pointer actually is. */
   useEffect(() => {
-    const check = e => { if (!e.target?.closest?.('[data-chevron]')) stopScroll() }
+    const check = e => {
+      const chevron = e.target?.closest?.('[data-chevron]')
+      if (!chevron) return stopScroll()
+      /* Faster the closer you are to the outer edge, which is the direction
+         you are travelling. Nudging into the chevron creeps; pushing to the
+         edge of the strip runs. The same listener that decides whether to
+         scroll at all also decides how fast, so there is one source of truth
+         for where the pointer is. */
+      const box = chevron.getBoundingClientRect()
+      const into = (e.clientX - box.left) / (box.width || 1)
+      const outward = Number(chevron.dataset.chevron) < 0 ? 1 - into : into
+      const t = Math.min(1, Math.max(0, outward))
+      speed.current = SCROLL_SLOW + (SCROLL_FAST - SCROLL_SLOW) * t
+    }
     window.addEventListener('pointermove', check, { passive: true })
     window.addEventListener('pointerdown', check, { passive: true })
     document.addEventListener('pointerleave', stopScroll)
