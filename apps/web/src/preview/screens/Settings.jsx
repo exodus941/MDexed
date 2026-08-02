@@ -1,11 +1,12 @@
 /* A settings page: dense rows, a sidebar, switches and destructive actions.
    Exercises the tokens that only appear in long-lived application chrome —
    sunken wells, selected nav, disabled controls, danger affordances. */
-import { inspectProps } from '../inspect.js'
+import { inspectProps, text } from '../inspect.js'
 import { Ico, Switch, IconUser, IconFolder, IconBell, IconLock, IconChart, IconCheck, IconTrash } from '../icons.jsx'
 
 export default function Settings({ onInspect }) {
   const ins = entry => inspectProps(entry, onInspect)
+  const txt = (typeName, roleName = 'text') => inspectProps(text(typeName, roleName), onInspect)
   const sections = ['Profile', 'Team', 'Billing', 'Notifications', 'Integrations', 'Security']
   const rows = [
     ['Two-factor authentication', 'Required for everyone on the team', true],
@@ -27,8 +28,8 @@ export default function Settings({ onInspect }) {
 
       <div className="stack">
         <div>
-          <h2>Notifications</h2>
-          <p className="muted small" style={{ marginTop: 4 }}>Choose what reaches you, and where.</p>
+          <h2 {...txt("h2")}>Notifications</h2>
+          <p className="muted small" style={{ marginTop: 4 }} {...txt("body-sm", "text-muted")}>Choose what reaches you, and where.</p>
         </div>
 
         <div className="card" style={{ padding: 0, cursor: onInspect ? 'pointer' : undefined }} {...ins('card')}>
@@ -39,8 +40,8 @@ export default function Settings({ onInspect }) {
               borderTop: i === 0 ? 'none' : '1px solid var(--c-border-subtle, #eee)',
             }}>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 500 }}>{title}</div>
-                <p className="muted small" style={{ marginTop: 2 }}>{desc}</p>
+                <div style={{ fontWeight: 500 }} {...txt("body-md")}>{title}</div>
+                <p className="muted small" style={{ marginTop: 2 }} {...txt("body-sm", "text-muted")}>{desc}</p>
               </div>
               <span {...ins(on ? 'switch-checked' : 'switch')}><Switch on={on} /></span>
             </div>
@@ -48,15 +49,15 @@ export default function Settings({ onInspect }) {
         </div>
 
         <div className="well stack-sm">
-          <div style={{ fontWeight: 500 }}>Notification email</div>
+          <div style={{ fontWeight: 500 }} {...txt("body-md")}>Notification email</div>
           <div className="row" style={{ alignItems: 'flex-end' }}>
             <div className="field" style={{ flex: 1 }} {...ins('input')}>
-              <label className="label">Send to</label>
+              <label className="label" {...txt("caption", "text-muted")}>Send to</label>
               <input className="input" defaultValue="accounts@northwind.co" />
             </div>
             <button className="btn btn-secondary" {...ins('button-secondary')}>Verify</button>
           </div>
-          <p className="caption">Changing this signs out other sessions.</p>
+          <p className="caption" {...txt("caption", "text-muted")}>Changing this signs out other sessions.</p>
         </div>
 
         <div className="row" style={{ justifyContent: 'space-between' }}>

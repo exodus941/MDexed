@@ -3,12 +3,13 @@
    Sizes, leading and tracking are all generated. The per-token editors exist
    for the cases where a scale genuinely shouldn't win, and anything you touch
    is marked so you can see at a glance how far the system has been bent. */
-import { useEffect, useRef } from 'react'
+import { useEffect } from 'react'
 import { useStore } from '../state/store.jsx'
 import { RATIOS, OPENTYPE_FEATURES } from '../type/scale.js'
 import { loadDocumentFonts, stackFor } from '../type/fonts.js'
 import FontPicker, { useFontCatalog } from '../ui/FontPicker.jsx'
 import { SectionHeader, Collapsible, Slider, NumField, Segmented, Toggle, OverrideBadge, Banner } from '../ui/controls.jsx'
+import { useReveal, revealStyle } from '../ui/reveal.js'
 
 const ROLE_LABELS = { display: 'Display', body: 'Body', mono: 'Mono' }
 const ROLE_DESC = {
@@ -49,15 +50,8 @@ function FeatureToggles({ enabled, onToggle }) {
 }
 
 function TokenRow({ token, overrides, onOverride, onReset, families, inspect }) {
-  const rowRef = useRef(null)
   const targeted = inspect?.entry === token.name
-
-  useEffect(() => {
-    if (!targeted) return
-    const id = requestAnimationFrame(() => rowRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' }))
-    const t = setTimeout(() => rowRef.current?.scrollIntoView({ block: 'center' }), 120)
-    return () => { cancelAnimationFrame(id); clearTimeout(t) }
-  }, [targeted, inspect?.at])
+  const rowRef = useReveal(targeted, inspect?.at)
 
   const fields = [
     { k: 'fontSize', label: 'Size' },
@@ -70,9 +64,8 @@ function TokenRow({ token, overrides, onOverride, onReset, families, inspect }) 
 
   return (
     <div ref={rowRef} style={{
-      borderBottom: '1px solid var(--bdr)', padding: '8px 0',
-      ...(targeted && { background: 'rgba(220,144,85,.07)', boxShadow: '0 0 0 1px rgba(220,144,85,.45)', borderRadius: 7, padding: '8px' }),
-      transition: 'background var(--t) var(--ease)',
+      borderBottom: '1px solid var(--bdr)', padding: targeted ? '8px' : '8px 0',
+      ...revealStyle(targeted),
     }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 9, marginBottom: 6 }}>
         <code style={{ fontFamily: 'var(--mono)', fontSize: 11.5, color: 'var(--text)', minWidth: 64 }}>{token.name}</code>
@@ -219,7 +212,8 @@ export default function TypographyPanel({ inspect }) {
         )}
       </Collapsible>
 
-      <Collapsible key={inspect ? `gen:${inspect.at}` : 'gen'} title="Generated styles" note={String(generated.length)} defaultOpen>
+      <Collapsible title="Generated styles" note={String(generated.length)} defaultOpen
+        openSignal={inspect?.at}>
         <p className="panel-note" style={{ marginBottom: 8 }}>Type in any field to override it.</p>
         {loading && <Banner tone="info">Loading the font catalogue…</Banner>}
         <div>

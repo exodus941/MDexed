@@ -3,27 +3,28 @@
    Modals, scrims, tooltips and toasts have nowhere honest to sit on the other
    surfaces — a modal shown inline isn't a modal. This is where the elevation
    strategy, scrim opacity and blend mode are actually visible. */
-import { inspectProps } from '../inspect.js'
+import { inspectProps, text } from '../inspect.js'
 import { Ico, Check, IconAlert, IconCheck, IconX, IconTrash, IconInfo, IconMore, IconStar } from '../icons.jsx'
 
 export default function Dialog({ onInspect }) {
   const ins = entry => inspectProps(entry, onInspect)
+  const txt = (typeName, roleName = 'text') => inspectProps(text(typeName, roleName), onInspect)
 
   return (
     <div className="stack">
       <div>
-        <h2>Overlays</h2>
-        <p className="muted small" style={{ marginTop: 4 }}>Modal, scrim, tooltip, toast and menu, over live page content.</p>
+        <h2 {...txt("h2")}>Overlays</h2>
+        <p className="muted small" style={{ marginTop: 4 }} {...txt("body-sm", "text-muted")}>Modal, scrim, tooltip, toast and menu, over live page content.</p>
       </div>
 
       {/* Modal over a dimmed page — the scrim settings from Depth apply here. */}
       <div style={{ position: 'relative', borderRadius: 'var(--radius-lg, 16px)', overflow: 'hidden', border: '1px solid var(--c-border-subtle, #eee)' }}>
         <div style={{ padding: 'var(--space-lg, 24px)' }} className="stack-sm">
-          <h3 style={{ fontSize: 'var(--font-h4-size, 25px)' }}>Invoices</h3>
-          <p className="muted small">Page content sitting behind the dialog.</p>
+          <h3 style={{ fontSize: 'var(--font-h4-size, 25px)' }} {...txt("h4")}>Invoices</h3>
+          <p className="muted small" {...txt("body-sm", "text-muted")}>Page content sitting behind the dialog.</p>
           <div className="row">
-            <button className="btn btn-secondary btn-sm">Filter</button>
-            <button className="btn btn-secondary btn-sm">Export</button>
+            <button className="btn btn-secondary btn-sm" {...ins('button-sm')}>Filter</button>
+            <button className="btn btn-secondary btn-sm" {...ins('button-secondary')}>Export</button>
           </div>
           {['82%', '64%', '91%'].map(w => (
             <div key={w} style={{ height: 9, width: w, borderRadius: 3, background: 'var(--c-bg-subtle, #eee)' }} />
@@ -49,14 +50,14 @@ export default function Dialog({ onInspect }) {
         }}>
           <div className="row" style={{ marginBottom: 'var(--space-sm, 12px)' }}>
             <span style={{ color: 'var(--c-danger, #c00)', display: 'flex' }}><Ico d={IconAlert} size="lg" /></span>
-            <h3 style={{ flex: 1, fontSize: 'var(--font-h5-size, 20px)' }}>Delete this invoice?</h3>
+            <h3 style={{ flex: 1, fontSize: 'var(--font-h5-size, 20px)' }} {...txt("h5")}>Delete this invoice?</h3>
             <button className="icon-btn" {...ins('button-secondary')}><Ico d={IconX} /></button>
           </div>
-          <p className="muted small" style={{ marginBottom: 'var(--space-md, 16px)' }}>
+          <p className="muted small" style={{ marginBottom: 'var(--space-md, 16px)' }} {...txt("body-sm", "text-muted")}>
             Invoice NW-0421 will be removed permanently. This cannot be undone.
           </p>
           <label className="with-icon" style={{ marginBottom: 'var(--space-md, 16px)', cursor: 'pointer' }} {...ins('checkbox')}>
-            <Check /><span className="small">Also notify the customer</span>
+            <Check /><span className="small" {...txt("body-sm")}>Also notify the customer</span>
           </label>
           <div className="row" style={{ justifyContent: 'flex-end' }}>
             <button className="btn btn-ghost" {...ins('button-ghost')}>Cancel</button>
@@ -69,7 +70,7 @@ export default function Dialog({ onInspect }) {
         {/* Toast */}
         <div className="card card-overlay row" {...ins('card-overlay')}>
           <span style={{ color: 'var(--c-success, green)', display: 'flex' }}><Ico d={IconCheck} /></span>
-          <span className="small" style={{ flex: 1 }}>Invoice sent to Northwind</span>
+          <span className="small" style={{ flex: 1 }} {...txt("body-sm")}>Invoice sent to Northwind</span>
           <button className="btn btn-ghost btn-sm" {...ins('button-ghost')}>Undo</button>
         </div>
 
@@ -99,7 +100,7 @@ export default function Dialog({ onInspect }) {
             }}>Mark as paid</span>
             <button className="btn btn-secondary btn-sm" {...ins('button-sm')}><Ico d={IconCheck} size="sm" />Paid</button>
           </div>
-          <span className="caption">Tooltips sit above their trigger and never wrap.</span>
+          <span className="caption" {...txt("caption", "text-muted")}>Tooltips sit above their trigger and never wrap.</span>
         </div>
       </div>
     </div>

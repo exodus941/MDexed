@@ -4,7 +4,7 @@
    right. It reads the scales generated there and maps them to intent — which
    is the layer the exported file leads with, because `surface-raised` tells an
    agent how to build a card and `neutral-800` doesn't. */
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useStore } from '../state/store.jsx'
 import { ROLE_GROUPS, CONTRAST_PAIRS } from '../state/schema.js'
 import { RAMP_STEPS } from '../color/ramp.js'
@@ -12,19 +12,14 @@ import { check } from '../color/contrast.js'
 import { generateCounterpart, clearOverridesFor } from '../color/modes.js'
 import ColorPicker from '../ui/ColorPicker.jsx'
 import { SectionHeader, Collapsible, Expand, Segmented, OverrideBadge, Banner, FilterField } from '../ui/controls.jsx'
+import { useReveal, revealStyle } from '../ui/reveal.js'
 
 function RoleRow({ role, roles, refs, ramps, overrides, onSetRef, onOverride, onResetOverride, scope, inspect }) {
   const [open, setOpen] = useState(false)
-  const ref = useRef(null)
   const targeted = inspect?.entry === role.name
+  const ref = useReveal(targeted, inspect?.at)
 
-  useEffect(() => {
-    if (!targeted) return
-    setOpen(true)
-    const id = requestAnimationFrame(() => ref.current?.scrollIntoView({ block: 'center', behavior: 'smooth' }))
-    const t = setTimeout(() => ref.current?.scrollIntoView({ block: 'center' }), 120)
-    return () => { cancelAnimationFrame(id); clearTimeout(t) }
-  }, [targeted, inspect?.at])
+  useEffect(() => { if (targeted) setOpen(true) }, [targeted, inspect?.at])
   const options = [
     ...Object.keys(ramps).flatMap(r => RAMP_STEPS.map(s => `${r}.${s}`)),
     'white', 'black',
@@ -34,11 +29,7 @@ function RoleRow({ role, roles, refs, ramps, overrides, onSetRef, onOverride, on
   const modes = scope === 'both' ? ['light', 'dark'] : [scope]
 
   return (
-    <div ref={ref} style={{
-      borderBottom: '1px solid var(--bdr)',
-      ...(targeted && { background: 'rgba(220,144,85,.07)', boxShadow: '0 0 0 1px rgba(220,144,85,.45)', borderRadius: 7 }),
-      transition: 'background var(--t) var(--ease)',
-    }}>
+    <div ref={ref} style={{ borderBottom: '1px solid var(--bdr)', ...revealStyle(targeted) }}>
       <div onClick={() => setOpen(o => !o)}
         style={{ display: 'grid', gridTemplateColumns: `1fr ${modes.map(() => '22px').join(' ')}`, gap: 8, alignItems: 'center', padding: '7px 2px', cursor: 'pointer' }}>
         <div style={{ minWidth: 0 }}>
@@ -237,8 +228,9 @@ export default function RolesPanel({ inspect }) {
       </Collapsible>
 
       {ROLE_GROUPS.map(group => (
-        <Collapsible key={`${group.id}${targetGroup === group.id ? `:${inspect.at}` : ''}`} title={group.label}
-          note={String(group.roles.length)} defaultOpen={group.id === 'surface' || targetGroup === group.id}>
+        <Collapsible key={group.id} title={group.label} note={String(group.roles.length)}
+          defaultOpen={group.id === 'surface'}
+          openSignal={targetGroup === group.id ? inspect.at : null}>
           <p className="panel-note" style={{ marginBottom: 8 }}>{group.desc}</p>
           <div style={{ display: 'grid', gridTemplateColumns: scope === 'both' ? '1fr 22px 22px' : '1fr 22px', gap: 8, paddingBottom: 3, borderBottom: '1px solid var(--bdr)' }}>
             <span />

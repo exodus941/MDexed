@@ -5,11 +5,12 @@
    will carry in the file, so the hyphenated flattening the spec requires
    (`button-primary-hover`) is visible while you work rather than a surprise
    at export. */
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useStore } from '../state/store.jsx'
 import { COMPONENT_LIBRARY, COMPONENT_GROUPS } from '../state/components.js'
 import { SPEC_COMPONENT_PROPS } from '../emit/yaml.js'
 import { SectionHeader, Toggle, ResetButton, Banner, Collapsible, Expand, FilterField } from '../ui/controls.jsx'
+import { useReveal, revealStyle } from '../ui/reveal.js'
 
 /* Which token group a property should draw from. Offering `{colors.*}` for a
    padding field is noise; offering nothing at all is what made these look like
@@ -198,18 +199,10 @@ const matches = (query, entryName, key, value) => {
 }
 
 function EntryBlock({ title, entryName, props, overrides, onSet, onReset, derived, mode, inspect, query }) {
-  const ref = useRef(null)
   /* The jump targets the exact entry â€” clicking a small button lands on
      `button-sm`, not merely somewhere inside Button. */
   const targeted = inspect?.entry === entryName
-
-  useEffect(() => {
-    if (!targeted) return
-    /* One frame, so the accordion has laid out before we measure. */
-    const id = requestAnimationFrame(() => ref.current?.scrollIntoView({ block: 'center', behavior: 'smooth' }))
-    const t = setTimeout(() => ref.current?.scrollIntoView({ block: 'center' }), 140)
-    return () => { cancelAnimationFrame(id); clearTimeout(t) }
-  }, [targeted, inspect?.at])
+  const ref = useReveal(targeted, inspect?.at)
 
   /* Filtered after the hooks â€” an early return above them would change the
      hook order between renders. */
@@ -219,12 +212,8 @@ function EntryBlock({ title, entryName, props, overrides, onSet, onReset, derive
   return (
     <div ref={ref} style={{
       marginBottom: 10,
-      ...(targeted && {
-        background: 'rgba(220,144,85,.07)',
-        boxShadow: '0 0 0 1px rgba(220,144,85,.45)',
-        borderRadius: 7, padding: '7px 8px', margin: '0 -8px 10px',
-      }),
-      transition: 'background var(--t) var(--ease), box-shadow var(--t) var(--ease)',
+      ...revealStyle(targeted),
+      ...(targeted && { padding: '7px 8px', margin: '0 -8px 10px' }),
     }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 4 }}>
         <code style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--accent)' }}>{entryName}</code>
@@ -247,7 +236,6 @@ function ComponentBlock({ def, cfg, onToggle, onSet, onReset, derived, mode, ins
   const [query, setQuery] = useState('')
   const enabled = cfg.enabled[def.name] ?? def.on
   const overrides = cfg.overrides ?? {}
-  const ref = useRef(null)
 
   /* A click in the gallery opens the owning component and scrolls to it. */
   const targeted = inspect && entriesFor(def, cfg).includes(inspect.entry)
@@ -264,7 +252,7 @@ function ComponentBlock({ def, cfg, onToggle, onSet, onReset, derived, mode, ins
   const touched = Object.keys(overrides).filter(k => k === def.name || k.startsWith(`${def.name}.`) || k.startsWith(`${def.name}-`)).length
 
   return (
-    <div ref={ref} style={{
+    <div style={{
       background: 'var(--surf2)',
       border: `1px solid ${targeted ? 'var(--accent)' : open ? 'rgba(220,144,85,.35)' : 'var(--bdr)'}`,
       borderRadius: 9, overflow: 'hidden', opacity: enabled ? 1 : 0.55,
@@ -359,8 +347,9 @@ export default function ComponentsPanel({ inspect }) {
         const defs = COMPONENT_LIBRARY.filter(d => d.group === group)
         const on = defs.filter(d => cfg.enabled[d.name] ?? d.on).length
         return (
-          <Collapsible key={`${group}${targetGroup === group ? `:${inspect.at}` : ''}`} title={group}
-            note={`${on}/${defs.length}`} defaultOpen={group === 'Actions' || targetGroup === group}>
+          <Collapsible key={group} title={group} note={`${on}/${defs.length}`}
+            defaultOpen={group === 'Actions'}
+            openSignal={targetGroup === group ? inspect.at : null}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
               {defs.map(def => (
                 <ComponentBlock key={def.name} def={def} cfg={cfg} onToggle={onToggle} onSet={onSet} onReset={onReset}

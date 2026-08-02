@@ -1,6 +1,6 @@
 /* The preview pane. Injects the derived custom properties and the shared
    stylesheet, then renders whichever surface is selected inside them. */
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useStore } from '../state/store.jsx'
 import { PREVIEW_CSS, varsToStyle } from './tokens.js'
 import { buildCssVars } from '../state/derive.js'
@@ -22,33 +22,84 @@ const SURFACES = [
   { id: 'gallery',   label: 'Gallery',   Component: Gallery },
 ]
 
-/* When an element resolves to more than one place — a heading has both a
-   colour role and a text style — ask rather than guess. */
+/* When an element resolves to more than one place — a heading has a text style
+   and a colour role, and it sits inside a card that has properties of its own
+   — ask rather than guess. Entries the element owns come first; the containers
+   it happens to sit inside come below a rule, so the common answer is the one
+   under the cursor. */
+const itemStyle = {
+  display: 'flex', alignItems: 'center', gap: 8, width: '100%', textAlign: 'left',
+  background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text)',
+  fontFamily: 'var(--sans)', fontSize: 12.5, padding: '7px 8px', borderRadius: 6,
+}
+
+const KIND_LABEL = { component: 'Component', role: 'Colour', type: 'Type', group: 'Text' }
+
+function MenuItem({ t, open, onOpen, onPick }) {
+  const isGroup = t.kind === 'group'
+  return (
+    <div style={{ position: 'relative' }} onMouseEnter={() => onOpen(isGroup ? t : null)}>
+      <button style={{ ...itemStyle, background: open ? 'var(--surf3)' : 'none' }}
+        onClick={() => (isGroup ? onOpen(t) : onPick(t))}>
+        <span style={{ flex: 1 }}>{t.label}</span>
+        {isGroup && <span style={{ color: 'var(--muted)', fontSize: 11 }}>›</span>}
+      </button>
+
+      {isGroup && open && (
+        <div className="anim-pop" style={{
+          position: 'absolute', left: '100%', top: -5, marginLeft: 3, zIndex: 802,
+          background: 'var(--surf2)', border: '1px solid var(--bdr2)', borderRadius: 9,
+          boxShadow: '0 12px 32px rgba(0,0,0,.55)', padding: 5, minWidth: 200,
+        }}>
+          {t.children.map(child => (
+            <button key={`${child.kind}:${child.target}`} style={itemStyle} onClick={() => onPick(child)}
+              onMouseEnter={e => { e.currentTarget.style.background = 'var(--surf3)' }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'none' }}>
+              {child.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function TargetMenu({ menu, onPick, onClose }) {
+  const [openGroup, setOpenGroup] = useState(null)
+  useEffect(() => { setOpenGroup(null) }, [menu])
   if (!menu) return null
+
+  const own = menu.targets.filter(t => t.from !== 'container')
+  const containers = menu.targets.filter(t => t.from === 'container')
+  const pick = t => { onPick(t); onClose() }
+
+  const section = (title, list) => list.length > 0 && (
+    <>
+      <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--muted)', padding: '5px 8px 6px' }}>
+        {title}
+      </div>
+      {list.map(t => (
+        <MenuItem key={`${t.kind}:${t.target}`} t={t}
+          open={openGroup === t} onOpen={setOpenGroup} onPick={pick} />
+      ))}
+    </>
+  )
+
   return (
     <>
       <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 800 }} />
       <div className="anim-pop" style={{
-        position: 'fixed', left: Math.min(menu.x, window.innerWidth - 260), top: menu.y + 8, zIndex: 801,
+        position: 'fixed', left: Math.min(menu.x, window.innerWidth - 280), top: Math.min(menu.y + 8, window.innerHeight - 40 - menu.targets.length * 32),
+        zIndex: 801,
         background: 'var(--surf2)', border: '1px solid var(--bdr2)', borderRadius: 9,
-        boxShadow: '0 12px 32px rgba(0,0,0,.55)', padding: 5, minWidth: 226,
+        boxShadow: '0 12px 32px rgba(0,0,0,.55)', padding: 5, minWidth: 240,
       }}>
-        <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--muted)', padding: '5px 8px 6px' }}>
-          Edit what?
-        </div>
-        {menu.targets.map(t => (
-          <button key={`${t.kind}:${t.target}`} onClick={() => { onPick(t); onClose() }}
-            style={{
-              display: 'block', width: '100%', textAlign: 'left', background: 'none', border: 'none',
-              cursor: 'pointer', color: 'var(--text)', fontFamily: 'var(--sans)', fontSize: 12.5,
-              padding: '7px 8px', borderRadius: 6,
-            }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'var(--surf3)' }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'none' }}>
-            {t.label}
-          </button>
-        ))}
+        {section('Edit what?', own)}
+        {containers.length > 0 && (
+          <div style={{ borderTop: '1px solid var(--bdr)', margin: '5px 0 0' }}>
+            {section('Inside', containers)}
+          </div>
+        )}
       </div>
     </>
   )
@@ -59,8 +110,13 @@ export default function Canvas({ onInspect }) {
   const [surface, setSurface] = useState('dashboard')
   const [menu, setMenu] = useState(null)
 
+  /* Straight through when the element itself has exactly one destination — a
+     button should still be one click, even though the card behind it is now
+     also on offer. Anything ambiguous (a run of text, which has both a font
+     and a colour) gets the menu, and the menu carries the containers too. */
   const handleInspect = (targets, e) => {
-    if (targets.length === 1) { onInspect?.(targets[0]); return }
+    const own = targets.filter(t => t.from !== 'container')
+    if (own.length === 1 && own[0].kind !== 'group') { onInspect?.(own[0]); return }
     setMenu({ x: e.clientX, y: e.clientY, targets })
   }
   const mode = state.color.mode

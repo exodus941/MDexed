@@ -30,6 +30,14 @@ export const PREVIEW_CSS = `
   transition: background var(--duration-normal, 200ms) var(--ease-standard, ease);
 }
 .dmd *, .dmd *::before, .dmd *::after { box-sizing: border-box; }
+/* Form controls don't inherit the font in any browser, so anything without an
+   explicit rule — an icon button, a bare select — silently renders in the UA
+   default and makes the preview lie about the chosen typeface. Low specificity
+   so the component rules below still win where they set a family. */
+.dmd button, .dmd input, .dmd textarea, .dmd select, .dmd optgroup { font-family: inherit; }
+/* Inspectable elements get their cursor from here rather than from an inline
+   style, which would overwrite the styles the element already carries. */
+.dmd [data-cmp] { cursor: pointer; }
 /* Disabled controls swallow pointer events entirely, so a click on one never
    reaches the wrapper that knows where to send you. In the preview nothing is
    really interactive anyway — the click is for inspection. */
