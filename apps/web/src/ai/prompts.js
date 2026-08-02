@@ -104,6 +104,30 @@ export function contextFor(sectionKey, state, derived) {
 
 export const systemPrompt = () => SYSTEM
 
+/* One or two sentences on where a gradient belongs.
+ *
+ * Deliberately the narrowest prompt here. The output goes into a table cell in
+ * the emitted file, read by an agent deciding whether and where to apply the
+ * gradient, so length is the enemy — a paragraph gets skimmed and the
+ * placement is what matters. The model is given the resolved CSS so it can
+ * describe the actual thing rather than a generic sweep. */
+export function gradientNotePrompt({ name, css, purpose, selector, existing }) {
+  return `A design system defines this gradient:
+
+  name: ${name}
+  css: ${css}
+  intended for: ${purpose}${selector ? ` (typically \`${selector}\`)` : ''}
+
+${existing?.trim()
+    ? `The designer wrote this note about it:\n\n${existing.trim()}\n\nTighten it.`
+    : 'Write the note.'}
+
+One or two sentences, maximum forty words. Say where it belongs and what it is
+for, in the imperative, addressed to whoever is implementing it. Do not restate
+the CSS or the colour values — they are already in the file. Do not begin with
+"This gradient".`
+}
+
 /** Tighten what's already there, preserving the designer's intent and voice. */
 export function refinePrompt(section, existing, state, derived) {
   return `Rewrite the "${section.label}" section of a DESIGN.md file.
