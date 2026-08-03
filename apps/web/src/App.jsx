@@ -65,7 +65,7 @@ const PLINK_KEY = 'design-md:preview-link'
  * values are untouched either way — this changes what you see, never what the
  * document says.
  */
-const UI_SCALE = { min: 75, max: 150, def: 100, step: 5 }
+const UI_SCALE = { min: 75, max: 150, def: 100, step: 12.5 }
 /* Snap window either side of 100%. Wide enough to land on it without care,
    narrow enough that 95 and 105 stay reachable. */
 const SCALE_SNAP = 3
@@ -174,7 +174,6 @@ const AppBuild = () => {
       style={{
         fontFamily: 'var(--mono)', fontSize: 9.5, color: 'var(--dim)',
         letterSpacing: '.02em', whiteSpace: 'nowrap', cursor: 'default',
-        alignSelf: 'flex-start', marginTop: 4,
       }}>
       {version}
     </span>
@@ -354,8 +353,8 @@ function ScaleSlider({ label, title, value, onChange, disabled, children }) {
             textAlign: 'right', color: 'var(--text-dim)',
           }} />
       </div>
-      <input type="range" min={UI_SCALE.min} max={UI_SCALE.max} step={1} value={value} disabled={disabled}
-        onChange={e => slide(Number(e.target.value))}
+      <input type="range" min={UI_SCALE.min} max={UI_SCALE.max} step={UI_SCALE.step} value={value} disabled={disabled}
+        onChange={e => onChange(Number(e.target.value))}
         onDoubleClick={() => onChange(UI_SCALE.def)} />
       {children}
     </div>
@@ -379,12 +378,9 @@ function PreviewScaleControl({ value, onChange, linked, setLinked, uiScale }) {
       label="Preview Scale"
       title="How large the preview surface draws, independent of the editor around it. The document is unchanged either way — this is magnification, not a token."
       value={linked ? uiScale : value} onChange={onChange} disabled={linked}>
-      <label style={{
-        display: 'flex', alignItems: 'center', gap: 6, marginTop: 7, cursor: 'pointer',
-        fontSize: 10.5, color: linked ? 'var(--text)' : 'var(--muted)', userSelect: 'none',
-      }} title="Follow the UI Scale slider instead of keeping its own value.">
+      <label className="check" style={{ marginTop: 9, color: linked ? 'var(--text)' : 'var(--muted)' }} title="Follow the UI Scale slider instead of keeping its own value.">
         <input type="checkbox" checked={linked} onChange={e => setLinked(e.target.checked)}
-          style={{ width: 13, height: 13, accentColor: 'var(--accent)', flexShrink: 0 }} />
+          style={{ width: 14, height: 14, accentColor: 'var(--accent)' }} />
         Link to UI Scale
       </label>
     </ScaleSlider>
@@ -583,7 +579,7 @@ function ToolsMenu({ uiSpeed, setUiSpeed, uiHue, setUiHue, uiTheme, setUiTheme, 
           <line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" />
         </svg>
         {/* Three bars alone say "menu" and nothing about which one. */}
-        UI
+        <span className="lbl">UI</span>
       </button>
 
       {open && (
@@ -1884,19 +1880,19 @@ function Shell() {
         height: 'calc(100vh / var(--ui-zoom, 1))',
       }}>
 
-        <header style={{ display: 'flex', alignItems: 'center', gap: 13, padding: '0 20px', height: 50, borderBottom: '1px solid var(--bdr)', background: 'var(--surf)', flexShrink: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 9, flex: 1, minWidth: 0 }}>
+        <header style={{ display: 'flex', alignItems: 'baseline', gap: 13, padding: '7px 20px 5px', borderBottom: '1px solid var(--bdr)', background: 'var(--surf)', flexShrink: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 9, flex: 1, minWidth: 0 }}>
             {/* Two letters in the same box the single D had, so the mark
                 keeps its size — tighter tracking rather than a smaller face,
                 which would make it read as secondary next to the wordmark. */}
-            <div style={{ width: 26, height: 26, borderRadius: 7, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--display)', fontWeight: 800, fontSize: 11.5, letterSpacing: '-0.04em', color: 'var(--bg)', flexShrink: 0 }}>MD</div>
+            <div style={{ width: 26, height: 26, borderRadius: 7, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', alignSelf: 'center', fontFamily: 'var(--display)', fontWeight: 800, fontSize: 11.5, letterSpacing: '-0.04em', color: 'var(--bg)', flexShrink: 0 }}>MD</div>
             <span style={{ fontFamily: 'var(--display)', fontWeight: 700, fontSize: 15, letterSpacing: '-0.025em', whiteSpace: 'nowrap' }}>
               MD<span style={{ color: 'var(--muted)', fontWeight: 400 }}>exed</span>
             </span>
             <AppBuild />
             <TitleField name={state.meta.name}
               onCommit={next => set(s => ({ ...s, meta: { ...s.meta, name: next } }), 'meta:name')} />
-            <div style={{ display: 'flex', gap: 3, marginLeft: 4 }}>
+            <div style={{ display: 'flex', gap: 3, marginLeft: 4, alignSelf: 'center' }}>
               {swatches.map((hex, i) => <div key={i} className="swatch" style={{ width: 12, height: 12, background: hex, cursor: 'default' }} />)}
             </div>
           </div>
@@ -1911,14 +1907,14 @@ function Shell() {
            * it, so the far end is always reachable even when the window is
            * too narrow to show everything at once. */}
           <div className="no-bar" style={{
-            display: 'flex', gap: 6, alignItems: 'center',
+            display: 'flex', gap: 6, alignItems: 'baseline',
             minWidth: 0, overflowX: 'auto', overflowY: 'hidden',
             paddingBottom: 1, scrollbarWidth: 'none',
           }}>
             {/* Two readouts, then the controls. Tighter gap between them than
                 to the buttons, so they group as one unit rather than reading
                 as two more things to click. */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginRight: 2 }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginRight: 2 }}>
               <VersionChip version={state.meta.version} />
               <SyncBadge status={syncStatus} />
             </div>
@@ -1926,7 +1922,7 @@ function Shell() {
               <button className="btn-ghost" onClick={reloadFromServer} style={{ padding: BTN.lg, color: 'var(--danger)', borderColor: 'rgb(var(--danger-rgb) / .4)' }}>Reload</button>
             )}
             {!projectId ? (
-              <button className="btn-ghost" onClick={saveToCloud} style={{ padding: BTN.lg, flexShrink: 0 }}>Save to Cloud</button>
+              <button className="btn-fill" onClick={saveToCloud} style={{ padding: BTN.lg, flexShrink: 0 }}>Save to Cloud</button>
             ) : (
               <button className="btn-ghost" style={{ padding: BTN.lg, color: linkCopied ? 'var(--success)' : 'var(--muted)' }}
                 onClick={() => { navigator.clipboard.writeText(window.location.href); setLinkCopied(true); setTimeout(() => setLinkCopied(false), 1800) }}>
@@ -1938,13 +1934,13 @@ function Shell() {
             <button className="btn-outline" onClick={exportPreviewHtml} disabled={exportingHtml}
               title={`Save the ${(SURFACES.find(s => s.id === surface) ?? SURFACES[0]).label} surface as a standalone HTML page`}
               style={{ display: 'inline-flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
-              <Download />{exportingHtml ? 'Building…' : 'Export Preview (HTML)'}
+              <Download /><span className="lbl">{exportingHtml ? 'Building…' : 'Export Preview (HTML)'}</span>
             </button>
-            <button className="btn-primary" onClick={download} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, flexShrink: 0 }}><Download />Export design.md</button>
+            <button className="btn-primary" onClick={download} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, flexShrink: 0 }}><Download /><span className="lbl">Export design.md</span></button>
             <button className="btn-package" onClick={exportPackage} disabled={packaging}
               title="DESIGN.md, tokens.css, a Tailwind preset, tokens.json and every surface as HTML — one zip"
               style={{ display: 'inline-flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
-              <Download />{packaging ? 'Packaging…' : 'Export Payload'}
+              <Download /><span className="lbl">{packaging ? 'Packaging…' : 'Export Payload'}</span>
             </button>
           </div>
 
@@ -2007,7 +2003,7 @@ function Shell() {
                   </button>
                   <div style={{ flex: 1 }} />
                   <button className="btn-fill" onClick={() => setShowImport(true)}
-                    style={{ padding: '4px 10px' }} title={IMPORT_FORMATS}><Upload />Import Reference</button>
+                    style={{ padding: '4px 10px' }} title={IMPORT_FORMATS}><Upload /><span className="lbl">Import Reference</span></button>
                 </>
               } />
             <main style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', padding: '20px 20px 64px',

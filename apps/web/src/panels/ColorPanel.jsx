@@ -419,15 +419,15 @@ export default function ColorPanel() {
         {/* Generator, inline rather than on its own screen — locking a colour
             and re-rolling the rest is a loop you want to stay inside. */}
         <div style={{ background: 'var(--surf2)', border: '1px solid var(--bdr)', borderRadius: 9, padding: PAD.card, marginBottom: 10 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 9 }}>
+          <div className="dense" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 9 }}>
             <span style={{ fontSize: 12, color: 'var(--text)', flex: 1 }}>Generate a palette</span>
             <select value={intensity} onChange={e => setIntensity(e.target.value)}
               title="How saturated the run is — and how much colour the neutral carries, which is what tints the page"
-              style={{ width: 'auto', fontSize: 11.5, padding: '4px 7px' }}>
+              style={{ width: 'auto' }}>
               {INTENSITIES.map(i => <option key={i.id} value={i.id}>{i.label}</option>)}
             </select>
             <select value={harmony} onChange={e => setHarmony(e.target.value)}
-              style={{ width: 'auto', fontSize: 11.5, padding: '4px 7px' }}>
+              style={{ width: 'auto' }}>
               {HARMONIES.map(h => <option key={h.id} value={h.id}>{h.label}</option>)}
             </select>
             <button className="btn-primary" onClick={roll} style={{ padding: '6px 12px', whiteSpace: 'nowrap' }}>
