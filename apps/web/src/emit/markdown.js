@@ -51,6 +51,10 @@ function overviewBody(state) {
       directives?.classNaming === 'utility' ? 'Prefer utility classes over bespoke CSS.'
         : directives?.classNaming === 'semantic' ? 'Prefer semantic class names over utility classes.' : null,
       'Every value below is prescriptive. Where this file specifies a token, use it rather than an approximation.',
+      /* Without this, an agent reads the sample pages as the answer rather than
+         as a reference, and inherits whatever was true of the pane they were
+         rendered in — the page width most of all. */
+      'The pages in `html-examples/` are style references, not templates. Take the arrangement from them: what sits beside what, which elevation a panel uses, how tight a heading is set. Do not take their page width, their section order or their content — those belong to the sample, not to this system.',
     ]),
     directives?.notes?.trim()
   )
@@ -235,6 +239,20 @@ function typographyBody(state, derived) {
       t.features?.body?.length && `Body text enables: ${t.features.body.map(f => `\`${f}\``).join(', ')}.`,
       t.features?.mono?.length && `Monospace enables: ${t.features.mono.map(f => `\`${f}\``).join(', ')}.`,
       'Use the token name, not the raw size.',
+    ]),
+
+    /* The scale gives one number per role, and the file tells the agent to use
+       the token rather than a size. Between those two instructions there is no
+       answer for a narrow screen, so the agent invents one — usually an
+       arbitrary px value, which breaks the scale it was told to keep. Naming
+       the step-down as a rule closes that gap without adding a token. */
+    '**Narrow screens**',
+    bullets([
+      t.fluid?.on
+        ? 'Sizes are fluid: each one interpolates with the viewport, so no breakpoint work is needed.'
+        : 'Sizes are fixed. On a narrow screen, step a heading **down the scale to the next token** rather than inventing a smaller size. A hero set in `h1` becomes `h2`, then `h3`.',
+      'Never set a size that is not on the scale, at any breakpoint.',
+      `The layout has to survive **320px** with no horizontal scrolling, so the largest roles will need a step down before that width.`,
     ])
   )
 }
@@ -359,6 +377,25 @@ function componentsBody(state, derived) {
     .map(c => [c.name, (c.properties ?? []).find(p => p.key === 'height')?.value])
     .filter(([, v]) => v)
 
+  /* Only the ones a finger has to hit. A switch is a 24px control inside a
+     44px row, and calling it a short target every time would be noise. */
+  const TAPPABLE = /^(button|input|select|checkbox|nav-item)/
+
+  /* Two numbers in this file disagree by design: a compact control is shorter
+     than the minimum target. Saying both and leaving it there reads as an
+     oversight, and an agent picks whichever it saw last. Name the shortfall and
+     say how to close it. */
+  const target = state.states?.touchTarget ?? 44
+  const short = heights.filter(([n, v]) => TAPPABLE.test(n) && parseFloat(v) < target)
+  const targets = short.length ? [
+    '**Controls shorter than the minimum target**',
+    `${short.map(([n, v]) => `\`${n}\` (${v})`).join(', ')} ${short.length === 1 ? 'is' : 'are'} below the ${target}px minimum. That is deliberate — a dense control should look dense. It is not permission to ship a ${target}px-shy hit area.`,
+    bullets([
+      `Give the control ${target}px of hit area without changing how it looks: pad the wrapper, or stretch a pseudo-element over it.`,
+      `Or use a taller size for anything standing on its own. Reserve the short ones for rows and toolbars, where neighbours supply the clear space.`,
+    ]),
+  ] : []
+
   const alignment = [
     '**Alignment**',
     bullets([
@@ -366,7 +403,8 @@ function componentsBody(state, derived) {
       'An item beside a multi-line block centres on the block. The exception is an item that belongs to the block\'s title, such as a count beside a section heading, which sits on the title\'s line.',
       'A heading much larger than a control next to it centres instead. At that size difference a shared baseline reads as a mistake.',
       'A button beside a field matches that field\'s height. Equal heights with both boxes centring their own text put the two baselines within half a pixel, which needs no further correction.',
-      'A label inside a button sets that button\'s baseline. An icon in front of the label must not, or the whole button hangs off the row.',
+      'A control with a fixed height centres its own content. Do not baseline-align inside it — baseline packs the content to the top of the box and leaves all the slack underneath.',
+      'What a button hands to the row around it is its label\'s baseline, never its icon\'s. If a flex button centres everything, give the label `align-self: baseline` so it becomes the donor. An icon must never decide it.',
     ]),
     heights.length && 'Declared heights. Controls that share a row must share a height:',
     heights.length && table(['Entry', 'Height'], heights.map(([n, v]) => [`\`${n}\``, `\`${v}\``])),
@@ -379,6 +417,7 @@ function componentsBody(state, derived) {
     ]),
 
     ...alignment,
+    ...targets,
     proseOnly.length && '**Additional component properties** (outside the DESIGN.md component schema, applied the same way):',
     proseOnly.length && table(['Component', 'Property', 'Value'], proseOnly),
 

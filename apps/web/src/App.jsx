@@ -1815,12 +1815,31 @@ function Shell() {
         '_tokens.scss': tokens.tokensScss(stamped, derived),
         'tokens.json': tokens.tokensJson(stamped, derived),
       }
+      /* Both themes, every surface, always.
+         The dark palette is half the work in the document and none of it was
+         shipping — an agent got six light pages and a table of dark hex codes,
+         which is not the same thing. Dark mode is where a system usually comes
+         apart: surfaces have to lift instead of the shadows deepening, and a
+         colour that carried on paper stops carrying on ink. Showing it is the
+         only way that reads.
+
+         Not conditional on the editing mode. That setting says which theme you
+         are working on, and `tokens.css` ships both regardless — so gating the
+         examples on it would leave half the exported system undemonstrated
+         while the values for it sat right there in the file.
+
+         The markup is rendered once and reused. It is identical between the
+         two, because the theme is a variable swap and nothing else — which is
+         itself worth demonstrating. */
+      const modes = ['light', 'dark']
       for (const s of SURFACES) {
         const markup = renderToStaticMarkup(
           <div className="dmd-frame"><div className="dmd"><s.Component layout={derived.componentLayout} /></div></div>
         )
-        files[`html-examples/${s.id}.html`] =
-          html.previewHtml({ state: stamped, derived, markup, surface: s.label, mode: stamped.color.mode })
+        for (const mode of modes) {
+          files[`html-examples/${mode}/${s.id}.html`] =
+            html.previewHtml({ state: stamped, derived, markup, surface: s.label, mode })
+        }
       }
       const url = URL.createObjectURL(zip(files))
       const a = document.createElement('a')

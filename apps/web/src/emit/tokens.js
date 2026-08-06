@@ -355,7 +355,7 @@ your stack, and ignore the rest.
 | \`tailwind.config.js\` | Tailwind **v3**. A preset — merge it, don't replace your config. |
 | \`_tokens.scss\` | Sass variables, maps and a breakpoint mixin. |
 | \`tokens.json\` | W3C Design Tokens format, for Style Dictionary, Figma and similar. |
-| \`html-examples/\` | Every preview surface as a standalone page. Open one and read the markup. |
+| \`html-examples/\` | Every surface as a standalone page. Both themes when the system ships both, in \`light/\` and \`dark/\`. The markup is identical between them — the theme is a variable swap and nothing else. |
 
 Both Tailwind files are present because v3 and v4 configure themselves in
 different places and neither can read the other's. Use the one matching your

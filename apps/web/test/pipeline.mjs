@@ -361,6 +361,38 @@ line('\n- prompt construction -')
  * `â€` cannot occur in correctly-encoded prose, and a BOM has no business in a
  * source file, so both are cheap to assert and catch the whole family. */
 {
+  /* ── The examples obey the file they ship beside ──
+   *
+   * The six surfaces are the most-copied thing in the payload: an agent
+   * imitates working markup far more readily than it follows a sentence. They
+   * were written as pictures, so they broke four of the rules the document
+   * states — nav items that could not be tabbed to, icons a screen reader read
+   * aloud, no landmark, no reduced-motion policy. None of that is visible, so
+   * nothing was going to catch it by eye.
+   */
+  line('\n- exported examples follow their own accessibility rules -')
+  {
+    const src = new URL('../src/preview/', import.meta.url)
+    const read = p => fs.readFileSync(new URL(p, src), 'utf8')
+    const screens = fs.readdirSync(new URL('screens/', src)).filter(f => f.endsWith('.jsx'))
+    assert(screens.length >= 5, `found the surfaces (${screens.length})`)
+
+    const markup = screens.map(f => read(`screens/${f}`)).join('\n')
+    assert(!/<span className="nav-item"/.test(markup),
+      'no navigation item is a span — a span cannot be tabbed to or announced')
+    assert(/aria-hidden="true"/.test(read('icons.jsx')),
+      'decorative icons are hidden from screen readers')
+    assert(/prefers-reduced-motion/.test(read('preview.css')),
+      'the stylesheet honours the reduced-motion policy the document declares')
+
+    /* Anything that looks like navigation needs the landmark around it. */
+    for (const f of screens) {
+      const s = read(`screens/${f}`)
+      if (!/className="nav-item"/.test(s)) continue
+      assert(/<nav\b/.test(s), `${f} wraps its navigation in a nav landmark`)
+    }
+  }
+
   line('\n- source encoding -')
   const root = new URL('../src/', import.meta.url)
   const walk = dir => fs.readdirSync(dir, { withFileTypes: true }).flatMap(e => {

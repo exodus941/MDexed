@@ -85,13 +85,23 @@ export const COMPONENT_LIBRARY = [
     states: { checked: { _: { backgroundColor: '{colors.accent}' } } },
   },
   {
+    /* Padding is the density control, and it is kept separate from elevation.
+       A dense table card and a pricing tier are the same surface at different
+       scales, while flat and overlay say how far off the page something sits.
+       Tying the two together means you cannot have a roomy flat panel, and
+       sooner or later you want one.
+
+       The three steps are `md`, `lg` and `xl`, which land on 16 / 24 / 32 at
+       the default density and move with the Density macro from there. */
     name: 'card', label: 'Card', group: 'Surfaces', on: true,
     base: {
       backgroundColor: '{colors.surface}', borderColor: '{colors.border-subtle}',
-      rounded: '{rounded.lg}', padding: '{spacing.md}', boxShadow: '{elevation.raised}',
+      rounded: '{rounded.lg}', padding: '{spacing.lg}', boxShadow: '{elevation.raised}',
       backgroundImage: 'none',
     },
     variants: {
+      compact: { padding: '{spacing.md}' },
+      roomy:   { padding: '{spacing.xl}' },
       flat:    { boxShadow: 'none' },
       overlay: { backgroundColor: '{colors.surface-raised}', boxShadow: '{elevation.overlay}' },
     },
