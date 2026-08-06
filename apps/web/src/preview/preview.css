@@ -58,8 +58,14 @@
   font-size: var(--cmp-button-font-size, var(--font-body-sm-size, 14px));
   font-weight: var(--cmp-button-font-weight, 500);
   letter-spacing: var(--cmp-button-tracking, normal);
-  display: inline-flex; align-items: center; justify-content: center;
-  gap: var(--cmp-button-gap, var(--icon-gap, 8px));
+  /* Centred with line-height on an inline-block, not with align-items on a
+     flex box. A fixed-height flex button cannot do both jobs: make the label a
+     baseline participant and the group aligns to cross-start, which pins it to
+     the top of the box. This way the label simply is the button's baseline, so
+     a button sitting in a row of text lines up with that text.
+     The gap moves to a margin on the icon, since there is no flex gap now. */
+  display: inline-block; text-align: center; white-space: nowrap;
+  line-height: var(--cmp-button-md-height, 36px);
   height: var(--cmp-button-md-height, auto);
   padding: var(--cmp-button-md-padding, 0 var(--space-md, 16px));
   border-radius: var(--cmp-button-rounded, var(--radius-md, 8px));
@@ -69,6 +75,8 @@
               border-color var(--duration-fast, 120ms) var(--ease-standard, ease),
               color var(--duration-fast, 120ms) var(--ease-standard, ease);
 }
+.dmd .btn .icon { vertical-align: middle; margin-right: var(--cmp-button-gap, var(--icon-gap, 8px)); }
+.dmd .btn .icon:last-child { margin-right: 0; margin-left: var(--cmp-button-gap, var(--icon-gap, 8px)); }
 .dmd .btn:focus-visible {
   outline: var(--focus-width, 2px) var(--focus-style, solid) var(--c-ring, #4f6ef7);
   outline-offset: var(--focus-offset, 2px);
@@ -133,17 +141,13 @@
   opacity: var(--cmp-button-primary-disabled-opacity, .5); cursor: not-allowed; pointer-events: none;
 }
 .dmd .btn-sm {
-  height: var(--cmp-button-sm-height, auto);
+  height: var(--cmp-button-sm-height, 28px); line-height: var(--cmp-button-sm-height, 28px);
   padding: var(--cmp-button-sm-padding, 0 var(--space-xs, 8px));
-  font-size: var(--cmp-button-sm-font-size, var(--font-caption-size, 12px));
-  gap: var(--cmp-button-sm-gap, var(--cmp-button-gap, var(--icon-gap, 8px)));
-}
+  font-size: var(--cmp-button-sm-font-size, var(--font-caption-size, 12px));}
 .dmd .btn-lg {
-  height: var(--cmp-button-lg-height, auto);
+  height: var(--cmp-button-lg-height, 44px); line-height: var(--cmp-button-lg-height, 44px);
   padding: var(--cmp-button-lg-padding, 0 var(--space-lg, 24px));
-  font-size: var(--cmp-button-lg-font-size, var(--font-body-md-size, 16px));
-  gap: var(--cmp-button-lg-gap, var(--cmp-button-gap, var(--icon-gap, 8px)));
-}
+  font-size: var(--cmp-button-lg-font-size, var(--font-body-md-size, 16px));}
 
 /* ── Form controls ── */
 .dmd .field { display: flex; flex-direction: column; gap: var(--space-xs, 4px); }
@@ -275,7 +279,12 @@
 .dmd .input-icon > svg { position: absolute; left: var(--space-sm, 12px); color: var(--c-text-subtle, #999); pointer-events: none; }
 .dmd .input-icon > .input { padding-left: calc(var(--space-sm, 12px) + var(--icon-md, 16px) + var(--icon-gap, 8px)); }
 
-.dmd .row { display: flex; align-items: center; gap: var(--space-xs, 8px); }
+/* Text on a row shares one baseline, including a button label and the initials
+   in an avatar — both of those donate a real baseline now. Things with no text
+   to offer centre instead. */
+.dmd .row { display: flex; align-items: baseline; gap: var(--space-xs, 8px); }
+.dmd .row > .icon, .dmd .row > .bar, .dmd .row > .switch,
+.dmd .row > .checkbox, .dmd .row > .swatch { align-self: center; }
 .dmd .stack { display: flex; flex-direction: column; gap: var(--space-md, 16px); }
 .dmd .stack-sm { display: flex; flex-direction: column; gap: var(--space-sm, 8px); }
 .dmd .grid { display: grid; gap: var(--space-md, 16px); }
