@@ -1285,9 +1285,10 @@ function RestoreToast({ offer, onRestore, onDismiss }) {
 
   return (
     <div className={leaving ? 'anim-fall' : 'anim-rise'} style={{
-      /* Baseline, so Restore sits on the line that says what happened rather
-         than floating between the two lines of the message. */
-      display: 'flex', alignItems: 'baseline', gap: 11,
+      /* Centred: the message is two lines, so Restore is sitting beside a block
+         rather than beside a line. Baseline-aligning it to the first line left
+         it hanging off the top of the pair. */
+      display: 'flex', alignItems: 'center', gap: 11,
       background: 'var(--surf2)', border: '1px solid var(--bdr2)',
       borderRadius: 9, padding: '9px 10px 9px 11px',
       /* No fixed cap. The second line names the project, and a name the user
