@@ -32,6 +32,25 @@ const varsFor = (derived, state, mode) => buildCssVars({
 const declarations = vars =>
   Object.entries(vars).map(([k, v]) => `  ${k}: ${v};`).join('\n')
 
+/* ── Fallbacks that belong to this system ──
+ *
+ * preview.css writes `var(--c-text-muted, #666)`. Inside the editor the
+ * fallback never runs, because the variable is always set — so the value there
+ * is arbitrary, and it is generic boilerplate from no palette in particular.
+ *
+ * In an exported file that stops being harmless. Anything that keeps the
+ * stylesheet but loses the variables — a wrong path, a partial copy, an agent
+ * lifting one rule out of context — renders the page in somebody else's
+ * colours. Swapping each fallback for the value this system actually resolves
+ * to means a failure degrades to the right brand instead of a stranger's.
+ *
+ * Only the literal after the first comma is replaced, so a nested
+ * `var(--a, var(--b, #666))` keeps its structure and gets fixed at each level.
+ */
+const withRealFallbacks = (css, vars) =>
+  css.replace(/var\(\s*(--[\w-]+)\s*,\s*([^,()]*?)\s*\)/g,
+    (whole, name, fallback) => vars[name] != null ? `var(${name}, ${vars[name]})` : whole)
+
 /**
  * @param markup  the surface, already rendered to static HTML
  * @param surface human-readable name of the surface, for the title
@@ -83,7 +102,7 @@ body { background: var(--c-bg, #fff); }
 .dmd [data-cmp] { cursor: auto; }
 
 /* ── The system ────────────────────────────────────────────────────────── */
-${PREVIEW_CSS.trim()}
+${withRealFallbacks(PREVIEW_CSS.trim(), mode === 'dark' ? dark : light)}
 
 /* ── Responsive ────────────────────────────────────────────────────────────
    Container queries rather than media queries, matching the editor's preview

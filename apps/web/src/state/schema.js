@@ -176,6 +176,7 @@ export const ANTI_PATTERNS = [
   { id: 'baseline-block', text: 'Never pin an item to the first line of a multi-line block, unless it belongs to that block\'s title. Centre it on the block.', on: true },
   { id: 'control-height', text: 'Never let a button beside a field differ in height from that field.', on: true },
   { id: 'icon-baseline', text: 'Never let an icon decide a button\'s baseline. The label decides it.', on: true },
+  { id: 'baseline-in-fixed-box', text: 'Never baseline-align the contents of a fixed-height control. Centre them — baseline pins the label to the top of the box.', on: true },
 ]
 
 export const FRAMEWORKS = ['React + Tailwind', 'React + CSS variables', 'Plain HTML + CSS', 'Vue + Tailwind', 'Svelte', 'Unspecified']

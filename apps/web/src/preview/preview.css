@@ -340,3 +340,17 @@
   font-weight: 500;
 }
 
+
+/* ── Reduced motion ──
+   The document declares a policy for this and the surfaces did not honour it,
+   so every exported example contradicted its own file. Transitions collapse to
+   a cross-fade at the fast duration: colour still confirms that something
+   responded, and nothing moves or scales. */
+@media (prefers-reduced-motion: reduce) {
+  .dmd *, .dmd *::before, .dmd *::after {
+    transition-property: background-color, border-color, color, opacity !important;
+    transition-duration: var(--duration-fast, 88ms) !important;
+    animation: none !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -4,8 +4,13 @@
    every icon in every surface at once — which is the point of having them as
    tokens rather than as fixed SVGs. */
 
+/* Decorative by default. Every icon in the surfaces sits beside its own
+   label, so a screen reader that reads it out is repeating the label or
+   narrating a shape. An icon that ever carries meaning on its own would need
+   a title and `aria-hidden={false}` — none currently does. */
 export const Ico = ({ d, size = 'md' }) => (
-  <svg className="icon" width={`var(--icon-${size}, 16px)`} height={`var(--icon-${size}, 16px)`}
+  <svg className="icon" aria-hidden="true" focusable="false"
+    width={`var(--icon-${size}, 16px)`} height={`var(--icon-${size}, 16px)`}
     viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
     {d}
   </svg>
@@ -43,7 +48,7 @@ export const Check = ({ on }) => (
     color: 'var(--cmp-checkbox-checked-text-color, var(--c-accent-fg, #fff))',
     display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
   }}>
-    {on && <svg width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3.4} strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>}
+    {on && <svg aria-hidden="true" focusable="false" width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3.4} strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>}
   </span>
 )
 

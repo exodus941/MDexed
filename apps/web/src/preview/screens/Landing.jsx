@@ -17,8 +17,12 @@ export default function Landing({ onInspect }) {
           <strong {...txt('body-md', 'text')} style={{ fontSize: 'var(--font-body-md-size, 16px)', cursor: onInspect ? 'pointer' : undefined }}>Northwind</strong>
         </div>
         <div className="row">
-          <span className="nav-item" {...ins('nav-item')}>Pricing</span>
-          <span className="nav-item" {...ins('nav-item')}>Docs</span>
+          {/* Links, not spans. These are the most-copied lines in the payload,
+              and a span cannot be tabbed to or announced as navigation. */}
+          <nav className="row" aria-label="Main">
+            <a className="nav-item" href="#pricing" {...ins('nav-item')}>Pricing</a>
+            <a className="nav-item" href="#docs" {...ins('nav-item')}>Docs</a>
+          </nav>
           <button className="btn btn-primary btn-sm" {...ins('button-sm')}><Ico d={IconPlus} size="sm" />Start free</button>
         </div>
       </div>
