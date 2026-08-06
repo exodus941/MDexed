@@ -41,7 +41,7 @@ export default function Dashboard({ onInspect, layout }) {
           <div className="row">
             <button className="btn btn-secondary btn-sm" {...ins('button-sm')}><Ico d={IconDownload} size="sm" />Export</button>
             <button className="btn btn-primary btn-sm" {...ins('button-primary')}><Ico d={IconPlus} size="sm" />New invoice</button>
-            <button className="icon-btn" {...ins('button-secondary')}><Ico d={IconBell} /></button>
+            <button className="btn btn-secondary btn-sm icon-only" {...ins('button-secondary')}><Ico d={IconBell} /></button>
           </div>
         </div>
 

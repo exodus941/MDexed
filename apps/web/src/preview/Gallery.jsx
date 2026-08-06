@@ -89,8 +89,8 @@ export default function Gallery({ onInspect, layout }) {
             <Label txt={txt}>outline</Label>
             <button className="btn btn-secondary" {...ins('button-secondary')}><Ico d={IconSearch} />Search</button>
             <button className="btn btn-secondary" {...ins('button-secondary')}>Sort<Ico d={IconChevron} /></button>
-            <button className="icon-btn" {...ins('button-secondary')}><Ico d={IconTrash} /></button>
-            <button className="icon-btn" {...ins('button-secondary')}><Ico d={IconStar} /></button>
+            <button className="btn btn-secondary btn-sm icon-only" {...ins('button-secondary')}><Ico d={IconTrash} /></button>
+            <button className="btn btn-secondary btn-sm icon-only" {...ins('button-secondary')}><Ico d={IconStar} /></button>
           </div>
           <div className="row">
             <Label txt={txt}>sizes</Label>
@@ -159,7 +159,7 @@ export default function Gallery({ onInspect, layout }) {
               fontSize: 'var(--cmp-tooltip-font-size, var(--font-caption-size, 12px))',
               cursor: 'pointer',
             }}>Copies the invoice link</span>
-            <button className="icon-btn" {...ins('button-secondary')}><Ico d={IconStar} /></button>
+            <button className="btn btn-secondary btn-sm icon-only" {...ins('button-secondary')}><Ico d={IconStar} /></button>
           </div>
           <div className="card card-overlay" style={{ padding: 4, minWidth: 168 }} {...ins('card-overlay')}>
             {[['Duplicate', IconPlus], ['Download PDF', IconFolder], ['Delete', IconTrash]].map(([label, icon]) => (
@@ -192,8 +192,8 @@ export default function Gallery({ onInspect, layout }) {
               ))}
             </div>
             <div className="row" style={{ marginLeft: 'auto', gap: 4 }}>
-              <button className="icon-btn" title="Filter" {...ins("button-secondary")}><Ico d={IconFolder} /></button>
-              <button className="icon-btn" title="More" {...ins("button-secondary")}><Ico d={IconInfo} /></button>
+              <button className="btn btn-secondary btn-sm icon-only" title="Filter" {...ins("button-secondary")}><Ico d={IconFolder} /></button>
+              <button className="btn btn-secondary btn-sm icon-only" title="More" {...ins("button-secondary")}><Ico d={IconInfo} /></button>
             </div>
           </div>
         </div>

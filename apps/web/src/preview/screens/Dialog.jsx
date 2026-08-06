@@ -50,7 +50,7 @@ function Modal({ ins, txt, layout, onInspect }) {
       textAlign: centred ? 'center' : 'left',
     }}>
       {layout.dismiss === 'corner' && (
-        <button className="icon-btn" {...ins('button-secondary')}
+        <button className="btn btn-secondary btn-sm icon-only" {...ins('button-secondary')}
           style={{ position: 'absolute', top: 'var(--space-sm, 12px)', right: 'var(--space-sm, 12px)' }}>
           <Ico d={IconX} />
         </button>
