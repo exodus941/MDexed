@@ -291,6 +291,28 @@ label.check input[type=checkbox]{flex-shrink:0;margin:0}
 .btn-fill:hover{background-color:var(--bdr);border-color:var(--dim)}
 .btn-fill:disabled{opacity:.4;cursor:not-allowed}
 .btn-fill:disabled:hover{background-color:var(--surf3);border-color:var(--bdr2)}
+
+/* ── A control standing next to a field ──
+   Add this to any button that sits beside an input, a select or a number
+   field. It takes the field's height instead of deriving one from vertical
+   padding, so the two read as one row rather than as two unrelated controls.
+   The class owns the padding too, rather than each call site setting its own.
+   Uniform is the requirement, and a value repeated at five call sites is a
+   value that drifts. A button belonging to a different group in the same row
+   can still override it deliberately.
+
+   Height alone also settles the baseline. Both boxes centre their own text, so
+   a baseline sits at `H/2 + 0.3635 x font-size`. With H equal, the only
+   difference left is the 1px between a 13px button and a 14px field, which
+   comes to 0.36px. That is under half a pixel and needs no correction.
+
+   `.btn-field-icon` is the icon-only form: square, so it matches the field on
+   both axes. The glyph does not grow. The extra room is hit area, which the
+   2.5.8 target-size check wants anyway. */
+.btn-field{height:var(--field-h);padding:0 12px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
+.btn-field-icon{width:var(--field-h);padding:0}
+.dense .btn-field{height:var(--field-h-dense);padding:0 8px}
+.dense .btn-field-icon{width:var(--field-h-dense);padding:0}
 .btn-add{margin-top:8px;width:100%;padding:10px 16px;background:var(--accent-wash);color:var(--accent);border:1px dashed var(--accent-line);border-radius:8px;cursor:pointer;font-size:13px;font-family:var(--sans);transition:background var(--t) var(--ease)}
 .btn-add:hover{background:var(--accent-soft)}
 .btn-delete{background:none;border:none;cursor:pointer;color:var(--dim);border-radius:4px;transition:color var(--t) var(--ease);display:flex;align-items:center;justify-content:center;padding:4px}

@@ -437,7 +437,7 @@ export default function ColorPanel() {
               style={{ width: 'auto' }}>
               {HARMONIES.map(h => <option key={h.id} value={h.id}>{h.label}</option>)}
             </select>
-            <button className="btn-primary" onClick={roll} style={{ padding: '6px 12px', whiteSpace: 'nowrap' }}>
+            <button className="btn-primary btn-field" onClick={roll} style={{ whiteSpace: 'nowrap' }}>
               Generate
             </button>
           </div>

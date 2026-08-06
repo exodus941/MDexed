@@ -250,10 +250,10 @@ export default function HistoryPanel() {
               const cat = CATEGORY_BY_ID[e.category] ?? CATEGORY_BY_ID.system
               return (
                 <div key={e.id} className="log-row" style={{
-                  /* Centred on the entry, which runs to two lines — the actions
-                     belong beside the whole thing, not on its first line. The
-                     actions do share a baseline with each other; see below. */
-                  display: 'grid', gridTemplateColumns: '8px 1fr auto', gap: 10, alignItems: 'center',
+                  /* The actions sit on the line that names the change, and the
+                     detail line hangs below them. They also share a baseline
+                     with each other, see below. */
+                  display: 'grid', gridTemplateColumns: '8px 1fr auto', gap: 10, alignItems: 'baseline',
                   padding: PAD.sub, borderBottom: '1px solid var(--bdr)',
                 }}>
                   <span style={{ width: 6, height: 6, borderRadius: '50%', background: cat.colour, marginTop: 5, alignSelf: 'start' }} title={cat.label} />

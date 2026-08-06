@@ -11,7 +11,7 @@ import { RAMP_STEPS } from '../color/ramp.js'
 import { check } from '../color/contrast.js'
 import { generateCounterpart, clearOverridesFor } from '../color/modes.js'
 import ColorPicker from '../ui/ColorPicker.jsx'
-import { SectionHeader, Collapsible, Expand, Segmented, OverrideBadge, Banner, FilterField, PAD } from '../ui/controls.jsx'
+import { SectionHeader, Collapsible, Expand, Segmented, OverrideBadge, Banner, FilterField, PAD, BTN } from '../ui/controls.jsx'
 import { useReveal, revealStyle } from '../ui/reveal.js'
 import CrossFade from '../ui/CrossFade.jsx'
 import PanelAlerts from '../a11y/PanelAlerts.jsx'
@@ -127,7 +127,17 @@ function PairChecker({ roles, mode }) {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: 7, alignItems: 'end', marginBottom: 9 }}>
         <div><label>Foreground</label><Select value={fg} onChange={setFg} /></div>
         <div><label>Background</label><Select value={bg} onChange={setBg} /></div>
-        <button className="btn-ghost" title="Swap" style={{ padding: '4px 10px' }} onClick={() => { setFg(bg); setBg(fg) }}>⇄</button>
+        {/* An SVG, not the ⇄ character. Plus Jakarta Sans has no glyph for it,
+            so it fell back to a system font whose metrics put it 1px off the
+            baseline of the selects beside it. */}
+        <button className="btn-ghost btn-field btn-field-icon" title="Swap foreground and background"
+          onClick={() => { setFg(bg); setBg(fg) }}>
+          <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="17 2 21 6 17 10" /><line x1="3" y1="6" x2="21" y2="6" />
+            <polyline points="7 14 3 18 7 22" /><line x1="21" y1="18" x2="3" y2="18" />
+          </svg>
+        </button>
       </div>
 
       {/* Two blocks, not two items on a line: a two-line swatch beside a
@@ -270,8 +280,10 @@ export default function RolesPanel({ inspect }) {
             <div style={{ fontSize: 12, color: 'var(--text)' }}>Generate the opposite mode</div>
             <div style={{ fontSize: 10.5, color: 'var(--dim)', marginTop: 1 }}>Mirrors each role's scale position. A starting point, not a finished theme.</div>
           </div>
-          <button className="btn-ghost" style={{ padding: '4px 10px', fontSize: 11, whiteSpace: 'nowrap' }} onClick={() => generateMode('light')}>Light → Dark</button>
-          <button className="btn-ghost" style={{ padding: '4px 10px', fontSize: 11, whiteSpace: 'nowrap' }} onClick={() => generateMode('dark')}>Dark → Light</button>
+          {/* Full-size, not chip-size. These rewrite every role in a mode,
+              which is one of the larger actions in the app. */}
+          <button className="btn-ghost" style={{ padding: BTN.lg, whiteSpace: 'nowrap' }} onClick={() => generateMode('light')}>Light → Dark</button>
+          <button className="btn-ghost" style={{ padding: BTN.lg, whiteSpace: 'nowrap' }} onClick={() => generateMode('dark')}>Dark → Light</button>
         </div>
       </Collapsible>
 

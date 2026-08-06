@@ -98,10 +98,17 @@ export function LayoutPanel() {
       <SectionHeader title="Layout" desc="One spacing scale, one grid. The Density macro moves the whole scale." />
 
       <Collapsible title="Spacing Scale" note={`${state.space.base}px base`} defaultOpen>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 11 }}>
-          <NumField label="Base unit" value={state.space.base} min={2} max={8} suffix="px" width={104}
-            onChange={v => upd('space', c => ({ ...c, base: v }), 'space:base')} />
-          <p className="panel-note" style={{ flex: 1, marginTop: 14 }}>Every step is a multiple of this.</p>
+        {/* The label sits above the row rather than inside the field, so the
+            note can share a baseline with the value it describes. Inside the
+            field, the first line is the label, and the note would align to
+            that instead. The old fix was a 14px top margin on the note. */}
+        <div style={{ marginBottom: 11 }}>
+          <label>Base unit</label>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
+            <NumField value={state.space.base} min={2} max={8} suffix="px" width={104}
+              onChange={v => upd('space', c => ({ ...c, base: v }), 'space:base')} />
+            <p className="panel-note" style={{ flex: 1 }}>Every step is a multiple of this.</p>
+          </div>
         </div>
         <ScaleRows items={derived.spacing} overrides={state.space.overrides} onOverride={setOverride} onReset={resetStep} />
       </Collapsible>
@@ -109,7 +116,7 @@ export function LayoutPanel() {
       <Collapsible title="Breakpoints and Containers" note={`${state.layout.breakpoints.length}`} defaultOpen>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           {state.layout.breakpoints.map((b, i) => (
-            <div key={b.name} style={{ display: 'grid', gridTemplateColumns: '46px 1fr 1fr', gap: 8, alignItems: 'center' }}>
+            <div key={b.name} style={{ display: 'grid', gridTemplateColumns: '46px 1fr 1fr', gap: 8, alignItems: 'baseline' }}>
               <code style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--text-dim)' }}>{b.name}</code>
               <NumField value={b.px} min={320} max={2560} suffix="px" onChange={v => setBreakpoint(i, v)} />
               <NumField value={state.layout.containers?.[b.name] ?? 0} min={0} max={2560} suffix="max" onChange={v => setContainer(b.name, v)} />

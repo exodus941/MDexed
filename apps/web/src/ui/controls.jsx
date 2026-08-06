@@ -141,12 +141,11 @@ export const Strut = ({ size, family }) => (
 )
 
 export function SectionHeader({ title, desc, count, right }) {
-  /* Baseline only while the left side is a single line. Once a description is
-     under the title, the right-hand slot is sitting beside a block rather than
-     beside a line — pinning it to the title's baseline leaves it riding high
-     against the pair. Centre it on the block instead. */
+  /* Always baseline, description or not. The right-hand slot belongs to the
+     title, not to the title-and-description pair, so it sits on the title's
+     line. Centring it on the block drops it into the gap between the two. */
   return (
-    <div style={{ marginBottom: 18, display: 'flex', alignItems: desc ? 'center' : 'baseline', gap: 12 }}>
+    <div style={{ marginBottom: 18, display: 'flex', alignItems: 'baseline', gap: 12 }}>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 9 }}>
           <h2 style={{ fontFamily: 'var(--display)', fontSize: 18, fontWeight: 700, letterSpacing: '-0.025em', color: 'var(--text)' }}>{title}</h2>
@@ -292,9 +291,12 @@ export function FilterField({ value, onChange, placeholder = 'Search…', width 
 /** Circular-arrow reset. Dimmed rather than hidden, so the control never shifts. */
 export function ResetButton({ onClick, disabled, title = 'Reset to default' }) {
   return (
-    <button onClick={onClick} disabled={disabled} title={title}
+    /* Always sits beside a field, so it takes the field's height. The icon
+       does not grow — the extra height is hit area, which the 2.5.8 target-size
+       check wants anyway. */
+    <button onClick={onClick} disabled={disabled} title={title} className="btn-field btn-field-icon"
       style={{
-        background: 'none', border: 'none', padding: 2, display: 'flex', flexShrink: 0,
+        background: 'none', border: 'none',
         cursor: disabled ? 'default' : 'pointer',
         color: disabled ? 'var(--dim)' : 'var(--accent)',
         opacity: disabled ? 0.4 : 1,
