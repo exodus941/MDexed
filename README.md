@@ -1,8 +1,12 @@
 # MDexed
 
-A visual editor for [DESIGN.md](https://github.com/google-labs-code/design.md). That open format gives coding agents a structured, persistent model of a design system.
+A visual editor for design systems, built around [DESIGN.md](https://github.com/google-labs-code/design.md). That open format hands a coding agent a structured, persistent model of how an interface works.
 
 Live at **[mdexed.vercel.app](https://mdexed.vercel.app)**.
+
+Set a few seed colours and move five sliders. MDexed generates the colour scales, semantic roles, type scale, spacing, radii, elevation and a full component matrix. It shows all of it on live mock screens and audits it against WCAG while you work.
+
+The markdown is what an agent reads, and it is not the whole export. The payload also carries `tokens.css`, Sass, TypeScript, W3C design tokens, presets for Tailwind v3 and v4, and all six sample screens as standalone HTML. A `DESIGN.md` is advice, and nothing checks whether an agent took it. Those other files are the same values in a form a build can check.
 
 ---
 
