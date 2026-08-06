@@ -272,6 +272,15 @@ function layoutBody(state, derived) {
       `Maximum text measure: **${l.maxMeasure}ch**.`,
       state.macros.density !== 1 && `Spacing runs at ${state.macros.density < 1 ? 'a compact' : 'a generous'} density (×${state.macros.density.toFixed(2)}).`,
       'Compose layouts from these steps only; do not introduce intermediate values.',
+      /* Neither of these is spacing, so neither belongs on the spacing scale —
+         and with nowhere to live they were being invented per page. The
+         simulated dashboard reached for 216px and 320px, both off every scale
+         in the file, which is what an agent does where the system goes quiet.
+         Named, but explicitly adjustable: a rail is a container for words whose
+         length nobody here knows. */
+      l.fixedWidths && `Fixed widths, emitted as \`--width-*\` custom properties: ${
+        Object.entries(l.fixedWidths).map(([k, v]) => `**${k}** ${v}px`).join(', ')
+      }. These are starting points, not constraints. A rail that cannot hold its longest label, or a field that crowds the control beside it, should change. Change the token rather than the one page, and keep every other width on the spacing scale.`,
       'Mobile first — treat each breakpoint as a min-width.',
     ])
   )
@@ -403,6 +412,11 @@ function componentsBody(state, derived) {
       'An item beside a multi-line block centres on the block. The exception is an item that belongs to the block\'s title, such as a count beside a section heading, which sits on the title\'s line.',
       'A heading much larger than a control next to it centres instead. At that size difference a shared baseline reads as a mistake.',
       'A button beside a field matches that field\'s height. Equal heights with both boxes centring their own text put the two baselines within half a pixel, which needs no further correction.',
+      /* Two rules elsewhere in this file combine into the wrong answer: labels
+         sit above their control, and an item beside a multi-line block centres
+         on the block. Follow both and a toolbar button centres against the
+         label-and-field pair, floating above the field it belongs to. */
+      'A field carries a label above it, which makes it two lines tall. A control beside it still aligns to **the field**, not to the label-and-field pair — the two are one row of controls, and the label sits outside that row. Give the label its own line above the whole row, or let it sit above the field and align the neighbouring controls to the field\'s box.',
       'A control with a fixed height centres its own content. Do not baseline-align inside it — baseline packs the content to the top of the box and leaves all the slack underneath.',
       'Initials in an avatar are text on the line, not part of the graphic. They sit on the baseline of the name beside them. Centre them with `line-height` on an inline-block rather than with `align-items` on a flex box: a flex box with no baseline-aligned child reports its bottom edge, and then the initials can never line up with anything.',
       'What a button hands to the row around it is its label\'s baseline, never its icon\'s. An icon must never decide it.',
@@ -410,6 +424,11 @@ function componentsBody(state, derived) {
       'So centre it with the line box instead: `display: inline-block`, `line-height` equal to the button\'s own height, `text-align: center`, `white-space: nowrap`. The label is then centred *and* it is the button\'s baseline, so a button in a row of text sits on that text\'s line. The declared height does not change. Space an icon with a margin and `vertical-align: middle`, since there is no flex gap any more.',
       'The same technique gives an avatar\'s initials a baseline. Anything that has no text to offer — an icon, a progress bar, a switch — centres on the row instead.',
     ]),
+    /* This was its own component in the preview for a long time, with a
+       hardcoded box, and it stood taller than the small buttons beside it. An
+       agent will make the same mistake unless the file says otherwise. */
+    'An icon-only button is a button. Same variant, same size entry, same height as any other button on its row — square, with width equal to that height, no label and an accessible name from `aria-label`. It is not a separate component with a size of its own.',
+
     heights.length && 'Declared heights. Controls that share a row must share a height:',
     heights.length && table(['Entry', 'Height'], heights.map(([n, v]) => [`\`${n}\``, `\`${v}\``])),
   ].filter(Boolean)

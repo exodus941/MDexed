@@ -91,12 +91,7 @@
   mix-blend-mode: var(--fill-blend, normal);
 }
 .dmd .btn-danger, .dmd .badge-accent, .dmd .badge-success,
-.dmd .badge-warning, .dmd .badge-danger, .dmd .bar > span, /* An inline-block centring its monogram with line-height, not a flex box
-   centring it with align-items. The two look identical, but only this one has
-   a text baseline to offer: a flex box with no baseline-aligned child reports
-   its bottom edge, so the initials could never sit on the same line as the
-   name beside them. `overflow` stays visible for the same reason. */
-.dmd .avatar {
+.dmd .badge-warning, .dmd .badge-danger, .dmd .bar > span, .dmd .avatar {
   mix-blend-mode: var(--fill-blend, normal);
 }
 .dmd .btn-primary:hover, .dmd .btn-primary.is-hover { background: var(--cmp-button-primary-hover-background-color, var(--c-accent-hover, #9c3726)); }
@@ -265,16 +260,16 @@
 .dmd .btn-lg .icon { width: var(--cmp-button-lg-icon-size, var(--icon-lg, 20px)); height: var(--cmp-button-lg-icon-size, var(--icon-lg, 20px)); }
 .dmd .nav-item .icon { width: var(--cmp-nav-item-icon-size, var(--icon-md, 16px)); height: var(--cmp-nav-item-icon-size, var(--icon-md, 16px)); }
 .dmd svg { stroke-width: var(--icon-stroke, 1.75); }
-.dmd .icon-btn {
-  display: inline-flex; align-items: center; justify-content: center;
-  width: var(--cmp-button-md-height, 36px); height: var(--cmp-button-md-height, 36px);
-  padding: 0; border-radius: var(--cmp-button-rounded, var(--radius-md, 8px));
-  border: 1px solid transparent; cursor: pointer;
-  background: var(--c-surface, #fff); color: var(--c-text-muted, #666);
-  border-color: var(--c-border, #ccc);
-  transition: background var(--duration-fast, 120ms) var(--ease-standard, ease);
-}
-.dmd .icon-btn:hover { background: var(--c-bg-subtle, #f4f4f4); color: var(--c-text, #111); }
+/* An icon-only button is a button. This used to be its own component with a
+   hardcoded 36px box, so it stood 8px taller than the small buttons it sat
+   beside in the dashboard header — while being tagged button-secondary for
+   inspection, which is the system claiming a size it was not keeping.
+   Now it is `.btn` plus a square footprint, so the size scale governs it and
+   a row of controls stays one height. */
+.dmd .btn.icon-only { width: var(--cmp-button-md-height, 36px); padding: 0; }
+.dmd .btn.icon-only.btn-sm { width: var(--cmp-button-sm-height, 28px); }
+.dmd .btn.icon-only.btn-lg { width: var(--cmp-button-lg-height, 44px); }
+.dmd .btn.icon-only .icon { margin: 0; }
 .dmd .input-icon { position: relative; display: flex; align-items: center; }
 .dmd .input-icon > svg { position: absolute; left: var(--space-sm, 12px); color: var(--c-text-subtle, #999); pointer-events: none; }
 .dmd .input-icon > .input { padding-left: calc(var(--space-sm, 12px) + var(--icon-md, 16px) + var(--icon-gap, 8px)); }
@@ -329,6 +324,11 @@
    reason to right-align a number in the first place. */
 .dmd .table .num-col { text-align: right; font-variant-numeric: tabular-nums; }
 
+/* An inline-block centring its monogram with line-height, not a flex box
+   centring it with align-items. The two look identical, but only this one has
+   a text baseline to offer: a flex box with no baseline-aligned child reports
+   its bottom edge, so the initials could never sit on the same line as the
+   name beside them. `overflow` stays visible for the same reason. */
 .dmd .avatar {
   width: var(--cmp-avatar-size, 32px); height: var(--cmp-avatar-size, 32px);
   border-radius: var(--cmp-avatar-rounded, var(--radius-full, 9999px));

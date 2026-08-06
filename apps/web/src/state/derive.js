@@ -241,6 +241,7 @@ export function buildCssVars(d, mode = 'light') {
   if (d.icons?.strokeWidth != null) vars['--icon-stroke'] = String(d.icons.strokeWidth)
   if (d.icons?.gap) vars['--icon-gap'] = d.spacing?.find(s => s.name === d.icons.gap)?.value ?? '8px'
   if (d.layout?.maxMeasure) vars['--measure'] = `${d.layout.maxMeasure}ch`
+  for (const [name, w] of Object.entries(d.layout?.fixedWidths ?? {})) vars[`--width-${name}`] = `${w}px`
   /* Fills blend with what's behind them; borders and shadows can't.
      Read from the config, not `d.elevation` — that holds the shadow levels. */
   vars['--fill-blend'] = d.elevationCfg?.fillBlend ?? 'normal'

@@ -323,6 +323,12 @@ export const createInitialState = () => ({
     columns: 12,
     gutter: 'lg',
     maxMeasure: 68,
+    /* Two widths that live outside the spacing scale, because neither is
+       spacing. Without them every page invents its own — the simulated
+       dashboard reached for 216px and 320px, both off any scale in the file,
+       which is the agent guessing where the system went quiet. Naming them
+       does not freeze them: the exported file says they are starting points. */
+    fixedWidths: { rail: 224, field: 320 },
   },
 
   elevation: {
