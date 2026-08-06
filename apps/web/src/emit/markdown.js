@@ -348,11 +348,37 @@ function componentsBody(state, derived) {
     ]
   })
 
+  /* Alignment.
+     Vertical rhythm inside a row is the thing generated UI gets wrong most
+     reliably, because centring everything is the reflex and it is only right
+     for a block. None of it fits the eight legal component properties, so it
+     goes out as rules. The heights are the exception: `height` is legal, so the
+     numbers below are already in the frontmatter. Restating them as a set is
+     what turns three equal literals into a stated relationship. */
+  const heights = derived.components
+    .map(c => [c.name, (c.properties ?? []).find(p => p.key === 'height')?.value])
+    .filter(([, v]) => v)
+
+  const alignment = [
+    '**Alignment**',
+    bullets([
+      'Text that sits on one line shares one baseline. Two different sizes centred independently do not share one — their baselines end up apart by roughly a third of the size difference.',
+      'An item beside a multi-line block centres on the block. The exception is an item that belongs to the block\'s title, such as a count beside a section heading, which sits on the title\'s line.',
+      'A heading much larger than a control next to it centres instead. At that size difference a shared baseline reads as a mistake.',
+      'A button beside a field matches that field\'s height. Equal heights with both boxes centring their own text put the two baselines within half a pixel, which needs no further correction.',
+      'A label inside a button sets that button\'s baseline. An icon in front of the label must not, or the whole button hangs off the row.',
+    ]),
+    heights.length && 'Declared heights. Controls that share a row must share a height:',
+    heights.length && table(['Entry', 'Height'], heights.map(([n, v]) => [`\`${n}\``, `\`${v}\``])),
+  ].filter(Boolean)
+
   return joinBlocks(
     bullets([
       'Variants and states are flattened into the component name: `button-primary`, `button-primary-hover`, `button-sm`.',
       'A state entry lists only what changes from its base — apply it on top, do not treat it as a complete definition.',
     ]),
+
+    ...alignment,
     proseOnly.length && '**Additional component properties** (outside the DESIGN.md component schema, applied the same way):',
     proseOnly.length && table(['Component', 'Property', 'Value'], proseOnly),
 

@@ -1,7 +1,7 @@
 /* Forward migrations for saved documents.
    Cloud projects store whatever schema was current when they were saved, so
    anything loaded from the API or localStorage passes through here first. */
-import { SCHEMA_VERSION, createInitialState, defaultRoles, emptyProse, uid, SPACE_STEPS, RADIUS_STEPS } from './schema.js'
+import { SCHEMA_VERSION, createInitialState, defaultRoles, emptyProse, uid, SPACE_STEPS, RADIUS_STEPS, ANTI_PATTERNS } from './schema.js'
 import { DEFAULT_SHAPE } from '../color/ramp.js'
 import { TYPE_ROLES } from '../type/scale.js'
 import { COMPONENT_LIBRARY } from './components.js'
@@ -121,6 +121,14 @@ const isSuperseded = d =>
   d && Object.entries(SUPERSEDED_DURATIONS).every(([k, v]) => d[k] === v)
 
 /** Fill in anything a partial save left out rather than trusting the blob. */
+/* Keep the saved on/off choice for every constraint the document already knows
+   about, drop any whose id no longer exists, and append the rest in the order
+   the checklist declares them. */
+function mergeAntiPatterns(saved) {
+  const bySaved = new Map((saved ?? []).map(a => [a.id, a]))
+  return ANTI_PATTERNS.map(a => ({ ...a, ...(bySaved.get(a.id) ?? {}) }))
+}
+
 function hydrate(raw) {
   const base = createInitialState()
   if (isSuperseded(raw.motion?.durations)) {
@@ -142,7 +150,15 @@ function hydrate(raw) {
     states: { ...base.states, ...(raw.states ?? {}) },
     components: { ...base.components, ...(raw.components ?? {}) },
     voice:  { ...base.voice, ...(raw.voice ?? {}) },
-    directives: { ...base.directives, ...(raw.directives ?? {}) },
+    directives: {
+      ...base.directives, ...(raw.directives ?? {}),
+      /* Merged by id rather than replaced. A saved document carries its own
+         copy of the checklist, so a spread would freeze it at the length it had
+         when it was saved and every constraint added later would reach new
+         documents only. Choices already made are kept, and anything new arrives
+         at its default. */
+      antiPatterns: mergeAntiPatterns(raw.directives?.antiPatterns),
+    },
     prose:  { ...emptyProse(), ...(raw.prose ?? {}) },
   }
 }

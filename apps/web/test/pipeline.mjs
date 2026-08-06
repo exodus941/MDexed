@@ -3,7 +3,7 @@
    which is where the correctness risk actually lives. */
 import fs from 'node:fs'
 import { load as yamlLoad } from 'js-yaml'
-import { createInitialState, CONTRAST_PAIRS } from '../src/state/schema.js'
+import { createInitialState, CONTRAST_PAIRS, ANTI_PATTERNS } from '../src/state/schema.js'
 import { derive, buildCssVars } from '../src/state/derive.js'
 import { migrate } from '../src/state/migrate.js'
 import { applyPreset, PRESETS } from '../src/state/presets.js'
@@ -122,6 +122,20 @@ assert(m2.state.type.custom.some(t => t.name === 'hero'), 'an unmatched type tok
 assert(m2.state.components.custom.some(c => c.name === 'widget'), 'v2 components are kept')
 assert(m2.state.components.enabled.button === false, 'imported components switch off the built-in set, so nothing doubles')
 assert(derive(m2.state).components.filter(c => c.name === 'widget').length === 1, 'and each entry appears exactly once')
+
+/* A saved document carries its own copy of the anti-pattern checklist. Spread
+   it and the document freezes at the length it had when it was saved, so every
+   constraint added afterwards silently reaches new documents only. Nothing
+   about that looks broken from the outside. */
+const stale = migrate({
+  schemaVersion: 3,
+  directives: { antiPatterns: [{ id: 'pure-black', text: 'stale wording', on: false }] },
+})
+const ap = stale.state.directives.antiPatterns
+assert(ap.length === ANTI_PATTERNS.length, 'a document saved with a short checklist gets the current one')
+assert(ap.find(a => a.id === 'pure-black').on === false, 'and a choice already made is kept')
+assert(ap.some(a => a.id === 'control-height' && a.on), 'while a newly added constraint arrives at its default')
+assert(!ap.some(a => a.id === 'gone'), 'an id that no longer exists is dropped')
 
 line('\n- presets -')
 for (const p of PRESETS) {
