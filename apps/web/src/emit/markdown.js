@@ -404,6 +404,7 @@ function componentsBody(state, derived) {
       'A heading much larger than a control next to it centres instead. At that size difference a shared baseline reads as a mistake.',
       'A button beside a field matches that field\'s height. Equal heights with both boxes centring their own text put the two baselines within half a pixel, which needs no further correction.',
       'A control with a fixed height centres its own content. Do not baseline-align inside it — baseline packs the content to the top of the box and leaves all the slack underneath.',
+      'Initials in an avatar are text on the line, not part of the graphic. They sit on the baseline of the name beside them. Centre them with `line-height` on an inline-block rather than with `align-items` on a flex box: a flex box with no baseline-aligned child reports its bottom edge, and then the initials can never line up with anything.',
       'What a button hands to the row around it is its label\'s baseline, never its icon\'s. If a flex button centres everything, give the label `align-self: baseline` so it becomes the donor. An icon must never decide it.',
     ]),
     heights.length && 'Declared heights. Controls that share a row must share a height:',

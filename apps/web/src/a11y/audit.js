@@ -476,6 +476,65 @@ const deuter = filterDeficiencyDeuter(1)
 const prot = filterDeficiencyProt(1)
 const dist = differenceEuclidean('oklab')
 
+/* ── A remedy the app can apply itself ──
+ *
+ * "Move danger to a different lightness" is correct and still leaves the work
+ * to you: find which ramp the role sits on, walk its steps, and check each one
+ * against the colour it collides with. The app already knows all three, so it
+ * can do the walk and offer the answer.
+ *
+ * It searches outward from the role's current step and returns the first one
+ * that clears both thresholds, so the suggestion is the smallest move that
+ * works rather than a jump to the end of the ramp. Returns null when no step
+ * on that ramp separates — which happens, and is worth not pretending about.
+ */
+function stepThatSeparates(derived, mode, role, roleHex, otherHex) {
+  const other = parseColor(otherHex)
+  if (!other) return null
+
+  /* A candidate has to survive the check it is not being measured against.
+     Moving a fill to a lighter step separates it from its neighbour and can
+     drop its own label below AA on the way — trading one failure for another,
+     which is worse than leaving it alone because the count still goes down. */
+  const onIt = derived.roles[mode]?.[`${role}-fg`]
+  const keepsItsLabel = hex => !onIt || ratio(onIt, hex) >= 4.5
+
+  /* Which ramp and step is this role sitting on? The resolved hex is enough
+     to find it, so this needs no access to the document's refs. */
+  let found = null
+  for (const [name, ramp] of Object.entries(derived.ramps ?? {})) {
+    for (const [step, hex] of Object.entries(ramp.steps ?? {})) {
+      if (String(hex).toLowerCase() === String(roleHex).toLowerCase()) { found = { name, step: Number(step), ramp } }
+    }
+  }
+  if (!found) return null
+
+  const steps = Object.keys(found.ramp.steps ?? {}).map(Number).sort((x, y) => x - y)
+  const from = steps.indexOf(found.step)
+  if (from < 0) return null
+
+  const clears = hex => {
+    const cand = parseColor(hex)
+    if (!cand) return false
+    const dl = Math.abs(toOklchObj(cand).l - toOklchObj(other).l)
+    const worst = Math.min(dist(deuter(cand), deuter(other)), dist(prot(cand), prot(other)))
+    return (worst >= 0.09 || dl >= 0.12) && keepsItsLabel(hex)
+  }
+
+  /* Outward from where it is, nearest first, so the palette moves as little
+     as it has to. */
+  for (let d = 1; d < steps.length; d++) {
+    for (const i of [from - d, from + d]) {
+      if (i < 0 || i >= steps.length) continue
+      const step = steps[i]
+      if (clears(found.ramp.steps[step])) {
+        return { ref: `${found.name}.${step}`, hex: found.ramp.steps[step], from: `${found.name}.${found.step}` }
+      }
+    }
+  }
+  return null
+}
+
 function colourAlone(derived, mode) {
   const c = derived.roles[mode]
   const out = []
@@ -510,6 +569,14 @@ function colourAlone(derived, mode) {
         title: `${label} are the same colour to red-green vision`,
         detail: `Simulated for deuteranopia and protanopia they sit ${r1(worst * 100)} apart on a perceptual scale where about 2 is the threshold of a visible difference, and their lightness differs by only ${r1(dl * 100)}% — so neither hue nor brightness separates them. Around one man in twelve cannot tell these apart.`,
         fix: `Move ${b} to a different lightness, not just a different hue — and pair every use of these with an icon or a word.`,
+        /* Present only when a step on the same ramp actually separates the two.
+           Absent means the palette cannot resolve it by itself and the choice
+           is yours, which is a different button. */
+        apply: (() => {
+          const s = stepThatSeparates(derived, mode, b, c[b], c[a])
+          return s && { kind: 'role-step', role: b, mode, ref: s.ref, from: s.from,
+            label: `Move ${b} to ${s.ref}` }
+        })(),
         measured: `Δ${r1(worst * 100)}`,
         pairHex: [c[a], c[b]],
         simulated: [hexOf(deuter(ca)), hexOf(deuter(cb))],

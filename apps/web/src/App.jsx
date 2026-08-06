@@ -1479,6 +1479,24 @@ function Shell() {
     setTab(toTab)
     setInspect(entry && TAB_KIND[toTab] ? { entry, kind: TAB_KIND[toTab], at: Date.now() } : null)
   }, [])
+
+  /* Applies a finding's own remedy, where it has one the app computed.
+     It still navigates afterwards: the change lands in front of you rather
+     than somewhere you have to go and verify, and undo reverses it like any
+     other edit. */
+  const applyFinding = useCallback(fix => {
+    if (!fix) return
+    if (fix.kind === 'role-step') {
+      set(s => ({
+        ...s,
+        color: {
+          ...s.color,
+          roles: { ...s.color.roles, [fix.role]: { ...s.color.roles[fix.role], [fix.mode]: fix.ref } },
+        },
+      }), `role:${fix.role}:${fix.mode}`)
+    }
+    navigate('roles', fix.role)
+  }, [set, navigate])
   /* The previous session's document, offered rather than loaded. */
   const [restorable, setRestorable] = useState(null)
   /* Owned here rather than in Canvas so the HTML export can render it. */
@@ -2059,7 +2077,7 @@ function Shell() {
 
           {/* Route by target kind: components, colour roles and text styles
               each live on their own tab. */}
-          <Canvas surface={surface} setSurface={setSurface} onOpenContrast={() => setTab('roles')} onJump={navigate} onInspect={t => {
+          <Canvas surface={surface} setSurface={setSurface} onOpenContrast={() => setTab('roles')} onJump={navigate} onApply={applyFinding} onInspect={t => {
             setInspect({ entry: t.target, kind: t.kind, at: Date.now() })
             setTab(KIND_TAB[t.kind] ?? 'components')
           }} />

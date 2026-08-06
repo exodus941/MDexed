@@ -24,8 +24,12 @@ export const PRESETS = [
       s.color.seeds = s.color.seeds.map(x =>
         x.name === 'accent' ? { ...x, hex: '#b8422e' } :
         x.name === 'neutral' ? { ...x, hex: '#7a736c' } :
-        x.name === 'success' ? { ...x, hex: '#3f8f63' } :
         x.name === 'warning' ? { ...x, hex: '#c08a2e' } : x)
+      /* Danger sits at the ends of its ramp rather than the middle.
+         This accent and a mid-ramp red read as one colour to red-green
+         vision, and the accent is the reason to pick this preset — so the
+         separation comes from danger's lightness instead. */
+      s.color.roles = { ...s.color.roles, danger: { light: 'danger.900', dark: 'danger.200' } }
       s.type.families = {
         display: { family: 'Source Serif 4', category: 'serif' },
         body: { family: 'Source Serif 4', category: 'serif' },
@@ -47,12 +51,21 @@ export const PRESETS = [
       s.color.seeds = s.color.seeds.map(x =>
         x.name === 'accent' ? { ...x, hex: '#c8102e' } :
         x.name === 'neutral' ? { ...x, hex: '#767676' } : x)
-      s.color.shape = { ...s.color.shape, chromaScale: 0.35, hueShift: 0 }
+      /* The near-grey comes from the neutral seed, which is already grey, not
+         from desaturating every ramp. At 0.35 the status colours lost enough
+         chroma to collapse into each other under red-green vision — the whole
+         palette went quiet, semantics included. */
+      s.color.shape = { ...s.color.shape, chromaScale: 1, hueShift: 0 }
       s.type.families = {
         display: { family: 'Inter', category: 'sans-serif' },
         body: { family: 'Inter', category: 'sans-serif' },
         mono: { family: 'JetBrains Mono', category: 'monospace' },
       }
+      /* Danger sits at the ends of its ramp rather than the middle.
+         This accent and a mid-ramp red read as one colour to red-green
+         vision, and the accent is the reason to pick this preset — so the
+         separation comes from danger's lightness instead. */
+      s.color.roles = { ...s.color.roles, danger: { light: 'danger.900', dark: 'danger.200' } }
       s.type.ratio = 1.2
       s.type.tracking = 1.3
       s.radius.base = 0
@@ -96,6 +109,11 @@ export const PRESETS = [
       s.color.seeds = s.color.seeds.map(x =>
         x.name === 'accent' ? { ...x, hex: '#3ddc84' } :
         x.name === 'neutral' ? { ...x, hex: '#6b7a72' } : x)
+      /* Danger sits at the ends of its ramp rather than the middle.
+         This accent and a mid-ramp red read as one colour to red-green
+         vision, and the accent is the reason to pick this preset — so the
+         separation comes from danger's lightness instead. */
+      s.color.roles = { ...s.color.roles, danger: { light: 'danger.900', dark: 'danger.200' } }
       s.color.mode = 'dark'
       s.type.families = {
         display: { family: 'JetBrains Mono', category: 'monospace' },
