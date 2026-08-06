@@ -6,7 +6,7 @@ Live at **[mdexed.vercel.app](https://mdexed.vercel.app)**.
 
 Set a few seed colours and move five sliders. MDexed generates the colour scales, semantic roles, type scale, spacing, radii, elevation and a full component matrix. It shows all of it on live mock screens and audits it against WCAG while you work.
 
-The markdown is what an agent reads, and it is not the whole export. The payload also carries `tokens.css`, Sass, TypeScript, W3C design tokens, presets for Tailwind v3 and v4, and all six sample screens as standalone HTML. A `DESIGN.md` is advice, and nothing checks whether an agent took it. Those other files are the same values in a form a build can check.
+The markdown is what an agent reads, and it is not the whole export. The payload also carries `tokens.css`, Sass, TypeScript, W3C design tokens, presets for Tailwind v3 and v4, and all six sample screens as standalone HTML. A `DESIGN.md` is advice. An agent can read it and still write the wrong hex, and nothing catches that. The other files are the same values as working code. Import `tokens.css` and `var(--color-accent)` can only ever be your accent. A hardcoded colour then shows up in a diff instead of passing for correct.
 
 ---
 
