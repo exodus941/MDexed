@@ -47,8 +47,12 @@ function SeedRow({ seed, ramps, onChange, onRename, onDelete, onLock, open, onTo
   const anchor = ramps[seed.name]?.anchor
   return (
     <div style={{ background: 'var(--surf2)', border: `1px solid ${open ? 'rgb(var(--accent-rgb) / .35)' : 'var(--bdr)'}`, borderRadius: 9, overflow: 'hidden', transition: 'border-color var(--t) var(--ease)' }}>
-      <div onClick={onToggle} style={{ display: 'grid', gridTemplateColumns: '30px 1fr auto auto auto', gap: 10, alignItems: 'center', padding: `${PAD.sub}px ${PAD.card}px`, cursor: 'pointer' }}>
-        <div className="swatch" style={{ width: 26, height: 26, background: seed.hex }} />
+      {/* Baseline, so the hex sits on the same line as the seed name rather than
+          floating above it — the two are different sizes, and centring each in
+          the row puts their baselines 6.5px apart. Everything without text is
+          pulled back out to centre. */}
+      <div onClick={onToggle} style={{ display: 'grid', gridTemplateColumns: '30px 1fr auto auto auto', gap: 10, alignItems: 'baseline', padding: `${PAD.sub}px ${PAD.card}px`, cursor: 'pointer' }}>
+        <div className="swatch" style={{ width: 26, height: 26, background: seed.hex, alignSelf: 'center' }} />
         <div style={{ minWidth: 0 }}>
           <div style={{ fontWeight: 500, fontSize: 13.5 }}>{seed.name}</div>
           {seed.desc && <div style={{ fontSize: 11, color: 'var(--dim)' }}>{seed.desc}</div>}
@@ -59,13 +63,15 @@ function SeedRow({ seed, ramps, onChange, onRename, onDelete, onLock, open, onTo
           style={{
             background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex',
             color: seed.locked ? 'var(--accent)' : 'var(--dim)',
-            transition: 'color var(--t) var(--ease)',
+            transition: 'color var(--t) var(--ease)', alignSelf: 'center',
           }}>
           <Lock locked={seed.locked} />
         </button>
-        {!PROTECTED_SEEDS.includes(seed.name)
-          ? <ConfirmDelete onConfirm={onDelete} title="Remove seed" />
-          : <span style={{ width: 23 }} />}
+        <span style={{ alignSelf: 'center', display: 'flex' }}>
+          {!PROTECTED_SEEDS.includes(seed.name)
+            ? <ConfirmDelete onConfirm={onDelete} title="Remove seed" />
+            : <span style={{ width: 23 }} />}
+        </span>
       </div>
       <Expand open={open}>
         <div style={{ padding: PAD.card, borderTop: '1px solid var(--bdr)', background: 'var(--surf)' }}>
@@ -419,7 +425,7 @@ export default function ColorPanel() {
         {/* Generator, inline rather than on its own screen — locking a colour
             and re-rolling the rest is a loop you want to stay inside. */}
         <div style={{ background: 'var(--surf2)', border: '1px solid var(--bdr)', borderRadius: 9, padding: PAD.card, marginBottom: 10 }}>
-          <div className="dense" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 9 }}>
+          <div className="dense" style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 9 }}>
             <span style={{ fontSize: 12, color: 'var(--text)', flex: 1 }}>Generate a palette</span>
             <select value={intensity} onChange={e => setIntensity(e.target.value)}
               title="How saturated the run is — and how much colour the neutral carries, which is what tints the page"

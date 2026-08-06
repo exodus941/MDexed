@@ -343,7 +343,7 @@ export function DepthPanel() {
             <Slider label="Tint strength" desc="How much of the neutral hue carries into the shadow"
               value={state.elevation.tintStrength} onChange={v => setElev('tintStrength', v)}
               min={0} max={2} step={0.05} defaultValue={1} format={v => `${v.toFixed(2)}×`} />
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11.5, color: 'var(--muted)' }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, fontSize: 11.5, color: 'var(--muted)' }}>
               <span>Tinted with</span>
               <RefSwatch label="Shadow tint" value={state.elevation.tintRole ?? 'neutral.950'}
                 hex={derived.shadowHex} groups={swatchGroups}

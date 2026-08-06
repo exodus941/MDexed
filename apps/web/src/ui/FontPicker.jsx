@@ -77,7 +77,7 @@ export default function FontPicker({ value, onChange, label, role }) {
       {label && <label>{label}</label>}
       <button onClick={() => setOpen(o => !o)}
         style={{
-          width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '6px 12px',
+          width: '100%', display: 'flex', alignItems: 'baseline', gap: 8, padding: '6px 12px',
           background: 'var(--surf3)', border: `1px solid ${open ? 'var(--accent)' : 'var(--bdr)'}`,
           borderRadius: 6, cursor: 'pointer', color: 'var(--text)', textAlign: 'left', fontFamily: 'var(--sans)',
         }}>
@@ -85,7 +85,7 @@ export default function FontPicker({ value, onChange, label, role }) {
           {value || 'Choose a font'}
         </span>
         {current?.axes?.length > 0 && <span className="chip" style={{ color: 'var(--accent)' }}>VF</span>}
-        <svg width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} style={{ color: 'var(--muted)' }}><polyline points="6 9 12 15 18 9" /></svg>
+        <svg width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} style={{ color: 'var(--muted)', alignSelf: 'center' }}><polyline points="6 9 12 15 18 9" /></svg>
       </button>
 
       {open && (

@@ -628,7 +628,7 @@ export default function ImportModal({ onClose, onApply, onOpenDocument }) {
           )}
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: PAD.row, padding: `${PANEL_Y - 4}px ${PANEL_X}px`, borderTop: '1px solid var(--bdr)' }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: PAD.row, padding: `${PANEL_Y - 4}px ${PANEL_X}px`, borderTop: '1px solid var(--bdr)' }}>
           {/* Start over on the left, the other two on the right. No copy: the
               paragraph at the top already says what happens, and "Undo works"
               is true of every action in the app — saying it here made it read
