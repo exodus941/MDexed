@@ -157,7 +157,8 @@ export function derive(state) {
     icons: state.icons,
     focus: state.focus,
     states: state.states,
-    cssVars: buildCssVars({ roles, typography, spacing, rounded, elevation, motion, components, gradients, focus: state.focus, icons: state.icons, layout: state.layout, elevationCfg: state.elevation }, color.mode),
+    borderWidths: state.radius?.borderWidths ?? {},
+    cssVars: buildCssVars({ roles, typography, spacing, rounded, elevation, motion, components, gradients, focus: state.focus, icons: state.icons, layout: state.layout, elevationCfg: state.elevation, borderWidths: state.radius?.borderWidths ?? {} }, color.mode),
   }
 }
 
@@ -214,6 +215,12 @@ export function buildCssVars(d, mode = 'light') {
   for (const [name, hex] of Object.entries(d.roles?.[mode] ?? {})) vars[`--c-${name}`] = hex
   for (const s of d.spacing ?? []) vars[`--space-${s.name}`] = s.value
   for (const r of d.rounded ?? []) vars[`--radius-${r.name}`] = r.value
+  /* The Shapes section of the exported file documents these by name, so an
+     agent writes `var(--border-hairline)` and every declaration using it dies
+     silently — an undefined custom property with no fallback invalidates the
+     whole rule, and the border falls back to currentColor. Documented and not
+     emitted is worse than absent: absent gets noticed. */
+  for (const [name, w] of Object.entries(d.borderWidths ?? {})) vars[`--border-${name}`] = `${w}px`
   for (const t of d.typography ?? []) {
     if (t.fontFamily)    vars[`--font-${t.name}-family`] = t.fontFamily
     if (t.fontSize)      vars[`--font-${t.name}-size`] = t.fontSize

@@ -177,6 +177,33 @@ for (const p of PRESETS) {
   assert(fails.length === 0, `${p.id}: ${fails.length ? `${fails.length} failing — ${what}` : 'clean'}`)
 }
 
+/* ── Everything the file names, the stylesheet emits ──
+ *
+ * DESIGN.md documented `hairline` and `thick` border widths in its Shapes
+ * section and tokens.css never emitted them. An agent reads that table, writes
+ * `var(--border-hairline)`, and the whole declaration dies — an undefined
+ * custom property with no fallback is invalid at computed-value time, so the
+ * border silently falls back to currentColor. It renders as a design choice
+ * rather than as an error, which is why three simulated pages shipped with it.
+ *
+ * Documented and missing is worse than absent. Absent gets noticed.
+ */
+line('\n- every token the file names exists in the stylesheet -')
+{
+  const css = Object.keys(buildCssVars(derived, 'light'))
+  const groups = [
+    ['border', Object.keys(state.radius?.borderWidths ?? {})],
+    ['radius', derived.rounded.map(r => r.name)],
+    ['space', derived.spacing.map(s => s.name)],
+    ['icon', Object.keys(state.icons?.sizes ?? {})],
+  ]
+  for (const [prefix, names] of groups) {
+    const missing = names.filter(n => !css.includes(`--${prefix}-${n}`))
+    assert(missing.length === 0,
+      `${prefix}: ${missing.length ? `missing ${missing.map(n => `--${prefix}-${n}`).join(', ')}` : `all ${names.length} emitted`}`)
+  }
+}
+
 line('\n- default palette passes its own checks -')
 for (const mode of ['light', 'dark']) {
   const fails = CONTRAST_PAIRS.map(p => {
