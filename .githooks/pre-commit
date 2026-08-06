@@ -1,23 +1,30 @@
 #!/bin/sh
-# Advance the build number automatically.
-#
-# The number lives in a committed file, so if nobody advances it Vercel
-# rebuilds and stamps the id it already had — the deploy lands but looks like
-# it never happened. Doing it by hand is a step that gets forgotten, so it
-# happens here.
-#
-# The guard keeps the counter meaning what it always meant. It bumps only when
-# there is nothing unpushed: the first commit after a push starts a new build,
-# and any commits that follow before the next push belong to that same build.
-# So the number still counts deploys rather than commits, which is the whole
-# reason it stopped being derived from the day's commit count.
+# Two jobs, in order of how much they matter.
 
-# Never rewrite the tree in the middle of a merge, rebase or cherry-pick.
+# ── 1. Syntax. Blocking. ──
+# One trap has cost this project six incidents: a template literal that ends
+# early, usually because of a backtick inside a CSS comment. Its worst form
+# still parses, so the build stays green and the app renders nothing — the
+# error surfaces somewhere unrelated and the search starts in the wrong file.
+# Cheap enough to run on every commit, and the one thing worth refusing a
+# commit over.
+if ! node tools/syntax-guard.mjs; then
+  echo
+  echo "pre-commit: syntax guard failed. Commit refused."
+  echo "Run 'npm run check' to see it again."
+  exit 1
+fi
+
+# ── 2. The build number. Not blocking. ──
+# Advanced once per batch of commits, so it counts deploys rather than commits:
+# it bumps only when there is nothing unpushed, which means the first commit
+# after a push starts a new build and the rest join it.
+
+# Never rewrite the tree mid-merge, rebase or cherry-pick.
 git rev-parse -q --verify MERGE_HEAD >/dev/null 2>&1 && exit 0
 [ -d "$(git rev-parse --git-path rebase-merge)" ] && exit 0
 [ -d "$(git rev-parse --git-path rebase-apply)" ] && exit 0
 
-# No upstream yet (fresh clone, detached work) — nothing to compare, so bump.
 if git rev-parse -q --verify '@{upstream}' >/dev/null 2>&1; then
   git merge-base --is-ancestor HEAD '@{upstream}' 2>/dev/null || exit 0
 fi
