@@ -1,9 +1,13 @@
 /* Advance the build number.
  *
- * Run before pushing — `npm run bump -w apps/web` — so the number is decided
- * at commit time and travels with the commit. Vercel then builds whatever the
- * file says, which is the behaviour you want: rebuilding the same commit is
- * the same build and keeps the same number, rather than inventing a new one.
+ * Normally run for you by the pre-commit hook in .githooks, which calls this
+ * once per batch of commits rather than on every one. `npm run bump -w
+ * apps/web` does the same thing by hand.
+ *
+ * Either way the number is decided at commit time and travels with the commit.
+ * Vercel then builds whatever the file says, which is the behaviour you want:
+ * rebuilding the same commit is the same build and keeps the same number,
+ * rather than inventing a new one.
  *
  * Deliberately not wired into `npm run build`. Every local build during a
  * day's work would burn a number, and the counter would say thirty when three

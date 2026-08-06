@@ -10,8 +10,14 @@ import react from '@vitejs/plugin-react'
  * `260802-3` — the third build of 2 August 2026. Baked in at compile time,
  * because a running app cannot know when it was compiled.
  *
- * The counter comes from build-number.json, advanced by `npm run bump` before
- * a push. It was derived from the day's commit count first, and that number
+ * The counter comes from build-number.json, advanced by the pre-commit hook in
+ * .githooks — once per batch of commits, so it still counts deploys and not
+ * commits. `npm run bump -w apps/web` does the same thing by hand.
+ *
+ * It has to be advanced by something. Forgetting means Vercel rebuilds and
+ * stamps the id it already had, which reads as a deploy that never happened.
+ *
+ * It was derived from the day's commit count first, and that number
  * was wrong in the way that matters: twenty-eight commits had produced three
  * things worth calling a build. Counting builds gives the smaller and truer
  * number, and it costs one committed file.

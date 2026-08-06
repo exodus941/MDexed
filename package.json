@@ -5,6 +5,7 @@
     "apps/*"
   ],
   "scripts": {
+    "prepare": "git config core.hooksPath .githooks || echo \"no git here; build-number hook not installed\"",
     "dev": "concurrently -n web,api -c blue,magenta \"npm run dev -w apps/web\" \"npm run dev -w apps/api\"",
     "dev:web": "npm run dev -w apps/web",
     "dev:api": "npm run dev -w apps/api",
