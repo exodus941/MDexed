@@ -168,6 +168,14 @@ export const ANTI_PATTERNS = [
   { id: 'color-only', text: 'Never convey meaning through colour alone.', on: true },
   { id: 'tiny-text', text: 'No text below 12px.', on: true },
   { id: 'emoji-icons', text: 'No emoji in place of icons.', on: false },
+  /* Alignment. Generated UI centres everything by reflex, which is right for a
+     block and wrong for a line, and the difference is what makes a row look
+     hand-made or not. Stated as constraints because that is the form the file's
+     own reasoning says models act on. */
+  { id: 'baseline-line', text: 'Never centre two different text sizes independently on one line — give them one shared baseline.', on: true },
+  { id: 'baseline-block', text: 'Never pin an item to the first line of a multi-line block, unless it belongs to that block\'s title. Centre it on the block.', on: true },
+  { id: 'control-height', text: 'Never let a button beside a field differ in height from that field.', on: true },
+  { id: 'icon-baseline', text: 'Never let an icon decide a button\'s baseline. The label decides it.', on: true },
 ]
 
 export const FRAMEWORKS = ['React + Tailwind', 'React + CSS variables', 'Plain HTML + CSS', 'Vue + Tailwind', 'Svelte', 'Unspecified']
