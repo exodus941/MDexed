@@ -36,7 +36,7 @@ Open <http://localhost:5173>. Vite proxies `/api` to the Worker on 8787.
 | --- | --- |
 | `npm run dev` | Both servers |
 | `npm run dev:web` / `npm run dev:api` | One server at a time |
-| `npm test` | 131 assertions over the pure layer |
+| `npm test` | 135 assertions over the pure layer |
 | `npm run build` | Production build |
 | `npm run db:migrate:local` | Apply migrations locally |
 
@@ -220,6 +220,48 @@ Two sources of signal, in this order.
 The mapping arrives as a table with columns Seed, Type, Slug, Source, Match and Value. There is one row per slot, grouped into Colours, Type and Measurements. Every row says whether the match came **by name** or **inferred**. Hover the chip to read why. Re-point any row at a different colour from the file, or switch it off.
 
 Anything you switch off keeps its current value and stays consistent with everything derived from it. The app blanks nothing, so no holes remain for an agent to guess its way out of.
+
+---
+
+## Feeding It to an Agent
+
+Three parts of the payload do different jobs. An agent needs all three, for different reasons.
+
+**`DESIGN.md` carries the rules and the reasoning.** Put it at the root of the project. Most agents read a root `DESIGN.md` on their own. Only this file says *why* you hold the accent back for one thing. Only this file states a rule that no value can express.
+
+**`tokens.css` carries the values.** Import it in the app. A build can check this part. It also stops an agent inventing a hex that is nearly yours.
+
+**`html-examples/` carries the arrangement.** A rule says text on one line shares a baseline. The example shows a row that does. An agent imitates working markup more readily than it follows a sentence. The examples settle what prose alone leaves open.
+
+### Wire It In Once
+
+Referencing the file per prompt works and then stops working, because the reference falls out of context. Put it in whatever file your agent reads every session, such as `CLAUDE.md`, `AGENTS.md` or `.cursorrules`:
+
+```
+Follow DESIGN.md at the repo root, and use the tokens in tokens.css.
+Never introduce a colour, size, radius or spacing value that is not defined there.
+When the arrangement of a row or a component is unclear, read html-examples/.
+```
+
+### Which File Answers Which Question
+
+| Question | Read |
+| --- | --- |
+| What is this value | `tokens.css`, or `tokens.json` for tooling |
+| Why is it that value | The prose sections of `DESIGN.md` |
+| What am I forbidden to do | Do's and Don'ts in `DESIGN.md` |
+| What does a component look like in every state | The component tables in `DESIGN.md` |
+| How does a row go together | `html-examples/` |
+
+### When the Agent Drifts
+
+That section is a short list of explicit "never" statements. Name the one it broke rather than describing the problem again. Naming it costs you a line, and it lands harder than a fresh explanation, because the agent can go and read the rule.
+
+Drift usually means the rule was never in context. Check that first.
+
+### Re-export After Changes
+
+The exported file is a snapshot and does not follow the editor. Every file in the zip carries the same build stamp. That tells you whether an agent holds the current system or an older one.
 
 ---
 
