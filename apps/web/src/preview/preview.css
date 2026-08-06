@@ -83,7 +83,12 @@
   mix-blend-mode: var(--fill-blend, normal);
 }
 .dmd .btn-danger, .dmd .badge-accent, .dmd .badge-success,
-.dmd .badge-warning, .dmd .badge-danger, .dmd .bar > span, .dmd .avatar {
+.dmd .badge-warning, .dmd .badge-danger, .dmd .bar > span, /* An inline-block centring its monogram with line-height, not a flex box
+   centring it with align-items. The two look identical, but only this one has
+   a text baseline to offer: a flex box with no baseline-aligned child reports
+   its bottom edge, so the initials could never sit on the same line as the
+   name beside them. `overflow` stays visible for the same reason. */
+.dmd .avatar {
   mix-blend-mode: var(--fill-blend, normal);
 }
 .dmd .btn-primary:hover, .dmd .btn-primary.is-hover { background: var(--cmp-button-primary-hover-background-color, var(--c-accent-hover, #9c3726)); }
@@ -320,7 +325,8 @@
   border-radius: var(--cmp-avatar-rounded, var(--radius-full, 9999px));
   background: var(--cmp-avatar-background-color, var(--c-accent-subtle, #f6e9e6));
   color: var(--cmp-avatar-text-color, var(--c-accent, #b8422e));
-  display: inline-flex; align-items: center; justify-content: center;
+  line-height: var(--cmp-avatar-size, 32px); text-align: center;
+  display: inline-block;
   font-size: var(--cmp-avatar-font-size, var(--font-caption-size, 12px)); font-weight: 600; flex-shrink: 0;
 }
 .dmd .bar { height: 6px; border-radius: var(--radius-full, 9999px); background: var(--c-bg-subtle, #eee); overflow: hidden; }

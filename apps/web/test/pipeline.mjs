@@ -7,6 +7,7 @@ import { createInitialState, CONTRAST_PAIRS, ANTI_PATTERNS } from '../src/state/
 import { derive, buildCssVars } from '../src/state/derive.js'
 import { migrate } from '../src/state/migrate.js'
 import { applyPreset, PRESETS } from '../src/state/presets.js'
+import { audit } from '../src/a11y/audit.js'
 import { check } from '../src/color/contrast.js'
 import { TYPE_ROLES } from '../src/type/scale.js'
 import { generateFile, validate } from '../src/emit/designmd.js'
@@ -156,6 +157,25 @@ assert(lightVars['--font-h1-size'] === fmYaml.typography.h1.fontSize, '--font-h1
 assert(lightVars['--focus-width'] === '2px', 'focus width reaches the preview vars')
 assert(buildCssVars(derive({ ...state, macros: { ...state.macros, density: 1.5 } }), 'light')['--space-md'] === '24px',
   'macros flow through to the preview vars')
+
+/* ── A preset is a default someone chose on purpose ──
+ *
+ * The README's argument about defaults applies here with more force: shipping
+ * a palette that fails the audit the moment it is applied teaches people to
+ * ignore the audit. Three of the six were doing exactly that — fourteen
+ * failures between them — because the presets were written before the
+ * colour-blindness check existed and nobody re-ran them.
+ *
+ * This is the guard rather than the fix. A palette that cannot survive having
+ * its hue removed does not ship.
+ */
+line('\n- every preset passes the audit it ships with -')
+for (const p of PRESETS) {
+  const s = applyPreset(p.id, state)
+  const fails = audit(s, derive(s)).filter(f => f.level === 'fail')
+  const what = [...new Set(fails.map(f => f.title))].slice(0, 2).join(' | ')
+  assert(fails.length === 0, `${p.id}: ${fails.length ? `${fails.length} failing — ${what}` : 'clean'}`)
+}
 
 line('\n- default palette passes its own checks -')
 for (const mode of ['light', 'dark']) {

@@ -183,7 +183,30 @@ function ContrastChip({ onOpen }) {
  * Green when clean, because a system with nothing wrong should say so rather
  * than showing a zero.
  */
-function WarningsChip({ onJump }) {
+/* Two buttons, because there are two kinds of finding.
+ *
+ * Some carry a remedy the app worked out for itself — it knows which ramp the
+ * role sits on and which step separates it, so pressing the button changes the
+ * document. That one is Fix It, with a wand.
+ *
+ * The rest need you: a judgement about size, or wording, or which of two
+ * colours should move. Sending you to the control is all the app can honestly
+ * do, so the button says Investigate and Repair and carries a wrench. Naming
+ * the difference matters — a Fix It that only scrolls teaches people the button
+ * does nothing. */
+const Wand = () => (
+  <svg width={11} height={11} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}
+    strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M15 4V2M15 16v-2M8 9h2M20 9h2M17.8 11.8 19 13M17.8 6.2 19 5M3 21l9-9M12.2 6.2 11 5" />
+  </svg>
+)
+const Wrench = () => (
+  <svg width={11} height={11} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}
+    strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M14.7 6.3a4 4 0 0 0 5 5l-9.4 9.4a2 2 0 0 1-2.9 0l-2.1-2.1a2 2 0 0 1 0-2.9z" />
+  </svg>
+)
+function WarningsChip({ onJump, onApply }) {
   const { state, derived } = useStore()
   const [open, setOpen] = useState(false)
   const boxRef = useRef(null)
@@ -249,10 +272,15 @@ function WarningsChip({ onJump }) {
           </div>
           <div style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 12 }}>
             {[...fails, ...rest].map(f => (
-              <Finding key={f.id} f={f} action={f.tab && (
-                <button className="btn-ghost" style={{ padding: '2px 8px', fontSize: 10.5, flexShrink: 0 }}
-                  onClick={() => { onJump?.(f.tab, f.entry); setOpen(false) }}>
-                  Fix it
+              <Finding key={f.id} f={f} action={(f.apply || f.tab) && (
+                <button className="btn-ghost" title={f.apply ? f.apply.label : 'Open the control that causes this'}
+                  style={{ padding: '2px 8px', fontSize: 10.5, flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                  onClick={() => {
+                    if (f.apply) { onApply?.(f.apply); return }
+                    onJump?.(f.tab, f.entry); setOpen(false)
+                  }}>
+                  {f.apply ? <Wand /> : <Wrench />}
+                  <span className="lbl">{f.apply ? 'Fix It' : 'Investigate and Repair'}</span>
                 </button>
               )} />
             ))}
@@ -263,7 +291,7 @@ function WarningsChip({ onJump }) {
   )
 }
 
-export default function Canvas({ onInspect, surface, setSurface, onOpenContrast, onJump }) {
+export default function Canvas({ onInspect, surface, setSurface, onOpenContrast, onJump, onApply }) {
   const { state, derived, set } = useStore()
   const [menu, setMenu] = useState(null)
   /* null = fill the pane, which is the honest default: the preview is not a
@@ -385,7 +413,7 @@ export default function Canvas({ onInspect, surface, setSurface, onOpenContrast,
             is where you set values, not where you look at them — and the
             palette it grades is the one rendering two inches below this. */}
         <ContrastChip onOpen={onOpenContrast} />
-        <WarningsChip onJump={onJump} />
+        <WarningsChip onJump={onJump} onApply={onApply} />
       </div>
 
       {/* Keyed on the mode as well as the surface: the custom properties live

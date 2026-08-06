@@ -43,8 +43,10 @@ function RoleRow({ role, roles, refs, ramps, overrides, onSetRef, onOverride, on
           <div style={{ fontSize: 10.5, color: 'var(--dim)', marginTop: 1 }}>{role.desc}</div>
         </div>
         {modes.map(mode => (
+          /* Centred in its track: a 20px swatch left-aligned in a 22px column
+             sits 1px off the centre of the L or D label above it. */
           <div key={mode} className="swatch" title={`${mode}: ${roles[mode][role.name]}`}
-            style={{ width: 20, height: 20, background: roles[mode][role.name], position: 'relative' }}>
+            style={{ width: 20, height: 20, background: roles[mode][role.name], position: 'relative', justifySelf: 'center' }}>
             {overrides[`${role.name}:${mode}`] != null && (
               <span style={{ position: 'absolute', top: -2, right: -2, width: 5, height: 5, borderRadius: '50%', background: 'var(--accent)' }} />
             )}
@@ -296,9 +298,22 @@ export default function RolesPanel({ inspect }) {
         <Collapsible key={group.id} title={group.label} note={String(group.roles.length)}
           open={openGroups.has(group.id)} onOpenChange={v => toggleGroup(group.id, v)}
           openSignal={targetGroup === group.id ? inspect.at : null}>
-          <p className="panel-note" style={{ marginBottom: 8 }}>{group.desc}</p>
-          <div style={{ display: 'grid', gridTemplateColumns: scope === 'both' ? '1fr 22px 22px' : '1fr 22px', gap: 8, paddingBottom: 3, borderBottom: '1px solid var(--bdr)' }}>
-            <span />
+          {/* The description and the column headers are one row, not two.
+              As two, the middle of the band was an empty full-width cell, and
+              the header sat outside the row padding every role row below it
+              uses — which put L and D 17px to the right of the swatches they
+              label. One row, the same columns and the same padding, and both
+              problems go with it. Baseline-aligned, since the description and
+              the two letters sit on one line. */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: `1fr ${(scope === 'both' ? ['', ''] : ['']).map(() => '22px').join(' ')}`,
+            gap: 8, alignItems: 'baseline',
+            /* The same padding as the role rows underneath, so the header is
+               part of the same rhythm rather than a squashed strip above it. */
+            padding: PAD.sub, borderBottom: '1px solid var(--bdr)',
+          }}>
+            <p className="panel-note" style={{ margin: 0 }}>{group.desc}</p>
             {(scope === 'both' ? ['L', 'D'] : [scope === 'light' ? 'L' : 'D']).map(l => (
               <span key={l} style={{ fontSize: 8.5, color: 'var(--dim)', textAlign: 'center' }}>{l}</span>
             ))}
