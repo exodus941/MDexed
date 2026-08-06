@@ -31,9 +31,24 @@
  */
 import fs from 'node:fs'
 import path from 'node:path'
-import { transform } from 'esbuild'
 
-const ROOTS = ['apps/web/src', 'apps/web/test', 'apps/web/scripts', 'apps/api/src', 'tools']
+/* esbuild is optional. Where a project has it — anything built with Vite,
+   esbuild or tsup does — layer one runs and catches every syntax error.
+   Where it does not, layer two still runs on its own with no dependencies at
+   all, and that is the layer that finds the silent form anyway. */
+import { createRequire } from 'node:module'
+
+/* Resolve esbuild from the project being checked, not from wherever this file
+   happens to live. A shared copy sitting outside any project would otherwise
+   never find it and would silently drop to half its coverage. */
+let transform = null
+for (const from of [process.cwd() + '/', import.meta.url]) {
+  try { ({ transform } = createRequire(from)('esbuild')); break } catch { /* keep looking */ }
+}
+
+/* Scan whatever you point it at, or the current directory. */
+const ROOTS = process.argv.slice(2).length ? process.argv.slice(2) : ['.']
+const SKIP = new Set(['node_modules', '.git', 'dist', 'build', 'out', '.next', 'coverage', 'vendor'])
 const EXT = { '.js': 'js', '.jsx': 'jsx', '.mjs': 'js', '.ts': 'ts', '.tsx': 'tsx' }
 
 const walk = dir => {
@@ -42,7 +57,7 @@ const walk = dir => {
   try { entries = fs.readdirSync(dir, { withFileTypes: true }) } catch { return out }
   for (const e of entries) {
     const p = path.join(dir, e.name)
-    if (e.isDirectory()) { if (e.name !== 'node_modules') out = out.concat(walk(p)) }
+    if (e.isDirectory()) { if (!SKIP.has(e.name) && !e.name.startsWith('.')) out = out.concat(walk(p)) }
     else if (EXT[path.extname(e.name)]) out.push(p)
   }
   return out
@@ -124,7 +139,7 @@ for (const f of files) {
 
   /* Layer one. */
   try {
-    await transform(src, { loader, format: 'esm' })
+    if (transform) await transform(src, { loader, format: 'esm' })
   } catch (err) {
     bad++
     for (const e of err.errors ?? [{ text: err.message }]) {
@@ -148,4 +163,4 @@ if (bad) {
   console.log(`\n${bad} problem${bad === 1 ? '' : 's'} across ${files.length} files.\n`)
   process.exit(1)
 }
-console.log(`syntax guard: ${files.length} files clean`)
+console.log(`syntax guard: ${files.length} files clean${transform ? '' : ' (parser layer skipped — no esbuild here)'}`)
