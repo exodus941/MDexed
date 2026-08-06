@@ -6,7 +6,7 @@ Live at **[mdexed.vercel.app](https://mdexed.vercel.app)**.
 
 ---
 
-## Read this before you start
+## Read This Before You Start
 
 **This is not a tool for beginners**. It exposes the parts of a design system that most tools hide. It expects you to know what those parts do.
 
@@ -20,7 +20,7 @@ Live at **[mdexed.vercel.app](https://mdexed.vercel.app)**.
 
 ---
 
-## Quick start
+## Quick Start
 
 Needs **Node 20+**.
 
@@ -44,7 +44,7 @@ Open <http://localhost:5173>. Vite proxies `/api` to the Worker on 8787.
 
 ---
 
-## How it works
+## How It Works
 
 The document stores **only seeds, macro values and explicit overrides**. `derive()` computes the rest.
 
@@ -70,7 +70,7 @@ Each macro shows its multiplier and the value it resolves to. **You can type eit
 
 ---
 
-## The panels
+## The Panels
 
 ### Meta/Global
 
@@ -223,7 +223,7 @@ Anything you switch off keeps its current value and stays consistent with everyt
 
 ---
 
-## Editor chrome
+## Editor Chrome
 
 The **UI** menu configures the tool and not the design. Nothing here reaches the exported file.
 
@@ -234,30 +234,7 @@ The **UI** menu configures the tool and not the design. Nothing here reaches the
 - **UI Animation** governs every transition the editor makes. This is not the Motion tab. That one defines the durations for your design system. This one defines the durations for the editor. Content that swaps **cross-dissolves** rather than cutting: editor tabs, preview surfaces, the light/dark toggle, the model tabs in the picker. Set it to 0 and every swap happens at once.
 
 Toasts obey the animation setting and withdraw on their own. Notices go after ten seconds, and hover pauses the clock. The restore offer goes after thirty. Tab-strip chevrons scroll while you hover them and accelerate from a standstill over about 180ms. A strip is a queue you look through, and one click per 160px is the interaction equivalent of a stuck key. The app honours `prefers-reduced-motion` throughout.
-
-### Text baselines
-
-Text that shares a line shares a baseline. Where a chip, a count or a button sits next to a single line of text, the two sit on one baseline. Where the neighbour runs to two lines, the single item centres on the block instead. A block has no one line to sit on.
-
-Three CSS traps make this harder than it sounds. All three look identical on screen.
-
-- `align-items: center` leaves nothing in the baseline set. A flex box then takes its baseline from the bottom edge of the first item. An icon in front of a label hands the whole button the wrong one.
-- `align-self: stretch` removes an item from the baseline group completely.
-- An inline-block with `overflow` other than `visible` reports its bottom margin edge as its baseline.
-
----
-
-## Versions
-
-Two build numbers sit at opposite ends of the header, because they answer different questions.
-
-Next to the wordmark is **the number for the app**, in the form `YYMMDD-N`. `260806-2` is the second build of 6 August 2026. It comes from `build-number.json`, and a pre-commit hook in `.githooks` advances it. The hook fires only when the branch has no unpushed commit. The first commit after a push therefore starts a new build, and later commits join it. The number therefore counts deploys and not commits. `npm run bump -w apps/web` does the same thing by hand. Because the number lives in the repository, a rebuild of one commit reproduces its id instead of inventing a new one. The dev server reports `dev`, because no build happened.
-
-Next to the storage readout is **the number for the document**, in the same form. The app stamps it when you export. Edits do not move it. A version that changed on every keystroke would say nothing about which file anyone holds. A document that you never exported says `unbuilt`.
-
----
-
-## Spec conformance
+## Spec Conformance
 
 The DESIGN.md frontmatter schema is deliberately narrow. Allowed keys are `version`, `name`, `description`, `omitted`, `colors`, `typography`, `rounded`, `spacing` and `components`. Component entries accept eight properties: `backgroundColor`, `textColor`, `typography`, `rounded`, `padding`, `size`, `height` and `width`. Variants and states flatten into hyphenated names.
 
@@ -269,7 +246,7 @@ The app validates every export before it leaves.
 
 ---
 
-## AI assistance
+## AI Assistance
 
 Optional, and off until you configure a key. It stays inside the Rationale tab. It writes prose and never tokens.
 
@@ -286,105 +263,3 @@ npx wrangler secret put OPENROUTER_API_KEY
 For local work, copy `apps/api/.dev.vars.example` to `apps/api/.dev.vars`, which git ignores, and fill it in. Wrangler reads it at startup, so restart the dev server afterwards.
 
 The app offers **free** models only. The catalogue is public, so `GET /api/v1/ai/models` needs no key. It filters to zero-cost text models, sorts by context length and caches for an hour. Free tiers are rate-limited, so a 429 comes back as "try another, or wait a moment" rather than as a stack trace. Your model choice persists, and the app re-validates it against the list, because free models come and go without notice.
-
----
-
-## Project layout
-
-```
-apps/
-  web/                         Vite + React 19
-    src/
-      state/                   schema, derivation, store, migrations,
-                               component library and composition,
-                               presets, changelog, build numbering
-      color/                   conversion (culori), scale generation,
-                               WCAG + APCA contrast, palette harmonies, modes
-      type/                    modular scale, Google Fonts catalogue
-      a11y/                    the audit, and the alerts that surface it
-      emit/                    spec-conformant writer, validator, importer,
-                               CSS inference and slot mapping,
-                               token formats, zip writer
-      preview/                 CSS-var bridge, 6 surfaces, icons, inspect
-      panels/                  one per tab
-      ai/                      streaming client, prompt construction,
-                               word diff, review card
-      ui/                      shared controls, colour picker, font picker,
-                               bezier editor, import modal, app chrome
-    test/pipeline.mjs          regression suite
-  api/
-    src/index.ts               8 endpoints
-    migrations/                D1 schema
-```
-
-Roughly 16,200 lines across 67 source files.
-
-Both stylesheets, the editor chrome and the preview, are real `.css` files. The app imports them with `?raw` rather than as template literals. A backtick typed inside a CSS comment used to truncate the whole sheet. The app then rendered nothing while the build stayed green, because the resulting error landed somewhere unrelated. That happened five times. A `.css` file cannot have the problem, and the suite asserts that neither file has drifted back into JavaScript.
-
-### API
-
-| Method | Route | Notes |
-| --- | --- | --- |
-| `GET` | `/api/v1/health` | |
-| `GET` | `/api/v1/fonts` | Google Fonts catalogue, cached 24h, no key needed |
-| `GET` | `/api/v1/ai/models` | Free text models, cached 1h, reports whether a key exists |
-| `POST` | `/api/v1/ai/complete` | Streams plain-text deltas, 503 `needsKey` when unconfigured |
-| `POST` | `/api/v1/projects` | Returns `{ id, editToken, version }` |
-| `GET` | `/api/v1/projects/:id` | Public read |
-| `PATCH` | `/api/v1/projects/:id` | Needs `X-Edit-Token`, 409 on version mismatch |
-| `DELETE` | `/api/v1/projects/:id` | Soft delete |
-
-Sharing is capability-based. Creating a project returns a 32-character edit token, and the API stores only its SHA-256 hash. Anyone with the `/p/:id` URL can read. Only a token holder can write. An optimistic version counter catches concurrent edits.
-
-### Persistence
-
-One `persist()` path serves both destinations, so "saved" means one thing. Local drafts debounce at 600ms, cloud projects at 1500ms. A flash confirms each save and names where it went. A manual Save button forces one at once.
-
-The change log lives in localStorage, separate from the document, and never reaches the exported file.
-
-Opening the app gives you a new document rather than whatever you left behind. The app rotates the previous session aside and offers it back through a toast. A guard stops an untouched document from displacing stored work.
-
----
-
-## Testing
-
-`npm test` runs **131 assertions** over the pure layer. They cover derivation, macro behaviour, generated scales, fluid sizing and component expansion. They also cover spec conformance, round-tripping, migration, presets and preview fidelity. The rest check contrast, composition, reference mapping, the word diff and prompt construction. No framework, plain assertions, because that is where the correctness risk lives.
-
-Round-tripping is **byte-identical for the YAML layer**. The prose layer cannot be. Properties outside the legal eight exist only in generated markdown, which import strips by design. The app reports that loss on import rather than hiding it.
-
-Three of the checks are not about design at all. Each one exists because the same mistake happened twice.
-
-- **Source encoding**. One file went in as Latin-1 and came back as UTF-8. Every em dash turned into three characters. It survived a build, a test run and a deploy, because mojibake is valid JavaScript.
-- **Shared constants are imported**. A constant used but never imported is a runtime `ReferenceError` and not a syntax error. The build passes, then the component blanks the app when it renders. The suite checks every `SCREAMING_CASE` name in an evaluated position. The file that uses one must also declare or import it.
-- **Stylesheets are stylesheets**. See above.
-
----
-
-## Deployment
-
-The web app deploys to Vercel, the API to Cloudflare Workers. The root `vercel.json` carries the build settings, rewrites `/api/*` to the Worker and serves `/p/:id` from `index.html`. It lives at the root rather than in `apps/web`, so importing the repository needs no per-project configuration.
-
-**The web app deploys itself**. The Vercel project connects to the repository, so every push to `main` builds and goes live. The build number advances on its own through the pre-commit hook, so a new deploy always reports a new id.
-
-The Worker does not deploy itself. Cloudflare has no equivalent hook here, so changes under `apps/api` need `npm run deploy -w apps/api` to reach production. It is easy to change the API and then wonder why the deployed site has not noticed.
-
-Before the first Worker deploy, create a real database and put its id in `apps/api/wrangler.toml`. The one committed there is a placeholder for local development.
-
-```bash
-npx wrangler d1 create design-md-editor
-npm run db:migrate -w apps/api
-npm run deploy -w apps/api
-```
-
-Two optional Worker secrets, both server-side only.
-
-- `GOOGLE_FONTS_API_KEY` uses the official Web Fonts API. Without it the app uses the public metadata endpoint, which needs no credentials.
-- `OPENROUTER_API_KEY` turns on the AI in the Rationale tab. Without it that panel shows setup instructions and everything else works unchanged.
-
----
-
-## Status
-
-Colour, roles, typography, layout, shape, depth, motion, components, directives, accessibility, history, AI-assisted prose, responsive previews, reference import and the full export payload all work. Schema is at v3, with migrations from v1 and v2.
-
-The end-to-end test has run. A fresh agent built a screen from an exported `DESIGN.md`, and the result matched the preview. Everything here rests on the claim that the file carries enough on its own, and that claim holds.
