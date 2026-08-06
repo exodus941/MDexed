@@ -13,7 +13,7 @@ import { parseFile } from './emit/parse.js'
 import { isValidColor } from './color/convert.js'
 import { APP_CSS } from './ui/theme.js'
 import { loadDocumentFonts } from './type/fonts.js'
-import { Banner, ResetButton, CloseButton, SectionHeader, PAD, BTN, MODAL_BTN } from './ui/controls.jsx'
+import { Banner, ResetButton, CloseButton, SectionHeader, Strut, PAD, BTN, MODAL_BTN } from './ui/controls.jsx'
 import CrossFade from './ui/CrossFade.jsx'
 import ImportModal, { IMPORT_FORMATS } from './ui/ImportModal.jsx'
 import Canvas, { SURFACES } from './preview/Canvas.jsx'
@@ -144,10 +144,13 @@ const SyncBadge = ({ status }) => {
   }[status] ?? 'Where this document is stored'
   return (
     <span title={help} style={{
-      display: 'inline-flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap',
+      display: 'inline-flex', alignItems: 'baseline', gap: 6, whiteSpace: 'nowrap',
       fontSize: 11, color: cfg.fg, cursor: 'default',
     }}>
-      <span style={{ width: 6, height: 6, borderRadius: '50%', background: cfg.dot, flexShrink: 0 }} />
+      {/* Centred, and out of the baseline set — an item with no text would
+          otherwise donate its bottom edge as this badge's baseline, which is
+          what the header row aligns everything else to. */}
+      <span style={{ width: 6, height: 6, borderRadius: '50%', background: cfg.dot, flexShrink: 0, alignSelf: 'center' }} />
       {cfg.txt}
     </span>
   )
@@ -667,7 +670,7 @@ function FileModal({ onClose }) {
   return (
     <div onClick={onClose} className="anim-fade" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.75)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
       <div onClick={e => e.stopPropagation()} className="anim-rise" style={{ background: 'var(--surf)', border: '1px solid var(--bdr)', borderRadius: 12, width: '100%', maxWidth: 760, maxHeight: '84vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <div style={{ display: 'flex', alignItems: 'center', padding: '13px 17px', borderBottom: '1px solid var(--bdr)', gap: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', padding: '13px 17px', borderBottom: '1px solid var(--bdr)', gap: 10 }}>
           <span style={{ fontFamily: 'var(--display)', fontWeight: 700, fontSize: 15, flex: 1 }}>DESIGN.md</span>
           <span className="chip" style={{ color: report.ok ? 'var(--success)' : 'var(--danger)', borderColor: report.ok ? 'rgb(var(--success-rgb) / .3)' : 'rgb(var(--danger-rgb) / .3)' }}>
             {report.ok ? 'Spec valid' : `${report.errors.length} error${report.errors.length === 1 ? '' : 's'}`}
@@ -677,9 +680,11 @@ function FileModal({ onClose }) {
               its one action and takes the modal-action size where it stands. */}
           <button className="btn-ghost" style={MODAL_BTN}
             onClick={() => navigator.clipboard.writeText(text).then(() => { setCopied(true); setTimeout(() => setCopied(false), 1800) })}>
-            <Copy />{copied ? 'Copied' : 'Copy'}
+            <Copy /><span className="lbl">{copied ? 'Copied' : 'Copy'}</span>
           </button>
-          <CloseButton onClick={onClose} label="Close" size={11} />
+          <span style={{ alignSelf: 'center', display: 'flex' }}>
+            <CloseButton onClick={onClose} label="Close" size={11} />
+          </span>
         </div>
 
         {(report.errors.length > 0 || report.warnings.length > 0 || dropped.length > 0) && (
@@ -746,6 +751,13 @@ function SaveFlash({ savedAt }) {
    split. The strip scrolls without a visible scrollbar — chevrons appear only
    when there's actually something off-screen in that direction. */
 const BAR_H = 42
+
+/* Every tab label in the strip, so the pane title's strut can't drift out of
+   step with the thing it is aligning to. Matches `.seg`, which sizes the
+   surface buttons on the preview side: the two bars sit on one line across the
+   split, so a different size here would put EDITOR and PREVIEW on two
+   different baselines however well each aligned to its own tabs. */
+const TAB_FS = 12
 
 /* Pixels per 16ms tick at the inner and outer edges of a chevron, so roughly
    78 to 780 px/s. The floor is slow enough to walk a tab into place one at a
@@ -1073,11 +1085,15 @@ function TabStrip({ tabs, active, onSelect, right, title, actions }) {
             only way to tell which is which is to recognise the tab names. */}
         {title && (
           <span style={{
-            display: 'flex', alignItems: 'center', paddingLeft: 14, flexShrink: 0,
+            alignSelf: 'center', paddingLeft: 14, flexShrink: 0,
             fontSize: 10, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase',
             color: 'var(--text-dim)', whiteSpace: 'nowrap', userSelect: 'none', cursor: 'default',
           }}>
-            {title}
+            {/* Sized to the tabs beside it, so the label and the tab names sit
+                on one baseline instead of each centring its own text in the
+                bar. The row can't simply be baseline-aligned: the tabs draw
+                their underline by stretching to the full height. */}
+            {title}<Strut size={TAB_FS} />
           </span>
         )}
         {/* Name and arrow are one control — the whole thing opens the menu, and
@@ -1087,7 +1103,7 @@ function TabStrip({ tabs, active, onSelect, right, title, actions }) {
             style={{
               display: 'flex', alignItems: 'center', gap: 8, padding: '0 14px 0 10px',
               background: 'none', border: 'none', cursor: 'pointer',
-              fontFamily: 'var(--sans)', fontSize: 12.5, fontWeight: 500, whiteSpace: 'nowrap',
+              fontFamily: 'var(--sans)', fontSize: TAB_FS, fontWeight: 500, whiteSpace: 'nowrap',
               color: menuOpen ? 'var(--accent)' : 'var(--text)',
               borderBottom: '2px solid var(--accent)', marginBottom: -1,
               transition: 'color var(--t) var(--ease)',
@@ -1128,7 +1144,7 @@ function TabStrip({ tabs, active, onSelect, right, title, actions }) {
           {rest.map(t => (
             <button key={t.id} onClick={() => onSelect(t.id)} style={{
               background: 'none', border: 'none', borderRadius: 0, cursor: 'pointer',
-              padding: '0 12px', fontFamily: 'var(--sans)', fontSize: 12.5, whiteSpace: 'nowrap',
+              padding: '0 12px', fontFamily: 'var(--sans)', fontSize: TAB_FS, whiteSpace: 'nowrap',
               color: 'var(--muted)', fontWeight: 400,
               borderBottom: '2px solid transparent',
               transition: 'color var(--t) var(--ease)', marginBottom: -1,
@@ -1269,7 +1285,9 @@ function RestoreToast({ offer, onRestore, onDismiss }) {
 
   return (
     <div className={leaving ? 'anim-fall' : 'anim-rise'} style={{
-      display: 'flex', alignItems: 'center', gap: 11,
+      /* Baseline, so Restore sits on the line that says what happened rather
+         than floating between the two lines of the message. */
+      display: 'flex', alignItems: 'baseline', gap: 11,
       background: 'var(--surf2)', border: '1px solid var(--bdr2)',
       borderRadius: 9, padding: '9px 10px 9px 11px',
       /* No fixed cap. The second line names the project, and a name the user
@@ -1285,7 +1303,7 @@ function RestoreToast({ offer, onRestore, onDismiss }) {
           editor chrome, so the eye finds this against a bright preview. */}
       <span style={{
         display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-        width: 26, height: 26, borderRadius: '50%', flexShrink: 0,
+        width: 26, height: 26, borderRadius: '50%', flexShrink: 0, alignSelf: 'center',
         background: 'rgb(var(--success-rgb) / .16)', color: 'var(--success)',
       }}>
         <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -1306,7 +1324,9 @@ function RestoreToast({ offer, onRestore, onDismiss }) {
         onClick={() => close(onRestore)}>
         Restore
       </button>
-      <CloseButton onClick={() => close(onDismiss)} size={10} />
+      <span style={{ alignSelf: 'center', display: 'flex' }}>
+        <CloseButton onClick={() => close(onDismiss)} size={10} />
+      </span>
     </div>
   )
 }

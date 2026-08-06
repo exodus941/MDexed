@@ -250,10 +250,10 @@ export default function HistoryPanel() {
               const cat = CATEGORY_BY_ID[e.category] ?? CATEGORY_BY_ID.system
               return (
                 <div key={e.id} className="log-row" style={{
-                  display: 'grid', gridTemplateColumns: '8px 1fr auto', gap: 10,
+                  display: 'grid', gridTemplateColumns: '8px 1fr auto', gap: 10, alignItems: 'baseline',
                   padding: PAD.sub, borderBottom: '1px solid var(--bdr)',
                 }}>
-                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: cat.colour, marginTop: 5 }} title={cat.label} />
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: cat.colour, marginTop: 5, alignSelf: 'start' }} title={cat.label} />
                   <div style={{ minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'baseline', gap: 7, flexWrap: 'wrap' }}>
                       <span style={{ fontSize: 12.5, color: 'var(--text-dim)' }}>{e.label}</span>
@@ -264,7 +264,11 @@ export default function HistoryPanel() {
                     </div>
                     <Detail detail={e.detail} ctx={ctx} />
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 1 }}>
+                  {/* No marginTop nudge: the row is baseline-aligned, so these
+                      land on the line that names the change. Both labels are
+                      `.lbl` so each button's baseline comes from its text
+                      rather than from the icon in front of it. */}
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
                     {/* Hidden until the row is pointed at, because it is the
                         destructive one and should not sit there inviting a
                         stray click on every row at once. Revealed on keyboard
@@ -280,7 +284,7 @@ export default function HistoryPanel() {
                       <svg width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round">
                         <polyline points="11 17 6 12 11 7" /><polyline points="18 17 13 12 18 7" />
                       </svg>
-                      Rewind to here
+                      <span className="lbl">Rewind to here</span>
                     </button>
                     {canRevert(e) && (
                       <button onClick={() => revert(e)} title="Put this one change back, leaving everything else alone"
@@ -295,7 +299,7 @@ export default function HistoryPanel() {
                         <svg width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round">
                           <path d="M3 2v6h6" /><path d="M3.5 12a8.5 8.5 0 1 0 2.5-6L3 8.5" />
                         </svg>
-                        Revert
+                        <span className="lbl">Revert</span>
                       </button>
                     )}
                     <span style={{ fontFamily: 'var(--mono)', fontSize: 10.5, color: 'var(--dim)' }}>{clock(e.at)}</span>

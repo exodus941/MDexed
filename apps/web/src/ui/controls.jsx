@@ -117,11 +117,34 @@ export function SnapSlider({ steps, value, onChange, refFor, title }) {
   )
 }
 
+/** ── Baseline strut ──
+    A zero-width invisible character at someone else's font size.
+    Two boxes that each centre their own text in a fixed-height bar do not
+    share a baseline unless their text is the same size — centring puts the
+    box centre in the same place, and the baseline sits `fontSize·(asc−desc)/2`
+    below that, which grows with the size. Dropping a strut at the larger size
+    into the smaller label's line box makes both line boxes identical, so
+    centring them lands the two baselines on top of each other.
+    Only for rows that must stay stretch-aligned; anywhere else use
+    `align-items: baseline` and be done.
+
+    Pass `family` when the line being matched is in a different typeface: the
+    line box is built from the font's own ascent and descent, so a 17px mono
+    strut and a 17px sans strut are not the same height.
+
+    Plain inline, and no `overflow` — an inline-block with overflow other than
+    visible takes its baseline from the bottom margin edge instead of its text,
+    which is the very thing this is here to avoid. The character is a
+    zero-width space, so it costs no horizontal room. */
+export const Strut = ({ size, family }) => (
+  <span aria-hidden="true" style={{ fontSize: size, fontFamily: family }}>&#8203;</span>
+)
+
 export function SectionHeader({ title, desc, count, right }) {
   return (
-    <div style={{ marginBottom: 18, display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+    <div style={{ marginBottom: 18, display: 'flex', alignItems: 'baseline', gap: 12 }}>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 9 }}>
           <h2 style={{ fontFamily: 'var(--display)', fontSize: 18, fontWeight: 700, letterSpacing: '-0.025em', color: 'var(--text)' }}>{title}</h2>
           {count != null && <span className="chip">{count}</span>}
         </div>
@@ -178,16 +201,16 @@ export function Collapsible({ title, note, children, defaultOpen = false, right,
 
   return (
     <div style={{ border: '1px solid var(--bdr)', borderRadius: 9, background: 'var(--surf)', overflow: 'hidden' }}>
-      <div style={{ display: 'flex', alignItems: 'center' }}>
+      <div style={{ display: 'flex', alignItems: 'baseline' }}>
         <button
           onClick={() => setOpen(o => !o)}
           style={{
-            flex: 1, display: 'flex', alignItems: 'center', gap: 8, padding: `${PAD.sub}px ${PAD.card}px`,
+            flex: 1, display: 'flex', alignItems: 'baseline', gap: 8, padding: `${PAD.sub}px ${PAD.card}px`,
             background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text)',
             fontFamily: 'var(--sans)', fontSize: 13, textAlign: 'left', minWidth: 0,
           }}>
           <svg width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}
-            style={{ transform: open ? 'rotate(90deg)' : 'none', transition: 'transform var(--t) var(--ease)', color: 'var(--muted)', flexShrink: 0 }}>
+            style={{ transform: open ? 'rotate(90deg)' : 'none', transition: 'transform var(--t) var(--ease)', color: 'var(--muted)', flexShrink: 0, alignSelf: 'center' }}>
             <polyline points="9 6 15 12 9 18" />
           </svg>
           <span style={{ flex: 1, minWidth: 0 }}>{title}</span>

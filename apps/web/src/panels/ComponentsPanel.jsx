@@ -423,11 +423,11 @@ function ComponentBlock({ def, cfg, layout, onSetLayout, onToggle, onSet, onRese
       borderRadius: 9, overflow: 'hidden', opacity: enabled ? 1 : 0.55,
       transition: 'border-color var(--t) var(--ease)',
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '8px 12px' }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 9, padding: '8px 12px' }}>
         <input type="checkbox" checked={enabled} onChange={e => onToggle(def.name, e.target.checked)}
-          style={{ width: 14, height: 14, accentColor: 'var(--accent)', padding: 0, flexShrink: 0 }} />
+          style={{ width: 14, height: 14, accentColor: 'var(--accent)', padding: 0, flexShrink: 0, alignSelf: 'center' }} />
         <button onClick={() => setOpen(o => !o)} disabled={!enabled}
-          style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', cursor: enabled ? 'pointer' : 'default', color: 'var(--text)', textAlign: 'left', padding: 0, fontFamily: 'var(--sans)', minWidth: 0 }}>
+          style={{ flex: 1, display: 'flex', alignItems: 'baseline', gap: 8, background: 'none', border: 'none', cursor: enabled ? 'pointer' : 'default', color: 'var(--text)', textAlign: 'left', padding: 0, fontFamily: 'var(--sans)', minWidth: 0 }}>
           <span style={{ fontSize: 13, flex: 1 }}>{def.label}</span>
           {/* Findings live inside the entry cards, which a collapsed component
               never renders — so the count comes up to the header, where it is

@@ -10,6 +10,7 @@ import { PREVIEW_CSS, responsiveCss, varsToStyle } from './tokens.js'
 import { buildCssVars } from '../state/derive.js'
 import { gradientCss } from '../color/modes.js'
 import CrossFade from '../ui/CrossFade.jsx'
+import { Strut } from '../ui/controls.jsx'
 import { inspectProps, role } from './inspect.js'
 import { resolveRef } from '../color/ramp.js'
 import Dashboard from './screens/Dashboard.jsx'
@@ -321,9 +322,14 @@ export default function Canvas({ onInspect, surface, setSurface, onOpenContrast,
         <span style={{
           fontSize: 10, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase',
           color: 'var(--text-dim)', whiteSpace: 'nowrap', flexShrink: 0, cursor: 'default',
-          userSelect: 'none',
+          userSelect: 'none', alignSelf: 'center',
         }}>
-          Preview
+          {/* Matches the 12px of `.seg`, so this label and the surface buttons
+              sit on one baseline instead of each centring its own text in the
+              bar. The row can't simply be baseline-aligned: the buttons live in
+              a horizontal scroller, and an overflow container reports its
+              bottom edge as its baseline. */}
+          Preview<Strut size={12} />
         </span>
         <span style={{ width: 1, height: 16, background: 'var(--bdr2)', flexShrink: 0, marginRight: 2 }} />
 
