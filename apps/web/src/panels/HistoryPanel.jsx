@@ -250,7 +250,10 @@ export default function HistoryPanel() {
               const cat = CATEGORY_BY_ID[e.category] ?? CATEGORY_BY_ID.system
               return (
                 <div key={e.id} className="log-row" style={{
-                  display: 'grid', gridTemplateColumns: '8px 1fr auto', gap: 10, alignItems: 'baseline',
+                  /* Centred on the entry, which runs to two lines — the actions
+                     belong beside the whole thing, not on its first line. The
+                     actions do share a baseline with each other; see below. */
+                  display: 'grid', gridTemplateColumns: '8px 1fr auto', gap: 10, alignItems: 'center',
                   padding: PAD.sub, borderBottom: '1px solid var(--bdr)',
                 }}>
                   <span style={{ width: 6, height: 6, borderRadius: '50%', background: cat.colour, marginTop: 5, alignSelf: 'start' }} title={cat.label} />
@@ -264,10 +267,9 @@ export default function HistoryPanel() {
                     </div>
                     <Detail detail={e.detail} ctx={ctx} />
                   </div>
-                  {/* No marginTop nudge: the row is baseline-aligned, so these
-                      land on the line that names the change. Both labels are
-                      `.lbl` so each button's baseline comes from its text
-                      rather than from the icon in front of it. */}
+                  {/* These three are all one line, so they do share a baseline.
+                      Both labels are `.lbl` so each button's baseline comes from
+                      its text rather than from the icon in front of it. */}
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
                     {/* Hidden until the row is pointed at, because it is the
                         destructive one and should not sit there inviting a

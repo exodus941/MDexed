@@ -141,8 +141,12 @@ export const Strut = ({ size, family }) => (
 )
 
 export function SectionHeader({ title, desc, count, right }) {
+  /* Baseline only while the left side is a single line. Once a description is
+     under the title, the right-hand slot is sitting beside a block rather than
+     beside a line — pinning it to the title's baseline leaves it riding high
+     against the pair. Centre it on the block instead. */
   return (
-    <div style={{ marginBottom: 18, display: 'flex', alignItems: 'baseline', gap: 12 }}>
+    <div style={{ marginBottom: 18, display: 'flex', alignItems: desc ? 'center' : 'baseline', gap: 12 }}>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 9 }}>
           <h2 style={{ fontFamily: 'var(--display)', fontSize: 18, fontWeight: 700, letterSpacing: '-0.025em', color: 'var(--text)' }}>{title}</h2>

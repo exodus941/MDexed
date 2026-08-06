@@ -47,11 +47,12 @@ function SeedRow({ seed, ramps, onChange, onRename, onDelete, onLock, open, onTo
   const anchor = ramps[seed.name]?.anchor
   return (
     <div style={{ background: 'var(--surf2)', border: `1px solid ${open ? 'rgb(var(--accent-rgb) / .35)' : 'var(--bdr)'}`, borderRadius: 9, overflow: 'hidden', transition: 'border-color var(--t) var(--ease)' }}>
-      {/* Baseline, so the hex sits on the same line as the seed name rather than
-          floating above it — the two are different sizes, and centring each in
-          the row puts their baselines 6.5px apart. Everything without text is
-          pulled back out to centre. */}
-      <div onClick={onToggle} style={{ display: 'grid', gridTemplateColumns: '30px 1fr auto auto auto', gap: 10, alignItems: 'baseline', padding: `${PAD.sub}px ${PAD.card}px`, cursor: 'pointer' }}>
+      {/* A named seed carries a description under it, which makes the left side
+          a block rather than a line — the hex then belongs centred on the pair,
+          not pinned to the name's baseline. Seeds with no description are a
+          single line, and there baseline is right: centring a 13.5px name
+          against a 10.5px hex puts their baselines 6.5px apart. */}
+      <div onClick={onToggle} style={{ display: 'grid', gridTemplateColumns: '30px 1fr auto auto auto', gap: 10, alignItems: seed.desc ? 'center' : 'baseline', padding: `${PAD.sub}px ${PAD.card}px`, cursor: 'pointer' }}>
         <div className="swatch" style={{ width: 26, height: 26, background: seed.hex, alignSelf: 'center' }} />
         <div style={{ minWidth: 0 }}>
           <div style={{ fontWeight: 500, fontSize: 13.5 }}>{seed.name}</div>

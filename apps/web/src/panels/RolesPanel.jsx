@@ -11,7 +11,7 @@ import { RAMP_STEPS } from '../color/ramp.js'
 import { check } from '../color/contrast.js'
 import { generateCounterpart, clearOverridesFor } from '../color/modes.js'
 import ColorPicker from '../ui/ColorPicker.jsx'
-import { SectionHeader, Collapsible, Expand, Segmented, OverrideBadge, Banner, FilterField, Strut, PAD } from '../ui/controls.jsx'
+import { SectionHeader, Collapsible, Expand, Segmented, OverrideBadge, Banner, FilterField, PAD } from '../ui/controls.jsx'
 import { useReveal, revealStyle } from '../ui/reveal.js'
 import CrossFade from '../ui/CrossFade.jsx'
 import PanelAlerts from '../a11y/PanelAlerts.jsx'
@@ -97,9 +97,9 @@ function RoleRow({ role, roles, refs, ramps, overrides, onSetRef, onOverride, on
 /* ── Free-form pair checker ──
    The fixed list below covers the pairs a system has to get right. This covers
    the one you're wondering about right now. */
-/* Shared by the specimen and the readout beside it. Both first lines need the
-   same top offset and the same line-height for the struts between them to put
-   the two baselines in the same place. */
+/* The specimen's own metrics. Named rather than inline because the padding and
+   the line-height together decide how tall the swatch sits against the readout
+   next to it. */
 const SPEC_PAD = 10
 const SPEC_LH = 1.4
 const RATIO_FS = 17
@@ -130,27 +130,18 @@ function PairChecker({ roles, mode }) {
         <button className="btn-ghost" title="Swap" style={{ padding: '4px 10px' }} onClick={() => { setFg(bg); setBg(fg) }}>⇄</button>
       </div>
 
-      {/* The ratio is the answer to the specimen beside it, so the two want to
-          start on one line — centring a four-line readout against a two-line
-          swatch put their first lines 8px apart.
-
-          Both columns stay full height, so neither can be baseline-aligned
-          (stretch takes an item out of the baseline group). Instead each first
-          line carries a strut at the other's size: that gives the two lines
-          identical metrics, and identical top padding then lands the baselines
-          on each other whatever the specimen size is. */}
+      {/* Two blocks, not two items on a line: a two-line swatch beside a
+          four-line readout. Neither one's first line is the line the other
+          belongs on, so they centre against each other. */}
       <div style={{ display: 'flex', gap: 10, alignItems: 'stretch' }}>
         <div className="preview-box" style={{ flex: 1, background: bgHex, padding: `${SPEC_PAD}px 12px`, minWidth: 0 }}>
           <div style={{ color: fgHex, fontSize: specFs, fontWeight: size === 'large' ? 600 : 400, lineHeight: SPEC_LH }}>
-            The quick brown fox<Strut size={RATIO_FS} family="var(--mono)" />
+            The quick brown fox
           </div>
           <div style={{ color: fgHex, fontSize: 11, opacity: .85, marginTop: 2 }}>{fgHex} on {bgHex}</div>
         </div>
-        {/* Transparent border, not extra padding: `.preview-box` carries a 1px
-            one, so without a matching edge here the two columns start their
-            text 1px apart no matter how the struts line up. */}
-        <div style={{ width: 104, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 3, textAlign: 'right', paddingTop: SPEC_PAD, borderTop: '1px solid transparent' }}>
-          <div style={{ fontFamily: 'var(--mono)', fontSize: RATIO_FS, lineHeight: SPEC_LH, color: bad ? 'var(--danger)' : 'var(--success)' }}>{r.ratio}:1<Strut size={specFs} family="var(--sans)" /></div>
+        <div style={{ width: 104, flexShrink: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 3, textAlign: 'right' }}>
+          <div style={{ fontFamily: 'var(--mono)', fontSize: RATIO_FS, color: bad ? 'var(--danger)' : 'var(--success)' }}>{r.ratio}:1</div>
           <div className={bad ? 'fail' : 'pass'} style={{ fontSize: 11, fontFamily: 'var(--mono)' }}>{r.label}</div>
           <div style={{ fontSize: 10, color: 'var(--dim)', fontFamily: 'var(--mono)' }}>Lc {r.lc}</div>
           <div style={{ fontSize: 9.5, color: 'var(--dim)' }}>{r.use}</div>
