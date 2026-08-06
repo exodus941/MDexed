@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ledger — generated dashboard beside the payload's own</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #17191c; color: #e9ebee;
+         font: 14px/1.5 ui-sans-serif, system-ui, sans-serif; }
+  header { padding: 14px 18px; border-bottom: 1px solid #32353b; }
+  h1 { margin: 0 0 4px; font-size: 15px; font-weight: 600; }
+  p { margin: 0; font-size: 12.5px; color: #99a0a8; }
+  .row { display: grid; grid-template-columns: 1.4fr 1fr 1fr; height: calc(100vh - 62px); }
+  .col { display: flex; flex-direction: column; border-right: 1px solid #32353b; min-width: 0; }
+  .col:last-child { border-right: 0; }
+  .cap { padding: 8px 12px; border-bottom: 1px solid #32353b; background: #1e2126; }
+  .cap b { display: block; font-size: 12.5px; font-weight: 600; }
+  .cap span { font-size: 11.5px; color: #99a0a8; }
+  iframe { flex: 1; width: 100%; border: 0; background: #fff; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Ledger — the generated dashboard, and the sample it was given</h1>
+  <p>Same tokens.css in all three. Left was built from the payload; centre and right are the payload's own dashboard surface.</p>
+</header>
+<div class="row">
+  <div class="col">
+    <div class="cap"><b>Generated from the payload</b><span>Receivables — different content and sections</span></div>
+    <iframe src="./dashboard.html" title="Generated dashboard"></iframe>
+  </div>
+  <div class="col">
+    <div class="cap"><b>Sample — light</b><span>html-examples/light/dashboard.html</span></div>
+    <iframe src="./sample-light.html" title="Sample light"></iframe>
+  </div>
+  <div class="col">
+    <div class="cap"><b>Sample — dark</b><span>html-examples/dark/dashboard.html</span></div>
+    <iframe src="./sample-dark.html" title="Sample dark"></iframe>
+  </div>
+</div>
+</body>
+</html>
