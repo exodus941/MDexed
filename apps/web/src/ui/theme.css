@@ -234,6 +234,26 @@ textarea{resize:vertical;min-height:90px;font-size:13px;line-height:1.6}
  * above every text-only button beside it. Marking the label baseline-aligned
  * makes it the donor, which is the whole fix; the icon stays centred. */
 .lbl{align-self:baseline}
+/* ── Modal shells on a phone ──
+   Every modal already shrinks: they are `width:100%` under a `maxWidth`. What
+   they are not is efficient with a 375px screen. 24px of backdrop padding each
+   side spends 13% of the width on nothing, and an 84vh ceiling leaves a strip
+   of dimmed backdrop top and bottom that no one asked for.
+
+   Below 768px they become sheets: pinned to the bottom edge, near-full height,
+   square across the bottom because there is no gap left to round against.
+   `!important` because the shells carry these as inline styles, and this rule
+   is scoped to a width where it is the only sensible answer. */
+.modal-back{position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center}
+@media (max-width:767px){
+  .modal-back{padding:0!important;align-items:flex-end!important}
+  .modal-panel{
+    max-width:none!important;width:100%!important;
+    max-height:94vh!important;
+    border-bottom-left-radius:0!important;border-bottom-right-radius:0!important;
+  }
+}
+
 /* A control row that must not clip.
    Below a comfortable container width the leading label takes its own line and
    the controls wrap underneath it. A container query, not a media query: the

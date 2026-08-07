@@ -358,7 +358,7 @@ function RewindConfirm({ plan, onCancel, onConfirm }) {
       position: 'fixed', inset: 0, background: 'rgba(0,0,0,.72)', zIndex: 1000,
       display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,
     }}>
-      <div onClick={e => e.stopPropagation()} className="anim-rise" style={{
+      <div onClick={e => e.stopPropagation()} className="anim-rise modal-panel" style={{
         background: 'var(--surf)', border: '1px solid var(--bdr)', borderRadius: 12,
         width: '100%', maxWidth: 440, overflow: 'hidden',
       }}>
