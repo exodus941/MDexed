@@ -75,8 +75,12 @@
               border-color var(--duration-fast, 120ms) var(--ease-standard, ease),
               color var(--duration-fast, 120ms) var(--ease-standard, ease);
 }
-.dmd .btn .icon { vertical-align: middle; margin-right: var(--cmp-button-gap, var(--icon-gap, 8px)); }
-.dmd .btn .icon:last-child { margin-right: 0; margin-left: var(--cmp-button-gap, var(--icon-gap, 8px)); }
+/* A leading icon is the default, and a trailing one says so in the markup.
+   This was `:last-child`, which cannot see a text node — so a leading icon in
+   `<button><svg/>Export</button>` was also the last *element* child, took the
+   trailing rule, and put its 8px on the wrong side. See icons.jsx. */
+.dmd .btn .icon { vertical-align: middle; margin-right: var(--cmp-button-gap, var(--icon-gap, 8px)); margin-left: 0; }
+.dmd .btn .icon-end { margin-right: 0; margin-left: var(--cmp-button-gap, var(--icon-gap, 8px)); }
 .dmd .btn:focus-visible {
   outline: var(--focus-width, 2px) var(--focus-style, solid) var(--c-ring, #4f6ef7);
   outline-offset: var(--focus-offset, 2px);
@@ -282,6 +286,34 @@
 .dmd .row > .checkbox, .dmd .row > .swatch { align-self: center; }
 .dmd .stack { display: flex; flex-direction: column; gap: var(--space-md, 16px); }
 .dmd .stack-sm { display: flex; flex-direction: column; gap: var(--space-sm, 8px); }
+
+/* ── A sidebar that folds ──
+   Wide: the summary is a plain section label and the list is always open, so
+   this renders exactly as the old markup did. Narrow: responsive.js closes it
+   and reveals the burger. The `open` attribute is on the element, so a browser
+   with no CSS still shows the links rather than hiding them. */
+.dmd .nav-summary {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: var(--space-sm, 8px); margin-bottom: var(--space-xs, 4px);
+  list-style: none; cursor: default;
+}
+.dmd .nav-summary::-webkit-details-marker { display: none; }
+/* Visible whatever the element's open state, so the wide layout never depends
+   on an attribute. Below `md` responsive.js hands control back to `details`. */
+.dmd .nav-collapse > nav { display: flex; }
+
+/* A table has a floor. Three columns of real content will not fold into 296px,
+   and squeezing them turns every account name into three lines. Scroll it
+   sideways inside its card, which is what every table on a phone does. */
+.dmd .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.dmd .table-scroll > .table { min-width: 22rem; }
+/* Hidden until the layout folds. Three bars, drawn rather than an icon font,
+   at the same stroke weight the icon set uses. */
+.dmd .nav-burger { display: none; flex-direction: column; gap: 3px; padding: 6px; cursor: pointer; }
+.dmd .nav-burger > span {
+  display: block; width: 16px; height: 2px; border-radius: 1px;
+  background: var(--c-text-muted, #666);
+}
 .dmd .grid { display: grid; gap: var(--space-md, 16px); }
 
 /* ── Layout, at its widest ──

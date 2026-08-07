@@ -264,6 +264,29 @@ textarea{resize:vertical;min-height:90px;font-size:13px;line-height:1.6}
   .row-wrap>:first-child{flex:1 0 100%}
 }
 
+/* A control row that deserves better than wrapping.
+   `.row-wrap` only lets items flow, which on the palette generator left the
+   label alone on line one and then stranded Generate beside a select — a
+   ragged edge and no reading order. This states the arrangement instead:
+   the label owns its line, the two choices sit side by side, and the action
+   spans the full width underneath. Label, choices, act. */
+@container (max-width:430px){
+  /* `minmax(0,1fr)`, not `1fr`. A bare `1fr` carries a min-content floor, so
+     the select holding the longest option ("Complementary") pushed its own
+     column wider and the pair came out 109 and 118. The zero floor lets them
+     divide the row evenly and truncate instead. */
+  /* `!important` on both, because the element carries `display:flex; gap:8`
+     inline for the wide layout and inline always wins a specificity contest. */
+  .form-stack{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px!important;align-items:center}
+  .form-stack>:first-child{grid-column:1/-1;margin-bottom:2px}
+  .form-stack>button{grid-column:1/-1;width:100%}
+  .form-stack>select{width:100%}
+  /* The chrome runs dense on a desktop, which is 28px. That is a fine mouse
+     target and a poor finger. This app fails its own touch-target rule at that
+     size, so the controls grow where a finger is the pointer. */
+  .form-stack>select,.form-stack>button{min-height:40px}
+}
+
 /* On a phone a button label is the first thing to go. The icon carries the
    meaning, the `title` carries the words, and the row stops fighting the
    project name for the same 375px. Opt a button out with `.keep-lbl` when its

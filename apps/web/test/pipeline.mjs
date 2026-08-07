@@ -626,6 +626,45 @@ line('\n- prompt construction -')
  * queries. Both must collapse at the same numbers, or the exported page stops
  * being the thing you were looking at. */
 {
+/* ── An icon's side is stated, never inferred from position ──
+ *
+ * The stylesheet used `.btn .icon:last-child` to spot a trailing icon. That
+ * cannot work: a button's label is a text node, and `:last-child` counts only
+ * elements. So the leading icon in `<button><svg/>Export</button>` was also the
+ * last element child, matched the trailing rule, and took its 8px on the wrong
+ * side — a gap before the icon and none between the icon and the word.
+ *
+ * It was wrong at every width, in every surface, and it shipped inside the
+ * exported examples, which are the style reference an agent copies from.
+ *
+ * No positional selector can tell these apart, so none is allowed to try. */
+{
+  line('\n- icon spacing -')
+  const css = fs.readFileSync(new URL('../src/preview/preview.css', import.meta.url), 'utf8')
+  const positional = [...css.matchAll(/^[^{\n]*\.icon[^{\n]*:(?:last|first|only|nth)-[a-z-]+\([^)]*\)?[^{\n]*\{/gm)]
+    .map(m => m[0].trim())
+  assert(positional.length === 0,
+    `no positional selector decides an icon's side${positional.length ? ` — ${positional[0]}` : ''}`)
+  assert(/\.icon-end\s*\{[^}]*margin-left/.test(css), 'a trailing icon is marked in the markup and spaced by class')
+  assert(/\.btn \.icon \{[^}]*margin-right/.test(css), 'a leading icon is the default and gets its gap after it')
+
+  /* Every trailing icon in the surfaces must carry the flag, or it silently
+     falls back to leading and the gap lands on the wrong side again. */
+  const surfaces = ['screens/Dashboard.jsx', 'screens/Landing.jsx', 'screens/Form.jsx',
+    'screens/Settings.jsx', 'screens/Dialog.jsx', 'Gallery.jsx']
+  const unflagged = []
+  for (const rel of surfaces) {
+    const src = fs.readFileSync(new URL(`../src/preview/${rel}`, import.meta.url), 'utf8')
+    /* An `<Ico` preceded on the same line by a word character or a closing
+       brace is following a label rather than leading one. */
+    for (const m of src.matchAll(/[\w}"']\s*<Ico\s[^>]*\/>/g)) {
+      if (!/\bend\b/.test(m[0])) unflagged.push(`${rel}: ${m[0].slice(0, 40)}`)
+    }
+  }
+  assert(unflagged.length === 0,
+    `every trailing icon is flagged${unflagged.length ? ` — ${unflagged[0]}` : ''}`)
+}
+
   line('\n- responsive -')
   const bps = state.layout?.breakpoints ?? []
   const inEditor = responsiveCss(bps, 'container')

@@ -61,6 +61,14 @@ ${query(md)} {
   .dmd .cols-3, .dmd .cols-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   /* A 180px rail beside 200px of content is not a layout. Stack it. */
   .dmd .with-aside { grid-template-columns: minmax(0, 1fr); }
+
+  /* Stacking the rail is only half the job. Left alone it becomes five links
+     stacked above the page title, which pushes the heading below the fold and
+     reads as a wide layout that gave up. Fold it behind the burger instead.
+     The summary keeps the section label, so nothing is unlabelled. */
+  .dmd .nav-collapse:not([open]) > nav { display: none; }
+  .dmd .nav-burger { display: flex; }
+  .dmd .nav-summary { cursor: pointer; }
 }
 
 ${query(sm)} {

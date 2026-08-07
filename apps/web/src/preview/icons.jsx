@@ -8,8 +8,19 @@
    label, so a screen reader that reads it out is repeating the label or
    narrating a shape. An icon that ever carries meaning on its own would need
    a title and `aria-hidden={false}` — none currently does. */
-export const Ico = ({ d, size = 'md' }) => (
-  <svg className="icon" aria-hidden="true" focusable="false"
+/* `end` marks an icon that follows its label rather than leading it.
+ *
+ * The stylesheet used `:last-child` to spot a trailing icon, which cannot work
+ * here: a button's label is a text node, and `:last-child` only counts
+ * elements. So a leading icon in `<button><Ico/>Export</button>` was both the
+ * first and the last element child, matched the trailing rule, and got its gap
+ * on the wrong side — 8px before the icon and nothing between the icon and the
+ * word. Every labelled button in every surface, at every width.
+ *
+ * There is no selector that fixes this, because the thing CSS needs to see is
+ * a text node it cannot select. So the markup says which it is. */
+export const Ico = ({ d, size = 'md', end = false }) => (
+  <svg className={end ? 'icon icon-end' : 'icon'} aria-hidden="true" focusable="false"
     width={`var(--icon-${size}, 16px)`} height={`var(--icon-${size}, 16px)`}
     viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
     {d}

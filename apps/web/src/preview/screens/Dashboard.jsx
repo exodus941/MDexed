@@ -23,14 +23,34 @@ export default function Dashboard({ onInspect, layout }) {
 
   return (
     <div className="with-aside">
-      <nav className="stack-sm">
-        <div className="caption" style={{ textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 4 }}
-          {...txt('overline', 'text-muted')}>Workspace</div>
-        <div className="nav-item is-active with-icon" {...ins('nav-item-selected')}><Ico d={IconChart} />Overview</div>
-        {[['Accounts', IconFolder], ['Invoices', IconSend], ['Reports', IconChart], ['Settings', IconMore]].map(([t, icon]) => (
-          <div key={t} className="nav-item with-icon" {...ins('nav-item')}><Ico d={icon} />{t}</div>
-        ))}
-      </nav>
+      {/* A sidebar does not become a stack of links above the page title.
+          Every navigation on every phone folds behind a control, and pushing
+          the title below five list items is not a small screen layout, it is
+          a wide one that gave up.
+
+          `details` and `summary` rather than a button and state, because the
+          exported examples are static HTML with no script. A React toggle
+          would work here and be dead in the payload, which is the half of
+          this that an agent actually reads. Open on a wide screen and folded
+          on a narrow one is CSS, in responsive.js. */}
+      {/* No `open` attribute. CSS forces the list visible at wide widths
+          whatever the element's state, so the wide layout never depends on it.
+          Below `md` the element behaves natively, which means closed until the
+          summary is pressed. Setting `open` here would start the phone layout
+          expanded, which is the thing being fixed. */}
+      <details className="nav-collapse">
+        <summary className="nav-summary">
+          <span className="caption" style={{ textTransform: 'uppercase', letterSpacing: '.08em' }}
+            {...txt('overline', 'text-muted')}>Workspace</span>
+          <span className="nav-burger" aria-hidden="true"><span /><span /><span /></span>
+        </summary>
+        <nav className="stack-sm">
+          <div className="nav-item is-active with-icon" {...ins('nav-item-selected')}><Ico d={IconChart} />Overview</div>
+          {[['Accounts', IconFolder], ['Invoices', IconSend], ['Reports', IconChart], ['Settings', IconMore]].map(([t, icon]) => (
+            <div key={t} className="nav-item with-icon" {...ins('nav-item')}><Ico d={icon} />{t}</div>
+          ))}
+        </nav>
+      </details>
 
       <div className="stack">
         <div className="row row-wrap" style={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -82,6 +102,13 @@ export default function Dashboard({ onInspect, layout }) {
           </div>
           {/* Numeric alignment, header treatment and row separation all come
               from the table's composition settings. */}
+          {/* A table has a floor: three columns of real content will not fold
+              into 296px, and squeezing them turns every account name into two
+              or three lines. So it scrolls sideways inside its card instead,
+              which is the answer every table on a phone reaches for. The
+              wrapper is markup rather than CSS because `overflow` needs a box
+              of its own — a `table` cannot scroll itself. */}
+          <div className="table-scroll">
           <table className={`table table-rows-${tb.rows ?? 'lines'} table-head-${tb.header ?? 'overline'}`} {...ins('table')}>
             <thead><tr {...ins('table-header')}>
               <th>Account</th><th>Status</th><th className={tb.numeric === 'left' ? '' : 'num-col'}>Balance</th>
@@ -101,6 +128,7 @@ export default function Dashboard({ onInspect, layout }) {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
 
         <div className="cols-2">

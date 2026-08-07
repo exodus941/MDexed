@@ -36,7 +36,7 @@ export default function Landing({ onInspect }) {
           Send an invoice in twenty seconds. Chase it automatically. Reconcile it without opening a spreadsheet.
         </p>
         <div className="row" style={{ marginTop: 'var(--space-sm, 8px)' }}>
-          <button className="btn btn-primary btn-lg" {...ins('button-lg')}>Start free<Ico d={IconArrow} size="lg" /></button>
+          <button className="btn btn-primary btn-lg" {...ins('button-lg')}>Start free<Ico d={IconArrow} size="lg" end /></button>
           <button className="btn btn-secondary btn-lg" {...ins('button-secondary')}><Ico d={IconStar} size="lg" />Book a demo</button>
         </div>
         <p className="caption" {...txt('caption', 'text-muted')}>No card required · Cancel any time</p>
