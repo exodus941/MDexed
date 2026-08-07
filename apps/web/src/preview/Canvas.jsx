@@ -370,7 +370,11 @@ export default function Canvas({ onInspect, surface, setSurface, onOpenContrast,
                 value={width == null ? '' : String(width)}
                 onChange={e => setWidth(e.target.value === '' ? null : Number(e.target.value))}
                 title="How wide to draw the surface"
-                style={{ width: 'auto', fontSize: 11, padding: '2px 6px' }}>
+                /* Sized to its own longest option rather than squeezed to
+                   whatever the row had left. `2px 6px` gave the value nowhere
+                   to sit and the arrow no clearance, so a label like
+                   "2xl · 1536px" was cut off inside its own box. */
+                style={{ width: 'auto', minWidth: 116, fontSize: 11, padding: '5px 8px' }}>
                 {widths.map(w => (
                   <option key={w.label} value={w.px == null ? '' : String(w.px)}>
                     {w.label}{w.px ? ` · ${w.px}px` : ''}
@@ -391,9 +395,19 @@ export default function Canvas({ onInspect, surface, setSurface, onOpenContrast,
 
             {/* Back beside the thing it describes. It was on the macro bar,
                 which is where you set values, not where you look at them — and
-                the palette it grades is the one rendering two inches below. */}
-            <ContrastChip onOpen={onOpenContrast} />
-            <WarningsChip onJump={onJump} onApply={onApply} />
+                the palette it grades is the one rendering two inches below.
+
+                On a phone they leave this row entirely. Four controls in 375px
+                left the Width select too narrow to show its own value, and a
+                control that cannot display what it is set to is broken. They
+                move down to the surface's own edge, where there is room and
+                where they are still beside what they grade. */}
+            {!compact && (
+              <>
+                <ContrastChip onOpen={onOpenContrast} />
+                <WarningsChip onJump={onJump} onApply={onApply} />
+              </>
+            )}
           </>
         } />
 
@@ -402,9 +416,29 @@ export default function Canvas({ onInspect, surface, setSurface, onOpenContrast,
           the old palette and light↔dark genuinely cross-dissolves rather than
           snapping. */}
       <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'auto', padding: 16 }}>
-        {width && (
-          <div style={{ textAlign: 'center', fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--dim)', marginBottom: 6 }}>
-            {width}px
+        {/* The readout sits on the surface's own left edge rather than centred
+            in the pane, so it reads as a label for the thing below it. On a
+            phone the two status chips join it on the right edge of that same
+            box — they were squeezing the Width select out of the toolbar, and
+            here they line up with the page they describe.
+
+            Constrained to the surface width when there is one, so both ends
+            land on the surface's edges and not the pane's. */}
+        {(width || compact) && (
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            gap: 8, marginBottom: 6,
+            ...(width ? { width, marginLeft: 'auto', marginRight: 'auto' } : null),
+          }}>
+            <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--dim)' }}>
+              {width ? `${width}px` : ''}
+            </span>
+            {compact && (
+              <span style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                <ContrastChip onOpen={onOpenContrast} />
+                <WarningsChip onJump={onJump} onApply={onApply} />
+              </span>
+            )}
           </div>
         )}
         {/* No transition on the width. Two reasons, and the second is the one

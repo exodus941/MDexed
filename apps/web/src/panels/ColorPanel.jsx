@@ -426,7 +426,7 @@ export default function ColorPanel() {
         {/* Generator, inline rather than on its own screen — locking a colour
             and re-rolling the rest is a loop you want to stay inside. */}
         <div style={{ background: 'var(--surf2)', border: '1px solid var(--bdr)', borderRadius: 9, padding: PAD.card, marginBottom: 10 }}>
-          <div className="dense row-wrap" style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 9 }}>
+          <div className="dense form-stack" style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 9 }}>
             <span style={{ fontSize: 12, color: 'var(--text)', flex: 1 }}>Generate a palette</span>
             <select value={intensity} onChange={e => setIntensity(e.target.value)}
               title="How saturated the run is — and how much colour the neutral carries, which is what tints the page"

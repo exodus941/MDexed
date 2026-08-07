@@ -82,13 +82,13 @@ export default function Gallery({ onInspect, layout }) {
           <div className="row">
             <Label txt={txt}>filled</Label>
             <button className="btn btn-primary" {...ins('button-primary')}><Ico d={IconPlus} />New invoice</button>
-            <button className="btn btn-primary" {...ins('button-primary')}>Continue<Ico d={IconArrow} /></button>
+            <button className="btn btn-primary" {...ins('button-primary')}>Continue<Ico d={IconArrow} end /></button>
             <button className="btn btn-primary" {...ins('button-md')} style={{ padding: 0, width: 'var(--cmp-button-md-height, 36px)', cursor: 'pointer' }}><Ico d={IconPlus} /></button>
           </div>
           <div className="row">
             <Label txt={txt}>outline</Label>
             <button className="btn btn-secondary" {...ins('button-secondary')}><Ico d={IconSearch} />Search</button>
-            <button className="btn btn-secondary" {...ins('button-secondary')}>Sort<Ico d={IconChevron} /></button>
+            <button className="btn btn-secondary" {...ins('button-secondary')}>Sort<Ico d={IconChevron} end /></button>
             <button className="btn btn-secondary btn-sm icon-only" {...ins('button-secondary')}><Ico d={IconTrash} /></button>
             <button className="btn btn-secondary btn-sm icon-only" {...ins('button-secondary')}><Ico d={IconStar} /></button>
           </div>
