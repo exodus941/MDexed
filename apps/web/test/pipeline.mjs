@@ -12,6 +12,8 @@ import { check } from '../src/color/contrast.js'
 import { TYPE_ROLES } from '../src/type/scale.js'
 import { generateFile, validate } from '../src/emit/designmd.js'
 import { parseFile } from '../src/emit/parse.js'
+import { agentContract, CONTRACT_MAX_LINES, CONTRACT_MAX_BYTES } from '../src/emit/agents.js'
+import { payloadTextFiles, REQUIRED_FILES } from '../src/emit/payload.js'
 import { diffWords, diffStats } from '../src/ai/diff.js'
 import { contextFor, refinePrompt, draftPrompt, systemPrompt } from '../src/ai/prompts.js'
 import { PROSE_SECTIONS } from '../src/state/schema.js'
@@ -510,6 +512,67 @@ line('\n- prompt construction -')
     }
   }
   assert(missing.length === 0, `every shared constant is in scope${missing.length ? ` — ${missing.slice(0, 5).join(', ')}` : ''}`)
+}
+
+/* ── The agent contract stays short ──
+ *
+ * A long contract competes with the DESIGN.md it introduces, and agents skim.
+ * These ceilings are dev-time only. Nothing at runtime reads them, so a user
+ * exporting a payload can never hit them. They fail here, when the template is
+ * edited, which is the moment the warning is useful.
+ *
+ * Worst case is measured across every preset plus a pathological project name,
+ * because the name is the only input that can move the length. */
+{
+  const cases = [
+    ...PRESETS.map(p => ({ label: p.id, state: applyPreset(p.id, state) })),
+    { label: 'no name', state: { ...state, meta: {} } },
+    { label: '400-char name', state: { ...state, meta: { ...state.meta, name: 'x'.repeat(400) } } },
+  ]
+  let worstLines = 0, worstBytes = 0, worstLabel = ''
+  let namesOk = true, checklistOk = true
+  for (const c of cases) {
+    const d = derive(c.state)
+    for (const filename of ['AGENTS.md', 'CLAUDE.md']) {
+      const text = agentContract(c.state, d, { filename })
+      const lines = text.split('\n').length
+      const bytes = Buffer.byteLength(text, 'utf8')
+      if (lines > worstLines) { worstLines = lines; worstLabel = c.label }
+      worstBytes = Math.max(worstBytes, bytes)
+      /* Each copy must point at its twin, never at itself, or an agent that
+         obeys "read only one" reads this one twice and never the other. */
+      const twin = filename === 'AGENTS.md' ? 'CLAUDE.md' : 'AGENTS.md'
+      if (!text.includes(twin) || text.includes(`identical to\n${filename}`)) namesOk = false
+      if (!text.includes('Before you say you are done')) checklistOk = false
+    }
+  }
+  assert(worstLines <= CONTRACT_MAX_LINES,
+    `contract within ${CONTRACT_MAX_LINES} lines (worst ${worstLines}, ${worstLabel}, ${Math.round((CONTRACT_MAX_LINES - worstLines) * 100 / CONTRACT_MAX_LINES)}% spare)`)
+  assert(worstBytes <= CONTRACT_MAX_BYTES,
+    `contract within ${CONTRACT_MAX_BYTES} bytes (worst ${worstBytes}, ${Math.round((CONTRACT_MAX_BYTES - worstBytes) * 100 / CONTRACT_MAX_BYTES)}% spare)`)
+  assert(namesOk, 'each contract copy points at its twin, not itself')
+  assert(checklistOk, 'contract keeps its before-you-finish checklist')
+}
+
+/* ── The payload contains what its own README promises ──
+ *
+ * The README prints a table of the files in the zip. Nothing stopped that
+ * table from naming a file the manifest no longer produced, and the failure
+ * would only show up when someone unzipped it. */
+{
+  const files = payloadTextFiles(state, derived)
+  const missing = REQUIRED_FILES.filter(f => !files[f])
+  assert(missing.length === 0, `payload has every required file${missing.length ? ` — missing ${missing.join(', ')}` : ` (${REQUIRED_FILES.length})`}`)
+  assert(Object.values(files).every(t => typeof t === 'string' && t.length > 0), 'no payload file is empty')
+
+  /* Every filename the README names in backticks must actually be produced,
+     apart from the examples folder, which App.jsx adds after this. */
+  const named = [...files['README.md'].matchAll(/`([\w.\-/]+\.\w+)`/g)].map(m => m[1])
+  const promised = [...new Set(named)].filter(f => !f.startsWith('html-examples'))
+  const broken = promised.filter(f => !files[f])
+  assert(broken.length === 0, `README names only files the payload ships${broken.length ? ` — ${broken.join(', ')}` : ''}`)
+
+  assert(files['README.md'].includes('AGENTS.md'), 'README points agents at the contract')
 }
 
 line(`\n${failures === 0 ? 'ALL PASS' : `${failures} FAILURE(S)`}\n`)
