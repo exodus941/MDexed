@@ -168,7 +168,15 @@ export function parseFile(text) {
   })
 
   if (custom.length) warnings.push(`${custom.length} colour token${custom.length === 1 ? '' : 's'} didn't match a known role or scale and were kept as custom tokens.`)
-  if (components.length) warnings.push(`${components.length} component${components.length === 1 ? '' : 's'} were imported as custom entries rather than mapped onto the built-in set.`)
+  /* Says what happened and why, because the old wording named a mechanism
+     ("mapped onto the built-in set") that means nothing to someone who only
+     knows they saved this file from this app.
+
+     The cause is the spec, not the file. DESIGN.md lists components as flat
+     entries — `button-primary-hover` — with no way to record that button has
+     variants and sizes. Export flattens the structure and import has nothing
+     to rebuild it from, so the entries come back as flat rows. */
+  if (components.length) warnings.push(`${components.length} component entr${components.length === 1 ? 'y' : 'ies'} came back as flat rows. DESIGN.md cannot record variants and sizes, so the editor could not rebuild the component matrix.`)
 
   /* Component properties outside the spec's legal eight only ever existed in
      the markdown body, and that content is generated — so it is stripped, not
