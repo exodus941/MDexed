@@ -14,6 +14,7 @@ import { generateFile, validate } from '../src/emit/designmd.js'
 import { parseFile } from '../src/emit/parse.js'
 import { agentContract, CONTRACT_MAX_LINES, CONTRACT_MAX_BYTES } from '../src/emit/agents.js'
 import { payloadTextFiles, REQUIRED_FILES } from '../src/emit/payload.js'
+import { serializeProject, parseProject, projectFilename } from '../src/emit/project.js'
 import { diffWords, diffStats } from '../src/ai/diff.js'
 import { contextFor, refinePrompt, draftPrompt, systemPrompt } from '../src/ai/prompts.js'
 import { PROSE_SECTIONS } from '../src/state/schema.js'
@@ -573,6 +574,46 @@ line('\n- prompt construction -')
   assert(broken.length === 0, `README names only files the payload ships${broken.length ? ` — ${broken.join(', ')}` : ''}`)
 
   assert(files['README.md'].includes('AGENTS.md'), 'README points agents at the contract')
+}
+
+/* ── The project file is lossless, which the DESIGN.md path is not ──
+ *
+ * Save to Device used to write a DESIGN.md. The spec allows a component eight
+ * properties and cannot record variants or sizes, so a save-then-load dropped
+ * eight property kinds and turned the component matrix into flat rows. These
+ * assertions pin the difference so the save format cannot quietly regress to
+ * the handoff format again. */
+{
+  line('\n- project file -')
+  const saved = serializeProject(state, { savedAt: '2026-01-01T00:00:00.000Z' })
+  const r = parseProject(saved)
+  assert(r.ok, `project file loads${r.ok ? '' : ` (${r.error})`}`)
+
+  /* Deep equality on the derived output, not on the state: state carries fresh
+     ids, and what a user must get back is the same system, not the same
+     bookkeeping. */
+  const before = derive(state), after = derive(r.state)
+  const keys = d => new Set(d.components.flatMap(c => c.properties.map(p => p.key)))
+  const lost = [...keys(before)].filter(k => !keys(after).has(k))
+  assert(lost.length === 0, `project file keeps every component property${lost.length ? ` — lost ${lost.join(', ')}` : ` (${keys(before).size} kinds)`}`)
+  assert(after.components.length === before.components.length,
+    `component count survives (${before.components.length})`)
+  assert(after.components.every(c => c.source !== 'custom'),
+    'components stay editable rather than becoming custom rows')
+  assert(JSON.stringify(after.cssVars) === JSON.stringify(before.cssVars), 'every derived token is identical after a load')
+
+  /* The same document through DESIGN.md must still lose things, or the
+     assertions above are proving nothing. */
+  const viaMarkdown = derive(parseFile(generateFile(state, before).text).state)
+  const lostViaMd = [...keys(before)].filter(k => !keys(viaMarkdown).has(k))
+  assert(lostViaMd.length > 0, `the DESIGN.md path still loses properties, as the spec forces (${lostViaMd.length} kinds)`)
+
+  assert(!parseProject('{"format":"something-else"}').ok, 'a foreign JSON file is refused')
+  assert(!parseProject('not json').ok, 'a non-JSON file is refused')
+  assert(!parseProject(JSON.stringify({ format: 'mdexed-project', formatVersion: 99, state: {} })).ok,
+    'a newer format version is refused rather than half-loaded')
+  assert(/^[a-z0-9-]+-\d{8}-\d{4}\.mdexed\.json$/.test(projectFilename('My Design System!!', new Date(2026, 7, 8, 3, 4))),
+    `filename is slugged and sortable (${projectFilename('My Design System!!', new Date(2026, 7, 8, 3, 4))})`)
 }
 
 line(`\n${failures === 0 ? 'ALL PASS' : `${failures} FAILURE(S)`}\n`)

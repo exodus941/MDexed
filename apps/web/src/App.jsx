@@ -11,6 +11,7 @@ import { nextBuild, describeBuild, isBuild } from './state/build.js'
 import { generateFile, validate } from './emit/designmd.js'
 import { parseFile } from './emit/parse.js'
 import { agentContract } from './emit/agents.js'
+import { serializeProject, parseProject, projectFilename, PROJECT_EXT } from './emit/project.js'
 import { isValidColor } from './color/convert.js'
 import { APP_CSS } from './ui/theme.js'
 import { loadDocumentFonts } from './type/fonts.js'
@@ -573,6 +574,88 @@ function GlobalMetrics() {
  * the top of the window cost a whole row of chrome for controls nobody
  * touches twice in a session.
  */
+/* Below this the two panes cannot both be useful at once, so the layout stops
+   trying. 768px is the usual tablet floor: above it the split still works once
+   the editor column's 420px floor relaxes. */
+const MOBILE_Q = '(max-width: 767px)'
+
+function useMedia (query) {
+  const [match, setMatch] = useState(() =>
+    typeof window !== 'undefined' && window.matchMedia(query).matches)
+  useEffect(() => {
+    const m = window.matchMedia(query)
+    const on = () => setMatch(m.matches)
+    on()
+    m.addEventListener('change', on)
+    return () => m.removeEventListener('change', on)
+  }, [query])
+  return match
+}
+
+/* Click-outside, Escape and scroll-away, shared by both header menus.
+   Lifted out of ToolsMenu when the Project menu needed the same three rules —
+   two copies would have drifted the first time one of them was tuned. */
+function useDismiss (open, close, ...refs) {
+  useEffect(() => {
+    if (!open) return
+    const inside = t => refs.some(r => r.current?.contains(t))
+    const onDown = e => { if (!inside(e.target)) close() }
+    const onKey = e => { if (e.key === 'Escape') close() }
+    const onWheel = e => { if (!inside(e.target) && scrollableUnder(e.target)) close() }
+    document.addEventListener('pointerdown', onDown, true)
+    document.addEventListener('keydown', onKey)
+    document.addEventListener('wheel', onWheel, { passive: true })
+    return () => {
+      document.removeEventListener('pointerdown', onDown, true)
+      document.removeEventListener('keydown', onKey)
+      document.removeEventListener('wheel', onWheel)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open])
+}
+
+/* The four document actions as a menu, for when the header has no room for
+   them as buttons. Same list as the desktop header, from PROJECT_ACTIONS. */
+function ProjectMenu ({ onAction, projectId }) {
+  const [open, setOpen] = useState(false)
+  const boxRef = useRef(null)
+  const btnRef = useRef(null)
+  useDismiss(open, () => setOpen(false), boxRef, btnRef)
+
+  return (
+    <div style={{ position: 'relative', flexShrink: 0 }}>
+      <button ref={btnRef} className="btn-ghost" onClick={() => setOpen(o => !o)}
+        title="Project — new, load, save" aria-expanded={open}
+        style={{ padding: BTN.lg, gap: 6, color: open ? 'var(--accent)' : 'var(--muted)' }}>
+        <Menu /><span className="lbl">Project</span>
+      </button>
+      {open && (
+        <div ref={boxRef} className="anim-pop" style={{
+          position: 'absolute', top: 'calc(100% + 6px)', right: 0, zIndex: 500,
+          background: 'var(--surf2)', border: '1px solid var(--bdr2)', borderRadius: 10,
+          boxShadow: '0 12px 32px var(--shade)', width: 232, padding: '6px',
+        }}>
+          {PROJECT_ACTIONS.map(a => (
+            <button key={a.id} onClick={() => { setOpen(false); onAction(a.id) }} title={a.hint}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 9, width: '100%',
+                /* 44px, the touch target this app requires of everyone else. */
+                minHeight: 44, padding: '0 10px', borderRadius: 7,
+                background: 'transparent', border: 0, cursor: 'pointer',
+                font: '400 13px/44px var(--sans)', color: 'var(--text)', textAlign: 'left',
+              }}
+              onPointerEnter={e => { e.currentTarget.style.background = 'var(--surf3)' }}
+              onPointerLeave={e => { e.currentTarget.style.background = 'transparent' }}>
+              <a.Icon />
+              {a.id === 'saveToCloud' && projectId ? 'Copy Share URL' : a.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function ToolsMenu({ uiSpeed, setUiSpeed, uiHue, setUiHue, uiTheme, setUiTheme, uiBright, setUiBright, uiScale, setUiScale, prevScale, setPrevScale, prevLink, setPrevLink }) {
   const [open, setOpen] = useState(false)
   const boxRef = useRef(null)
@@ -1493,6 +1576,29 @@ function Shell() {
   const [showFile, setShowFile] = useState(false)
   const [showNew, setShowNew] = useState(false)
   const [showImport, setShowImport] = useState(false)
+
+  /* ── Phone layout ──
+   *
+   * Below 768px the two panes cannot both be useful, so one shows at a time
+   * and a tab bar switches between them. Stack Panes is the escape hatch for
+   * anyone who wants the old behaviour: both panes down the page, with the
+   * tabs scrolling to whichever you press.
+   *
+   * The editor is the default. You open this to work. Reviewing is one tap
+   * away either way, and the choice persists for the session. */
+  const isMobile = useMedia(MOBILE_Q)
+  const [mobilePane, setMobilePane] = useState('editor')
+  const [stackPanes, setStackPanes] = useState(false)
+  const editorPaneRef = useRef(null)
+  const previewPaneRef = useRef(null)
+
+  /* Stacked mode turns the tabs into anchors rather than a switch. */
+  const showPane = id => {
+    setMobilePane(id)
+    if (!stackPanes) return
+    const el = (id === 'editor' ? editorPaneRef : previewPaneRef).current
+    el?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
   /* Carries a timestamp so clicking the same element twice re-triggers the
      jump rather than being deduplicated as an unchanged value. */
   const [inspect, setInspect] = useState(null)
@@ -1794,48 +1900,67 @@ function Shell() {
     return { ...state, meta: { ...state.meta, version } }
   }
 
-  /* A dated filename, so repeated saves sit beside each other in a folder
-     rather than overwriting. Local time, not UTC: the stamp is read by the
-     person who made it, and a folder sorted by name should match the order
-     they remember working in.
-
-     Sortable order is the point of YYYYMMDD-HHMM. Anything friendlier to read
-     sorts wrongly the moment a month rolls over. */
-  const stampedFilename = () => {
-    const p = n => String(n).padStart(2, '0')
-    const d = new Date()
-    const date = `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}`
-    const time = `${p(d.getHours())}${p(d.getMinutes())}`
-    const slug = (state.meta.name || 'design-system')
-      .trim().toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '') || 'design-system'
-    return `${slug}-${date}-${time}.md`
-  }
-
+  /* Saves the editor's own state, not a DESIGN.md.
+     A DESIGN.md cannot hold this document: the spec allows a component eight
+     properties and cannot record variants or sizes at all, so a save-then-load
+     through it dropped eight property kinds and flattened the component
+     matrix. Export Payload is the handoff. This is the save file. */
   const saveToDevice = () => {
     const stamped = stampBuild()
-    const filename = stampedFilename()
-    saveAs(generateFile(stamped, derived).text, filename, 'text/markdown')
-    setNotice({ tone: 'success', text: `Saved ${filename} to your downloads.` })
+    const filename = projectFilename(stamped.meta.name)
+    saveAs(serializeProject(stamped, { build: stamped.meta.version }), filename, 'application/json')
+    setNotice({ tone: 'success', text: `Saved ${filename}. Open it with Load Project.` })
   }
 
-  /* Load reuses `openDocument`, which parses first and only replaces the
-     document if the parse succeeds. A bad file leaves what you have alone.
+  /* Accepts either format and tells them apart by content, not by extension.
+     A project file restores everything. A DESIGN.md still loads, and still
+     warns about what the spec could not carry.
 
-     The input is reset to '' after every pick, or choosing the same file
-     twice in a row fires no change event and looks broken. */
+     Both paths parse before they replace, so a bad file leaves the current
+     document untouched. The input resets to '' after every pick, or choosing
+     the same file twice in a row fires no change event and looks broken. */
   const fileInput = useRef(null)
   const loadProject = async e => {
     const file = e.target.files?.[0]
     e.target.value = ''
     if (!file) return
+    let text
     try {
-      openDocument(await file.text(), file.name)
+      text = await file.text()
     } catch {
       setNotice({ tone: 'error', text: `Could not read ${file.name}.` })
+      return
     }
+    if (text.trimStart().startsWith('{')) {
+      const r = parseProject(text)
+      if (!r.ok) { setNotice({ tone: 'error', text: `Could not open ${file.name}. ${r.error}` }); return }
+      load(r.state)
+      setNotice({
+        tone: 'success',
+        text: `Opened ${file.name}.${r.warnings.length ? ' ' + r.warnings.join(' ') : ''}`,
+      })
+      return
+    }
+    openDocument(text, file.name)
   }
+
+  const copyShareUrl = () => {
+    navigator.clipboard.writeText(window.location.href)
+    setLinkCopied(true)
+    setTimeout(() => setLinkCopied(false), 1800)
+  }
+
+  /* One dispatcher for both call sites. The desktop header renders these as
+     buttons and the phone header renders them as menu rows, so routing them
+     through the same function stops the two from doing different things under
+     the same label. Resolved on call, not on definition, because half of
+     these are declared further down the component. */
+  const runProjectAction = id => ({
+    newProject: () => setShowNew(true),
+    loadProject: () => fileInput.current?.click(),
+    saveToDevice,
+    saveToCloud: projectId ? copyShareUrl : saveToCloud,
+  }[id]?.())
 
   /* Everything a developer needs, in one archive: the file for the agent, the
      token formats a build can enforce, and every surface as a page they can
@@ -1959,25 +2084,49 @@ function Shell() {
           does not scale, so a zoomed 100vh overflows by exactly the zoom
           factor and the hidden overflow swallows the bottom of the app. */}
       <div style={{
-        display: 'flex', flexDirection: 'column', overflow: 'hidden',
-        height: 'calc(100vh / var(--ui-zoom, 1))',
+        display: 'flex', flexDirection: 'column',
+        /* Stacked mode is the one layout that scrolls the document rather
+           than a pane inside it. A fixed height with hidden overflow would
+           clip the second pane away entirely. */
+        ...(isMobile && stackPanes
+          ? { minHeight: 'calc(100vh / var(--ui-zoom, 1))', overflow: 'visible' }
+          : { height: 'calc(100vh / var(--ui-zoom, 1))', overflow: 'hidden' }),
       }}>
 
-        <header style={{ display: 'flex', alignItems: 'baseline', gap: 13, padding: '7px 20px 5px', borderBottom: '1px solid var(--bdr)', background: 'var(--surf)', flexShrink: 0 }}>
+        {/* The title bar and the pane tabs stick as one unit.
+            They were two sticky elements, and the second needed a `top` equal
+            to the height of the first — a number I had to guess, guessed 39
+            against a real 50, and the tab bar slid under the title bar. One
+            sticky wrapper has no number to get wrong. */}
+        <div style={{ position: 'sticky', top: 0, zIndex: 400, flexShrink: 0, background: 'var(--surf)' }}>
+        <header style={{
+          display: 'flex', alignItems: 'baseline', gap: isMobile ? 8 : 13,
+          padding: isMobile ? '7px 12px 5px' : '7px 20px 5px',
+          borderBottom: '1px solid var(--bdr)', background: 'var(--surf)',
+        }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 9, flex: 1, minWidth: 0 }}>
             {/* Two letters in the same box the single D had, so the mark
                 keeps its size — tighter tracking rather than a smaller face,
                 which would make it read as secondary next to the wordmark. */}
             <div style={{ width: 26, height: 26, borderRadius: 7, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', alignSelf: 'center', fontFamily: 'var(--display)', fontWeight: 800, fontSize: 11.5, letterSpacing: '-0.04em', color: 'var(--bg)', flexShrink: 0 }}>MD</div>
-            <span style={{ fontFamily: 'var(--display)', fontWeight: 700, fontSize: 15, letterSpacing: '-0.025em', whiteSpace: 'nowrap' }}>
-              MD<span style={{ color: 'var(--muted)', fontWeight: 400 }}>exed</span>
-            </span>
-            <AppBuild />
+            {/* The wordmark, build number and palette are the first things to
+                go. The squircle already says which app this is, and the name
+                field is the only part of this group you can act on. */}
+            {!isMobile && (
+              <>
+                <span style={{ fontFamily: 'var(--display)', fontWeight: 700, fontSize: 15, letterSpacing: '-0.025em', whiteSpace: 'nowrap' }}>
+                  MD<span style={{ color: 'var(--muted)', fontWeight: 400 }}>exed</span>
+                </span>
+                <AppBuild />
+              </>
+            )}
             <TitleField name={state.meta.name}
               onCommit={next => set(s => ({ ...s, meta: { ...s.meta, name: next } }), 'meta:name')} />
-            <div style={{ display: 'flex', gap: 3, marginLeft: 4, alignSelf: 'center' }}>
-              {swatches.map((hex, i) => <div key={i} className="swatch" style={{ width: 12, height: 12, background: hex, cursor: 'default' }} />)}
-            </div>
+            {!isMobile && (
+              <div style={{ display: 'flex', gap: 3, marginLeft: 4, alignSelf: 'center' }}>
+                {swatches.map((hex, i) => <div key={i} className="swatch" style={{ width: 12, height: 12, background: hex, cursor: 'default' }} />)}
+              </div>
+            )}
           </div>
 
           {/* Scrolls rather than clips.
@@ -1997,46 +2146,55 @@ function Shell() {
             {/* Two readouts, then the controls. Tighter gap between them than
                 to the buttons, so they group as one unit rather than reading
                 as two more things to click. */}
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginRight: 2 }}>
-              <VersionChip version={state.meta.version} />
-              <SyncBadge status={syncStatus} />
-            </div>
+            {!isMobile && (
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginRight: 2 }}>
+                <VersionChip version={state.meta.version} />
+                <SyncBadge status={syncStatus} />
+              </div>
+            )}
             {syncStatus === 'conflict' && (
               <button className="btn-ghost" onClick={reloadFromServer} style={{ padding: BTN.lg, color: 'var(--danger)', borderColor: 'rgb(var(--danger-rgb) / .4)' }}>Reload</button>
             )}
             {/* Ordered by the life of a document: make one, open one, save it
                 two ways, look at it, hand it over. Export Payload sits last
                 and carries the only filled style, because it is the one
-                action the whole app exists to produce. */}
-            {PROJECT_ACTIONS.map(a => {
-              const on = { newProject: () => setShowNew(true), loadProject: () => fileInput.current?.click(), saveToDevice, saveToCloud }[a.id]
+                action the whole app exists to produce.
+
+                On a phone this whole run collapses into the Project menu. */}
+            {!isMobile && PROJECT_ACTIONS.map(a => {
               /* Once saved, the cloud button has nothing left to do, so the
                  slot turns into the thing you actually want next. */
               if (a.id === 'saveToCloud' && projectId) return (
-                <button key={a.id} className="btn-ghost" style={{ padding: BTN.lg, flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 5, color: linkCopied ? 'var(--success)' : 'var(--muted)' }}
-                  onClick={() => { navigator.clipboard.writeText(window.location.href); setLinkCopied(true); setTimeout(() => setLinkCopied(false), 1800) }}>
+                <button key={a.id} className="btn-ghost" onClick={copyShareUrl}
+                  style={{ padding: BTN.lg, flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 5, color: linkCopied ? 'var(--success)' : 'var(--muted)' }}>
                   <Copy /><span className="lbl">{linkCopied ? 'Link copied' : 'Copy share URL'}</span>
                 </button>
               )
               return (
-                <button key={a.id} className={a.id === 'saveToCloud' ? 'btn-fill' : 'btn-ghost'} onClick={on} title={a.hint}
+                <button key={a.id} className={a.id === 'saveToCloud' ? 'btn-fill' : 'btn-ghost'}
+                  onClick={() => runProjectAction(a.id)} title={a.hint}
                   style={{ padding: BTN.lg, flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
                   <a.Icon /><span className="lbl">{a.label}</span>
                 </button>
               )
             })}
-            <button className="btn-ghost" onClick={() => setShowFile(true)} title="Read the generated file before you export it"
-              style={{ padding: BTN.lg, flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-              <Eye /><span className="lbl">Preview DESIGN.md</span>
-            </button>
+            {/* The accent in outline form, one step below the filled Export it
+                sits beside. Reading the file and shipping it are the same act
+                at two levels of commitment, so they share a colour. */}
+            {!isMobile && (
+              <button className="btn-outline" onClick={() => setShowFile(true)} title="Read the generated file before you export it"
+                style={{ padding: BTN.lg, flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                <Eye /><span className="lbl">Preview DESIGN.md</span>
+              </button>
+            )}
             <button className="btn-primary" onClick={exportPackage} disabled={packaging}
               title="AGENTS.md, DESIGN.md, tokens.css, a Tailwind preset, tokens.json and every surface as HTML — one zip"
               style={{ display: 'inline-flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
-              <Download /><span className="lbl">{packaging ? 'Packaging…' : 'Export Payload'}</span>
+              <Download /><span className="lbl keep-lbl">{packaging ? "Packaging…" : "Export Payload"}</span>
             </button>
             {/* Off-screen rather than hidden: a `display:none` input cannot be
                 opened by `.click()` in every browser. */}
-            <input ref={fileInput} type="file" accept=".md,.markdown,.txt,text/markdown" onChange={loadProject}
+            <input ref={fileInput} type="file" accept={`${PROJECT_EXT},.json,.md,.markdown,.txt,application/json,text/markdown`} onChange={loadProject}
               style={{ position: 'absolute', width: 1, height: 1, opacity: 0, pointerEvents: 'none' }} tabIndex={-1} aria-hidden="true" />
           </div>
 
@@ -2046,11 +2204,58 @@ function Shell() {
               dropdown into a 44px-tall slot, so it opened and was invisible.
               It also should not scroll out of reach: whatever else is too
               narrow to fit, the settings stay put. */}
+            {isMobile && <ProjectMenu onAction={runProjectAction} projectId={projectId} />}
             <ToolsMenu uiSpeed={uiSpeed} setUiSpeed={setUiSpeed} uiHue={uiHue} setUiHue={setUiHue}
               uiScale={uiScale} setUiScale={setUiScale}
               prevScale={prevScale} setPrevScale={setPrevScale} prevLink={prevLink} setPrevLink={setPrevLink}
               uiTheme={uiTheme} setUiTheme={setUiTheme} uiBright={uiBright} setUiBright={setUiBright} />
         </header>
+
+        {/* ── The phone pane switcher ──
+         *
+         * Sticky under the title bar. In switch mode it shows one pane at a
+         * time. In stacked mode both panes run down the page and these become
+         * anchors, which is why the pressed state follows `mobilePane` either
+         * way — it is the last thing you asked for, not a mode. */}
+        {isMobile && (
+          <nav style={{
+            display: 'flex', alignItems: 'stretch',
+            padding: '0 6px', background: 'var(--surf)',
+            borderBottom: '1px solid var(--bdr)',
+          }}>
+            {[{ id: 'editor', label: 'EDITOR' }, { id: 'preview', label: 'PREVIEW' }].map(t => {
+              const on = mobilePane === t.id
+              return (
+                <button key={t.id} onClick={() => showPane(t.id)} aria-pressed={on}
+                  style={{
+                    flex: 1, minHeight: 44, border: 0, background: 'transparent', cursor: 'pointer',
+                    fontFamily: 'var(--sans)', fontSize: 10, fontWeight: 700, letterSpacing: '.1em',
+                    color: on ? 'var(--accent)' : 'var(--text-dim)',
+                    borderBottom: `2px solid ${on ? 'var(--accent)' : 'transparent'}`,
+                    transition: 'color var(--t) var(--ease), border-color var(--t) var(--ease)',
+                  }}>
+                  {t.label}
+                </button>
+              )
+            })}
+            {/* A real checkbox, so it is reachable by keyboard and announced
+                as a toggle without any ARIA of my own. */}
+            <label title="Show both panes down the page instead of one at a time"
+              style={{
+                display: 'flex', alignItems: 'center', gap: 9, minHeight: 44,
+                padding: '0 12px 0 16px', marginLeft: 6, cursor: 'pointer', flexShrink: 0,
+                fontFamily: 'var(--sans)', fontSize: 10, fontWeight: 700,
+                letterSpacing: '.08em', color: stackPanes ? 'var(--accent)' : 'var(--text-dim)',
+                borderLeft: '1px solid var(--bdr)',
+              }}>
+              <input type="checkbox" checked={stackPanes} onChange={e => setStackPanes(e.target.checked)}
+                style={{ width: 15, height: 15, accentColor: 'var(--accent)', margin: 0, flexShrink: 0 }} />
+              STACK
+            </label>
+          </nav>
+        )}
+
+        </div>
 
         <NoticeBar notice={notice} onClose={() => setNotice(null)} />
 
@@ -2058,9 +2263,26 @@ function Shell() {
             below their content — so an overflowing panel pushes the row taller
             instead of scrolling. minHeight:0 on each child is what makes the
             `overflow: auto` below actually engage. */}
-        <div style={{ flex: 1, display: 'grid', gridTemplateColumns: 'minmax(420px, 46%) 1fr', minHeight: 0, overflow: 'hidden' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: 0, borderRight: '1px solid var(--bdr)' }}>
-            <TabStrip tabs={TABS} active={tab} onSelect={setTab} title="Editor"
+        {/* The 420px floor is what broke this on a phone: a 390px viewport
+            could never satisfy it, so the editor alone was wider than the
+            screen and the preview sat off the right edge. On a phone the
+            grid becomes one column and the floor goes away. */}
+        <div style={{
+          flex: 1, display: 'grid', minHeight: 0,
+          gridTemplateColumns: isMobile ? '1fr' : 'minmax(420px, 46%) 1fr',
+          overflow: isMobile && stackPanes ? 'visible' : 'hidden',
+        }}>
+          <div ref={editorPaneRef} style={{
+            display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: 0,
+            borderRight: isMobile ? 0 : '1px solid var(--bdr)',
+            ...(isMobile && !stackPanes && mobilePane !== 'editor' ? { display: 'none' } : null),
+            /* Stacked: each pane gets a screen of its own, so the tab anchors
+               land on something rather than scrolling past it. */
+            ...(isMobile && stackPanes ? { minHeight: '80vh', borderBottom: '1px solid var(--bdr)' } : null),
+          }}>
+            {/* The pane title goes on a phone, where the tab bar above already
+                says EDITOR and repeating it wastes a line of a small screen. */}
+            <TabStrip tabs={TABS} active={tab} onSelect={setTab} title={isMobile ? null : 'Editor'}
               actions={
                 <>
                   <button className="btn-ghost" onClick={undo} disabled={!canUndo} title="Undo (Ctrl+Z)"
@@ -2115,10 +2337,16 @@ function Shell() {
 
           {/* Route by target kind: components, colour roles and text styles
               each live on their own tab. */}
-          <Canvas surface={surface} setSurface={setSurface} onOpenContrast={() => setTab('roles')} onJump={navigate} onApply={applyFinding} onInspect={t => {
-            setInspect({ entry: t.target, kind: t.kind, at: Date.now() })
-            setTab(KIND_TAB[t.kind] ?? 'components')
-          }} />
+          <div ref={previewPaneRef} style={{
+            display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: 0,
+            ...(isMobile && !stackPanes && mobilePane !== 'preview' ? { display: 'none' } : null),
+            ...(isMobile && stackPanes ? { minHeight: '80vh' } : null),
+          }}>
+            <Canvas surface={surface} setSurface={setSurface} compact={isMobile} onOpenContrast={() => setTab('roles')} onJump={navigate} onApply={applyFinding} onInspect={t => {
+              setInspect({ entry: t.target, kind: t.kind, at: Date.now() })
+              setTab(KIND_TAB[t.kind] ?? 'components')
+            }} />
+          </div>
         </div>
       </div>
 
