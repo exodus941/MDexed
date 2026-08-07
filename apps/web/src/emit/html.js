@@ -105,11 +105,21 @@ body { background: var(--c-bg, #fff); }
 ${withRealFallbacks(PREVIEW_CSS.trim(), mode === 'dark' ? dark : light)}
 
 /* ── Responsive ────────────────────────────────────────────────────────────
-   Container queries rather than media queries, matching the editor's preview
-   exactly. In a standalone page the container is the full width anyway, so
-   the two behave identically — but keeping them the same means the exported
-   file is the thing you were looking at, which is the entire promise here. */
-${responsiveCss(state.layout?.breakpoints ?? []).trim()}
+   Media queries here, container queries in the editor. Same breakpoints, same
+   collapse widths, so this page still behaves like the thing you were looking
+   at. The editor has to ask the container, because its preview is a pane
+   inside a pane and a media query would report the browser width instead.
+
+   This page has no such problem, and it is a style reference for an agent. The
+   DESIGN.md beside it says to treat each breakpoint as a min-width, so shipping
+   a container query here taught a technique the prose never mentions, and an
+   agent copying it would carry it into an app that has no frame to measure.
+
+   No backticks in this comment on purpose. It sits inside a template literal,
+   so one would end the string here and leave the rest of the page parsing as
+   expressions. That is the trap this project keeps hitting, and I hit it
+   writing this very comment. */
+${responsiveCss(state.layout?.breakpoints ?? [], 'media').trim()}
 </style>
 </head>
 <body>

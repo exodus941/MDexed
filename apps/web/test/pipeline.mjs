@@ -21,6 +21,7 @@ import { PROSE_SECTIONS } from '../src/state/schema.js'
 /* theme.js re-exports a `?raw` import, which is a Vite feature Node cannot
    resolve, so the chrome stylesheet is read from disk instead. */
 const APP_CSS = fs.readFileSync(new URL('../src/ui/theme.css', import.meta.url), 'utf8')
+import { responsiveCss } from '../src/preview/responsive.js'
 
 const line = s => console.log(s)
 let failures = 0
@@ -584,7 +585,50 @@ line('\n- prompt construction -')
  * assertions pin the difference so the save format cannot quietly regress to
  * the handoff format again. */
 {
-  line('\n- project file -')
+  /* ── Responsive: two modes, one set of breakpoints ──
+ *
+ * The editor must ask the container, because its preview is a pane inside a
+ * pane and a media query would report the browser width, leaving the width
+ * control doing nothing. The exported page must ask the viewport, because it
+ * is a style reference and the DESIGN.md beside it describes min-width media
+ * queries. Both must collapse at the same numbers, or the exported page stops
+ * being the thing you were looking at. */
+{
+  line('\n- responsive -')
+  const bps = state.layout?.breakpoints ?? []
+  const inEditor = responsiveCss(bps, 'container')
+  const inExport = responsiveCss(bps, 'media')
+
+  assert(inEditor.includes('@container dmd') && !inEditor.includes('@media'),
+    'the editor preview asks the container')
+  assert(inExport.includes('@media') && !inExport.includes('@container'),
+    'the exported page asks the viewport')
+  assert(inEditor.includes('container-type: inline-size') && !inExport.includes('container-type'),
+    'only the editor declares a container')
+
+  /* The same widths in both, whatever the document's breakpoints are. */
+  const widths = css => [...css.matchAll(/max-width:\s*([\d.]+)px/g)].map(m => m[1]).sort()
+  assert(widths(inEditor).length > 0 && JSON.stringify(widths(inEditor)) === JSON.stringify(widths(inExport)),
+    `both modes collapse at the same widths (${widths(inExport).join(', ')})`)
+
+  /* And those widths come from the document, not from a constant. */
+  const moved = responsiveCss(bps.map(b => b.name === 'md' ? { ...b, px: 900 } : b), 'media')
+  assert(moved.includes('899.98px'), 'moving a breakpoint moves the rule')
+
+  const rules = css => [...css.matchAll(/\.dmd[^{]*\{/g)].map(m => m[0].trim()).sort()
+  assert(JSON.stringify(rules(inEditor).filter(r => !r.includes('-frame'))) === JSON.stringify(rules(inExport)),
+    'both modes carry the same rules, only the question differs')
+
+  /* The generator can be right and the call sites still wrong, and this pair
+     is exactly the kind that gets swapped back by a well-meaning edit. Read
+     the source rather than trusting the argument order. */
+  const htmlSrc = fs.readFileSync(new URL('../src/emit/html.js', import.meta.url), 'utf8')
+  const canvasSrc = fs.readFileSync(new URL('../src/preview/Canvas.jsx', import.meta.url), 'utf8')
+  assert(/responsiveCss\([^)]*,\s*'media'\s*\)/.test(htmlSrc), 'the exporter asks for media queries')
+  assert(!/responsiveCss\([^)]*,\s*'media'\s*\)/.test(canvasSrc), 'the editor canvas does not')
+}
+
+line('\n- project file -')
   const saved = serializeProject(state, { savedAt: '2026-01-01T00:00:00.000Z' })
   const r = parseProject(saved)
   assert(r.ok, `project file loads${r.ok ? '' : ` (${r.error})`}`)
