@@ -10,6 +10,7 @@ import { migrate } from './state/migrate.js'
 import { nextBuild, describeBuild, isBuild } from './state/build.js'
 import { generateFile, validate } from './emit/designmd.js'
 import { parseFile } from './emit/parse.js'
+import { agentContract } from './emit/agents.js'
 import { isValidColor } from './color/convert.js'
 import { APP_CSS } from './ui/theme.js'
 import { loadDocumentFonts } from './type/fonts.js'
@@ -110,12 +111,35 @@ const Save = () => (
     <polyline points="17 21 17 13 7 13 7 21" /><polyline points="7 3 7 8 15 8" />
   </svg>
 )
+/* Lucide, inlined at the same 13px and 2 stroke as the set above. Inlined
+   rather than imported because the whole icon need of this header is six
+   glyphs, and a dependency for that would cost more than it saves. */
+const I = p => <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">{p}</svg>
+const FilePlus = () => I(<><path d="M15 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V7Z" /><path d="M14 2v4a2 2 0 002 2h4" /><path d="M9 15h6" /><path d="M12 18v-6" /></>)
+const FolderOpen = () => I(<path d="m6 14 1.5-2.9A2 2 0 019.24 10H20a2 2 0 011.94 2.5l-1.54 6a2 2 0 01-1.95 1.5H4a2 2 0 01-2-2V5a2 2 0 012-2h3.9a2 2 0 011.69.9l.81 1.2a2 2 0 001.67.9H18a2 2 0 012 2v2" />)
+const DriveDown = () => I(<><path d="M12 2v8" /><path d="m16 6-4 4-4-4" /><rect width="20" height="8" x="2" y="14" rx="2" /><path d="M6 18h.01" /><path d="M10 18h.01" /></>)
+const CloudUp = () => I(<><path d="M12 13v8" /><path d="M4 14.9A7 7 0 1115.71 8h1.79a4.5 4.5 0 012.5 8.24" /><path d="m8 17 4-4 4 4" /></>)
+const Eye = () => I(<><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></>)
+const Menu = () => I(<><line x1="4" x2="20" y1="6" y2="6" /><line x1="4" x2="20" y1="12" y2="12" /><line x1="4" x2="20" y1="18" y2="18" /></>)
+
 const Motion = ({ off }) => (
   <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
     <path d="M3 12h4l3-7 4 14 3-7h4" />
     {off && <line x1="3" y1="21" x2="21" y2="3" strokeWidth={2.2} />}
   </svg>
 )
+
+/* The four document actions, declared once.
+ *
+ * The desktop header renders them as buttons and the mobile Project menu
+ * renders them as rows. Two call sites, one list, so the order and the wording
+ * cannot drift apart between the two layouts. */
+const PROJECT_ACTIONS = [
+  { id: 'newProject', label: 'New Project', Icon: FilePlus, hint: 'Start a new document from a preset' },
+  { id: 'loadProject', label: 'Load Project', Icon: FolderOpen, hint: 'Open a DESIGN.md you saved earlier' },
+  { id: 'saveToDevice', label: 'Save to Device', Icon: DriveDown, hint: 'Download a dated copy of this document' },
+  { id: 'saveToCloud', label: 'Save to Cloud', Icon: CloudUp, hint: 'Save online and get a shareable link' },
+]
 
 /* Where this document lives. A readout, not a control.
  *
@@ -1770,38 +1794,46 @@ function Shell() {
     return { ...state, meta: { ...state.meta, version } }
   }
 
-  const download = () => {
-    const stamped = stampBuild()
-    saveAs(generateFile(stamped, derived).text, 'DESIGN.md', 'text/markdown')
+  /* A dated filename, so repeated saves sit beside each other in a folder
+     rather than overwriting. Local time, not UTC: the stamp is read by the
+     person who made it, and a folder sorted by name should match the order
+     they remember working in.
+
+     Sortable order is the point of YYYYMMDD-HHMM. Anything friendlier to read
+     sorts wrongly the moment a month rolls over. */
+  const stampedFilename = () => {
+    const p = n => String(n).padStart(2, '0')
+    const d = new Date()
+    const date = `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}`
+    const time = `${p(d.getHours())}${p(d.getMinutes())}`
+    const slug = (state.meta.name || 'design-system')
+      .trim().toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '') || 'design-system'
+    return `${slug}-${date}-${time}.md`
   }
 
-  /* The surface as a standalone page, for handing to someone who has the
-     DESIGN.md but not this app.
+  const saveToDevice = () => {
+    const stamped = stampBuild()
+    const filename = stampedFilename()
+    saveAs(generateFile(stamped, derived).text, filename, 'text/markdown')
+    setNotice({ tone: 'success', text: `Saved ${filename} to your downloads.` })
+  }
 
-     Rendered fresh through `renderToStaticMarkup` rather than lifted out of
-     the live DOM: passing no `onInspect` means `inspectProps` contributes
-     nothing, so the output carries no `data-cmp` attributes, no click
-     handlers and none of React's bookkeeping — just the markup a developer
-     would have written. The renderer is imported on demand so it stays out of
-     the main bundle. */
-  const [exportingHtml, setExportingHtml] = useState(false)
-  const exportPreviewHtml = async () => {
-    setExportingHtml(true)
+  /* Load reuses `openDocument`, which parses first and only replaces the
+     document if the parse succeeds. A bad file leaves what you have alone.
+
+     The input is reset to '' after every pick, or choosing the same file
+     twice in a row fires no change event and looks broken. */
+  const fileInput = useRef(null)
+  const loadProject = async e => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
     try {
-      const [{ renderToStaticMarkup }, { previewHtml, slugify }] = await Promise.all([
-        import('react-dom/server'),
-        import('./emit/html.js'),
-      ])
-      const entry = SURFACES.find(s => s.id === surface) ?? SURFACES[0]
-      const markup = renderToStaticMarkup(
-        <div className="dmd-frame"><div className="dmd"><entry.Component layout={derived.componentLayout} /></div></div>
-      )
-      const html = previewHtml({ state, derived, markup, surface: entry.label, mode: state.color.mode })
-      saveAs(html, `${slugify(state.meta.name)}-${entry.id}.html`, 'text/html')
+      openDocument(await file.text(), file.name)
     } catch {
-      setNotice({ tone: 'error', text: 'Could not build the HTML preview.' })
-    } finally {
-      setExportingHtml(false)
+      setNotice({ tone: 'error', text: `Could not read ${file.name}.` })
     }
   }
 
@@ -1813,26 +1845,19 @@ function Shell() {
   const exportPackage = async () => {
     setPackaging(true)
     try {
-      const [{ renderToStaticMarkup }, html, tokens, { zip }] = await Promise.all([
+      const [{ renderToStaticMarkup }, html, { payloadTextFiles }, { zip }] = await Promise.all([
         import('react-dom/server'),
         import('./emit/html.js'),
-        import('./emit/tokens.js'),
+        import('./emit/payload.js'),
         import('./emit/zip.js'),
       ])
       /* One stamp for the whole package, so the DESIGN.md, the README and
          every token file in the zip name the same build. */
       const stamped = stampBuild()
       const slug = html.slugify(stamped.meta.name)
-      const files = {
-        'README.md': tokens.packageReadme(stamped),
-        'DESIGN.md': generateFile(stamped, derived).text,
-        'tokens.css': tokens.tokensCss(stamped, derived),
-        'tokens.ts': tokens.tokensTs(stamped, derived),
-        'tailwind.css': tokens.tailwindV4Css(stamped, derived),
-        'tailwind.config.js': tokens.tailwindPreset(stamped, derived),
-        '_tokens.scss': tokens.tokensScss(stamped, derived),
-        'tokens.json': tokens.tokensJson(stamped, derived),
-      }
+      /* The text files come from a module the test suite can import, so what
+         a user receives is asserted rather than assumed. See emit/payload.js. */
+      const files = payloadTextFiles(stamped, derived)
       /* Both themes, every surface, always.
          The dark palette is half the work in the document and none of it was
          shipping — an agent got six light pages and a table of dark hex codes,
@@ -1979,27 +2004,40 @@ function Shell() {
             {syncStatus === 'conflict' && (
               <button className="btn-ghost" onClick={reloadFromServer} style={{ padding: BTN.lg, color: 'var(--danger)', borderColor: 'rgb(var(--danger-rgb) / .4)' }}>Reload</button>
             )}
-            {!projectId ? (
-              <button className="btn-fill" onClick={saveToCloud} style={{ padding: BTN.lg, flexShrink: 0 }}>Save to Cloud</button>
-            ) : (
-              <button className="btn-ghost" style={{ padding: BTN.lg, color: linkCopied ? 'var(--success)' : 'var(--muted)' }}
-                onClick={() => { navigator.clipboard.writeText(window.location.href); setLinkCopied(true); setTimeout(() => setLinkCopied(false), 1800) }}>
-                {linkCopied ? 'Link copied' : 'Copy share URL'}
-              </button>
-            )}
-            <button className="btn-ghost" onClick={() => setShowNew(true)} style={{ padding: BTN.lg, flexShrink: 0 }}>New</button>
-            <button className="btn-ghost" onClick={() => setShowFile(true)} style={{ padding: BTN.lg, flexShrink: 0 }}>Preview design.md</button>
-            <button className="btn-outline" onClick={exportPreviewHtml} disabled={exportingHtml}
-              title={`Save the ${(SURFACES.find(s => s.id === surface) ?? SURFACES[0]).label} surface as a standalone HTML page`}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
-              <Download /><span className="lbl">{exportingHtml ? 'Building…' : 'Export Preview (HTML)'}</span>
+            {/* Ordered by the life of a document: make one, open one, save it
+                two ways, look at it, hand it over. Export Payload sits last
+                and carries the only filled style, because it is the one
+                action the whole app exists to produce. */}
+            {PROJECT_ACTIONS.map(a => {
+              const on = { newProject: () => setShowNew(true), loadProject: () => fileInput.current?.click(), saveToDevice, saveToCloud }[a.id]
+              /* Once saved, the cloud button has nothing left to do, so the
+                 slot turns into the thing you actually want next. */
+              if (a.id === 'saveToCloud' && projectId) return (
+                <button key={a.id} className="btn-ghost" style={{ padding: BTN.lg, flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 5, color: linkCopied ? 'var(--success)' : 'var(--muted)' }}
+                  onClick={() => { navigator.clipboard.writeText(window.location.href); setLinkCopied(true); setTimeout(() => setLinkCopied(false), 1800) }}>
+                  <Copy /><span className="lbl">{linkCopied ? 'Link copied' : 'Copy share URL'}</span>
+                </button>
+              )
+              return (
+                <button key={a.id} className={a.id === 'saveToCloud' ? 'btn-fill' : 'btn-ghost'} onClick={on} title={a.hint}
+                  style={{ padding: BTN.lg, flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                  <a.Icon /><span className="lbl">{a.label}</span>
+                </button>
+              )
+            })}
+            <button className="btn-ghost" onClick={() => setShowFile(true)} title="Read the generated file before you export it"
+              style={{ padding: BTN.lg, flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+              <Eye /><span className="lbl">Preview DESIGN.md</span>
             </button>
-            <button className="btn-primary" onClick={download} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, flexShrink: 0 }}><Download /><span className="lbl">Export design.md</span></button>
-            <button className="btn-package" onClick={exportPackage} disabled={packaging}
-              title="DESIGN.md, tokens.css, a Tailwind preset, tokens.json and every surface as HTML — one zip"
+            <button className="btn-primary" onClick={exportPackage} disabled={packaging}
+              title="AGENTS.md, DESIGN.md, tokens.css, a Tailwind preset, tokens.json and every surface as HTML — one zip"
               style={{ display: 'inline-flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
               <Download /><span className="lbl">{packaging ? 'Packaging…' : 'Export Payload'}</span>
             </button>
+            {/* Off-screen rather than hidden: a `display:none` input cannot be
+                opened by `.click()` in every browser. */}
+            <input ref={fileInput} type="file" accept=".md,.markdown,.txt,text/markdown" onChange={loadProject}
+              style={{ position: 'absolute', width: 1, height: 1, opacity: 0, pointerEvents: 'none' }} tabIndex={-1} aria-hidden="true" />
           </div>
 
           {/* Outside the scrolling row on purpose. An absolutely positioned
