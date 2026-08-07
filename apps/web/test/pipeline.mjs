@@ -514,6 +514,38 @@ line('\n- prompt construction -')
     }
   }
   assert(missing.length === 0, `every shared constant is in scope${missing.length ? ` — ${missing.slice(0, 5).join(', ')}` : ''}`)
+
+  /* Same failure, different shape: a *component* used but not imported.
+   *
+   * The constants check above only looks at SCREAMING_CASE, so when TabStrip
+   * moved out of App.jsx it caught the four scroll constants left behind and
+   * said nothing about `Strut`, which the strip also used. The app compiled and
+   * then threw the moment a tab strip rendered.
+   *
+   * A JSX opening tag is unambiguous — `<Name` with a capital is always an
+   * identifier that has to resolve, never prose and never a string. That makes
+   * this cheap and free of the false positives the constants scan has to work
+   * around. */
+  const missingTags = []
+  for (const f of walk(root)) {
+    const code = fs.readFileSync(f, 'utf8')
+    const tags = new Set([...code.matchAll(/<([A-Z][A-Za-z0-9_]*)[\s/>]/g)].map(m => m[1]))
+    for (const name of tags) {
+      const declared = new RegExp(`\\b(?:function|const|let|class)\\s+${name}\\b`).test(code)
+      const imported = new RegExp(`import[^;]*\\b${name}\\b[^;]*from`).test(code)
+      /* A component can arrive by destructuring rather than by name.
+         Canvas does `const { Component } = SURFACES.find(...)` and then renders
+         `<Component />`, which is correct and which the two tests above both
+         miss. Covers a binding pattern and a destructured function parameter. */
+      const destructured =
+        new RegExp(`(?:const|let|var)\\s*\\{[^}]*\\b${name}\\b[^}]*\\}\\s*=`).test(code) ||
+        new RegExp(`\\(\\s*\\{[^}]*\\b${name}\\b[^}]*\\}\\s*\\)\\s*=>`).test(code) ||
+        new RegExp(`function\\s+\\w*\\s*\\(\\s*\\{[^}]*\\b${name}\\b`).test(code)
+      if (!declared && !imported && !destructured) missingTags.push(`${f.pathname.split('/src/')[1]}: ${name}`)
+    }
+  }
+  assert(missingTags.length === 0,
+    `every JSX component is in scope${missingTags.length ? ` — ${missingTags.slice(0, 5).join(', ')}` : ''}`)
 }
 
 /* ── The agent contract stays short ──

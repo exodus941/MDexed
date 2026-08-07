@@ -11,6 +11,7 @@ import { buildCssVars } from '../state/derive.js'
 import { gradientCss } from '../color/modes.js'
 import CrossFade from '../ui/CrossFade.jsx'
 import { Strut } from '../ui/controls.jsx'
+import TabStrip from '../ui/TabStrip.jsx'
 import { inspectProps, role } from './inspect.js'
 import { resolveRef } from '../color/ramp.js'
 import Dashboard from './screens/Dashboard.jsx'
@@ -296,7 +297,7 @@ function WarningsChip({ onJump, onApply }) {
   )
 }
 
-export default function Canvas({ onInspect, surface, setSurface, onOpenContrast, onJump, onApply }) {
+export default function Canvas({ onInspect, surface, setSurface, onOpenContrast, onJump, onApply, compact }) {
   const { state, derived, set } = useStore()
   const [menu, setMenu] = useState(null)
   /* null = fill the pane, which is the honest default: the preview is not a
@@ -340,86 +341,61 @@ export default function Canvas({ onInspect, surface, setSurface, onOpenContrast,
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minWidth: 0, minHeight: 0, background: 'var(--surf2)' }}>
       <style>{PREVIEW_CSS}{responsiveCss(bps)}</style>
 
-      {/* Height matches the editor tab strip so the two bars line up. */}
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: 6, padding: '0 12px', height: 42,
-        borderBottom: '1px solid var(--bdr)', background: 'var(--surf)', flexShrink: 0,
-      }}>
-        {/* Says what the pane is.
-            The editor side names itself with a wordmark and a tab strip; this
-            side was six unlabelled buttons and a rendered page, which reads as
-            part of the app rather than as a sample of the thing being
-            designed. Set as a label rather than a tab so it cannot be mistaken
-            for something to click, and separated by a rule so the surfaces
-            still group as one control. */}
-        <span style={{
-          fontSize: 10, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase',
-          color: 'var(--text-dim)', whiteSpace: 'nowrap', flexShrink: 0, cursor: 'default',
-          userSelect: 'none', alignSelf: 'center',
-        }}>
-          {/* Matches the 12px of `.seg`, so this label and the surface buttons
-              sit on one baseline instead of each centring its own text in the
-              bar. The row can't simply be baseline-aligned: the buttons live in
-              a horizontal scroller, and an overflow container reports its
-              bottom edge as its baseline. */}
-          Preview<Strut size={12} />
-        </span>
-        <span style={{ width: 1, height: 16, background: 'var(--bdr2)', flexShrink: 0, marginRight: 2 }} />
+      {/* The day this list outgrew the bar arrived.
+          This was a hand-rolled scroller: no chevrons, no overflow menu, and
+          the last surfaces ran off the end with nothing to say so. It now uses
+          the same TabStrip the editor uses, which is why that component moved
+          out of App.jsx — Canvas is imported *by* App.jsx, so it could never
+          have reached it there without a cycle. One strip, one set of overflow
+          behaviour, both panes. */}
+      <TabStrip
+        tabs={SURFACES} active={surface} onSelect={setSurface}
+        title={compact ? null : 'Preview'}
+        actions={
+          <>
+            {/* Widths come from the breakpoints this document actually declares,
+                so the control tests the system rather than a generic set of
+                phone sizes. Each snaps just inside its breakpoint, because the
+                point is to see the layout the breakpoint produces rather than
+                the boundary itself.
 
-        {/* Surfaces only. The controls that follow moved to their own line so
-            these can have the width, and so a seventh surface does not push
-            the light/dark toggle off the end. Room here for a pinned tab and
-            chevrons the day this list outgrows the bar, matching the editor
-            side. */}
-        <div className="no-bar" style={{ display: 'flex', gap: 6, minWidth: 0, overflowX: 'auto' }}>
-          {SURFACES.map(s => (
-            <button key={s.id} onClick={() => setSurface(s.id)} style={{ flexShrink: 0 }}
-              className={surface === s.id ? 'seg-on' : 'seg'}>
-              {s.label}
-            </button>
-          ))}
-        </div>
-        <div style={{ flex: 1 }} />
-      </div>
+                A select rather than a run of segments. There is one entry per
+                breakpoint plus two, so a document with six breakpoints put
+                eight buttons in a row that also has to hold the theme toggle
+                and two status chips. It fitted on a wide desktop and nowhere
+                else. */}
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+              <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.08em', color: 'var(--text-dim)', textTransform: 'uppercase' }}>Width</span>
+              <select
+                value={width == null ? '' : String(width)}
+                onChange={e => setWidth(e.target.value === '' ? null : Number(e.target.value))}
+                title="How wide to draw the surface"
+                style={{ width: 'auto', fontSize: 11, padding: '2px 6px' }}>
+                {widths.map(w => (
+                  <option key={w.label} value={w.px == null ? '' : String(w.px)}>
+                    {w.label}{w.px ? ` · ${w.px}px` : ''}
+                  </option>
+                ))}
+              </select>
+            </label>
 
-      {/* Line two: how the surface is shown, rather than which surface.
-          Same height and rules as the editor's action row, so the two panes
-          stay on one grid. */}
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: 8, padding: '0 12px', height: 38,
-        borderBottom: '1px solid var(--bdr)', borderTop: '1px solid var(--bdr)',
-        background: 'var(--surf)', flexShrink: 0,
-      }}>
-        {/* Widths come from the breakpoints this document actually declares,
-            so the control tests the system rather than some generic set of
-            phone sizes. Each snaps just inside its breakpoint — the point is
-            to see the layout the breakpoint produces, not the boundary. */}
-        <div style={{ display: 'flex', gap: 2, background: 'var(--surf3)', padding: 2, borderRadius: 6, border: '1px solid var(--bdr)', flexShrink: 0 }}>
-          {widths.map(w => (
-            <button key={w.label} onClick={() => setWidth(w.px)}
-              className={width === w.px ? 'seg-on' : 'seg'} style={{ padding: '2px 8px', fontSize: 11 }}
-              title={w.px ? `${w.px}px — ${w.note}` : 'Fill the pane'}>
-              {w.label}
-            </button>
-          ))}
-        </div>
+            <div style={{ display: 'flex', gap: 2, background: 'var(--surf3)', padding: 2, borderRadius: 6, border: '1px solid var(--bdr)', flexShrink: 0 }}>
+              {['light', 'dark'].map(m => (
+                <button key={m} onClick={() => setMode(m)} className={mode === m ? 'seg-on' : 'seg'} style={{ padding: '2px 10px' }}>
+                  {m === 'light' ? 'Light' : 'Dark'}
+                </button>
+              ))}
+            </div>
 
-        <div style={{ display: 'flex', gap: 2, background: 'var(--surf3)', padding: 2, borderRadius: 6, border: '1px solid var(--bdr)', flexShrink: 0 }}>
-          {['light', 'dark'].map(m => (
-            <button key={m} onClick={() => setMode(m)} className={mode === m ? 'seg-on' : 'seg'} style={{ padding: '2px 10px' }}>
-              {m === 'light' ? 'Light' : 'Dark'}
-            </button>
-          ))}
-        </div>
+            <div style={{ flex: 1 }} />
 
-        <div style={{ flex: 1 }} />
-
-        {/* Back beside the thing it describes. It was on the macro bar, which
-            is where you set values, not where you look at them — and the
-            palette it grades is the one rendering two inches below this. */}
-        <ContrastChip onOpen={onOpenContrast} />
-        <WarningsChip onJump={onJump} onApply={onApply} />
-      </div>
+            {/* Back beside the thing it describes. It was on the macro bar,
+                which is where you set values, not where you look at them — and
+                the palette it grades is the one rendering two inches below. */}
+            <ContrastChip onOpen={onOpenContrast} />
+            <WarningsChip onJump={onJump} onApply={onApply} />
+          </>
+        } />
 
       {/* Keyed on the mode as well as the surface: the custom properties live
           on the `.dmd` wrapper *inside* the fade, so the outgoing layer keeps
