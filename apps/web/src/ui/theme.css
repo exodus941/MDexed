@@ -176,7 +176,7 @@ body{zoom:var(--ui-zoom,1);background:var(--bg);color:var(--text);font-family:va
  * restated in the light block below with the one value that changes. Two lines
  * to keep every select in the app consistent is a better deal than a wrapper
  * element around each one. */
-input,textarea,select{font-family:var(--sans);font-size:14px;line-height:1.4;color:var(--text);background:var(--surf3);border:1px solid var(--bdr);border-radius:6px;padding:8px 12px;outline:none;transition:border-color var(--t) var(--ease),background var(--t) var(--ease);width:100%}
+input:not(.dmd *),textarea:not(.dmd *),select:not(.dmd *){font-family:var(--sans);font-size:14px;line-height:1.4;color:var(--text);background:var(--surf3);border:1px solid var(--bdr);border-radius:6px;padding:8px 12px;outline:none;transition:border-color var(--t) var(--ease),background var(--t) var(--ease);width:100%}
 /* ── Field height, on a 4px grid ──
  *
  * Two rules, and the second is the one that keeps the first honest.
@@ -197,10 +197,10 @@ input,textarea,select{font-family:var(--sans);font-size:14px;line-height:1.4;col
  * 44 — never 37.6. Raise the step, raise the line box with it, and check the
  * sum still closes. */
 :root{--field-h:36px;--field-line:18px;--field-h-dense:28px;--field-line-dense:16px}
-input:not([type=range]):not([type=checkbox]):not([type=radio]),select{height:var(--field-h);line-height:var(--field-line)}
+input:not([type=range]):not([type=checkbox]):not([type=radio]):not(.dmd *),select:not(.dmd *){height:var(--field-h);line-height:var(--field-line)}
 /* A textarea is the one field that has to grow, so it gets the height as a
    floor and its own reading line-height. */
-textarea{height:auto;min-height:var(--field-h);line-height:1.5}
+textarea:not(.dmd *){height:auto;min-height:var(--field-h);line-height:1.5}
 
 /* ── Dense fields ──
  *
@@ -221,10 +221,10 @@ textarea{height:auto;min-height:var(--field-h);line-height:1.5}
 .dense select{height:var(--field-h-dense);line-height:var(--field-line-dense)}
 .dense textarea{height:auto;min-height:var(--field-h-dense)}
 .dense select{padding-right:26px;background-position:right 8px center;background-size:10px 10px}
-input:focus,textarea:focus,select:focus{border-color:var(--accent);background:var(--surf2)}
-select{-webkit-appearance:none;appearance:none;padding-right:34px;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238e969d' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");background-repeat:no-repeat;background-position:right 12px center;background-size:11px 11px}
+input:focus:not(.dmd *),textarea:focus:not(.dmd *),select:focus:not(.dmd *){border-color:var(--accent);background:var(--surf2)}
+select:not(.dmd *){-webkit-appearance:none;appearance:none;padding-right:34px;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238e969d' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");background-repeat:no-repeat;background-position:right 12px center;background-size:11px 11px}
 :root[data-ui-theme="light"] select{background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23596369' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>")}
-textarea{resize:vertical;min-height:90px;font-size:13px;line-height:1.6}
+textarea:not(.dmd *){resize:vertical;min-height:90px;font-size:13px;line-height:1.6}
 /* A button label that donates its button's baseline.
  *
  * A flex container takes its first baseline from the first flex item that is
@@ -328,7 +328,7 @@ textarea{resize:vertical;min-height:90px;font-size:13px;line-height:1.6}
 @media (max-width:767px){
   .lbl:not(.keep-lbl){position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0}
 }
-label{display:block;font-size:10.5px;font-weight:500;text-transform:uppercase;letter-spacing:0.07em;color:var(--muted);margin-bottom:5px}
+label:not(.dmd *){display:block;font-size:10.5px;font-weight:500;text-transform:uppercase;letter-spacing:0.07em;color:var(--muted);margin-bottom:5px}
 /* A label that names a checkbox, not a field.
  *
  * The rule above is for the small caps heading that sits above an input, and
@@ -336,8 +336,8 @@ label{display:block;font-size:10.5px;font-weight:500;text-transform:uppercase;le
  * as LINK TO UI SCALE, block-level, with 5px of margin under it that pushed
  * the text off the checkbox's centre line. Sentence case, inline, no margin,
  * and an explicit line-height so flex centring has an exact box to centre. */
-label.check{display:inline-flex;align-items:center;gap:7px;margin:0;font-size:11.5px;font-weight:400;text-transform:none;letter-spacing:normal;line-height:1.2;color:var(--muted);cursor:pointer;user-select:none}
-label.check input[type=checkbox]{flex-shrink:0;margin:0}
+label.check:not(.dmd *){display:inline-flex;align-items:center;gap:7px;margin:0;font-size:11.5px;font-weight:400;text-transform:none;letter-spacing:normal;line-height:1.2;color:var(--muted);cursor:pointer;user-select:none}
+label.check input[type=checkbox]:not(.dmd *){flex-shrink:0;margin:0}
 
 .btn-primary{font-family:var(--sans);font-size:13px;line-height:18px;font-weight:500;cursor:pointer;border:1px solid transparent;border-radius:6px;padding:8px 16px;background:var(--accent);color:var(--bg);transition:filter var(--t) var(--ease)}
 .btn-primary:hover{filter:brightness(1.1)}
@@ -533,12 +533,12 @@ label.check input[type=checkbox]{flex-shrink:0;margin:0}
 .filter-field.has-value input{border-color:var(--accent-ring)}
 
 /* Range inputs: the macro sliders live or die on these feeling right */
-input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:18px;background:transparent;padding:0;border:none}
-input[type=range]::-webkit-slider-runnable-track{height:3px;border-radius:2px;background:var(--bdr2)}
-input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:13px;height:13px;border-radius:50%;background:var(--accent);margin-top:-5px;cursor:grab;border:none;transition:transform var(--t) var(--ease)}
-input[type=range]:active::-webkit-slider-thumb{cursor:grabbing;transform:scale(1.15)}
-input[type=range]::-moz-range-track{height:3px;border-radius:2px;background:var(--bdr2)}
-input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;background:var(--accent);border:none;cursor:grab}
+input[type=range]:not(.dmd *){-webkit-appearance:none;appearance:none;width:100%;height:18px;background:transparent;padding:0;border:none}
+input[type=range]:not(.dmd *)::-webkit-slider-runnable-track{height:3px;border-radius:2px;background:var(--bdr2)}
+input[type=range]:not(.dmd *)::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:13px;height:13px;border-radius:50%;background:var(--accent);margin-top:-5px;cursor:grab;border:none;transition:transform var(--t) var(--ease)}
+input[type=range]:active:not(.dmd *)::-webkit-slider-thumb{cursor:grabbing;transform:scale(1.15)}
+input[type=range]:not(.dmd *)::-moz-range-track{height:3px;border-radius:2px;background:var(--bdr2)}
+input[type=range]:not(.dmd *)::-moz-range-thumb{width:13px;height:13px;border-radius:50%;background:var(--accent);border:none;cursor:grab}
 
 /* ── The hue slider ──
    The spectrum belongs to the track, not to the input box behind it — a
@@ -553,10 +553,10 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;bac
    specificity (0,1,0) and the generic track rule above is (0,1,1) — a type
    selector plus an attribute selector — so the grey won and the spectrum was
    never painted, in either place it had been tried. */
-input[type=range].hue-slider::-webkit-slider-runnable-track{height:6px;border-radius:3px;background:var(--spectrum)}
-input[type=range].hue-slider::-moz-range-track{height:6px;border-radius:3px;background:var(--spectrum)}
-input[type=range].hue-slider::-webkit-slider-thumb{width:14px;height:14px;margin-top:-4px;background:hsl(var(--hue) 70% 55%);box-shadow:0 0 0 2px var(--surf),0 0 0 3px var(--thumb-ring)}
-input[type=range].hue-slider::-moz-range-thumb{width:14px;height:14px;background:hsl(var(--hue) 70% 55%);box-shadow:0 0 0 2px var(--surf),0 0 0 3px var(--thumb-ring)}
+input[type=range].hue-slider:not(.dmd *)::-webkit-slider-runnable-track{height:6px;border-radius:3px;background:var(--spectrum)}
+input[type=range].hue-slider:not(.dmd *)::-moz-range-track{height:6px;border-radius:3px;background:var(--spectrum)}
+input[type=range].hue-slider:not(.dmd *)::-webkit-slider-thumb{width:14px;height:14px;margin-top:-4px;background:hsl(var(--hue) 70% 55%);box-shadow:0 0 0 2px var(--surf),0 0 0 3px var(--thumb-ring)}
+input[type=range].hue-slider:not(.dmd *)::-moz-range-thumb{width:14px;height:14px;background:hsl(var(--hue) 70% 55%);box-shadow:0 0 0 2px var(--surf),0 0 0 3px var(--thumb-ring)}
 
 .num{font-family:var(--mono);font-size:12px;padding:4px 6px;text-align:right}
 .num::-webkit-outer-spin-button,.num::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}

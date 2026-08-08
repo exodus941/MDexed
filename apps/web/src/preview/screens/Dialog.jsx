@@ -40,8 +40,9 @@ function Modal({ ins, txt, layout, onInspect }) {
 
   return (
     <div {...ins('modal')} style={{
-      position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)',
-      width: 'var(--cmp-modal-width, min(400px, 86%))',
+      /* Centred by its parent now, not by a transform. See the stage below. */
+      position: 'relative', flexShrink: 0,
+      width: 'var(--cmp-modal-width, min(400px, 100%))',
       background: 'var(--cmp-modal-background-color, var(--c-surface-raised, #fff))',
       borderRadius: 'var(--cmp-modal-rounded, var(--radius-lg, 16px))',
       padding: 'var(--cmp-modal-padding, var(--space-lg, 24px))',
@@ -122,13 +123,35 @@ export default function Dialog({ onInspect, layout }) {
           mixBlendMode: 'var(--scrim-blend, normal)',
         }} />
 
-        <Modal ins={ins} txt={txt} layout={modal} onInspect={onInspect} />
+        {/* The modal used to sit at top 50% with a translate, inside a box with
+            hidden overflow. On a narrow screen it grew taller than the page
+            behind it, so it bled past both edges and the clip took its corners
+            and its close button with them.
+
+            A flex box centres it without a transform, and the padding gives it
+            an edge to stop against. `min-height` on the stage means there is
+            something to centre within when the fake page is short. */}
+        <div className="modal-stage" style={{
+          position: 'absolute', inset: 0, display: 'flex',
+          alignItems: 'center', justifyContent: 'center',
+          padding: 'var(--space-md, 16px)', overflow: 'auto',
+        }}>
+          <Modal ins={ins} txt={txt} layout={modal} onInspect={onInspect} />
+        </div>
       </div>
 
       <div className="cols-2">
         {/* Toast */}
         <div className="card card-overlay row" {...ins('card-overlay')}>
-          <span style={{ color: 'var(--c-success, green)', display: 'flex' }}><Ico d={IconCheck} /></span>
+          {/* inline-block with the text's own line-height, not a flex box.
+              A flex wrapper puts nothing in the row's baseline set, so the row
+              synthesises one from the wrapper's bottom edge and the tick drifts
+              off the line it belongs to. The line box gives it the same
+              baseline as the first line of the message beside it. */}
+          <span style={{
+            color: 'var(--c-success, green)', display: 'inline-block',
+            lineHeight: 'var(--font-body-sm-leading, 1.55)', alignSelf: 'flex-start',
+          }}><Ico d={IconCheck} /></span>
           <span className="small" style={{ flex: 1 }} {...txt("body-sm")}>Invoice sent to Northwind</span>
           <button className="btn btn-ghost btn-sm" {...ins('button-ghost')}>Undo</button>
         </div>
