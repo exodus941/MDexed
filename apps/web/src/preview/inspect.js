@@ -63,17 +63,26 @@ function withAncestors(el, own) {
  * @param targets   a component entry name, or an array of cmp/role/type/text targets
  * @param onInspect (targets, event) — Canvas routes or offers a choice
  */
-export function inspectProps(targets, onInspect) {
+/* `passthrough` keeps the element's own behaviour and jumps as well.
+ *
+ * The default swallows the click, which is right for a mock button — pressing
+ * Save in a sample should edit the button, not pretend to save. It is wrong
+ * for a control whose behaviour *is* the thing being demonstrated. A menu
+ * button that does not open its menu shows nothing, and the person clicking it
+ * wanted both: see the menu, and land on the entry that styles it. */
+export function inspectProps(targets, onInspect, { passthrough = false } = {}) {
   if (!onInspect) return {}
   const list = normalise(targets)
   return {
     'data-cmp': list.map(targetKey).join(' '),
-    title: list.length === 1 ? `${list[0].label} — click to edit` : 'Click to edit — several targets',
+    title: list.length === 1
+      ? `${list[0].label} — click to edit${passthrough ? '' : ''}`
+      : 'Click to edit — several targets',
     ref: el => { if (el) el[KEY] = list },
     onClick: e => {
       /* Alt-click falls through to the control's own behaviour. */
       if (e.altKey) return
-      e.preventDefault()
+      if (!passthrough) e.preventDefault()
       e.stopPropagation()
       onInspect(withAncestors(e.currentTarget, list), e)
     },

@@ -1818,11 +1818,16 @@ function Shell() {
               return (
                 <button key={t.id} onClick={() => showPane(t.id)} aria-pressed={on}
                   style={{
-                    flex: 1, minHeight: 44, border: 0, background: 'transparent', cursor: 'pointer',
+                    /* A fixed height, and the underline drawn as an inset
+                       shadow rather than a border. A 2px border made these
+                       49px against the 44px STACK label beside them, and
+                       unequal heights put their baselines 2px apart. A shadow
+                       paints in the same place without joining the box. */
+                    flex: 1, height: 44, border: 0, background: 'transparent', cursor: 'pointer',
                     fontFamily: 'var(--sans)', fontSize: 10, fontWeight: 700, letterSpacing: '.1em',
                     color: on ? 'var(--accent)' : 'var(--text-dim)',
-                    borderBottom: `2px solid ${on ? 'var(--accent)' : 'transparent'}`,
-                    transition: 'color var(--t) var(--ease), border-color var(--t) var(--ease)',
+                    boxShadow: on ? 'inset 0 -2px 0 var(--accent)' : 'none',
+                    transition: 'color var(--t) var(--ease), box-shadow var(--t) var(--ease)',
                   }}>
                   {t.label}
                 </button>
@@ -1832,7 +1837,7 @@ function Shell() {
                 as a toggle without any ARIA of my own. */}
             <label title="Show both panes down the page instead of one at a time"
               style={{
-                display: 'flex', alignItems: 'center', gap: 9, minHeight: 44,
+                display: 'flex', alignItems: 'center', gap: 9, height: 44,
                 padding: '0 12px 0 16px', marginLeft: 6, cursor: 'pointer', flexShrink: 0,
                 fontFamily: 'var(--sans)', fontSize: 10, fontWeight: 700,
                 letterSpacing: '.08em', color: stackPanes ? 'var(--accent)' : 'var(--text-dim)',
@@ -1952,8 +1957,12 @@ function Shell() {
       <div style={{
         position: 'fixed', bottom: 16, zIndex: 900,
         display: 'flex', flexDirection: 'column', gap: 8, pointerEvents: 'none',
+        /* `center`, not `stretch`. The toast carries its own maxWidth of
+           `100vw - 48px`, so stretching a 351px span gave it 327px and parked
+           it at the start, with the leftover 24px all on the right. Stretch
+           only centres things that have no width of their own. */
         ...(isMobile
-          ? { left: 12, right: 12, alignItems: 'stretch' }
+          ? { left: 12, right: 12, alignItems: 'center' }
           : { right: 18, alignItems: 'flex-end' }),
       }}>
         {/* Save confirmation on top, restore offer beneath it. The save flash
