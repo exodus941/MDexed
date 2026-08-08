@@ -431,9 +431,13 @@ export default function TabStrip({ tabs, active, onSelect, right, title, actions
           tabs lost first. Full width here, and the tab strip gets the whole
           line above to itself. */}
       {actions && (
-        <div style={{
+        /* `minHeight`, not `height`. A fixed 38 was shorter than the 36px
+           controls plus their clearance, so a control taller than 34 poked out
+           of the top of its own row. The row now grows to hold what it is
+           given. */
+        <div className="action-row" style={{
           display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0,
-          padding: '0 12px', height: 38, background: 'var(--surf)',
+          padding: '0 12px', minHeight: 38, background: 'var(--surf)',
           borderBottom: '1px solid var(--bdr)', borderTop: '1px solid var(--bdr)',
         }}>
           {actions}

@@ -1162,12 +1162,25 @@ function Shell() {
   const editorPaneRef = useRef(null)
   const previewPaneRef = useRef(null)
 
-  /* Stacked mode turns the tabs into anchors rather than a switch. */
+  /* Stacked mode turns the tabs into anchors rather than a switch.
+   *
+   * Not `scrollIntoView`. That puts the target's top at the viewport's top,
+   * which here is underneath the sticky title bar and tab bar — so the first
+   * hundred pixels of the pane you asked for land behind the chrome and it
+   * reads as scrolling past it.
+   *
+   * Measured at click time rather than stored: the title bar is one line on a
+   * phone and the tab bar only exists at this width, so the number changes
+   * with the layout and a constant would be wrong the moment either did. */
+  const stickyRef = useRef(null)
   const showPane = id => {
     setMobilePane(id)
     if (!stackPanes) return
     const el = (id === 'editor' ? editorPaneRef : previewPaneRef).current
-    el?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    if (!el) return
+    const chrome = stickyRef.current?.getBoundingClientRect().height ?? 0
+    const top = el.getBoundingClientRect().top + window.scrollY - chrome
+    window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' })
   }
   /* Carries a timestamp so clicking the same element twice re-triggers the
      jump rather than being deduplicated as an unchanged value. */
@@ -1669,7 +1682,7 @@ function Shell() {
             to the height of the first — a number I had to guess, guessed 39
             against a real 50, and the tab bar slid under the title bar. One
             sticky wrapper has no number to get wrong. */}
-        <div style={{ position: 'sticky', top: 0, zIndex: 400, flexShrink: 0, background: 'var(--surf)' }}>
+        <div ref={stickyRef} style={{ position: 'sticky', top: 0, zIndex: 400, flexShrink: 0, background: 'var(--surf)' }}>
         <header style={{
           display: 'flex', alignItems: 'baseline', gap: isMobile ? 8 : 13,
           padding: isMobile ? '7px 12px 5px' : '7px 20px 5px',

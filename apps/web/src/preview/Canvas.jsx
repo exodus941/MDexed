@@ -374,7 +374,7 @@ export default function Canvas({ onInspect, surface, setSurface, onOpenContrast,
                    whatever the row had left. `2px 6px` gave the value nowhere
                    to sit and the arrow no clearance, so a label like
                    "2xl · 1536px" was cut off inside its own box. */
-                style={{ width: 'auto', minWidth: 116, fontSize: 11, padding: '5px 8px' }}>
+                style={{ width: 'auto', minWidth: 116, fontSize: 11 }}>
                 {widths.map(w => (
                   <option key={w.label} value={w.px == null ? '' : String(w.px)}>
                     {w.label}{w.px ? ` · ${w.px}px` : ''}
@@ -383,7 +383,7 @@ export default function Canvas({ onInspect, surface, setSurface, onOpenContrast,
               </select>
             </label>
 
-            <div style={{ display: 'flex', gap: 2, background: 'var(--surf3)', padding: 2, borderRadius: 6, border: '1px solid var(--bdr)', flexShrink: 0 }}>
+            <div className="seg-box" style={{ display: 'flex', gap: 2, background: 'var(--surf3)', padding: 2, borderRadius: 6, border: '1px solid var(--bdr)', flexShrink: 0 }}>
               {['light', 'dark'].map(m => (
                 <button key={m} onClick={() => setMode(m)} className={mode === m ? 'seg-on' : 'seg'} style={{ padding: '2px 10px' }}>
                   {m === 'light' ? 'Light' : 'Dark'}
@@ -430,8 +430,11 @@ export default function Canvas({ onInspect, surface, setSurface, onOpenContrast,
             gap: 8, marginBottom: 6,
             ...(width ? { width, marginLeft: 'auto', marginRight: 'auto' } : null),
           }}>
+            {/* Says "Fit" rather than nothing when there is no fixed width.
+                An empty slot reads as a missing value, and the readout is the
+                one place that reports what the surface is actually doing. */}
             <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--dim)' }}>
-              {width ? `${width}px` : ''}
+              {width ? `${width}px` : 'Fit'}
             </span>
             {compact && (
               <span style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>

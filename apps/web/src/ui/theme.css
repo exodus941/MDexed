@@ -234,6 +234,40 @@ textarea{resize:vertical;min-height:90px;font-size:13px;line-height:1.6}
  * above every text-only button beside it. Marking the label baseline-aligned
  * makes it the donor, which is the whole fix; the icon stays centred. */
 .lbl{align-self:baseline}
+/* A toolbar label is not a form label.
+   The global `label` rule carries `margin-bottom: 5px`, for a label stacked
+   above its field. Inside a row that centres its items, flexbox centres the
+   *margin* box — so that 5px pushed the border box 2.5px above everything
+   beside it, and the Width control's text sat 4.5px off the Light/Dark text.
+   Measured, not guessed. Applies at every width, because so did the bug. */
+.action-row label{margin:0}
+
+/* Controls in the same row are the same height, at every width.
+   The select stood 36 and the Light/Dark box 27, which is the "button 2px
+   shorter than the field beside it" problem with a 9px gap. Equal heights are
+   also what puts their baselines within a pixel, so this fixes both. */
+.action-row select{height:28px;padding:0 26px 0 8px}
+.action-row .seg-box{height:28px;box-sizing:border-box;align-items:stretch}
+.action-row .seg-box button{height:100%;display:flex;align-items:center}
+
+/* ── The action row on a phone ──
+   Measured before this: the Width select stood 36px, the Light/Dark box 27px,
+   and their text baselines sat 4.5px apart. The select also overflowed the
+   38px row by 1.5px at the top, because the row's height was fixed below its
+   own contents.
+
+   Equal heights are the whole fix. Two controls of the same height, each
+   centring its own label, put their baselines within 0.4px of each other —
+   `H/2 + 0.3635 × font-size`, so only the font-size difference remains.
+
+   40px, not the 27 they had, because a finger is the pointer here. */
+@media (max-width:767px){
+  .action-row{min-height:56px!important;gap:10px!important;padding:0 12px!important}
+  .action-row select{height:40px;padding:0 28px 0 10px}
+  .action-row .seg-box{height:40px;box-sizing:border-box;align-items:stretch}
+  .action-row .seg-box button{height:100%;display:flex;align-items:center}
+}
+
 /* ── Modal shells on a phone ──
    Every modal already shrinks: they are `width:100%` under a `maxWidth`. What
    they are not is efficient with a 375px screen. 24px of backdrop padding each
