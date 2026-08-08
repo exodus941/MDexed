@@ -58,7 +58,12 @@ export default function Dashboard({ onInspect, layout }) {
             <h2 {...txt('h2')}>Overview</h2>
             <p className="muted small" style={{ marginTop: 4 }} {...txt('body-sm', 'text-muted')}>Fourth quarter, all accounts</p>
           </div>
-          <div className="row">
+          {/* Small is a desktop choice. These are the page's own actions, and
+              at 375px a 28px target beside a 28px icon button is neither
+              comfortable to hit nor the right weight for the top of a screen.
+              They take the medium size from the same scale — a different step
+              of the system, not a number invented outside it. */}
+          <div className="row page-actions">
             <button className="btn btn-secondary btn-sm" {...ins('button-sm')}><Ico d={IconDownload} size="sm" />Export</button>
             <button className="btn btn-primary btn-sm" {...ins('button-primary')}><Ico d={IconPlus} size="sm" />New invoice</button>
             <button className="btn btn-secondary btn-sm icon-only" {...ins('button-secondary')}><Ico d={IconBell} /></button>

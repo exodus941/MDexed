@@ -16,15 +16,24 @@ export default function Landing({ onInspect }) {
           <div className="avatar" {...ins('avatar')}>N</div>
           <strong {...txt('body-md', 'text')} style={{ fontSize: 'var(--font-body-md-size, 16px)', cursor: onInspect ? 'pointer' : undefined }}>Northwind</strong>
         </div>
-        <div className="row">
-          {/* Links, not spans. These are the most-copied lines in the payload,
-              and a span cannot be tabbed to or announced as navigation. */}
+        {/* A marketing header folds like every other one. Loose links beside a
+            button is the desktop bar with nothing done to it, and at this width
+            they read as stray text rather than navigation.
+
+            Links, not spans. These are the most-copied lines in the payload,
+            and a span cannot be tabbed to or announced as navigation. */}
+        <details className="nav-collapse header-nav">
+          <summary className="nav-summary">
+            <span className="caption" style={{ textTransform: 'uppercase', letterSpacing: '.08em' }}
+              {...txt('overline', 'text-muted')}>Menu</span>
+            <span className="nav-burger" aria-hidden="true"><span /><span /><span /></span>
+          </summary>
           <nav className="row" aria-label="Main">
             <a className="nav-item" href="#pricing" {...ins('nav-item')}>Pricing</a>
             <a className="nav-item" href="#docs" {...ins('nav-item')}>Docs</a>
+            <button className="btn btn-primary btn-sm" {...ins('button-sm')}><Ico d={IconPlus} size="sm" />Start free</button>
           </nav>
-          <button className="btn btn-primary btn-sm" {...ins('button-sm')}><Ico d={IconPlus} size="sm" />Start free</button>
-        </div>
+        </details>
       </div>
 
       <hr className="divider" />

@@ -81,6 +81,11 @@ ${query(md)} {
   .dmd .nav-collapse:not([open]) > nav { display: none; }
   .dmd .nav-burger { display: flex; }
   .dmd .nav-summary { cursor: pointer; }
+
+  /* A header menu opens downward as a stack, not as a squeezed row. Its call
+     to action goes full width, because it is the reason the header exists. */
+  .dmd .header-nav > nav { flex-direction: column; align-items: stretch; }
+  .dmd .header-nav > nav > .btn { width: 100%; }
 }
 
 ${query(sm)} {
@@ -112,6 +117,12 @@ ${query(sm)} {
   .dmd .stack-narrow, .dmd .stack-narrow-rev { flex-direction: column; align-items: stretch; }
   .dmd .stack-narrow-rev { flex-direction: column-reverse; }
   .dmd .stack-narrow > .btn, .dmd .stack-narrow-rev > .btn { width: 100%; }
+  /* A nested action group stacks with its parent rather than staying a row
+     inside a column. Otherwise a footer reads as two unrelated groups: one
+     button alone on a line, then a right-aligned pair under it. */
+  .dmd .stack-narrow-rev > .row { flex-direction: column-reverse; align-items: stretch; width: 100%; }
+  .dmd .stack-narrow > .row { flex-direction: column; align-items: stretch; width: 100%; }
+  .dmd .stack-narrow-rev > .row > .btn, .dmd .stack-narrow > .row > .btn { width: 100%; }
 
   /* A spec group scrolls, it does not fold.
      Four variants across four states only means anything read across the row,
@@ -131,6 +142,42 @@ ${query(sm)} {
      items per row, so a shared column means nothing there. */
   .dmd .matrix-grid { display: grid; grid-template-columns: repeat(5, max-content); gap: var(--space-sm, 8px); align-items: center; }
   .dmd .matrix-grid > .row { display: contents; }
+}
+
+${query(sm)} {
+  /* Below this, a spec group stacks rather than scrolls.
+     Sideways scrolling is a last resort, not a layout. A table of real columns
+     has no other option, so it keeps its scroller. A run of buttons does have
+     one: give the label its own line and let the examples wrap underneath.
+
+     That also removes the second scrollbar. A pane that scrolls down inside a
+     page that scrolls down, wrapped around a group that scrolls sideways, is
+     three scrollbars for four buttons. */
+  .dmd .matrix { overflow-x: visible; }
+  .dmd .matrix > .row { flex-wrap: wrap; min-width: 0; }
+  .dmd .matrix-grid { display: flex; flex-direction: column; }
+  .dmd .matrix-grid > .row { display: flex; flex-wrap: wrap; }
+  .dmd .matrix-grid > .row > :first-child { flex: 1 0 100%; }
+
+  /* The page's own actions take the medium step of the button scale.
+     Small is a desktop density choice. At this width it is an uncomfortable
+     target and the wrong weight for the top of a screen. Both values come from
+     the system's own scale, so nothing is invented here. */
+  .dmd .page-actions > .btn-sm,
+  .dmd .stack-narrow > .btn-sm,
+  .dmd .stack-narrow-rev > .btn-sm {
+    height: var(--cmp-button-md-height, 36px);
+    line-height: var(--cmp-button-md-height, 36px);
+    padding: var(--cmp-button-md-padding, 0 var(--space-md, 16px));
+    font-size: var(--cmp-button-md-font-size, var(--font-button-size, 14px));
+  }
+  .dmd .page-actions > .btn-sm.icon-only { width: var(--cmp-button-md-height, 36px); padding: 0; }
+
+  /* A two-word heading should not break in half.
+     Balancing spreads the words evenly across the lines it does need, which is
+     the cheat that stops "Account settings" reading as "Account" over
+     "settings". Falls back to normal wrapping where unsupported. */
+  .dmd h1, .dmd h2, .dmd h3 { text-wrap: balance; }
   .dmd { padding: ${sp('md', '16px')}; }
 }
 `
