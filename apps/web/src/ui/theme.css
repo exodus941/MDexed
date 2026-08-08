@@ -240,7 +240,20 @@ textarea:not(.dmd *){resize:vertical;min-height:90px;font-size:13px;line-height:
    *margin* box — so that 5px pushed the border box 2.5px above everything
    beside it, and the Width control's text sat 4.5px off the Light/Dark text.
    Measured, not guessed. Applies at every width, because so did the bug. */
-.action-row label{margin:0}
+/* `.action-row label` and `label:not(.dmd *)` have identical specificity, and
+   the second one is written later in the file, so it won. Scoping the chrome
+   rules away from the preview silently un-fixed this. Raised, not moved: a
+   rule that only wins by being lower in the file breaks the next time anything
+   is inserted below it. */
+.action-row label.action-row-label,.action-row label{margin:0!important}
+
+/* Every button in an action row is the same height, whatever it holds.
+   Sized by content they came out 28, 23, 28, 23 — an icon-only button is
+   shorter than one carrying a label, so the row read as a broken fence and
+   their baselines drifted 1.5px with it. Found by sweeping the chrome, which
+   is a thing I had never done. */
+.action-row .btn-ghost,.action-row .btn-fill,.action-row .btn-outline,
+.action-row .btn-primary,.action-row .btn-secondary{height:28px}
 
 /* Controls in the same row are the same height, at every width.
    The select stood 36 and the Light/Dark box 27, which is the "button 2px
