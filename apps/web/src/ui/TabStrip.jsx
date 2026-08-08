@@ -370,8 +370,13 @@ export default function TabStrip({ tabs, active, onSelect, right, title, actions
               background: 'none', border: 'none', cursor: 'pointer',
               fontFamily: 'var(--sans)', fontSize: TAB_FS, fontWeight: 500, whiteSpace: 'nowrap',
               color: menuOpen ? 'var(--accent)' : 'var(--text)',
-              borderBottom: '2px solid var(--accent)', marginBottom: -1,
-              transition: 'color var(--t) var(--ease)',
+              /* The underline is painted, not built.
+                 A 2px border with `marginBottom: -1` made this tab 43px inside
+                 a 42px bar, so it hung a pixel past the bar's own bottom rule
+                 and broke that line where the tab sat. An inset shadow paints
+                 in the same place and joins no box. */
+              boxShadow: 'inset 0 -2px 0 var(--accent)',
+              transition: 'color var(--t) var(--ease), box-shadow var(--t) var(--ease)',
             }}>
             {activeTab.label}
             <svg width={11} height={11} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"
@@ -411,8 +416,10 @@ export default function TabStrip({ tabs, active, onSelect, right, title, actions
               background: 'none', border: 'none', borderRadius: 0, cursor: 'pointer',
               padding: '0 12px', fontFamily: 'var(--sans)', fontSize: TAB_FS, whiteSpace: 'nowrap',
               color: 'var(--muted)', fontWeight: 400,
-              borderBottom: '2px solid transparent',
-              transition: 'color var(--t) var(--ease)', marginBottom: -1,
+              /* No border here either. A transparent 2px border still adds to
+                 the box, so these inactive tabs were the same 1px too tall as
+                 the pinned one and sat a pixel low against the bar's rule. */
+              transition: 'color var(--t) var(--ease)',
             }}
               onMouseEnter={e => { e.currentTarget.style.color = 'var(--text)' }}
               onMouseLeave={e => { e.currentTarget.style.color = 'var(--muted)' }}>{t.label}</button>
