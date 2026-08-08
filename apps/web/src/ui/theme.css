@@ -233,6 +233,11 @@ textarea:not(.dmd *){resize:vertical;min-height:90px;font-size:13px;line-height:
  * <svg>then text donated the icon's bottom edge — and its label rode 1.5px
  * above every text-only button beside it. Marking the label baseline-aligned
  * makes it the donor, which is the whole fix; the icon stays centred. */
+/* Keep `align-self: baseline`. I removed it once, reasoning that a button
+   centres its own contents and a wrapped label should not differ from a bare
+   one. That turned a 1px difference into 8.5px, because these spans are the
+   thing that puts a label on the button's baseline at all. The 1px I was
+   chasing was my measuring tool reading a visually-hidden label. */
 .lbl{align-self:baseline}
 /* A toolbar label is not a form label.
    The global `label` rule carries `margin-bottom: 5px`, for a label stacked

@@ -127,6 +127,7 @@ const Eye = () => I(<><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><
    opening one. A hamburger means "a menu", which both of them are — it says
    nothing about which. These say what they open. */
 const Folder = () => I(<path d="M4 20h16a2 2 0 002-2V8a2 2 0 00-2-2h-7.9a2 2 0 01-1.69-.9l-.81-1.2A2 2 0 007.9 3H4a2 2 0 00-2 2v13a2 2 0 002 2z" />)
+const Pencil = () => I(<><path d="M12 20h9" /><path d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4Z" /></>)
 const Sliders = () => I(<><line x1="4" x2="4" y1="21" y2="14" /><line x1="4" x2="4" y1="10" y2="3" /><line x1="12" x2="12" y1="21" y2="12" /><line x1="12" x2="12" y1="8" y2="3" /><line x1="20" x2="20" y1="21" y2="16" /><line x1="20" x2="20" y1="12" y2="3" /><line x1="1" x2="7" y1="14" y2="14" /><line x1="9" x2="15" y1="8" y2="8" /><line x1="17" x2="23" y1="16" y2="16" /></>)
 
 const Motion = ({ off }) => (
@@ -135,6 +136,11 @@ const Motion = ({ off }) => (
     {off && <line x1="3" y1="21" x2="21" y2="3" strokeWidth={2.2} />}
   </svg>
 )
+
+/* One height for everything in the title bar, in both layouts.
+   Measured from the buttons, which are 36 in each. The mark used to be 26 and
+   read as a smaller class of thing parked in a row of controls. */
+const BAR_CTRL = 36
 
 /* The four document actions, declared once.
  *
@@ -863,7 +869,10 @@ function SaveFlash({ savedAt }) {
 /* ── Editable title ──
    Edits stay local until confirmed, so a half-typed name never lands in the
    document — and the tick/cross only exist while there's something to decide. */
-function TitleField({ name, onCommit }) {
+/* `full` fills the line rather than sitting at a fixed 150px.
+   An element given its own row should use that row. A 150px field floating in
+   351px is a half-measure that looks like it landed there by accident. */
+function TitleField({ name, onCommit, full = false }) {
   const [draft, setDraft] = useState(name)
   const [editing, setEditing] = useState(false)
 
@@ -881,7 +890,7 @@ function TitleField({ name, onCommit }) {
   const discard = () => { setDraft(name); setEditing(false) }
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 4, minWidth: 0 }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 4, minWidth: 0, width: full ? '100%' : undefined }}>
       <input
         value={draft}
         onChange={e => { setDraft(e.target.value); setEditing(true) }}
@@ -894,7 +903,8 @@ function TitleField({ name, onCommit }) {
         placeholder="Untitled"
         title="Project name"
         style={{
-          width: dirty ? 180 : 150, padding: '3px 8px', fontSize: 12,
+          ...(full ? { flex: 1, width: '100%', height: 36, fontSize: 13 } : { width: dirty ? 180 : 150, fontSize: 12 }),
+          padding: '3px 10px',
           fontFamily: 'var(--mono)', background: 'var(--surf2)',
           borderColor: dirty ? 'rgb(var(--accent-rgb) / .45)' : 'var(--bdr)',
           color: dirty ? 'var(--accent)' : 'var(--muted)',
@@ -1164,6 +1174,18 @@ function Shell() {
   const isMobile = useMedia(MOBILE_Q)
   const [mobilePane, setMobilePane] = useState('editor')
   const [stackPanes, setStackPanes] = useState(false)
+  /* The name field is folded away on a phone and the pencil unfolds it.
+     A second line spent permanently on a field you edit once a session is a
+     poor trade for a 375px screen. It rolls back up when you leave it. */
+  const [nameOpen, setNameOpen] = useState(false)
+  const nameRef = useRef(null)
+  useEffect(() => {
+    if (!nameOpen) return
+    /* Focus after the fold has started, or the browser scrolls to a field
+       that is still zero height. */
+    const t = setTimeout(() => nameRef.current?.querySelector('input')?.focus(), 90)
+    return () => clearTimeout(t)
+  }, [nameOpen])
   const editorPaneRef = useRef(null)
   const previewPaneRef = useRef(null)
 
@@ -1711,7 +1733,14 @@ function Shell() {
             {/* Two letters in the same box the single D had, so the mark
                 keeps its size — tighter tracking rather than a smaller face,
                 which would make it read as secondary next to the wordmark. */}
-            <div style={{ width: 26, height: 26, borderRadius: 7, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', alignSelf: 'center', fontFamily: 'var(--display)', fontWeight: 800, fontSize: 11.5, letterSpacing: '-0.04em', color: 'var(--bg)', flexShrink: 0 }}>MD</div>
+            {/* Square, and the same height as the buttons beside it.
+                At 26 against their 36 it read as a smaller class of object
+                sitting in a row of controls. A mark in a control row is part
+                of that row, so it takes the row's height and stays 1:1. */}
+            {/* `minWidth` as well as `width`, or a squeezed flex row takes it
+                back down. It measured 32 by 36 with `width` alone, which is a
+                rectangle wearing a square's border radius. */}
+            <div style={{ width: BAR_CTRL, minWidth: BAR_CTRL, height: BAR_CTRL, borderRadius: 9, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', alignSelf: 'center', fontFamily: 'var(--display)', fontWeight: 800, fontSize: 14, letterSpacing: '-0.04em', color: 'var(--bg)', flexShrink: 0 }}>MD</div>
             {/* The wordmark, build number and palette are the first things to
                 go. The squircle already says which app this is, and the name
                 field is the only part of this group you can act on. */}
@@ -1816,14 +1845,35 @@ function Shell() {
               <ProjectMenu projectId={projectId} onAction={runProjectAction}
                 items={[...PROJECT_ACTIONS, { id: 'previewFile', label: 'Preview DESIGN.md', Icon: Eye, hint: 'Read the generated file' }]} />
             )}
-            {/* The name gets the whole second line. Sharing line one with a
-                mark, an export and two menus left it showing "My Desi", which
-                names nothing. It is the one field here you can actually type
-                into, so it gets room to be read and edited. */}
+            {/* The name folds away, and the pencil unfolds it.
+                A permanent second line for a field you touch once a session is
+                a poor trade on a 375px screen. Open it, type, leave it, and it
+                rolls back up. Same duration and easing as the rest of the
+                chrome, so it reads as part of the same machine. */}
             {isMobile && (
-              <div style={{ flex: '1 0 100%', minWidth: 0, order: 2 }}>
-                <TitleField name={state.meta.name}
-                  onCommit={next => set(s => ({ ...s, meta: { ...s.meta, name: next } }), 'meta:name')} />
+              <button className="btn-ghost" onClick={() => setNameOpen(o => !o)}
+                title={nameOpen ? 'Done renaming' : 'Rename this project'}
+                aria-expanded={nameOpen} aria-controls="project-name-row"
+                style={{ padding: BTN.lg, flexShrink: 0, color: nameOpen ? 'var(--accent)' : 'var(--muted)' }}>
+                <Pencil />
+              </button>
+            )}
+            {isMobile && (
+              <div id="project-name-row" ref={nameRef}
+                onBlur={e => { if (!e.currentTarget.contains(e.relatedTarget)) setNameOpen(false) }}
+                style={{
+                  flex: '1 0 100%', minWidth: 0, order: 2,
+                  overflow: 'hidden',
+                  maxHeight: nameOpen ? 52 : 0,
+                  opacity: nameOpen ? 1 : 0,
+                  marginTop: nameOpen ? 6 : 0,
+                  transition: 'max-height var(--t) var(--ease), opacity var(--t) var(--ease), margin-top var(--t) var(--ease)',
+                }}>
+                <TitleField full name={state.meta.name}
+                  onCommit={next => {
+                    set(s => ({ ...s, meta: { ...s.meta, name: next } }), 'meta:name')
+                    setNameOpen(false)
+                  }} />
               </div>
             )}
             <ToolsMenu uiSpeed={uiSpeed} setUiSpeed={setUiSpeed} uiHue={uiHue} setUiHue={setUiHue}
