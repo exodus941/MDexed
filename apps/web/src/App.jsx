@@ -122,7 +122,12 @@ const FolderOpen = () => I(<path d="m6 14 1.5-2.9A2 2 0 019.24 10H20a2 2 0 011.9
 const DriveDown = () => I(<><path d="M12 2v8" /><path d="m16 6-4 4-4-4" /><rect width="20" height="8" x="2" y="14" rx="2" /><path d="M6 18h.01" /><path d="M10 18h.01" /></>)
 const CloudUp = () => I(<><path d="M12 13v8" /><path d="M4 14.9A7 7 0 1115.71 8h1.79a4.5 4.5 0 012.5 8.24" /><path d="m8 17 4-4 4 4" /></>)
 const Eye = () => I(<><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></>)
-const Menu = () => I(<><line x1="4" x2="20" y1="6" y2="6" /><line x1="4" x2="20" y1="12" y2="12" /><line x1="4" x2="20" y1="18" y2="18" /></>)
+/* Two menus sat side by side wearing the same three lines, with their labels
+   hidden at this width, so there was no way to tell Project from UI without
+   opening one. A hamburger means "a menu", which both of them are — it says
+   nothing about which. These say what they open. */
+const Folder = () => I(<path d="M4 20h16a2 2 0 002-2V8a2 2 0 00-2-2h-7.9a2 2 0 01-1.69-.9l-.81-1.2A2 2 0 007.9 3H4a2 2 0 00-2 2v13a2 2 0 002 2z" />)
+const Sliders = () => I(<><line x1="4" x2="4" y1="21" y2="14" /><line x1="4" x2="4" y1="10" y2="3" /><line x1="12" x2="12" y1="21" y2="12" /><line x1="12" x2="12" y1="8" y2="3" /><line x1="20" x2="20" y1="21" y2="16" /><line x1="20" x2="20" y1="12" y2="3" /><line x1="1" x2="7" y1="14" y2="14" /><line x1="9" x2="15" y1="8" y2="8" /><line x1="17" x2="23" y1="16" y2="16" /></>)
 
 const Motion = ({ off }) => (
   <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
@@ -628,7 +633,7 @@ function ProjectMenu ({ items, onAction, projectId }) {
       <button ref={btnRef} className="btn-ghost" onClick={() => setOpen(o => !o)}
         title="Project — new, load, save" aria-expanded={open}
         style={{ padding: BTN.lg, gap: 6, color: open ? 'var(--accent)' : 'var(--muted)' }}>
-        <Menu /><span className="lbl">Project</span>
+        <Folder /><span className="lbl">Project</span>
       </button>
       {open && (
         <div ref={boxRef} className="anim-pop" style={{
@@ -686,10 +691,10 @@ function ToolsMenu({ uiSpeed, setUiSpeed, uiHue, setUiHue, uiTheme, setUiTheme, 
         title="Editor settings — theme, scale, animation, chrome hue"
         aria-expanded={open}
         style={{ padding: BTN.lg, gap: 6, color: open ? 'var(--accent)' : 'var(--muted)' }}>
-        <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
-          <line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" />
-        </svg>
-        {/* Three bars alone say "menu" and nothing about which one. */}
+        {/* Sliders, not three bars. The Project menu beside this one wore the
+            same hamburger, and with both labels hidden at a narrow width there
+            was no way to tell them apart without opening one. */}
+        <Sliders />
         <span className="lbl">UI</span>
       </button>
 
@@ -1683,9 +1688,23 @@ function Shell() {
             against a real 50, and the tab bar slid under the title bar. One
             sticky wrapper has no number to get wrong. */}
         <div ref={stickyRef} style={{ position: 'sticky', top: 0, zIndex: 400, flexShrink: 0, background: 'var(--surf)' }}>
+        {/* Two lines on a phone, one on a desktop.
+            Five things in 375px left the project name showing "My Desi", which
+            names nothing, and squeezed everything else against it. Wrapping is
+            free vertical space, and a title bar is allowed to use it. Line one
+            is what this document is. Line two is what you can do to it. */}
         <header style={{
-          display: 'flex', alignItems: 'baseline', gap: isMobile ? 8 : 13,
-          padding: isMobile ? '7px 12px 5px' : '7px 20px 5px',
+          /* Centred on a phone, baseline-aligned on a desktop.
+             Every control on the phone row is a flex button carrying an icon,
+             and a flex box with centred contents puts nothing in the baseline
+             set — so each one synthesises a baseline from its icon's bottom
+             edge, and they came out 2.5px apart. Equal heights plus centring
+             puts their text within 0.4px without asking for baselines at all.
+             The desktop row mixes text and controls, so it still wants them. */
+          display: 'flex', alignItems: isMobile ? 'center' : 'baseline',
+          flexWrap: isMobile ? 'wrap' : 'nowrap',
+          rowGap: isMobile ? 6 : 0, gap: isMobile ? 8 : 13,
+          padding: isMobile ? '8px 12px 7px' : '7px 20px 5px',
           borderBottom: '1px solid var(--bdr)', background: 'var(--surf)',
         }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 9, flex: 1, minWidth: 0 }}>
@@ -1704,8 +1723,10 @@ function Shell() {
                 <AppBuild />
               </>
             )}
-            <TitleField name={state.meta.name}
-              onCommit={next => set(s => ({ ...s, meta: { ...s.meta, name: next } }), 'meta:name')} />
+            {!isMobile && (
+              <TitleField name={state.meta.name}
+                onCommit={next => set(s => ({ ...s, meta: { ...s.meta, name: next } }), 'meta:name')} />
+            )}
             {!isMobile && (
               <div style={{ display: 'flex', gap: 3, marginLeft: 4, alignSelf: 'center' }}>
                 {swatches.map((hex, i) => <div key={i} className="swatch" style={{ width: 12, height: 12, background: hex, cursor: 'default' }} />)}
@@ -1794,6 +1815,16 @@ function Shell() {
             {isMobile && (
               <ProjectMenu projectId={projectId} onAction={runProjectAction}
                 items={[...PROJECT_ACTIONS, { id: 'previewFile', label: 'Preview DESIGN.md', Icon: Eye, hint: 'Read the generated file' }]} />
+            )}
+            {/* The name gets the whole second line. Sharing line one with a
+                mark, an export and two menus left it showing "My Desi", which
+                names nothing. It is the one field here you can actually type
+                into, so it gets room to be read and edited. */}
+            {isMobile && (
+              <div style={{ flex: '1 0 100%', minWidth: 0, order: 2 }}>
+                <TitleField name={state.meta.name}
+                  onCommit={next => set(s => ({ ...s, meta: { ...s.meta, name: next } }), 'meta:name')} />
+              </div>
             )}
             <ToolsMenu uiSpeed={uiSpeed} setUiSpeed={setUiSpeed} uiHue={uiHue} setUiHue={setUiHue}
               uiScale={uiScale} setUiScale={setUiScale}

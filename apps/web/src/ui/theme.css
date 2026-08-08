@@ -275,6 +275,13 @@ textarea:not(.dmd *){resize:vertical;min-height:90px;font-size:13px;line-height:
 
    40px, not the 27 they had, because a finger is the pointer here. */
 @media (max-width:767px){
+  /* Every control in the title bar is one height, stated rather than inherited.
+     Splitting the bar into two lines produced 37, 31, 31 and a 26px mark, all
+     sized by their own contents. A row of content-sized controls is a bug
+     waiting for the next label change. */
+  header .btn-ghost,header .btn-primary,header .btn-fill,header .btn-outline{height:36px}
+  header .no-bar{align-items:center}
+
   .action-row{min-height:56px!important;gap:10px!important;padding:0 12px!important}
   .action-row select{height:40px;padding:0 28px 0 10px}
   .action-row .seg-box{height:40px;box-sizing:border-box;align-items:stretch}
