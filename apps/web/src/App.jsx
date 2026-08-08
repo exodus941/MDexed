@@ -1944,10 +1944,17 @@ function Shell() {
           toasts. The restore offer appears at boot and the save flash fires
           ~600ms later on the first autosave, so anchoring both to the same
           corner separately would overlap them on every cold start. */}
+      {/* Anchored to a corner on a desktop, where a toast should stay out of
+          the way of the work. On a phone there is no "out of the way": pinned
+          to the right it ran off the edge, and a 343px card in a 375px screen
+          has no corner to sit in. So it spans the width with a gutter each
+          side and centres what it holds. */}
       <div style={{
-        position: 'fixed', right: 18, bottom: 16, zIndex: 900,
-        display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8,
-        pointerEvents: 'none',
+        position: 'fixed', bottom: 16, zIndex: 900,
+        display: 'flex', flexDirection: 'column', gap: 8, pointerEvents: 'none',
+        ...(isMobile
+          ? { left: 12, right: 12, alignItems: 'stretch' }
+          : { right: 18, alignItems: 'flex-end' }),
       }}>
         {/* Save confirmation on top, restore offer beneath it. The save flash
             is transient and its own arrival is the message; the restore offer

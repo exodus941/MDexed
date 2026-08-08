@@ -115,7 +115,10 @@ export default function Form({ onInspect, layout }) {
           </div>
         </div>
 
-        <div className="row" style={{ justifyContent: 'flex-end' }}>
+        {/* Reversed when stacked, so the primary action is the one nearest the
+            thumb and the one read first. Right-aligned in a row puts Save last,
+            which is correct on a desktop and backwards on a phone. */}
+        <div className="row stack-narrow-rev" style={{ justifyContent: 'flex-end' }}>
           <button className="btn btn-ghost" {...ins('button-ghost')}><Ico d={IconX} />Cancel</button>
           <button className="btn btn-secondary" {...ins('button-secondary')}>Save draft</button>
           <button className="btn btn-primary" {...ins('button-primary')}><Ico d={IconCheck} />Save changes</button>
@@ -123,7 +126,12 @@ export default function Form({ onInspect, layout }) {
       </div>
 
       <div className="card card-flat" {...ins('card-flat')} style={{ borderColor: 'var(--c-danger, #c2453c)', cursor: onInspect ? 'pointer' : undefined }}>
-        <div className="row" style={{ justifyContent: 'space-between' }}>
+        {/* On a narrow screen the button drops below the explanation and goes
+            full width. Beside the text it squeezed a two-word heading onto two
+            lines and left the warning in a 100px column — and it put a
+            destructive control within reach before its own explanation had
+            been read. Read first, then act. */}
+        <div className="row stack-narrow" style={{ justifyContent: 'space-between' }}>
           <div>
             <div style={{ fontWeight: 500 }} {...txt("body-md")}>Close this account</div>
             <p className="muted small" style={{ marginTop: 2 }} {...txt("body-sm", "text-muted")}>Permanently removes all invoices and history.</p>
