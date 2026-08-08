@@ -591,6 +591,24 @@ function GlobalMetrics() {
    the editor column's 420px floor relaxes. */
 const MOBILE_Q = '(max-width: 767px)'
 
+/* One breakpoint per question, each measured from the thing it governs.
+ *
+ * MOBILE_Q answers "can two panes coexist", which is about pane width. It was
+ * also answering "is the title bar cramped", which is about the title bar's
+ * own contents, and those are not the same number. Everything between 768 and
+ * 1570 got the full desktop bar in a space that could not hold it, and the
+ * result was the mark, the wordmark, the name field and the swatches printed
+ * on top of each other.
+ *
+ * BAR_FULL_Q: the run of six action buttons plus the left block needs 1570px,
+ * measured. Below that they fold into the Project menu.
+ *
+ * BAR_TRIM_Q: below this the wordmark, the build chip and the palette go too.
+ * They are decoration next to a name you can edit and an action you can press.
+ */
+const BAR_FULL_Q = '(max-width: 1569px)'
+const BAR_TRIM_Q = '(max-width: 1099px)'
+
 function useMedia (query) {
   const [match, setMatch] = useState(() =>
     typeof window !== 'undefined' && window.matchMedia(query).matches)
@@ -1172,6 +1190,11 @@ function Shell() {
    * The editor is the default. You open this to work. Reviewing is one tap
    * away either way, and the choice persists for the session. */
   const isMobile = useMedia(MOBILE_Q)
+  /* The title bar folds on its own schedule, measured from its own contents.
+     `barCompact` is true on a phone too, since a phone is narrower than any
+     of these thresholds. */
+  const barCompact = useMedia(BAR_FULL_Q)
+  const barTrim = useMedia(BAR_TRIM_Q)
   const [mobilePane, setMobilePane] = useState('editor')
   const [stackPanes, setStackPanes] = useState(false)
   /* The name field is folded away on a phone and the pencil unfolds it.
@@ -1744,7 +1767,7 @@ function Shell() {
             {/* The wordmark, build number and palette are the first things to
                 go. The squircle already says which app this is, and the name
                 field is the only part of this group you can act on. */}
-            {!isMobile && (
+            {!barTrim && (
               <>
                 <span style={{ fontFamily: 'var(--display)', fontWeight: 700, fontSize: 15, letterSpacing: '-0.025em', whiteSpace: 'nowrap' }}>
                   MD<span style={{ color: 'var(--muted)', fontWeight: 400 }}>exed</span>
@@ -1756,7 +1779,7 @@ function Shell() {
               <TitleField name={state.meta.name}
                 onCommit={next => set(s => ({ ...s, meta: { ...s.meta, name: next } }), 'meta:name')} />
             )}
-            {!isMobile && (
+            {!barTrim && (
               <div style={{ display: 'flex', gap: 3, marginLeft: 4, alignSelf: 'center' }}>
                 {swatches.map((hex, i) => <div key={i} className="swatch" style={{ width: 12, height: 12, background: hex, cursor: 'default' }} />)}
               </div>
@@ -1780,7 +1803,7 @@ function Shell() {
             {/* Two readouts, then the controls. Tighter gap between them than
                 to the buttons, so they group as one unit rather than reading
                 as two more things to click. */}
-            {!isMobile && (
+            {!barTrim && (
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginRight: 2 }}>
                 <VersionChip version={state.meta.version} />
                 <SyncBadge status={syncStatus} />
@@ -1795,7 +1818,7 @@ function Shell() {
                 action the whole app exists to produce.
 
                 On a phone this whole run collapses into the Project menu. */}
-            {!isMobile && PROJECT_ACTIONS.map(a => {
+            {!barCompact && PROJECT_ACTIONS.map(a => {
               /* Once saved, the cloud button has nothing left to do, so the
                  slot turns into the thing you actually want next. */
               if (a.id === 'saveToCloud' && projectId) return (
@@ -1815,7 +1838,7 @@ function Shell() {
             {/* The accent in outline form, one step below the filled Export it
                 sits beside. Reading the file and shipping it are the same act
                 at two levels of commitment, so they share a colour. */}
-            {!isMobile && (
+            {!barCompact && (
               <button className="btn-outline" onClick={() => setShowFile(true)} title="Read the generated file before you export it"
                 style={{ padding: BTN.lg, flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
                 <Eye /><span className="lbl">Preview DESIGN.md</span>
@@ -1841,7 +1864,7 @@ function Shell() {
             {/* Preview DESIGN.md joins the menu here, because its own button is
                 hidden at this width. Without this it had no route at all on a
                 phone, which is worse than the crowding it was hidden to fix. */}
-            {isMobile && (
+            {barCompact && (
               <ProjectMenu projectId={projectId} onAction={runProjectAction}
                 items={[...PROJECT_ACTIONS, { id: 'previewFile', label: 'Preview DESIGN.md', Icon: Eye, hint: 'Read the generated file' }]} />
             )}
