@@ -1,4 +1,16 @@
-/* Where the surfaces collapse, and which question they ask to decide.
+/* ⚠ NO BACKTICKS ANYWHERE BELOW THE `return` IN THIS FILE. ⚠
+ *
+ * Everything this function returns is one template literal, comments included.
+ * A backtick inside a CSS comment ends the string there, and the rest of the
+ * stylesheet is then parsed as JavaScript expressions. Sometimes that is a
+ * syntax error and sometimes it is valid code that silently produces nothing.
+ *
+ * I have done this four times in this file alone, always while writing a
+ * comment explaining a CSS property, always by quoting the property name.
+ * Write the property name as plain words instead: "display contents", not the
+ * quoted form. The guard catches it, but only after the build has broken.
+ *
+ * Where the surfaces collapse, and which question they ask to decide.
  *
  * Split out of tokens.js so the test suite can import it. tokens.js pulls in
  * `./preview.css?raw`, which is a Vite feature Node cannot resolve, so nothing
@@ -75,9 +87,50 @@ ${query(sm)} {
   .dmd .cols-2, .dmd .cols-3, .dmd .cols-4 { grid-template-columns: minmax(0, 1fr); }
   /* Labels go above their fields — 112px of label leaves nothing for input. */
   .dmd .field-inline { grid-template-columns: minmax(0, 1fr); gap: 4px; }
-  /* Header rows carry a title and a cluster of actions; at this width they
-     need two lines rather than a squeezed one. */
-  .dmd .row-wrap { flex-wrap: wrap; }
+  /* Every row wraps at this width, not only the ones opted in by class.
+     A footer holding Reset, Discard and Save was 112px wider than the page and
+     simply clipped its own primary action. Marking rows one at a time means
+     the next row added is clipped again until somebody notices. A row that
+     already fits is unaffected by permission to wrap.
+
+     No backticks in this comment. It sits inside a template literal, and one
+     would end the string here. */
+  .dmd .row { flex-wrap: wrap; }
+  /* Nested action groups stay together on their line rather than splitting
+     across two, so Discard and Save read as a pair. */
+  .dmd .row > .row { flex-wrap: nowrap; }
+
+  /* A row that should stop being a row.
+     Wrapping keeps items on the line until they run out of room, which leaves
+     a half-width button stranded beside a paragraph. These say the arrangement
+     instead: one column, every action at full width.
+
+     The reversed variant puts the primary action first. A footer that reads
+     Cancel, Save draft, Save changes is right on a desktop, where the eye ends
+     at the right. Stacked on a phone it buries the main action at the bottom,
+     furthest from the thumb. */
+  .dmd .stack-narrow, .dmd .stack-narrow-rev { flex-direction: column; align-items: stretch; }
+  .dmd .stack-narrow-rev { flex-direction: column-reverse; }
+  .dmd .stack-narrow > .btn, .dmd .stack-narrow-rev > .btn { width: 100%; }
+
+  /* A spec group scrolls, it does not fold.
+     Four variants across four states only means anything read across the row,
+     so wrapping destroys the one thing it exists to show. It was clipping
+     instead, which loses the last column in silence. The scroller sits on the
+     group rather than the row, so every row moves together. */
+  .dmd .matrix { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .dmd .matrix > .row { flex-wrap: nowrap; min-width: max-content; }
+
+  /* Only the true matrix gets aligned columns.
+     Rows of independent flex boxes line up only by luck — measured at 7px of
+     drift on the variants grid, where the whole point is comparing one cell
+     against the one below it. One grid, with the rows dissolved into it by
+     display contents, makes the columns share a track.
+
+     Not applied to the size and icon groups. Those carry a different number of
+     items per row, so a shared column means nothing there. */
+  .dmd .matrix-grid { display: grid; grid-template-columns: repeat(5, max-content); gap: var(--space-sm, 8px); align-items: center; }
+  .dmd .matrix-grid > .row { display: contents; }
   .dmd { padding: ${sp('md', '16px')}; }
 }
 `

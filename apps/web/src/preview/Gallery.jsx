@@ -53,7 +53,7 @@ export default function Gallery({ onInspect, layout }) {
       )}
 
       <Section txt={txt} title="Buttons — variants × states" note="Forced states, so every combination is visible at once">
-        <div className="stack-sm">
+        <div className="stack-sm matrix matrix-grid">
           {variants.map(v => (
             <div className="row" key={v}>
               <Label txt={txt}>{v}</Label>
@@ -78,7 +78,7 @@ export default function Gallery({ onInspect, layout }) {
       </Section>
 
       <Section txt={txt} title="Buttons with icons" note="Leading, trailing, icon-only — spacing driven by the icon gap token">
-        <div className="stack-sm">
+        <div className="stack-sm matrix">
           <div className="row">
             <Label txt={txt}>filled</Label>
             <button className="btn btn-primary" {...ins('button-primary')}><Ico d={IconPlus} />New invoice</button>
@@ -172,7 +172,7 @@ export default function Gallery({ onInspect, layout }) {
       </Section>
 
       <Section txt={txt} title="Search, select and toolbar">
-        <div className="stack-sm">
+        <div className="stack-sm matrix">
           <div className="input-icon" style={{ maxWidth: 300 }} {...ins("input")}>
             <Ico d={IconSearch} />
             <input className="input" placeholder="Search invoices" />
@@ -212,7 +212,7 @@ export default function Gallery({ onInspect, layout }) {
       </Section>
 
       <Section txt={txt} title="Alerts and toasts">
-        <div className="stack-sm">
+        <div className="stack-sm matrix">
           {[['success', IconCheck, 'Invoice sent to Northwind Trading.'],
             ['warning', IconInfo, 'Two invoices are overdue by more than 30 days.'],
             ['danger', IconInfo, 'Payment failed — the card on file has expired.']].map(([tone, icon, body]) => (

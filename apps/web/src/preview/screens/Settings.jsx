@@ -17,14 +17,27 @@ export default function Settings({ onInspect }) {
 
   return (
     <div className="with-aside" style={{ '--aside': '160px' }}>
-      <nav className="stack-sm">
-        {sections.map((s, i) => (
-          <div key={s} className={`nav-item with-icon${i === 3 ? ' is-active' : ''}`}
-            {...ins(i === 3 ? 'nav-item-selected' : 'nav-item')}>
-            <Ico d={[IconUser, IconFolder, IconChart, IconBell, IconFolder, IconLock][i]} />{s}
-          </div>
-        ))}
-      </nav>
+      {/* Same fold as the dashboard rail. This one was left behind when that
+          was fixed, so six links still stacked above the page title.
+
+          The summary names the section you are in rather than the region,
+          because on a phone this is the only thing telling you where you are.
+          That is how every settings screen on a phone behaves. */}
+      <details className="nav-collapse">
+        <summary className="nav-summary">
+          <span className="caption" style={{ textTransform: 'uppercase', letterSpacing: '.08em' }}
+            {...txt('overline', 'text-muted')}>{sections[3]}</span>
+          <span className="nav-burger" aria-hidden="true"><span /><span /><span /></span>
+        </summary>
+        <nav className="stack-sm">
+          {sections.map((s, i) => (
+            <div key={s} className={`nav-item with-icon${i === 3 ? ' is-active' : ''}`}
+              {...ins(i === 3 ? 'nav-item-selected' : 'nav-item')}>
+              <Ico d={[IconUser, IconFolder, IconChart, IconBell, IconFolder, IconLock][i]} />{s}
+            </div>
+          ))}
+        </nav>
+      </details>
 
       <div className="stack">
         <div>

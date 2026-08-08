@@ -35,7 +35,11 @@ export default function Landing({ onInspect }) {
         <p {...txt('body-lg', 'text-muted')} style={{ fontSize: 'var(--font-body-lg-size, 18px)', color: 'var(--c-text-muted, #666)', maxWidth: '46ch', cursor: onInspect ? 'pointer' : undefined }}>
           Send an invoice in twenty seconds. Chase it automatically. Reconcile it without opening a spreadsheet.
         </p>
-        <div className="row" style={{ marginTop: 'var(--space-sm, 8px)' }}>
+        {/* Two large calls to action. On a narrow screen they stack and go
+            full width, primary first — a hero CTA is the one thing the page
+            is asking for, and shrinking it to share a line with its own
+            alternative is the opposite of that. */}
+        <div className="row stack-narrow" style={{ marginTop: 'var(--space-sm, 8px)' }}>
           <button className="btn btn-primary btn-lg" {...ins('button-lg')}>Start free<Ico d={IconArrow} size="lg" end /></button>
           <button className="btn btn-secondary btn-lg" {...ins('button-secondary')}><Ico d={IconStar} size="lg" />Book a demo</button>
         </div>
