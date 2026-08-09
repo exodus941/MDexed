@@ -1805,7 +1805,13 @@ function Shell() {
               against their 40 on a phone — a mark half a step short of the
               row it belongs to, which is the fault the constant was added to
               prevent. A custom property lets the same media query move both. */}
-          <div className="bar-mark" style={{ borderRadius: 9, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', alignSelf: 'center', fontFamily: 'var(--display)', fontWeight: 800, fontSize: 14, letterSpacing: '-0.04em', color: 'var(--bg)', flexShrink: 0 }}>MD</div>
+          {/* baseline, not center. The letters in here are text on the row's
+              line and belong on the row's baseline — they sat at 30 against
+              everyone else's 29 while this centred. Sizing and the line box
+              live in the stylesheet, where the touch breakpoint can reach
+              them; flex centring is gone because it hides the letters from the
+              row and tells it nothing about where they landed. */}
+          <div className="bar-mark" style={{ borderRadius: 9, background: 'var(--accent)', alignSelf: 'baseline', fontFamily: 'var(--display)', fontWeight: 800, fontSize: 14, letterSpacing: '-0.04em', color: 'var(--bg)', flexShrink: 0 }}>MD</div>
 
           {/* The words. Baseline-aligned, so every size in here shares one
               line with the button labels across the bar. */}
