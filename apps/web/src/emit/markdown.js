@@ -282,6 +282,11 @@ function layoutBody(state, derived) {
         Object.entries(l.fixedWidths).map(([k, v]) => `**${k}** ${v}px`).join(', ')
       }. These are starting points, not constraints. A rail that cannot hold its longest label, or a field that crowds the control beside it, should change. Change the token rather than the one page, and keep every other width on the spacing scale.`,
       'Mobile first — treat each breakpoint as a min-width.',
+      'Use `minmax(0, 1fr)` for equal grid columns, never a bare `1fr`. A bare `1fr` carries a min-content floor, so the column holding the longest word grows and the "equal" columns come out different widths.',
+      'Anything left alone on its own line takes the whole line. A wrap, a fold or a hidden label orphans an element often, and the orphan almost never resizes itself — a 150px field floating in a 351px row reads as an accident rather than a decision.',
+      'Sideways scrolling is a last resort, not a layout tool. Ask what genuinely cannot stack: a table of real columns cannot, so it scrolls. A run of buttons can, so it stacks. A pane that scrolls down, inside a page that scrolls down, around a group that scrolls sideways, is three scrollbars for four controls.',
+      'Choose each breakpoint from the thing it governs, measured. "Can two panes sit side by side" is about pane width. "Is this toolbar cramped" is about that toolbar\'s own contents, and the two answers are usually far apart. Reusing one number for both leaves every width in between with a layout that cannot fit.',
+      'Collapse in stages, cheapest first: decoration before content, content before action. A wordmark and a colour strip go before a name you can edit, which goes before a button you can press.',
     ])
   )
 }
@@ -430,6 +435,10 @@ function componentsBody(state, derived) {
       'An element with no text has no baseline of its own. An inline-block with no in-flow content falls back to its bottom margin edge, so an icon-only button whose icon is absolutely positioned floats against its lettered neighbours — measured at 8px. Give it a strut: `::before { content: "\\200B" }`, invisible, no width, inheriting the line-height, so its baseline lands where a label\'s would.',
       'Page actions belong to the heading, not to the heading-and-description block. Put them on the heading\'s baseline. Pinning them to the top of the band with `align-items: flex-start` leaves them floating above a title whose letters sit well below them.',
       'Never build an underline from a border. A 2px border makes the element 2px taller and pushes it past its own container\'s rule, breaking that line exactly where the element sits. A *transparent* border costs the same height, so the inactive siblings sit wrong too. Paint it with `box-shadow: inset 0 -2px 0` instead, which lands in the same place and joins no box.',
+      'Unequal gaps in one row read as a mistake even when nothing is misaligned. Every gap comes from the spacing scale, and a different gap means a deliberate grouping rather than a typed number.',
+      'Proximity is grouping, and it outranks alignment. Items closer together read as one unit, so a label nearer the field below it than the field above labels the wrong one — and no amount of correct alignment repairs that.',
+      'A status readout is not a control. If it renders as a bordered pill with a label, people will click it. Either make it clickable or stop drawing it like a button: no border, no pill, and wording that states a fact.',
+      'Never style a bare element selector in an application that renders somebody else\'s design inside it. A rule like `label { text-transform: uppercase }` reaches every label in the hosted content, so the preview stops showing the user\'s system and starts showing yours — and it then disagrees with what the same system exports, which is the file people build from. Scope such rules away from the hosted region.',
     ]),
     /* This was its own component in the preview for a long time, with a
        hardcoded box, and it stood taller than the small buttons beside it. An
@@ -504,7 +513,8 @@ function motionSection(state, derived) {
     `Motion personality: **${state.motion.personality}**.`,
     d, e,
     bullets([
-      'Use `fast` for hover and colour changes, `normal` for entering and leaving elements, `slow` for anything full-screen.',
+      'Use `normal` for a colour change on hover or focus, `fast` for something appearing or moving a short distance, `slow` for a full-screen change. Movement and colour are read differently: slowing a panel that slides makes an interface feel sticky, while speeding a colour change makes it invisible.',
+      'A colour fade under about 180ms is present, running, and over before the eye resolves it. The transition passes every check and the interface still feels dead. If a hover looks like it is doing nothing, the duration is the first thing to measure.',
       'Animate transform and opacity only. Never animate layout properties.',
       state.motion.reducedMotion === 'crossfade'
         ? 'Under `prefers-reduced-motion`, drop to a cross-fade at `fast`.'

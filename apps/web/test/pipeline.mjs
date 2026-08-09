@@ -699,6 +699,48 @@ line('\n- prompt construction -')
   assert(!/responsiveCss\([^)]*,\s*'media'\s*\)/.test(canvasSrc), 'the editor canvas does not')
 }
 
+/* ── The payload teaches what we learned ──
+ *
+ * Every design rule discovered while building this app has to reach the file
+ * an agent reads, or the tool keeps the lesson and every consumer of its output
+ * keeps the bug. These are the rules that cost real time here, each pinned by
+ * terms specific enough that a passing match means the rule is genuinely
+ * present rather than the words happening to appear.
+ *
+ * This is a drift guard, not a style check. When a rule is reworded, update the
+ * terms. When one is deleted, this fails, which is the point. */
+{
+  line('\n- payload carries the design rules -')
+  const doc = generateFile(state, derived).text.toLowerCase()
+  const RULES = [
+    ['line-height from the content box', ['border-box', 'line box']],
+    ['vertical-align middle is the x-height', ['x-height', 'vertical-align']],
+    ['an icon aligns to its label', ['icon', 'label', 'read as one object']],
+    ['no text means no baseline, so strut it', ['strut', '200b']],
+    ['a large heading centres, never baseline', ['centres instead']],
+    ['page actions belong to the heading', ['page actions belong']],
+    ['no underline built from a border', ['underline', 'inset 0 -2px']],
+    ['equal columns use minmax(0, 1fr)', ['minmax(0, 1fr)']],
+    ['orphaned elements take the whole line', ['own line takes the whole line', 'takes the whole line']],
+    ['sideways scroll is a last resort', ['last resort']],
+    ['breakpoints are measured per question', ['measured', 'breakpoint']],
+    ['gaps come from the spacing scale', ['unequal gaps']],
+    ['proximity is grouping', ['proximity is grouping']],
+    ['a status readout is not a control', ['status readout is not a control']],
+    ['never style bare element selectors', ['bare element selector']],
+    ['colour fades want the normal step', ['under about 180ms']],
+    ['reduced motion is honoured', ['prefers-reduced-motion']],
+  ]
+  const missing = RULES.filter(([, terms]) => !terms.every(t => doc.includes(t))).map(([n]) => n)
+  assert(missing.length === 0,
+    `every learned design rule reaches the payload${missing.length ? ` — missing: ${missing.join('; ')}` : ` (${RULES.length})`}`)
+
+  /* The payload must not contradict what this app itself does. It told agents
+     to use the fast step for hover, which is the value proved imperceptible
+     here, so the tool taught the opposite of its own behaviour. */
+  assert(!/use `fast` for hover/.test(doc), 'the payload does not recommend the fast step for a hover fade')
+}
+
 line('\n- project file -')
   const saved = serializeProject(state, { savedAt: '2026-01-01T00:00:00.000Z' })
   const r = parseProject(saved)
