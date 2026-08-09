@@ -23,13 +23,19 @@ export default function Settings({ onInspect }) {
           The summary names the section you are in rather than the region,
           because on a phone this is the only thing telling you where you are.
           That is how every settings screen on a phone behaves. */}
-      <details className="nav-collapse">
-        <summary className="nav-summary">
-          <span className="caption" style={{ textTransform: 'uppercase', letterSpacing: '.08em' }}
-            {...txt('overline', 'text-muted')}>{sections[3]}</span>
-          <span className="nav-burger" aria-hidden="true"><span /><span /><span /></span>
-        </summary>
-        <nav className="stack-sm">
+      {/* Sibling, not child. See the note in Dashboard: a closed `details`
+          renders none of its non-summary children, whatever CSS says, so a
+          list nested inside one is invisible at every width until it is
+          opened. One wrapper keeps `.with-aside` at two children. */}
+      <div className="aside-rail">
+        <details className="nav-collapse">
+          <summary className="nav-summary" {...inspectProps("nav-item", onInspect, { passthrough: true })}>
+            <span className="caption" style={{ textTransform: 'uppercase', letterSpacing: '.08em' }}
+              {...txt('overline', 'text-muted')}>{sections[3]}</span>
+            <span className="nav-burger" aria-hidden="true"><span /><span /><span /></span>
+          </summary>
+        </details>
+        <nav className="stack-sm nav-list">
           {sections.map((s, i) => (
             <div key={s} className={`nav-item with-icon${i === 3 ? ' is-active' : ''}`}
               {...ins(i === 3 ? 'nav-item-selected' : 'nav-item')}>
@@ -37,7 +43,7 @@ export default function Settings({ onInspect }) {
             </div>
           ))}
         </nav>
-      </details>
+      </div>
 
       <div className="stack">
         <div>
