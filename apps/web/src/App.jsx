@@ -1202,6 +1202,10 @@ function Shell() {
      of these thresholds. */
   const barCompact = useMedia(BAR_FULL_Q)
   const barTrim = useMedia(BAR_TRIM_Q)
+  /* Does the words group have anything left to show? Every child of it is
+     behind one of these two guards, so on a phone it renders empty — and an
+     empty flex child still takes the free space. Ask before rendering it. */
+  const hasWords = !barTrim || !isMobile
   const [mobilePane, setMobilePane] = useState('editor')
   const [stackPanes, setStackPanes] = useState(false)
   /* The name field is folded away on a phone and the pencil unfolds it.
@@ -1768,7 +1772,22 @@ function Shell() {
            * Text is the majority and it keeps the baseline. That is the right
            * way round — a row of words with a square in it is not a row of
            * squares. */
-          display: 'flex', alignItems: 'baseline',
+          /* Count what the row holds, and the answer differs by width.
+           *
+           * Wide, it is mostly words — a wordmark, a build chip, a name field,
+           * button labels at five sizes — so it takes baseline and they share
+           * one line.
+           *
+           * On a phone every one of those words is gone. What is left is five
+           * controls of one height and no free text at all, so it centres.
+           * Under baseline the two that still had a word sat at 9.5 and the
+           * three icon-only ones synthesised a baseline from an edge and sat at
+           * 8. Nothing was misaligned by the rules; the rules were being asked
+           * a question the row no longer contained.
+           *
+           * Inline, not in the stylesheet, because an inline style beats a rule
+           * and a media query cannot reach this. */
+          display: 'flex', alignItems: isMobile ? 'center' : 'baseline',
           flexWrap: isMobile ? 'wrap' : 'nowrap',
           rowGap: isMobile ? 6 : 0, gap: isMobile ? 8 : 13,
           /* Symmetric. 7 over 5 shifted the whole row 1px off centre inside its
@@ -1814,7 +1833,20 @@ function Shell() {
           <div className="bar-mark" style={{ borderRadius: 9, background: 'var(--accent)', alignSelf: 'baseline', fontFamily: 'var(--display)', fontWeight: 800, fontSize: 14, letterSpacing: '-0.04em', color: 'var(--bg)', flexShrink: 0 }}>MD</div>
 
           {/* The words. Baseline-aligned, so every size in here shares one
-              line with the button labels across the bar. */}
+              line with the button labels across the bar.
+           *
+           * `hasWords` because every child below is behind a trim guard, and on
+           * a phone all of them go. The group then rendered as an empty box
+           * with `flex: 1`, which still claims the free space — measured 38.9px
+           * of nothing between the mark and the first button, and those 38.9px
+           * were exactly what pushed the last button onto a second row.
+           *
+           * It never showed while the mark lived inside this group, because the
+           * group was never empty. Moving the mark out to fix a baseline made an
+           * empty flex child possible for the first time. A restructure creates
+           * states the old structure could not reach, which is the argument for
+           * re-measuring the row you touched rather than the fault you fixed. */}
+          {hasWords && (
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 9, flex: 1, minWidth: 0 }}>
             {/* The wordmark, build number and palette are the first things to
                 go. The squircle already says which app this is, and the name
@@ -1837,6 +1869,7 @@ function Shell() {
               </div>
             )}
           </div>
+          )}
 
           {/* Scrolls rather than clips.
            *

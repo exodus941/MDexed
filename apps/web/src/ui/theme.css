@@ -438,6 +438,23 @@ main{container-type:inline-size}
    icon is not self-explanatory — Export Payload is the only one so far. */
 @media (max-width:767px){
   .lbl:not(.keep-lbl){position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0}
+
+  /* An icon-only control takes the touch floor exactly.
+   *
+   * These measured 47 from their padding, against a 44 floor the system
+   * states. Three of them at 47 needed 359.1px in a 351px bar, so the last one
+   * wrapped to a row of its own and sat there at its natural width — the
+   * emptiest line in the chrome, and the exact shape this project's own payload
+   * tells other agents never to ship.
+   *
+   * 44 is not a number chosen to make it fit. It is the minimum target the
+   * system publishes, and the row comes to 350.1 with it. Reaching the floor
+   * and reaching the width are the same edit here, which is luck, but the floor
+   * is the reason.
+   *
+   * Export Payload keeps its label and its own width; it is a btn-primary and
+   * no rule here touches it. */
+  header button.btn-ghost:not(:has(.keep-lbl)){width:44px;padding:0}
 }
 label:not(.dmd *){display:block;font-size:10.5px;font-weight:500;text-transform:uppercase;letter-spacing:0.07em;color:var(--muted);margin-bottom:5px}
 /* A label that names a checkbox, not a field.

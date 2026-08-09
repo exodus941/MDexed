@@ -807,6 +807,8 @@ line('\n- prompt construction -')
     ['the baseline is chosen, not read off an element', ['choose the line, then make everything obey it']],
     ['a logotype is text and obeys the line', ['no exceptions for decoration']],
     ['flex centring hides a label from its row', ['hides a label from the row it sits in']],
+    ['reach the touch floor before trimming a gap', ['stated touch floor']],
+    ['an empty box that grows is never rendered', ['never render an empty box that grows']],
     ['a responsive rule is checked at both widths', ['at **both** widths']],
   ]
   const missing = RULES.filter(([, terms]) => !terms.every(t => doc.includes(t))).map(([n]) => n)
