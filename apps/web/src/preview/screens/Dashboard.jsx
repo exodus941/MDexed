@@ -76,7 +76,11 @@ export default function Dashboard({ onInspect, layout }) {
          *
          * With the description moved out, the row holds one line of heading
          * and one group of controls, and `center` means what it should. */}
-        <div>
+        {/* Named, because the narrow layout has to reorder this block. The
+            actions move below the heading AND its description, which means the
+            three of them must be siblings in one column. `page-head` becomes
+            `display: contents` at that width and hands its children up. */}
+        <div className="page-header">
           <div className="row row-wrap page-head" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
             <h2 {...txt('h2')}>Overview</h2>
             {/* Small is a desktop choice. These are the page's own actions, and
@@ -90,7 +94,9 @@ export default function Dashboard({ onInspect, layout }) {
               <button className="btn btn-secondary btn-sm icon-only" {...ins('button-secondary')}><Ico d={IconBell} /></button>
             </div>
           </div>
-          <p className="muted small" style={{ marginTop: 4 }} {...txt('body-sm', 'text-muted')}>Fourth quarter, all accounts</p>
+          {/* The 4px gap lives in the stylesheet, not inline. Inline wins over
+              every rule, so the narrow layout could not have changed it. */}
+          <p className="muted small page-sub" {...txt('body-sm', 'text-muted')}>Fourth quarter, all accounts</p>
         </div>
 
         {/* Alerts belong on the screen that would actually raise one. */}

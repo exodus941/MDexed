@@ -288,6 +288,19 @@ textarea:not(.dmd *){resize:vertical;min-height:90px;font-size:13px;line-height:
    stating its height, so on a phone it fell back to its own 22px and sat under
    the touch floor. The floor belongs to the control, not to one container. */
 .readout{min-height:24px;box-sizing:border-box}
+
+/* The MD mark. Square, and sized from one custom property so the touch
+   breakpoint can move it with the buttons beside it — an inline width could
+   not be reached by a media query, which is how it ended up 36 in a row of
+   40s. min-width as well as width, or a squeezed flex row takes it back to a
+   rectangle wearing a square's radius.
+
+   36 here because the desktop header controls are 36. The mark is one of the
+   objects in that row and takes the row's height, whatever that height is —
+   that is the whole rule, and it is why the number appears twice rather than
+   once. Set to 40 at both widths it was correct on a phone and a size too
+   large on a desktop, which is the same fault the other way round. */
+.bar-mark{--bar-ctrl:36px;width:var(--bar-ctrl);min-width:var(--bar-ctrl);height:var(--bar-ctrl)}
 @media (max-width:767px){.readout{min-height:40px}}
 
 /* ── A component property row ──
@@ -336,6 +349,9 @@ main{container-type:inline-size}
      pairing, and so does the responsive one. */
   header .btn-ghost,header .btn-primary,header .btn-fill,header .btn-outline{height:40px;line-height:38px;padding-top:0;padding-bottom:0;align-items:center}
   header input[type=text]{height:40px}
+  /* The mark moves with them. It is one of the objects in this row, so it
+     takes the row's height at every width, not only at the desktop one. */
+  header .bar-mark{--bar-ctrl:40px}
   header .no-bar{align-items:center}
 
   .action-row{min-height:56px!important;gap:10px!important;padding:0 12px!important}

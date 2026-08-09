@@ -690,6 +690,101 @@ export const REQUIREMENTS = [
 ]
 
 /** Every finding, worst first, both modes. */
+/* ── A component's own text against its own fill ──
+ *
+ * The gap this closes. Everything above checks ROLE pairs — text on bg,
+ * accent-fg on accent — and non-text contrast. Nothing checked the pair a
+ * component actually paints. A badge takes its text from `success` and its
+ * fill from `success-subtle`, and that combination appears in no role pair,
+ * so it was never measured anywhere.
+ *
+ * A generated dashboard shipped `badge-success` at 3.94:1 and `badge-warning`
+ * at 4.25:1, both carrying 14.2px text that needs 4.5:1. The file reported
+ * zero contrast findings, and the receiving agent found both by hand and had
+ * to report them back. A check that cannot see the thing on the screen is not
+ * a check.
+ */
+function componentContrast(state, derived, mode) {
+  const roles = derived.roles?.[mode] ?? {}
+  const vars = derived.cssVars ?? {}
+  const out = []
+
+  /* `{colors.accent}` and bare hexes both appear as values. Anything else —
+     `transparent`, a gradient, a spacing ref — has no measurable colour and
+     is skipped rather than guessed at. */
+  const hexOf = value => {
+    const s = String(value ?? '').trim()
+    const m = /^\{colors\.([a-z0-9-]+)\}$/i.exec(s)
+    if (m) return roles[m[1]] ?? null
+    /* `transparent` is a colour to every parser and to no reader. Left to
+       `parseColor` it came back as black at zero alpha, and the two ghost
+       buttons were measured against a black nobody can see: 3.7:1 and 1.4:1,
+       both invented. A control with no fill sits on the page, so the page is
+       what its text has to beat. */
+    if (!s || s === 'none' || s === 'transparent') return null
+    const c = parseColor(s)
+    if (!c) return null
+    if ((c.alpha ?? 1) === 0) return null
+    return s
+  }
+  /* Only a background may fall back to the page. A text colour that resolves
+     to nothing is a component with no text, not a component whose text is the
+     page colour. */
+  const fillOf = value => hexOf(value) ?? roles.bg ?? null
+
+  const byName = new Map(derived.components.map(c => [c.name, c]))
+  const propsOf = name => Object.fromEntries((byName.get(name)?.properties ?? []).map(p => [p.key, p.value]))
+
+  for (const comp of derived.components) {
+    const own = propsOf(comp.name)
+    /* A variant states its colours and inherits its type from the base entry,
+       so `badge-success` alone never reveals what size its text is. */
+    const base = comp.name.split('-')[0]
+    const merged = { ...propsOf(base), ...own }
+
+    const fg = hexOf(merged.textColor)
+    if (!fg) continue
+    const bg = fillOf(merged.backgroundColor)
+    if (!bg) continue
+    const onPage = hexOf(merged.backgroundColor) == null
+    /* Disabled controls are exempt under 1.4.3, and `disabledCheck` already
+       covers whether they read as disabled at all. */
+    if (/-disabled$/.test(comp.name)) continue
+
+    const r = ratio(fg, bg)
+    if (r == null) continue
+    /* Two places, not one. A ratio of 4.4996 rounds to "4.5:1", and a finding
+       that reads "4.5:1, which needs 4.5:1" looks like the check is broken
+       even when it is right. Contrast is the one number here where the reader
+       is comparing against a threshold by eye. */
+    const r2 = n => (Math.floor(n * 100) / 100).toFixed(2)
+
+    /* Large text is 24px, or 18.66px at 700 and above. Below that the bar is
+       4.5:1 and no rounding gets a component over it. */
+    const size = px(vars[`--cmp-${comp.name}-font-size`])
+      ?? px(vars[`--cmp-${base}-font-size`])
+      ?? px(vars['--font-body-md-size']) ?? 16
+    const weight = parseFloat(vars[`--cmp-${base}-font-weight`]) || 400
+    const large = size >= 24 || (size >= 18.66 && weight >= 700)
+    const need = large ? 3 : 4.5
+    if (r >= need) continue
+
+    out.push({
+      req: 'contrast', id: `cmp-contrast:${comp.name}:${mode}`,
+      level: FAIL, criterion: '1.4.3 Contrast (minimum) (AA)',
+      mode, tab: 'components', entry: comp.name,
+      title: onPage
+        ? `${comp.name} text fails against the page behind it`
+        : `${comp.name} text fails against its own background`,
+      detail: `Its text colour measures ${r2(r)}:1 against ${onPage ? 'the page background it sits on, since it has no fill of its own' : 'the fill it sits on'}, at ${r1(size)}px, which needs ${need}:1. This pair is not in the contrast table — that table pairs each role against the page and against its own foreground, and a component that combines two roles of its own makes a third pair nobody was looking at.`,
+      fix: `Move ${comp.name}'s text colour to a darker step of the same ramp, or lighten its fill. Changing the ramp step keeps the hue and fixes every component that shares it.`,
+      measured: `${r2(r)}:1`,
+      pairHex: [fg, bg],
+    })
+  }
+  return out
+}
+
 export function audit(state, derived) {
   const all = [
     ...focusChecks(state),
@@ -701,6 +796,7 @@ export function audit(state, derived) {
     ...['light', 'dark'].flatMap(mode => [
       ...nonTextContrast(state, derived, mode),
       ...colourAlone(derived, mode),
+      ...componentContrast(state, derived, mode),
       ...disabledCheck(state, derived, mode),
     ]),
   ]

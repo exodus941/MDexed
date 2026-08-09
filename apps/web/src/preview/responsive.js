@@ -216,6 +216,69 @@ ${query(sm)} {
      page)", which points nowhere near the cause. */
   .dmd .row.page-actions { flex-wrap: wrap; }
 
+  /* A wrap is what a flex row does when nobody decides. It left one button
+     stranded beside the title and two below it, which reads as an accident
+     rather than a layout. The whole row moves under the heading and its
+     description instead, and the three of them share one left edge.
+
+     display contents on the head promotes the heading and the action row into
+     this column, so order can put the description between them. Without it the
+     actions can only ever sit above a paragraph that is not their sibling. */
+  .dmd .page-header { gap: 0; }
+  .dmd .page-header > .page-head { display: contents; }
+  .dmd .page-header > .page-head > h2 { order: 1; }
+  .dmd .page-header > .page-sub { order: 2; margin-top: 4px; }
+  /* How an action row breaks when it stops fitting.
+   *
+   * Three buttons need 342px and the column holds 309, so the row must break.
+   * A plain wrap strands one button beside the title; nowrap crushed the
+   * icon button to 10.9px of its 44. Neither is a decision.
+   * (No backticks in this file. Quoting a CSS keyword in a comment ends the
+   * template literal and the rest parses as JavaScript.)
+   *
+   * The rule, which the payload carries in full, and which holds for any
+   * number of buttons rather than only these three:
+   *   1. If they all fit one line, leave them — own widths, own ratios.
+   *   2. The single most important action takes a full-width line to itself.
+   *   3. Everything else packs onto the lines below in priority order, as many
+   *      per line as fit, the last labelled button on each line absorbing the
+   *      slack so every line is flush on both edges.
+   *   4. Two of equal top importance each take their own full-width line.
+   *
+   * The three declarations below are the whole rule, not a special case for
+   * this row. The primary is pinned to 100%, so it takes a line whatever else
+   * is present. Everything else grows and wraps naturally, which
+   * packs each line and stretches its last member to the edge for free. The
+   * icon-only square is the one exception, because a bar with a lone glyph
+   * centred in it says nothing. Add a fourth and fifth button and the same
+   * three rules still describe the result. */
+  .dmd .page-header > .page-head > .page-actions {
+    order: 3;
+    margin-top: var(--space-sm, 12px);
+    flex-wrap: wrap;
+    align-items: stretch;
+  }
+  /* General first, specific after. Both selectors carry five classes, so they
+     tie on specificity and the later one wins — written the other way round,
+     the general rule overrode the primary's own line and put it back beside
+     Export. Measured: the primary computed to a growing item instead of a
+     full-width one, and five buttons packed onto two lines with the primary
+     sharing the first. Equal specificity is decided by position, so position
+     has to carry the meaning: broad rule, then the exceptions to it. */
+  .dmd .page-header > .page-head > .page-actions > .btn { flex: 1 1 auto; }
+  /* Order, not markup: the primary reads last in a row because the eye ends
+     there, and first in a column because the top line is the one pressed. */
+  .dmd .page-header > .page-head > .page-actions > .btn-primary {
+    order: -1;
+    flex: 0 0 100%;
+  }
+  /* Except the square, which is a square. It holds its side and lets the
+     labelled button beside it take the rest. */
+  .dmd .page-header > .page-head > .page-actions > .btn.icon-only {
+    flex: 0 0 var(--cmp-button-lg-height, 44px);
+    width: var(--cmp-button-lg-height, 44px);
+  }
+
   .dmd .page-actions > .btn,
   .dmd .stack-narrow > .btn,
   .dmd .stack-narrow-rev > .btn {

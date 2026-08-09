@@ -58,20 +58,20 @@ export const ROLE_GROUPS = [
   {
     id: 'status', label: 'Status', desc: 'Feedback and validation',
     roles: [
-      { name: 'success',         desc: 'Success fill',               light: 'success.600', dark: 'success.400' },
+      { name: 'success',         desc: 'Success fill',               light: 'success.700', dark: 'success.400' },
       { name: 'success-subtle',  desc: 'Success background',         light: 'success.100', dark: 'success.900' },
       { name: 'success-fg',      desc: 'Content on success fill',    light: 'neutral.50',  dark: 'neutral.950' },
-      { name: 'warning',         desc: 'Warning fill',               light: 'warning.600', dark: 'warning.400' },
+      { name: 'warning',         desc: 'Warning fill',               light: 'warning.700', dark: 'warning.400' },
       { name: 'warning-subtle',  desc: 'Warning background',         light: 'warning.100', dark: 'warning.900' },
       { name: 'warning-fg',      desc: 'Content on warning fill',    light: 'neutral.50',  dark: 'neutral.950' },
-      { name: 'danger',          desc: 'Destructive fill',           light: 'danger.600',  dark: 'danger.400'  },
+      { name: 'danger',          desc: 'Destructive fill',           light: 'danger.700',  dark: 'danger.400'  },
       /* Accent has had a hover role since the start; danger never did, so a
          destructive button's hover was defined as `danger` — the colour it
          already was — and the most consequential button in the app was the one
          that did not respond to the pointer. Steps the same direction accent
          does: darker on paper, lighter in the dark, because a hover has to
          move away from the page rather than always down. */
-      { name: 'danger-hover',    desc: 'Destructive hover',          light: 'danger.700',  dark: 'danger.300'  },
+      { name: 'danger-hover',    desc: 'Destructive hover',          light: 'danger.800',  dark: 'danger.300'  },
       { name: 'danger-subtle',   desc: 'Destructive background',     light: 'danger.100',  dark: 'danger.900'  },
       { name: 'danger-fg',       desc: 'Content on destructive fill',light: 'neutral.50',  dark: 'neutral.950' },
     ],
@@ -206,8 +206,12 @@ export const FRAMEWORKS = ['React + Tailwind', 'React + CSS variables', 'Plain H
  * edits leak into the next New. */
 const defaultComponentOverrides = () => ({
   /* Was `{colors.danger}`, which made every ghost button red — a stray from a
-     click-test that came back in the next payload corrected. */
-  'button-ghost.textColor': '{colors.ring}',
+     click-test that came back in the next payload corrected. Then it was
+     `{colors.ring}`, which is a category error: `ring` is the focus indicator,
+     and a focus indicator only owes 3:1 as a non-text mark. Borrowed as a text
+     colour it measured 3.95:1 against the page in five presets, under the 4.5
+     that text owes. A ghost button's label is the accent. */
+  'button-ghost.textColor': '{colors.accent}',
   'switch.height': '24px',
   'badge-neutral.backgroundColor': '{colors.bg}',
 })

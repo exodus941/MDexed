@@ -68,12 +68,14 @@ function colorsBody(state, derived) {
   const rows = []
   for (const group of ROLE_GROUPS) {
     for (const role of group.roles) {
+      /* The property an agent types, not the bare role name. A simulation had
+         one write `var(--color-accent)` from a table that said `accent`. */
       rows.push(dark
-        ? [`\`${role.name}\``, roles.light[role.name], roles.dark[role.name], role.desc]
-        : [`\`${role.name}\``, roles.light[role.name], role.desc])
+        ? [`\`var(--c-${role.name})\``, roles.light[role.name], roles.dark[role.name], role.desc]
+        : [`\`var(--c-${role.name})\``, roles.light[role.name], role.desc])
     }
   }
-  const roleTable = table(dark ? ['Token', 'Light', 'Dark', 'Use for'] : ['Token', 'Value', 'Use for'], rows)
+  const roleTable = table(dark ? ['Property', 'Light', 'Dark', 'Use for'] : ['Property', 'Value', 'Use for'], rows)
 
   const contrastRows = CONTRAST_PAIRS.map(p => {
     const fg = roles.light[p.fg], bg = roles.light[p.bg]
@@ -85,6 +87,16 @@ function colorsBody(state, derived) {
   const gradientBlock = gradientSection(state, derived)
 
   return joinBlocks(
+    /* Show the variable, not only the role name.
+     *
+     * Found by simulation: an agent handed this package built a whole dashboard
+     * with `var(--color-accent)` and every other colour, because the table named
+     * the role `accent` and nothing here ever showed the custom property. The
+     * page rendered with no colour at all — every variable undefined, and no
+     * error anywhere. It had followed the file faithfully.
+     *
+     * One line of syntax before the table removes the guess. */
+    'Write these as CSS custom properties with a `--c-` prefix: the role `accent` is `var(--c-accent)`, `text-muted` is `var(--c-text-muted)`. The role names in the table below are the part after the prefix.',
     roleTable,
     gradientBlock,
     contrastRows.length && '**Measured contrast** (WCAG ratio and APCA Lc, light mode):',
@@ -287,6 +299,42 @@ function layoutBody(state, derived) {
       'Sideways scrolling is a last resort, not a layout tool. Ask what genuinely cannot stack: a table of real columns cannot, so it scrolls. A run of buttons can, so it stacks. A pane that scrolls down, inside a page that scrolls down, around a group that scrolls sideways, is three scrollbars for four controls.',
       'Choose each breakpoint from the thing it governs, measured. "Can two panes sit side by side" is about pane width. "Is this toolbar cramped" is about that toolbar\'s own contents, and the two answers are usually far apart. Reusing one number for both leaves every width in between with a layout that cannot fit.',
       'Collapse in stages, cheapest first: decoration before content, content before action. A wordmark and a colour strip go before a name you can edit, which goes before a button you can press.',
+
+      /* Three rules the simulated dashboard had to invent, because the file
+         said what a narrow layout must not do and never said what it does
+         instead. The agent wrapped the header actions onto a second line and
+         reflowed the nav rail into a two-column grid. Both are what a flex
+         container does when nobody decides for it. */
+      'A row of actions beside a heading moves **below** the heading when it stops fitting. It never wraps inside the heading\'s row. Put the whole row on its own line under the heading and its description, aligned to the same left edge.',
+
+      /* The three cases the user drew, after a generated dashboard stacked a
+         44px icon button on a line of its own and left the rest of that line
+         empty. A wrap is what flexbox does when nobody decides; these are the
+         decisions. */
+      'There is no limit on how many actions may sit beside a heading. As many as fit at their natural widths belong on that line, and a wide layout should keep them there. The rules below start the moment they stop fitting — they are about breaking a row, not about capping one.',
+
+      /* What "stop fitting" means, which the rules above assumed and never
+         defined. Without it an agent fits a row by letting the title touch the
+         first button, which technically fits and reads as a collision. */
+      'Keep a floor under the gap between a heading and the nearest action beside it. Use the `lg` step. Proximity is a ratio: the buttons sit `xs` apart from each other, so anything close to that between the title and the first button makes the two read as one group.',
+      'That floor is what decides when the row breaks. The question is never "do the actions still fit" — it is "do they still fit with that gap intact". A row that fits only by letting the title and the first button close up has already failed. Move the actions below the heading at the width where the gap would drop under the floor, not at the width where the buttons would finally overlap.',
+      'Once the actions are on their own line, break them by importance, not by whatever order they were written in. Four rules cover any number of buttons.',
+      '**If they all fit on one line, leave them.** They keep their own widths and their ratio to each other. Do not stretch any of them to fill the row.',
+      '**The single most important action takes a full-width line to itself.** It goes first, at the top. In a row the primary reads last because the eye ends there; in a column the top line is the one that gets pressed.',
+      '**Every remaining action packs onto the lines below, in priority order** — as many per line as fit at their natural widths. On each line the last labelled button absorbs the slack, so every line starts and ends on the same two edges as the first. A ragged line reads as a wrap that got away rather than as a decision.',
+      '**Where two or more actions carry equal top importance, each takes its own full-width line.** Ranking is what packs a line; without a ranking there is nothing to pack by.',
+      'Never leave an icon-only button alone on a line at its natural width. It is the emptiest line on the page. Either pair it with the button before it, or give it a label so it can fill the row like the rest. Never stretch a lone icon across a full-width bar — a bar with one glyph centred in it says nothing.',
+      'Navigation collapses to one control. It never reflows. Below the width where the full list fits, replace the list with a single menu button. The button opens the same list, in the same order. Give the button the touch target size and an accessible name.',
+      'A side rail has exactly two states: the full rail, and a menu button. It never passes through a third. The tempting middle step turns the rail into a horizontal strip of links, and that strip wraps the moment the labels outrun the width — measured on a generated dashboard, five links folded into two ragged columns beside the product name, which reads as a broken page rather than a narrow one. Do not build the middle step. Go straight from rail to button.',
+      'Never let a nav list wrap. Set `flex-wrap: nowrap` on it and let the collapse handle the width. A wrapping nav is the single most common way a good layout starts looking broken, because every other part of the page still looks deliberate.',
+      'Pick between the two collapses by counting. Move a row below its heading when the row holds three items or fewer. Put it behind a menu button when it holds more. A menu holding two items costs a press and saves nothing. Navigation is the exception and always takes the menu button, because a nav list is longer than three the moment a product grows.',
+      'Measure the collapse against the container, not the window. A rail 224px wide takes that much away from everything beside it. Ask the content column with a container query. A window-width breakpoint fires at the wrong moment in every layout that has a rail.',
+
+      /* The rule that stops a responsive fix from being half a fix. Sprung
+         three times in one sitting on a single header mark. */
+      'A breakpoint moves a **row**, never one object in it. Promote a button to the touch size and every object sharing that row goes with it — the mark beside it, the field, the badge. Miss one and it is correct at one width and a size short at the other, which is the same defect twice rather than a fix and a regression.',
+      'This is why a size belongs in a custom property rather than in a fixed value on the element. A media query can reach a property. It cannot reach an inline style at all, and it cannot reach a constant that was compiled in. Where a value has to change at a breakpoint, name it once and let the breakpoint move the name.',
+      'Check a responsive rule at **both** widths before calling it done. A rule verified only at the width you were looking at is half tested, and the untested half is where the object you forgot is sitting. The test is cheap: measure the row at each width and confirm every member changed by the same amount, or that none of them did.',
     ])
   )
 }
