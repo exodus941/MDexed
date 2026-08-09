@@ -600,6 +600,30 @@
    hiding the control. */
 .dmd .nav-collapse { display: none; }
 
+/* The heading, its description and its actions, as one block. Wide, the
+   actions sit on the heading's row and this column holds two items. Narrow,
+   `page-head` goes to `display: contents` and the column holds three, which is
+   the only way the actions can land under a description that is not their
+   sibling. The gap was an inline `marginTop` on the paragraph until the narrow
+   layout needed to change it and could not. */
+.dmd .page-header { display: flex; flex-direction: column; }
+.dmd .page-header > .page-sub { margin-top: 4px; }
+
+/* The gap between a heading and the actions beside it, as a floor rather than
+   a preference.
+ *
+ * Proximity is a ratio: the space between two groups has to beat the space
+ * inside one, or they read as a single block. The buttons sit `xs` apart from
+ * each other, so the title needs clearly more than that from the nearest
+ * button — `lg` is three times it and unmistakable.
+ *
+ * This is also what decides WHEN the row breaks. The question is not "do the
+ * buttons still fit", it is "do they still fit with this gap intact". A row
+ * that fits only by letting the title and the first button touch has already
+ * failed; it just has not been told yet. Setting the floor here and the
+ * collapse in the responsive sheet keeps one number in charge of both. */
+.dmd .page-head { column-gap: var(--space-lg, 24px); }
+
 /* Navigation is not body copy. An underline in running text means "this is a
    link"; a whole nav bar of underlines means nothing and reads as damage.
    Left off entirely, these three had the browser default and looked like an

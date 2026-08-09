@@ -758,6 +758,29 @@ line('\n- prompt construction -')
     ['a selector needs the class to be on the node', ['actually on the node']],
     ['a demonstration is a real instance', ['demonstration and the thing demonstrated']],
     ['a specimen needs room to be itself', ['room to be itself']],
+    /* Found by feeding the payload to an agent: it wrote var(--color-accent)
+       for a role the table called `accent`, and the page rendered colourless
+       with no error anywhere. Every colour token now appears as the property
+       an agent actually types. */
+    ['colour roles are shown as the CSS property', ['var(--c-accent)']],
+    ['the prefix is stated in words too', ['`--c-` prefix']],
+    /* The collapse rules. A generated dashboard reflowed a nav rail into two
+       ragged columns and stranded an icon button on a line of its own, because
+       the file said what a narrow layout must not do and never said what it
+       does instead. */
+    ['a narrow action row moves below its heading', ['below** the heading']],
+    /* Lower case: `doc` is lowercased above, so a search term with a capital
+       in it can never match however present the rule is. */
+    ['navigation collapses to one control', ['navigation collapses to one control']],
+    ['a rail never becomes a horizontal strip', ['exactly two states']],
+    ['the nav list is told not to wrap', ['never let a nav list wrap']],
+    ['the most important action takes its own line', ['full-width line to itself']],
+    ['the rest pack in priority order', ['packs onto the lines below']],
+    ['an icon-only button is never left alone on a line', ['alone on a line at its natural width']],
+    ['the gap beside a heading has a floor', ['floor under the gap']],
+    ['that floor is what triggers the collapse', ['fit with that gap intact']],
+    ['a breakpoint moves a row, not an object', ['moves a **row**, never one object']],
+    ['a responsive rule is checked at both widths', ['at **both** widths']],
   ]
   const missing = RULES.filter(([, terms]) => !terms.every(t => doc.includes(t))).map(([n]) => n)
   assert(missing.length === 0,

@@ -144,6 +144,10 @@ and **Layout**. Read those two before you write a component. The short version:
   it wraps.
 - **Proximity is a ratio.** The gap between two groups must clearly beat the gap
   inside one, or they read as a single block.
+- **A narrow layout collapses, it never reflows.** Actions beside a heading move
+  BELOW the heading and its description, as one full-width row. Navigation goes
+  behind a single menu button. A nav that folds into two columns reads as broken.
+  Ask the container, not the window — a rail takes its width off everything else.
 
 ## Before you say you are done
 
@@ -157,6 +161,12 @@ Check each of these against the code you wrote.
 - Every icon sits on its label's optical middle, not the button's centre.
 - Every control states its height and its line height together.
 - No two controls on one line have different heights.
+- No action row wraps. Below its fitting width it sits under its heading.
+- No navigation list reflows. A rail has two states, full or menu button, and
+  never a horizontal strip in between. Set \`flex-wrap: nowrap\` on the list.
+- Every breakpoint moved a whole row, not one object in it. Check each
+  responsive rule at BOTH widths — a fix verified at one is half tested, and the
+  untested half is where the object you forgot is sitting.
 
 If any check fails, fix it before you report. Do not report the failure as a
 limitation of the design system.

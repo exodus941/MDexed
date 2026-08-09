@@ -30,7 +30,10 @@ export function MetaTab() {
         </div>
         <div>
           <label>Spec version</label>
-          <input value={state.meta.version} onChange={e => up('version', e.target.value)} placeholder="alpha" style={{ maxWidth: 170 }} />
+          {/* Full width, like the two fields above it. A short cap on one field
+              in a stack of three makes a ragged right edge and reads as an
+              unfinished form, not as a hint that the value is short. */}
+          <input value={state.meta.version} onChange={e => up('version', e.target.value)} placeholder="alpha" />
           <div className="panel-note" style={{ marginTop: 5 }}>The DESIGN.md format version. Currently <code>alpha</code>.</div>
         </div>
       </Collapsible>
