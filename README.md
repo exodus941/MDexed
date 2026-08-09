@@ -2,7 +2,9 @@
 
 **A detailed editor for design systems, built around [DESIGN.md](https://github.com/google-labs-code/design.md). That open format hands a coding agent a set of structured and consistent visual guidelines for building a functional interface.**
 
-Live at **[mdexed.vercel.app](https://mdexed.vercel.app)**.
+Live at **[mdexed.vercel.app](https://mdexed.vercel.app)**. **Beta** — every part
+of the pipeline works end to end and the format it writes is stable. Expect
+polish and new features, not a rewrite.
 
 Set a few seed colours and move five sliders. MDexed generates the colour scales, semantic roles, type scale, spacing, radii, elevation and a full component matrix. It shows all of it on live mock screens and audits it against WCAG while you work.
 
