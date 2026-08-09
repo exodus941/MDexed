@@ -75,11 +75,11 @@
      neither. Named properties rather than `all`, so a layout value never
      animates by accident. */
   transition:
-    background-color var(--duration-fast, 120ms) var(--ease-standard, ease),
-    border-color var(--duration-fast, 120ms) var(--ease-standard, ease),
-    color var(--duration-fast, 120ms) var(--ease-standard, ease),
-    box-shadow var(--duration-fast, 120ms) var(--ease-standard, ease),
-    opacity var(--duration-fast, 120ms) var(--ease-standard, ease);
+    background-color var(--duration-normal, 250ms) var(--ease-standard, ease),
+    border-color var(--duration-normal, 250ms) var(--ease-standard, ease),
+    color var(--duration-normal, 250ms) var(--ease-standard, ease),
+    box-shadow var(--duration-normal, 250ms) var(--ease-standard, ease),
+    opacity var(--duration-normal, 250ms) var(--ease-standard, ease);
   cursor: pointer;
 }
 /* A leading icon is the default, and a trailing one says so in the markup.
@@ -178,7 +178,7 @@
   color: var(--cmp-input-text-color, var(--c-text, #111));
   border: 1px solid var(--cmp-input-border-color, var(--c-border, #ccc));
   border-radius: var(--cmp-input-rounded, var(--radius-md, 8px));
-  transition: border-color var(--duration-fast, 120ms) var(--ease-standard, ease);
+  transition: border-color var(--duration-normal, 250ms) var(--ease-standard, ease);
 }
 /* A textarea has its own entry, and no fixed height. */
 .dmd textarea.input {
@@ -421,9 +421,9 @@
   /* Colour moves with the background. Fading one and snapping the other reads
      as a glitch rather than a transition. */
   transition:
-    background-color var(--duration-fast, 120ms) var(--ease-standard, ease),
-    color var(--duration-fast, 120ms) var(--ease-standard, ease),
-    border-color var(--duration-fast, 120ms) var(--ease-standard, ease);
+    background-color var(--duration-normal, 250ms) var(--ease-standard, ease),
+    color var(--duration-normal, 250ms) var(--ease-standard, ease),
+    border-color var(--duration-normal, 250ms) var(--ease-standard, ease);
 }
 .dmd .nav-item:hover { background: var(--cmp-nav-item-hover-background-color, var(--c-bg-subtle, #f4f4f4)); }
 .dmd .nav-item.is-active {
