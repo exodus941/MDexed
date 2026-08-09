@@ -184,5 +184,7 @@ THAT row again — not the page — narrow and wide. Three failures it catches:
 - A control was promoted at a breakpoint and the mark beside it was not.
 - A correct rule lost to an inline style, so nothing changed at all. Measure
   the computed result, never the stylesheet.
+- A check was silenced to keep the output tidy. A command sent to \`/dev/null\`
+  prints nothing when it fails, and that silence reads exactly like success.
 `
 }
