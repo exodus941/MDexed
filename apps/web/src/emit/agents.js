@@ -123,6 +123,28 @@ dark value with no second set of rules. With no attribute, the operating
 system preference decides. Do not write a separate dark stylesheet.`
   : `This system ships one theme. Do not invent a second one.`}
 
+## The part that decides whether this looks built or thrown together
+
+Tokens are the easy half. What separates a screen that looks made from one that
+looks generated is alignment, and it is all in DESIGN.md under **Typography**
+and **Layout**. Read those two before you write a component. The short version:
+
+- **Text on one line shares one baseline.** A control beside a label matches
+  that label's box AND its baseline. Two different font sizes cannot give you
+  both, so pick one size.
+- **An icon aligns to its label, never to the button.** The two are read as one
+  object. \`vertical-align: middle\` sits on the x-height, which is below the cap
+  centre, so lift it about \`0.12em\`. Do that only for an inline icon — an icon
+  centred by flexbox is already correct, and the lift becomes the error.
+- **State a control's \`height\` and its \`line-height\` together**, and take the
+  line height from the CONTENT box: the height minus its borders. Add
+  \`align-items: center\` when it holds an icon.
+- **A control beside a label centres on the label's FIRST line**, not on the
+  label as a block. Centring the row is right for one line and wrong the moment
+  it wraps.
+- **Proximity is a ratio.** The gap between two groups must clearly beat the gap
+  inside one, or they read as a single block.
+
 ## Before you say you are done
 
 Check each of these against the code you wrote.
@@ -132,6 +154,9 @@ Check each of these against the code you wrote.
 - Every token name you used exists in \`tokens.css\`.
 - Nothing from \`html-examples/\` was copied as markup.
 - Every judgement call is listed under its own heading.
+- Every icon sits on its label's optical middle, not the button's centre.
+- Every control states its height and its line height together.
+- No two controls on one line have different heights.
 
 If any check fails, fix it before you report. Do not report the failure as a
 limitation of the design system.
