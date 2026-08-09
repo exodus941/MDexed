@@ -2,6 +2,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { execSync } from 'node:child_process'
+import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
@@ -38,8 +39,87 @@ function buildId() {
   return { version: `${stamp.date}-${stamp.n}`, sha: sha || null }
 }
 
+/* ── The syntax guard, at save time ──
+ *
+ * The guard already runs in the pre-commit hook, and the hook already refuses
+ * a broken commit. That is the last line, not the first. Between writing the
+ * fault and reaching a commit there were two builds, and one of those I read
+ * wrong: the guard had caught it and I had sent its output to /dev/null, so I
+ * saw silence and called it a pass.
+ *
+ * This closes both gaps. The report arrives about a second after the save, in
+ * the browser overlay, where it cannot be silenced or misread as success.
+ *
+ * It shells out to the same script the hook runs rather than reimplementing
+ * the checks. A second copy of a detector drifts from the first, and a drifted
+ * detector is the exact class of bug this whole guard exists for.
+ */
+function syntaxGuardOnSave() {
+  const script = fileURLToPath(new URL('../../tools/syntax-guard.mjs', import.meta.url))
+  const cwd = fileURLToPath(new URL('.', import.meta.url))
+  let running = false
+
+  /* Shared by both entry points below. Returns the report on failure, null on
+     a clean run. */
+  const run = () => {
+    try {
+      execSync(`node "${script}" src`, { cwd, stdio: 'pipe' })
+      return null
+    } catch (err) {
+      return [err.stdout, err.stderr].map(b => (b ? b.toString() : '')).join('')
+    }
+  }
+
+  return {
+    name: 'syntax-guard-on-save',
+    apply: 'serve',
+
+    /* Once at startup as well as on every save. `handleHotUpdate` fires on a
+       CHANGE, so a fault already on disk when the server boots produces no
+       event and no report — the page just comes up blank, which is the
+       original symptom with the alarm switched off. */
+    configureServer(server) {
+      const report = run()
+      if (report) console.error('\n' + report)
+    },
+
+    handleHotUpdate({ file, server }) {
+      if (!/\.(js|jsx)$/.test(file)) return
+      /* One at a time. A save that touches several files would otherwise start
+         several scans and report the same fault more than once. */
+      if (running) return
+      running = true
+      try {
+        const report = run()
+        if (!report) return
+        console.error('\n' + report)
+        server.ws.send({
+          type: 'error',
+          err: {
+            message: 'Syntax guard refused this save\n\n' + report,
+            /* Vite's overlay wants a stack. An empty one renders an empty
+               panel, which is a guard that reports nothing — the failure mode
+               this plugin exists to remove. */
+            stack: `at ${file}`,
+            plugin: 'syntax-guard-on-save',
+            id: file,
+          },
+        })
+        /* Stop the update here. Left to continue, the next hot update repainted
+           the client and took the overlay with it — measured: the report
+           reached the terminal, the browser went blank, and the overlay was
+           gone by the time anyone looked. A blank page with no explanation is
+           exactly the symptom this trap produces on its own. */
+        return []
+      } finally {
+        running = false
+      }
+    },
+  }
+}
+
 export default defineConfig(({ command }) => ({
-  plugins: [react()],
+  plugins: [react(), syntaxGuardOnSave()],
 
   /* `dev` in the dev server: a build number there would name a build that was
      never produced, and the thing you are looking at is whatever is on disk
