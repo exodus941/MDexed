@@ -69,7 +69,12 @@ export default function Settings({ onInspect }) {
           ))}
         </div>
 
-        <div className="well stack-sm">
+        {/* `stack-lg`, because this well holds two whole field groups and the
+            gap between them has to beat the gap inside them. At 12 it did not:
+            about 14 within a field against 12 between two of them, so the help
+            line under one field sat closer to the NEXT field's label than to
+            its own input. */}
+        <div className="well stack-lg">
           <div style={{ fontWeight: 500 }} {...txt("body-md")}>Notification email</div>
           {/* The row and the line under it are ONE field, so they sit at the
               field's own spacing and not at the group's. Before this the help

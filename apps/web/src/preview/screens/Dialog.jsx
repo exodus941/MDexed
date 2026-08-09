@@ -156,16 +156,18 @@ export default function Dialog({ onInspect, layout }) {
       <div className="cols-2">
         {/* Toast */}
         <div className="card card-overlay row" {...ins('card-overlay')}>
-          {/* inline-block with the text's own line-height, not a flex box.
-              A flex wrapper puts nothing in the row's baseline set, so the row
-              synthesises one from the wrapper's bottom edge and the tick drifts
-              off the line it belongs to. The line box gives it the same
-              baseline as the first line of the message beside it. */}
-          <span style={{
-            color: 'var(--c-success, green)', display: 'inline-block',
-            lineHeight: 'var(--font-body-sm-leading, 1.55)', alignSelf: 'flex-start',
-          }}><Ico d={IconCheck} /></span>
-          <span className="small" style={{ flex: 1 }} {...txt("body-sm")}>Invoice sent to Northwind</span>
+          {/* The tick goes INSIDE the message, not in a slot beside it.
+              As its own flex item it had no text to give the row a baseline, so
+              every value of align-self left it somewhere else: pinned to the
+              top it sat 3.5px above the message's optical mid, and baseline
+              alignment only got it to 2.5. Nothing in that slot could align to
+              a line it was not part of.
+              Inline, `vertical-align` puts it on the label's own middle, and it
+              stays on the first line when the message wraps. Same arrangement
+              as a field note and a badge. */}
+          <span className="small line-icon" style={{ flex: 1 }} {...txt("body-sm")}>
+            <Ico d={IconCheck} style={{ color: 'var(--c-success, green)' }} />Invoice sent to Northwind
+          </span>
           <button className="btn btn-ghost btn-sm" {...ins('button-ghost')}>Undo</button>
         </div>
 

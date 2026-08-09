@@ -547,7 +547,29 @@ label.check input[type=checkbox]:not(.dmd *){flex-shrink:0;margin:0}
    the whole thing folds to one column when the pane is too narrow for two
    readable ones. */
 .entry-split{display:grid;grid-template-columns:minmax(0,1fr) 168px;gap:12px;align-items:start}
-@container (max-width:560px){.entry-split{grid-template-columns:minmax(0,1fr)}}
+
+/* Fold to one column at 600, and put the SAMPLE ON TOP when it folds.
+ *
+ * Two numbers, both derived rather than picked. The property row keeps its wide
+ * five-column form down to 460, and in that form the fixed columns and gaps
+ * come to 292, so a value field worth typing into needs the column at about
+ * 412. The sample slot is 168 and the gap is 12. 412 + 180 = 592, so below 600
+ * one of the two is always being starved — which is what a 168px select sample
+ * reading "Choose one" clipped at its own edge looks like.
+ *
+ * Above, not below. A sample under a dozen property rows is off the screen
+ * exactly when you are dragging the slider that changes it, and a preview you
+ * cannot see while you edit is not a preview. This overrides an older comment
+ * further down that argued the opposite — it was reasoning about the side-by-
+ * side case, where the sample never leaves view anyway.
+ *
+ * The whole query depends on `main` declaring `container-type`, which it did
+ * not until this session. Before that this rule had no container to resolve
+ * against and never fired at any width, which is why the fold looked broken. */
+@container (max-width:600px){
+  .entry-split{grid-template-columns:minmax(0,1fr)}
+  .entry-split .entry-sample-slot{order:-1}
+}
 /* Wide samples go above their fields instead. A modal in a 168px column is
    not a modal and a table loses its columns, so these take the full width and
    accept the extra height. Order is flipped in CSS rather than in the JSX, so

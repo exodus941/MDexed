@@ -186,10 +186,58 @@
 
 /* Help and error sit closer to their field than the field sits to its group.
    Proximity is what says "this line is about that box". At the group's own
-   spacing the help floated between two fields and belonged to neither. */
-.dmd .field-note { display: flex; align-items: flex-start; gap: var(--space-2xs, 6px); }
-.dmd .field-note > .icon { flex: 0 0 auto; margin-top: 0.15em; }
+   spacing the help floated between two fields and belonged to neither.
+
+   Block, not flex, so the leading trim below applies to it. The icon goes back
+   to inline placement, which is the arrangement that wants the optical lift. */
+.dmd .field-note { display: block; }
+
+/* A mark that belongs to a line of text, set IN that line.
+ *
+ * The alternative — a flex slot beside the text — cannot work, and the toast
+ * proved it: a wrapper holding only an icon has no text to contribute to the
+ * row's baseline, so the row synthesises one and every value of `align-self`
+ * lands the mark somewhere other than the line it is describing. Measured 3.5px
+ * high pinned to the top, 2.5px high on baseline, and nothing in that slot can
+ * do better, because it is not part of the line.
+ *
+ * Inline, `vertical-align: middle` puts it on the x-height and the 0.12em lift
+ * carries it up to the cap centre, which is what the eye reads as the middle of
+ * the words. It also stays on the FIRST line when the message wraps, which the
+ * flex slot never did. */
+.dmd .field-note > .icon,
+.dmd .line-icon > .icon {
+  vertical-align: middle; transform: translateY(-0.12em);
+  /* The icon gap token, not the smallest space on the scale. 4px between a
+     16px mark and the word after it reads as a collision — the two shapes
+     touch and the eye reads one object. This is the same token every other
+     icon-and-label pair in the system uses, which is also why it is the right
+     one: an icon sits the same distance from its text everywhere. */
+  margin-right: var(--icon-gap, 8px);
+}
 .dmd .field-note.is-error { color: var(--c-danger, #c2453c); }
+
+/* ── Equalise the ink either side of a field ──
+ *
+ * The two gaps are stated equal and do not read equal. A text box carries
+ * leading, and there is more of it below a baseline than above a cap: measured
+ * 5.95 under the label against 4.00 over the note, so an 8px gap rendered as
+ * 13.95 above the field and 12.00 below. They caught the 1.95px unaided.
+ *
+ * My first fix was to trim both boxes to their ink with `text-box`, which made
+ * the token honest — 8px of gap buying 8px of space on each side. The numbers
+ * came out perfect and the screen came out wrong: every stack lost about 10px
+ * per gap at once, and their word for it was suffocating. The spacing had been
+ * tuned WITH the leading in it. Making the token mean what it says would mean
+ * re-tuning every token that was chosen against the old behaviour, which is a
+ * much larger change than the fault being fixed.
+ *
+ * So: keep the density, remove only the asymmetry, and match the LARGER side.
+ * Matching the smaller one tightens, and tightening is what they rejected.
+ * The correction is the difference between the two leadings — descent below
+ * the baseline minus the gap above the cap — expressed in em so it holds when
+ * the type scale moves. */
+.dmd .field-note { margin-top: 0.152em; }
 .dmd .input {
   font-family: var(--cmp-input-font-family, inherit);
   font-size: var(--cmp-input-font-size, var(--font-body-sm-size, 14px));
@@ -464,10 +512,48 @@
    in an avatar — both of those donate a real baseline now. Things with no text
    to offer centre instead. */
 .dmd .row { display: flex; align-items: baseline; gap: var(--space-xs, 8px); }
-.dmd .row > .icon, .dmd .row > .bar, .dmd .row > .switch,
-.dmd .row > .checkbox, .dmd .row > .swatch { align-self: center; }
+/* A control beside a label centres on the label's FIRST LINE.
+ *
+ * Three wrong answers were tried before this one, and each is worth knowing:
+ *
+ *   baseline — a checkbox has no text, so it has nothing to put on a baseline.
+ *     The row aligns it by its bottom edge and it rides high beside the label.
+ *   centre the CONTROL only — worse than doing nothing. The box moves to the
+ *     middle, the label keeps a baseline it now shares with no one, and above
+ *     the text height the label climbs to the top of the row.
+ *   centre the ROW — correct for one line and wrong the moment the label wraps.
+ *     Measured 22.03px out on a three-line label, because the box centres on
+ *     the whole block instead of the line it belongs to.
+ *
+ * The first line is the reference. Everything else is a continuation, and a
+ * control that drifts down the block as the text grows is reading as attached
+ * to the paragraph rather than to the choice.
+ *
+ * So: start both at the top, then push the control down by half the difference
+ * between the label's line height and the control's own. Computed from the
+ * label's TYPE TOKENS, not from `1lh`, because `1lh` resolves against whatever
+ * the control inherits and that is a different font — it left a constant 2.3px.
+ * Measured with this: 0.34px at 16, 24, 35 and 64px, for labels wrapping to
+ * one, three and four lines. */
+.dmd .row:has(> .checkbox), .dmd .row:has(> .switch) { align-items: flex-start; }
+.dmd .row > .checkbox {
+  margin-top: calc((var(--font-body-sm-size, 14px) * var(--font-body-sm-leading, 1.55)
+                    - var(--cmp-checkbox-size, 16px)) / 2);
+}
+.dmd .row > .switch {
+  margin-top: calc((var(--font-body-sm-size, 14px) * var(--font-body-sm-leading, 1.55)
+                    - var(--cmp-switch-height, 20px)) / 2);
+}
+/* These sit beside single-line text, so the whole-row centre is right for them. */
+.dmd .row > .icon, .dmd .row > .bar, .dmd .row > .swatch { align-self: center; }
 .dmd .stack { display: flex; flex-direction: column; gap: var(--space-md, 16px); }
 .dmd .stack-sm { display: flex; flex-direction: column; gap: var(--space-sm, 8px); }
+/* For a run of whole field groups, where the separation has to beat the
+   cohesion. Two fields stacked at 12 sat closer to each other than a label sat
+   to its own input once the leading was counted — 12 between, about 14 within —
+   so the two groups read as one block. Proximity is decided by the ratio, never
+   by the absolute value. */
+.dmd .stack-lg { display: flex; flex-direction: column; gap: var(--space-lg, 24px); }
 
 /* ── A sidebar that folds ──
    Wide: the summary is a plain section label and the list is always open, so
