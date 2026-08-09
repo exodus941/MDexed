@@ -739,7 +739,13 @@ line('\n- prompt construction -')
     ['baseline-aligned boxes of different heights differ at the top', ['must** have different tops']],
     ['grow the box, not the glyph', ['grow the box, not the glyph']],
     ['a control clears the floor when its targets do', ['not when its container does']],
-    ['icon-only is matched by structure', [':has(> .icon:only-child)']],
+    /* Was `icon-only is matched by structure`, asserting the payload recommended
+       `:has(> .icon:only-child)`. That advice was wrong — it counts element
+       children and a label is a text node — and it broke real buttons here
+       before it was reverted. The guard was faithfully protecting the mistake,
+       which is what a drift test does when the thing it guards is bad. */
+    ['icon-only is marked with a class, not detected', ['no selector that asks']],
+    ['a rule wider than the problem', ['wider than the problem']],
     ['a mark in a field sits above it', ['renders none of it']],
     ['a line mark goes inside the line', ['inside that line']],
     ['a textless control has no baseline to offer', ['nothing to put on a baseline']],
@@ -750,6 +756,8 @@ line('\n- prompt construction -')
     ['a checkbox draws at 16 and is hit at its label', ['hit at its label']],
     ['an optical correction belongs to its mechanism', ['belongs to the mechanism it corrects']],
     ['a selector needs the class to be on the node', ['actually on the node']],
+    ['a demonstration is a real instance', ['demonstration and the thing demonstrated']],
+    ['a specimen needs room to be itself', ['room to be itself']],
   ]
   const missing = RULES.filter(([, terms]) => !terms.every(t => doc.includes(t))).map(([n]) => n)
   assert(missing.length === 0,

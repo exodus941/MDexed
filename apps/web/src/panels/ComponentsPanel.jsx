@@ -57,7 +57,18 @@ const SNAP_SCALES = {
    columns entirely. These stack above the properties instead, which costs
    height but is the only way the sample says anything true. Everything else
    sits beside its fields, where it stays in view while you drag a slider. */
-const WIDE_SAMPLE = new Set(['modal', 'table', 'card', 'alert', 'textarea'])
+/* Components a 168px column misrepresents rather than merely shrinks.
+ *
+ * `select` and `input` joined the set after the sample became a first-class
+ * surface rather than a thumbnail. A select is a value on the left and a mark
+ * on the right, and the whole point of it is that gap — squeeze it into 118px
+ * of usable width and the two collide, which is a picture of a control this
+ * system does not contain. Measured: its content wanted 150 and had 118.
+ *
+ * The sample IS the component here. That is the meta bit of a design tool: the
+ * demonstration and the thing demonstrated are the same object, so a sample
+ * that lies is a specification that lies. */
+const WIDE_SAMPLE = new Set(['modal', 'table', 'card', 'alert', 'textarea', 'select', 'input'])
 
 const PX_SUGGESTIONS = ['20px', '24px', '28px', '32px', '36px', '40px', '44px', '48px', '56px', '64px']
 const ICON_SUGGESTIONS = ['{icons.sm}', '{icons.md}', '{icons.lg}', '{icons.xl}', '12px', '14px', '16px', '18px', '20px', '24px']

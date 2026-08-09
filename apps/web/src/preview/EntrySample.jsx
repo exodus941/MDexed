@@ -79,8 +79,8 @@ function markup({ base, variant, size, state, cls, style, label }) {
      * one survived because nobody looks for a component inside a sample. */
     case 'select':
       return (
-        <button className={`btn btn-secondary select-trigger ${cls}`}
-          style={{ minWidth: 150, height: 'var(--cmp-select-height, 36px)', ...style }}>
+        <button className={`btn btn-secondary select-trigger select-trigger-block ${cls}`}
+          style={{ maxWidth: 280, height: 'var(--cmp-select-height, 36px)', ...style }}>
           <span>Choose one</span><Ico d={IconChevron} size="sm" />
         </button>
       )
