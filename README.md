@@ -1,6 +1,6 @@
 # MDexed
 
-**A visual editor for design systems, built around [DESIGN.md](https://github.com/google-labs-code/design.md). That open format hands a coding agent a structured, persistent model of how an interface works.**
+**A detailed editor for design systems, built around [DESIGN.md](https://github.com/google-labs-code/design.md). That open format hands a coding agent a set of structured and consistent visual guidelines for building a functional interface.**
 
 Live at **[mdexed.vercel.app](https://mdexed.vercel.app)**.
 
@@ -16,7 +16,7 @@ Very special thanks to the incredible [ninienowrin](https://github.com/ninienowr
 
 ## Read This Before You Start
 
-**This is not a tool for beginners**. It exposes the parts of a design system that most tools hide. It expects you to know what those parts do.
+**This is not a tool for beginners**. It exposes the parts of a design system that most tools hide. It expects you to know what those parts do. If people call you a control freak, you are going to love this.
 
 **This is not a tool that makes designs from scratch**. It does not invent a look for you. It takes the decisions you make and carries them through every token, every component and every exported file.
 
