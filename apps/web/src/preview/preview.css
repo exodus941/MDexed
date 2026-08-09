@@ -307,6 +307,18 @@
 .dmd .aside-rail { display: flex; flex-direction: column; gap: var(--space-sm, 8px); }
 .dmd .nav-list { display: flex; }
 
+/* The fold runs on the document's own motion tokens.
+   A system that publishes a duration scale and an easing set, and then folds
+   its navigation instantly, has not demonstrated either. The 0fr to 1fr grid
+   animates a height nobody has to know in advance, needs no script, and works
+   in the exported page. `overflow: hidden` on the inner box is what gives the
+   rows something to clip. */
+.dmd .nav-fold {
+  display: grid; grid-template-rows: 1fr;
+  transition: grid-template-rows var(--duration-normal, 200ms) var(--ease-standard, ease);
+}
+.dmd .nav-fold > .nav-list { overflow: hidden; }
+
 /* A table has a floor. Three columns of real content will not fold into 296px,
    and squeezing them turns every account name into three lines. Scroll it
    sideways inside its card, which is what every table on a phone does. */

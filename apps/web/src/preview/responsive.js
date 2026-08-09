@@ -80,8 +80,13 @@ ${query(md)} {
      The summary keeps the section label, so nothing is unlabelled. */
   /* Sibling, not child. A closed details renders none of its non-summary
      children whatever CSS says, so the list lives outside it and this hides
-     it instead. Pure CSS, so the exported page behaves identically. */
-  .dmd .nav-collapse:not([open]) ~ .nav-list { display: none; }
+     it instead. Pure CSS, so the exported page behaves identically.
+
+     Collapsed to a zero row rather than display none, so the fold animates on
+     the document's own duration and easing. A system that publishes a motion
+     scale should be seen using it. */
+  .dmd .nav-collapse:not([open]) ~ .nav-fold { grid-template-rows: 0fr; }
+  .dmd .nav-fold { transition: grid-template-rows var(--duration-normal, 200ms) var(--ease-standard, ease); }
   .dmd .nav-burger { display: flex; }
   .dmd .nav-summary { cursor: pointer; }
 
