@@ -183,21 +183,40 @@ ${query(sm)} {
      Small is a desktop density choice. At this width it is an uncomfortable
      target and the wrong weight for the top of a screen. Both values come from
      the system's own scale, so nothing is invented here. */
-  .dmd .page-actions > .btn-sm,
-  .dmd .stack-narrow > .btn-sm,
-  .dmd .stack-narrow-rev > .btn-sm {
-    height: var(--cmp-button-md-height, 36px);
-    /* Minus the two borders. Under border-box a line height equal to the stated
-       height belongs to a box 2px taller than the one the letters live in, so
-       the line overflows by a pixel at each end and the text lands a pixel low.
-       Measured 13 above the cap and 12 below the baseline. The base button rule
-       has always subtracted them. This promotion was written without that and
-       inherited the bug that rule exists to prevent. */
-    line-height: calc(var(--cmp-button-md-height, 36px) - 2px);
-    padding: var(--cmp-button-md-padding, 0 var(--space-md, 16px));
-    font-size: var(--cmp-button-md-font-size, var(--font-button-size, 14px));
+  /* Every button in an action row takes the LARGE step on a phone.
+   *
+   * The scale is 28, 36, 44 in even steps and it stays that way — a token is
+   * not the place to fix a touch problem. 36 is right for a mouse and under
+   * the 40px floor for a finger, so at this width the action rows reach for
+   * the step above rather than the scale being rewritten underneath them.
+   *
+   * Action rows only. The gallery specimens keep every size, because showing
+   * the scale is the whole reason they exist, and a specimen sheet is not
+   * something anyone taps their way through. */
+  .dmd .page-actions > .btn,
+  .dmd .stack-narrow > .btn,
+  .dmd .stack-narrow-rev > .btn {
+    height: var(--cmp-button-lg-height, 44px);
+    line-height: calc(var(--cmp-button-lg-height, 44px) - 2px);
+    padding: var(--cmp-button-lg-padding, 0 var(--space-lg, 24px));
+    font-size: var(--cmp-button-lg-font-size, var(--font-body-md-size, 16px));
   }
-  .dmd .page-actions > .btn-sm.icon-only { width: var(--cmp-button-md-height, 36px); padding: 0; }
+  .dmd .page-actions > .btn.icon-only,
+  .dmd .stack-narrow > .btn.icon-only,
+  .dmd .stack-narrow-rev > .btn.icon-only {
+    width: var(--cmp-button-lg-height, 44px); padding: 0;
+  }
+
+  /* There was a second rule here promoting only the small size, and only as far
+     as the medium step. It sat AFTER the rule above with equal specificity, so
+     it quietly won for every small button and parked them at 36 — under the
+     floor the promotion exists to clear. One rule now covers every size, and
+     nothing depends on which line came last.
+
+     Note the line height above: the LARGE height minus its two borders. Under
+     border-box a line height equal to the stated height belongs to a box 2px
+     taller than the one the letters live in, and the label lands a pixel low.
+     Every promotion in this file has sprung that trap at least once. */
 
   /* Navigation is a finger target at this width, and 40px is the floor.
      Sized by their own padding these came out 38.3 and 24 — close enough to
