@@ -180,6 +180,47 @@ function selfClosingJsxComments(src) {
   return hits
 }
 
+/* Layer four: a file that declares itself backtick-free, checked.
+ *
+ * Layer two catches a block comment left open inside a template literal, which
+ * is one shape of the backtick trap. It is not the only shape, and the other
+ * one has now cost five incidents in this project.
+ *
+ * The other shape: a comment inside a CSS template literal that names a
+ * selector in backticks. The comment opens and closes correctly, so layer two
+ * sees nothing wrong. But the FIRST backtick ended the template literal, and
+ * every line after it parses as JavaScript. Sometimes that throws at build
+ * time. Sometimes it is valid — ".dmd .row.page-actions" becomes a property
+ * access, the build goes green, and the app dies at runtime with "cannot read
+ * properties of undefined (reading page)", which points nowhere near the file.
+ *
+ * A general rule cannot know which template literals hold CSS. So this is
+ * opt-in: a file says so in a marker comment, and then the rule is absolute —
+ * between the opening backtick of that literal and the end of the file, the
+ * only backtick allowed is the one that closes it.
+ *
+ * The marker is the words NO, BACKTICKS, BELOW and RETURN joined by hyphens.
+ * It is spelled out nowhere in this file, and the strings below are built from
+ * fragments, because a guard that contains its own trigger flags itself — this
+ * one did, 38 times, on the commit that introduced it. A detector must not
+ * match its own source. */
+const MARKER = ['NO', 'BACKTICKS', 'BELOW', 'RETURN'].join('-')
+const RETURN_LITERAL = 'return ' + String.fromCharCode(96)
+function strayBackticksInDeclaredFile (src) {
+  if (!src.includes(MARKER)) return []
+  const open = src.indexOf(RETURN_LITERAL)
+  if (open < 0) return []
+  const start = open + 'return '.length
+  const hits = []
+  let last = -1
+  for (let i = start + 1; i < src.length; i++) if (src[i] === '`') { hits.push(i); last = i }
+  /* The final one closes the literal and is expected. */
+  return hits.filter(i => i !== last).map(i => ({
+    line: src.slice(0, i).split('\n').length,
+    snippet: src.slice(Math.max(0, i - 50), i + 30).replace(/\s+/g, ' '),
+  }))
+}
+
 const files = ROOTS.flatMap(walk)
 let bad = 0
 
@@ -205,6 +246,16 @@ for (const f of files) {
     console.log(`\n  TEMPLATE  ${f}:${h.line}`)
     console.log(`            A block comment opens inside a template literal and never closes inside it.`)
     console.log(`            This is what a stray backtick in a CSS comment looks like.`)
+    console.log(`            …${h.snippet}…`)
+  }
+
+  /* Layer four. */
+  for (const h of strayBackticksInDeclaredFile(src)) {
+    bad++
+    console.log(`\n  BACKTICK  ${f}:${h.line}`)
+    console.log(`            This file declares itself backtick-free below its return.`)
+    console.log(`            This one ends the template literal early. Everything after`)
+    console.log(`            it parses as JavaScript, and the build may still go green.`)
     console.log(`            …${h.snippet}…`)
   }
 
