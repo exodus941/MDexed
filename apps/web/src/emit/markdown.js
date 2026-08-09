@@ -105,6 +105,11 @@ function colorsBody(state, derived) {
       dark && 'Every token has a `dark-` prefixed counterpart; pair them by name when building a theme toggle.',
       state.color.emitRamps && 'Numbered scales (`accent-50` … `accent-950`) exist for cases the semantic roles do not cover. Prefer the semantic role wherever one applies — it carries intent, the raw step does not.',
       'Never introduce a colour that is not listed here.',
+      /* The table above pairs each role against the page and against its own
+         foreground. A component that combines two roles of its own makes a
+         third pair, and that pair is in no row here. */
+      'This table cannot cover a pair a component invents. A badge that takes its text from one role and its fill from another creates a combination no row above measures — check that pair yourself before you ship the component.',
+      'Report any ratio you measure to two decimal places. One place turns 4.4996 into "4.5:1", which reads as a pass against a threshold of 4.5 and is not one.',
     ])
   )
 }
