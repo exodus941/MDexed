@@ -2,7 +2,7 @@
    Exercises the tokens that only appear in long-lived application chrome —
    sunken wells, selected nav, disabled controls, danger affordances. */
 import { inspectProps, text } from '../inspect.js'
-import { Ico, Switch, IconUser, IconFolder, IconBell, IconLock, IconChart, IconCheck, IconTrash } from '../icons.jsx'
+import { Ico, Switch, IconUser, IconFolder, IconBell, IconLock, IconChart, IconCheck, IconTrash, IconAlert } from '../icons.jsx'
 
 export default function Settings({ onInspect }) {
   const ins = entry => inspectProps(entry, onInspect)
@@ -71,14 +71,39 @@ export default function Settings({ onInspect }) {
 
         <div className="well stack-sm">
           <div style={{ fontWeight: 500 }} {...txt("body-md")}>Notification email</div>
-          <div className="row" style={{ alignItems: 'flex-end' }}>
-            <div className="field" style={{ flex: 1 }} {...ins('input')}>
-              <label className="label" {...txt("caption", "text-muted")}>Send to</label>
-              <input className="input" defaultValue="accounts@northwind.co" />
+          {/* The row and the line under it are ONE field, so they sit at the
+              field's own spacing and not at the group's. Before this the help
+              was a sibling of the row, a full group gap below it, which left
+              it floating between the field above and the buttons below and
+              belonging to neither. Proximity is what assigns a caption to a
+              control, and nothing else does. */}
+          <div className="field">
+            <div className="row" style={{ alignItems: 'flex-end' }}>
+              <div className="field" style={{ flex: 1 }} {...ins('input')}>
+                <label className="label" {...txt("caption", "text-muted")}>Send to</label>
+                <input className="input" defaultValue="accounts@northwind.co" />
+              </div>
+              <button className="btn btn-secondary" {...ins('button-secondary')}>Verify</button>
             </div>
-            <button className="btn btn-secondary" {...ins('button-secondary')}>Verify</button>
+            <p className="caption field-note" {...txt("caption", "text-muted")}>Changing this signs out other sessions.</p>
           </div>
-          <p className="caption" {...txt("caption", "text-muted")}>Changing this signs out other sessions.</p>
+
+          {/* The same field in its failing state, so the error treatment is on
+              screen beside the resting one rather than described in prose. The
+              mark matters as much as the colour: red alone is unreadable to a
+              red-green eye and disappears in greyscale. */}
+          <div className="field">
+            <div className="row" style={{ alignItems: 'flex-end' }}>
+              <div className="field" style={{ flex: 1 }} {...ins('input-error')}>
+                <label className="label" {...txt("caption", "text-muted")}>Billing contact</label>
+                <input className="input is-error" defaultValue="billing@northwind" aria-invalid="true" />
+              </div>
+              <button className="btn btn-secondary" {...ins('button-secondary')}>Verify</button>
+            </div>
+            <p className="caption field-note is-error" {...txt("caption", "danger")}>
+              <Ico d={IconAlert} size="sm" />That address is missing a domain.
+            </p>
+          </div>
         </div>
 
         {/* Stacked and reversed at a narrow width, so it reads Save, Discard,

@@ -175,8 +175,14 @@ function PropRow({ entryName, propKey, defaultValue, override, onSet, onReset, d
           an override. The height comes from the field rather than being pinned
           here — a fixed 26px row with a taller field in it collides with the
           row below, which is exactly what happened. */}
-      <div style={{ display: 'grid', gridTemplateColumns: '128px minmax(0,1fr) 96px 16px 20px', gap: 8, alignItems: 'center' }}>
-        <code style={{ fontFamily: 'var(--mono)', fontSize: 10.5, color: legal ? 'var(--text-dim)' : 'var(--warn)' }}>{propKey}</code>
+      {/* The columns are stated in CSS, not here, because they have to change
+          with the PANE's width and not the window's. A splitter can leave this
+          panel 330px wide inside a 1900px screen, and at that width the fixed
+          128 + 96 + 16 + 20 plus four gaps ate 292 of it — the value field
+          collapsed to nothing and the slider and its unit ran off the edge and
+          were clipped, not scrolled. A container query asks the pane. */}
+      <div className="prop-row">
+        <code className="prop-key" style={{ fontFamily: 'var(--mono)', fontSize: 10.5, color: legal ? 'var(--text-dim)' : 'var(--warn)' }}>{propKey}</code>
 
         <input list={options.length ? listId : undefined}
           value={override ?? ''} placeholder={defaultValue}

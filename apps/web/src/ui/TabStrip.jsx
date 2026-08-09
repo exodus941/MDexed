@@ -129,6 +129,15 @@ export default function TabStrip({ tabs, active, onSelect, right, title, actions
   const [hovered, setHovered] = useState(null)
   const menuRef = useRef(null)
   const triggerRef = useRef(null)
+  /* Pinned only when the tabs will not all fit. Mirrored into a ref because
+     `measure` runs on scroll and resize and must read the current value
+     without being rebuilt — a new callback identity there remounts the
+     chevrons mid-scroll, which is the bug the comment above `measure`
+     describes. */
+  const [pinned, setPinned] = useState(false)
+  const pinnedRef = useRef(false)
+  const activeWRef = useRef(0)
+  const triggerWRef = useRef(0)
 
   /* Dismissal, without a click-catching overlay.
    *
@@ -184,6 +193,34 @@ export default function TabStrip({ tabs, active, onSelect, right, title, actions
       right: el.scrollLeft + el.clientWidth < el.scrollWidth - 2,
     }
     setEdges(prev => (prev.left === next.left && prev.right === next.right ? prev : next))
+
+    /* Does this strip need the pinned tab at all?
+     *
+     * The pinned tab exists so the active one never scrolls out of reach. When
+     * every tab already fits, it earns nothing and costs a duplicate: the same
+     * name appears once beside its chevron and again in the row.
+     *
+     * The measurement has to survive its own effect. Pinning removes the active
+     * tab from the strip, which makes the content narrower, which could unpin,
+     * which puts the tab back — a strip that flickers between two states at one
+     * particular width. So both sides of the comparison are adjusted back to
+     * the unpinned layout: add the active tab's width to what is needed, and
+     * add the trigger's width to what is available. Then the question asked is
+     * always "would the plain bar fit", whichever state we are currently in.
+     *
+     * Plus 24px of hysteresis on the way out, so dragging a splitter across the
+     * threshold settles instead of oscillating. */
+    const activeBtn = el.querySelector('[data-active="1"]')
+    if (activeBtn) activeWRef.current = activeBtn.offsetWidth
+    const triggerW = triggerRef.current ? triggerRef.current.parentElement.offsetWidth : 0
+    if (triggerW) triggerWRef.current = triggerW
+    const needed = el.scrollWidth + (pinnedRef.current ? activeWRef.current : 0)
+    const room = el.clientWidth + (pinnedRef.current ? triggerWRef.current : 0)
+    setPinned(was => {
+      const next2 = was ? needed > room - 24 : needed > room + 1
+      pinnedRef.current = next2
+      return next2 === was ? was : next2
+    })
   }, [])
 
   /* Drive the phases off the edges and the pointer.
@@ -333,10 +370,13 @@ export default function TabStrip({ tabs, active, onSelect, right, title, actions
     }
   }, [stopScroll])
 
-  /* The active tab is pinned at the left with a menu beside it, so it never
-     scrolls out of sight; the rest queue up to its right. */
+  /* Pinned only when it earns its place.
+     The active tab sits at the left with a menu beside it so it never scrolls
+     out of sight — worth a whole control when the tabs overflow, and pure
+     duplication when they do not: the same name once beside its chevron and
+     again in the row. Below the threshold this is an ordinary tab bar. */
   const activeTab = tabs.find(t => t.id === active) ?? tabs[0]
-  const rest = tabs.filter(t => t.id !== active)
+  const rest = pinned ? tabs.filter(t => t.id !== active) : tabs
 
   return (
     <>
@@ -350,7 +390,14 @@ export default function TabStrip({ tabs, active, onSelect, right, title, actions
             only way to tell which is which is to recognise the tab names. */}
         {title && (
           <span style={{
-            alignSelf: 'center', paddingLeft: 14, flexShrink: 0,
+            /* The gap after the label lives HERE, not on whatever follows.
+               It used to come from the pinned trigger's own left padding, so
+               the moment that trigger stopped rendering the label sat flush
+               against the first tab. Spacing that belongs to one element must
+               not be paid for by its neighbour — the neighbour can leave.
+               12 here plus the tab's own 12 makes 24 between the two words,
+               which is what the pinned layout gave (14 + 10). */
+            alignSelf: 'center', paddingLeft: 14, paddingRight: 12, flexShrink: 0,
             fontSize: 10, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase',
             color: 'var(--text-dim)', whiteSpace: 'nowrap', userSelect: 'none', cursor: 'default',
           }}>
@@ -362,7 +409,9 @@ export default function TabStrip({ tabs, active, onSelect, right, title, actions
           </span>
         )}
         {/* Name and arrow are one control — the whole thing opens the menu, and
-            the underline spans the full hit area rather than just the label. */}
+            the underline spans the full hit area rather than just the label.
+            Rendered only while pinned, which is only while the tabs overflow. */}
+        {pinned && (
         <div style={{ display: 'flex', alignItems: 'stretch', flexShrink: 0, paddingLeft: 14 }}>
           <button ref={triggerRef} onClick={() => setMenuOpen(o => !o)} title="Switch tab"
             style={{
@@ -386,8 +435,9 @@ export default function TabStrip({ tabs, active, onSelect, right, title, actions
           </button>
           <span style={{ alignSelf: 'center', width: 1, height: 18, background: 'var(--bdr)', margin: '0 2px' }} />
         </div>
+        )}
 
-        {menuOpen && (
+        {pinned && menuOpen && (
           <div ref={menuRef} className="anim-pop" style={{
             position: 'absolute', top: BAR_H - 2, left: 10, zIndex: 71, minWidth: 176,
             background: 'var(--surf2)', border: '1px solid var(--bdr2)', borderRadius: 9,
@@ -411,19 +461,28 @@ export default function TabStrip({ tabs, active, onSelect, right, title, actions
         {phase.left && <Chevron dir={-1} state={phase.left} onEnter={() => startScroll(-1)} onLeave={stopScroll} onClick={() => nudge(-1)} />}
         <div ref={ref} className="no-bar" onScroll={measure}
           style={{ display: 'flex', flex: 1, minWidth: 0, overflowX: 'auto' }}>
-          {rest.map(t => (
-            <button key={t.id} onClick={() => onSelect(t.id)} style={{
+          {rest.map(t => {
+            /* Unpinned, the active tab lives in this row and has to show it —
+               same underline the pinned trigger wears, so switching between
+               the two layouts changes what is on screen and not how it reads.
+               `data-active` is also what `measure` finds to learn this tab's
+               width, which is what keeps the pin threshold from oscillating. */
+            const on = !pinned && t.id === active
+            return (
+            <button key={t.id} onClick={() => onSelect(t.id)} data-active={on ? '1' : undefined} style={{
               background: 'none', border: 'none', borderRadius: 0, cursor: 'pointer',
               padding: '0 12px', fontFamily: 'var(--sans)', fontSize: TAB_FS, whiteSpace: 'nowrap',
-              color: 'var(--muted)', fontWeight: 400,
+              color: on ? 'var(--text)' : 'var(--muted)', fontWeight: on ? 500 : 400,
               /* No border here either. A transparent 2px border still adds to
                  the box, so these inactive tabs were the same 1px too tall as
                  the pinned one and sat a pixel low against the bar's rule. */
+              boxShadow: on ? 'inset 0 -2px 0 var(--accent)' : 'none',
               transition: 'color var(--t) var(--ease)',
             }}
-              onMouseEnter={e => { e.currentTarget.style.color = 'var(--text)' }}
-              onMouseLeave={e => { e.currentTarget.style.color = 'var(--muted)' }}>{t.label}</button>
-          ))}
+              onMouseEnter={e => { if (!on) e.currentTarget.style.color = 'var(--text)' }}
+              onMouseLeave={e => { if (!on) e.currentTarget.style.color = 'var(--muted)' }}>{t.label}</button>
+            )
+          })}
         </div>
         {phase.right && <Chevron dir={1} state={phase.right} onEnter={() => startScroll(1)} onLeave={stopScroll} onClick={() => nudge(1)} />}
         {right && (
@@ -437,14 +496,28 @@ export default function TabStrip({ tabs, active, onSelect, right, title, actions
           meant the tabs and the buttons competed for the same width and the
           tabs lost first. Full width here, and the tab strip gets the whole
           line above to itself. */}
+      {/* `minHeight`, not `height`. A fixed 38 was shorter than the 36px
+          controls plus their clearance, so a control taller than 34 poked out
+          of the top of its own row. The row grows to hold what it is given.
+
+          And it WRAPS. Every control in here refuses to shrink — correctly, a
+          status readout squeezed to 40px says nothing — so a row that cannot
+          wrap has only one way to fail: run off the end. In a 370px PANE
+          inside a 790px window it ran 149px past the edge, and the parent
+          clipped it with no scrollbar to reach what was cut off.
+
+          The phone media query could never have caught that, because the
+          window was 790 and a media query asks the window. Wrapping asks
+          nobody and holds at every width.
+
+          Both of these comments live OUTSIDE the expression below. A `{/* */}`
+          between `&&` and its element is a second child of an expression that
+          takes one, and it takes the whole module down with a 500. Second time
+          in this project. */}
       {actions && (
-        /* `minHeight`, not `height`. A fixed 38 was shorter than the 36px
-           controls plus their clearance, so a control taller than 34 poked out
-           of the top of its own row. The row now grows to hold what it is
-           given. */
         <div className="action-row" style={{
-          display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0,
-          padding: '0 12px', minHeight: 38, background: 'var(--surf)',
+          display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, flexWrap: 'wrap',
+          padding: '5px 12px', minHeight: 38, background: 'var(--surf)',
           borderBottom: '1px solid var(--bdr)', borderTop: '1px solid var(--bdr)',
         }}>
           {actions}

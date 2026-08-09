@@ -27,8 +27,14 @@ function Section({ title, note, children, txt }) {
   )
 }
 
+/* `row-label` is what the narrow-width rule keys on.
+   Before it, the label took its own line only inside a `matrix-grid`, which is
+   how GHOST and DANGER stood alone while LIVE and FILLED shared a line with
+   whichever buttons happened to fit beside them. Same component, same job, two
+   different layouts decided by an ancestor two levels up. The class puts the
+   rule on the label itself, so every specimen row reads the same way. */
 const Label = ({ children, txt }) => (
-  <div className="caption" style={{ minWidth: 74, textTransform: 'uppercase', letterSpacing: '.06em' }}
+  <div className="caption row-label" style={{ minWidth: 74, textTransform: 'uppercase', letterSpacing: '.06em' }}
     {...txt('overline', 'text-muted')}>{children}</div>
 )
 
@@ -147,7 +153,10 @@ export default function Gallery({ onInspect, layout }) {
           </div>
           <div className="field" {...ins('select')}>
             <label className="label" {...txt("caption", "text-muted")}>Payment terms</label>
-            <button className="btn btn-secondary" style={{ width: '100%', justifyContent: 'space-between' }}>
+            {/* `select-trigger`, not an inline `justify-content`. A `.btn` is
+                inline-block, so that property did nothing and the value sat in
+                the middle of a full-width control. */}
+            <button className="btn btn-secondary select-trigger select-trigger-block" style={{ height: 'var(--cmp-select-height, 36px)' }}>
               <span>Net 30</span><Ico d={IconChevron} />
             </button>
           </div>
@@ -185,7 +194,7 @@ export default function Gallery({ onInspect, layout }) {
             <input className="input" placeholder="Search invoices" />
           </div>
           <div className="row">
-            <button className="btn btn-secondary" style={{ minWidth: 150, justifyContent: 'space-between' }} {...ins('select')}>
+            <button className="btn btn-secondary select-trigger" style={{ minWidth: 150 }} {...ins('select')}>
               <span>All accounts</span><Ico d={IconChevron} />
             </button>
             <div className="row" style={{ gap: 2, background: 'var(--c-bg-subtle, #eee)', padding: 3, borderRadius: 'var(--radius-md, 8px)' }}>

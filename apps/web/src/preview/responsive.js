@@ -85,6 +85,9 @@ ${query(md)} {
      Collapsed to a zero row rather than display none, so the fold animates on
      the document's own duration and easing. A system that publishes a motion
      scale should be seen using it. */
+  /* The disclosure appears only here. Hidden at every wider width, because a
+     desktop header has room for the links themselves. */
+  .dmd .nav-collapse { display: block; }
   .dmd .nav-collapse:not([open]) ~ .nav-fold { grid-template-rows: 0fr; }
   .dmd .nav-fold { transition: grid-template-rows var(--duration-normal, 200ms) var(--ease-standard, ease); }
   .dmd .nav-burger { display: flex; }
@@ -165,7 +168,16 @@ ${query(sm)} {
   .dmd .matrix > .row { flex-wrap: wrap; min-width: 0; }
   .dmd .matrix-grid { display: flex; flex-direction: column; }
   .dmd .matrix-grid > .row { display: flex; flex-wrap: wrap; }
-  .dmd .matrix-grid > .row > :first-child { flex: 1 0 100%; }
+
+  /* The label takes its own line, and the rule is on the LABEL.
+     It used to sit on the first child of a matrix-grid row, so the same
+     component behaved two ways depending on an ancestor two levels up: GHOST
+     and DANGER stood alone while LIVE and FILLED shared a line with whichever
+     buttons happened to fit beside them. A row of specimens must read one way
+     down the whole page. Any row carrying a label wraps too, or the label has
+     nothing to wrap away from. */
+  .dmd .row:has(> .row-label) { flex-wrap: wrap; min-width: 0; }
+  .dmd .row-label { flex: 1 0 100%; }
 
   /* The page's own actions take the medium step of the button scale.
      Small is a desktop density choice. At this width it is an uncomfortable
