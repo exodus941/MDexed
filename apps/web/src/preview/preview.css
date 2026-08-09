@@ -218,6 +218,22 @@
   border-radius: var(--cmp-badge-rounded, var(--radius-full, 9999px));
   font-size: var(--cmp-badge-font-size, var(--font-caption-size, 12px));
   font-weight: 500;
+  /* A whole-pixel line box, not the inherited fractional one.
+   *
+   * The badge inherited `line-height: 1.56`, which on a 12.8px font computes to
+   * 19.968px. The half-leading either side is then 0.984, and the subpixel
+   * split does not land evenly — the label sat 6px below the top edge against
+   * 7.95px above the bottom. Rounding the line box to a whole even number
+   * makes the half-leading a whole number too, and the ink centres exactly:
+   * measured 7 and 7.
+   *
+   * Setting `line-height: 1` fixed the centring and shrank the badge from 24px
+   * to 16.8px, which is a 30% change to a rendered value in someone else's
+   * system. Rounding keeps the height it always had.
+   *
+   * The plain value is the fallback where `round()` is unsupported. */
+  line-height: 1.5625;
+  line-height: round(1.56em, 2px);
 }
 .dmd .badge-accent  { background: var(--cmp-badge-accent-background-color, var(--c-accent-subtle, #f6e9e6));  color: var(--cmp-badge-accent-text-color, var(--c-accent, #b8422e)); }
 .dmd .badge-success { background: var(--cmp-badge-success-background-color, var(--c-success-subtle, #e6f2eb)); color: var(--cmp-badge-success-text-color, var(--c-success, #3f8f63)); }
