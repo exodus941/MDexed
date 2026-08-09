@@ -271,8 +271,24 @@ textarea:not(.dmd *){resize:vertical;min-height:90px;font-size:13px;line-height:
    shorter than the field beside it" problem with a 9px gap. Equal heights are
    also what puts their baselines within a pixel, so this fixes both. */
 .action-row select{height:28px;padding:0 26px 0 8px}
-.action-row .seg-box{height:28px;box-sizing:border-box;align-items:stretch}
+/* 1px of inset, not 2. With a 1px border either side, 2px of padding left the
+   segments 22px tall inside a 28px control — under the 24px floor where a
+   click starts needing aim, and these are the two most-used buttons in the
+   bar. One pixel back gives them 24 and the pill still reads as a pill. */
+.action-row .seg-box{height:28px;box-sizing:border-box;align-items:stretch;padding:1px}
 .action-row .seg-box button{height:100%;display:flex;align-items:center}
+
+/* The two status readouts — contrast and the audit count — are the same rule
+   again, and they escaped it because they carry no button class. Sized by a
+   3px padding at 11px they stood 22 in a row of 28, so a centred row put them
+   3px lower than every control beside them. Height first, then the padding
+   goes horizontal only, or the box grows past 28 again. */
+.action-row .readout{height:28px;box-sizing:border-box;padding-top:0;padding-bottom:0}
+/* A readout is a button wherever it sits. Outside the action row nothing was
+   stating its height, so on a phone it fell back to its own 22px and sat under
+   the touch floor. The floor belongs to the control, not to one container. */
+.readout{min-height:24px;box-sizing:border-box}
+@media (max-width:767px){.readout{min-height:40px}}
 
 /* ── The action row on a phone ──
    Measured before this: the Width select stood 36px, the Light/Dark box 27px,
@@ -290,13 +306,30 @@ textarea:not(.dmd *){resize:vertical;min-height:90px;font-size:13px;line-height:
      Splitting the bar into two lines produced 37, 31, 31 and a 26px mark, all
      sized by their own contents. A row of content-sized controls is a bug
      waiting for the next label change. */
-  header .btn-ghost,header .btn-primary,header .btn-fill,header .btn-outline{height:36px}
+  /* 40, not 36. The action row a few lines down already made this call and
+     wrote down why — a finger is the pointer at this width, and 40px is the
+     floor below which a tap needs aim. The title bar was left at the desktop
+     36 and sat under it. One number, both bars. */
+  /* Height and line height together, always, and the line height is the height
+     MINUS THE TWO BORDERS. Raising the height alone left the line box sized
+     for the old box: measured 13px above the cap against 17 below the
+     baseline, and the icon 2px under its own label. Third time this trap has
+     been sprung in this project — the preview stylesheet carries the same
+     pairing, and so does the responsive one. */
+  header .btn-ghost,header .btn-primary,header .btn-fill,header .btn-outline{height:40px;line-height:38px;padding-top:0;padding-bottom:0;align-items:center}
+  header input[type=text]{height:40px}
   header .no-bar{align-items:center}
 
   .action-row{min-height:56px!important;gap:10px!important;padding:0 12px!important}
-  .action-row select{height:40px;padding:0 28px 0 10px}
-  .action-row .seg-box{height:40px;box-sizing:border-box;align-items:stretch}
+  /* 44 across the row, so the SEGMENTS reach 40. The seg-box was the thing
+     measured and it passed at 40, while the two buttons inside it — the parts
+     anyone actually taps — stood 36 after its border and padding. A control
+     clears the floor when its targets do, not when its container does. The
+     rest of the row follows so the band stays one height. */
+  .action-row select{height:44px;padding:0 28px 0 10px}
+  .action-row .seg-box{height:44px;box-sizing:border-box;align-items:stretch}
   .action-row .seg-box button{height:100%;display:flex;align-items:center}
+  .action-row .readout{height:44px}
 }
 
 /* ── Modal shells on a phone ──
@@ -434,11 +467,24 @@ label.check input[type=checkbox]:not(.dmd *){flex-shrink:0;margin:0}
    2.5.8 target-size check wants anyway. */
 .btn-field{height:var(--field-h);padding:0 12px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
 .btn-field-icon{width:var(--field-h);padding:0}
-.dense .btn-field{height:var(--field-h-dense);padding:0 8px}
+.dense .btn-field{height:var(--field-h-dense);padding:0 8px;font-size:10.5px}
 .dense .btn-field-icon{width:var(--field-h-dense);padding:0}
+
+/* The font-size above is not cosmetic, it is what makes the row align.
+   `.dense` sized the field text and left the button beside it at 13px — the
+   third size this file's own comment warns about. Two 28px boxes centring
+   their own labels put their baselines 0.3635 × the font-size difference
+   apart: 2.5px of difference bought 1px of drift. A baseline row then held
+   the baselines together and pushed the boxes 1px out of line instead, so the
+   bottom edges disagreed. One font-size satisfies both. You cannot get equal
+   boxes AND equal baselines out of two different font sizes — pick the size,
+   not the alignment property. */
 .btn-add{margin-top:8px;width:100%;padding:10px 16px;background:var(--accent-wash);color:var(--accent);border:1px dashed var(--accent-line);border-radius:8px;cursor:pointer;font-size:13px;font-family:var(--sans);transition:background var(--t-hover) var(--ease)}
 .btn-add:hover{background:var(--accent-soft)}
-.btn-delete{background:none;border:none;cursor:pointer;color:var(--dim);border-radius:4px;transition:color var(--t-hover) var(--ease);display:flex;align-items:center;justify-content:center;padding:4px}
+/* 24px is the target, 13px is the mark. Sized by its icon and 4px of padding
+   this came out 21, and a 21px destructive control is the one you least want
+   people missing. The glyph does not change — only the box around it. */
+.btn-delete{background:none;border:none;cursor:pointer;color:var(--dim);border-radius:4px;transition:color var(--t-hover) var(--ease);display:flex;align-items:center;justify-content:center;padding:4px;min-width:24px;min-height:24px}
 .btn-delete:hover{color:var(--danger)}
 /* Tab-strip chevrons. Opacity transitions so reaching the end of travel dims
    the button rather than blinking it; the exit collapses the width in the
@@ -502,7 +548,10 @@ label.check input[type=checkbox]:not(.dmd *){flex-shrink:0;margin:0}
   overflow:hidden}
 .entry-sample>*{max-width:100%}
 
-.close-x{opacity:.55;transition:opacity var(--t) var(--ease),background var(--t-hover) var(--ease)}
+/* 24px, not the 21 its icon and padding produced. A close button is the one
+   control on a modal that everybody uses and nobody looks at, so it is the
+   worst one to make people aim at. The mark is unchanged. */
+.close-x{opacity:.55;min-width:24px;min-height:24px;display:flex;align-items:center;justify-content:center;transition:opacity var(--t) var(--ease),background var(--t-hover) var(--ease)}
 .close-x:hover{opacity:1;background:var(--grey-wash)}
 .close-x:focus-visible{opacity:1;outline:2px solid var(--accent);outline-offset:1px}
 
@@ -548,6 +597,13 @@ label.check input[type=checkbox]:not(.dmd *){flex-shrink:0;margin:0}
 .xfade-in{animation:dmd-fade var(--t) linear both}
 
 .seg,.seg-on{font-family:var(--sans);font-size:12px;cursor:pointer;border:1px solid transparent;border-radius:5px;padding:4px 10px;background:transparent;color:var(--muted);transition:background var(--t-hover) var(--ease),color var(--t-hover) var(--ease);white-space:nowrap}
+/* min-height 24 for the same reason as the close button: 4px of padding on
+   12px text stood these at 22.
+   NOT inside a `.seg-box`. There the box states the height and the buttons
+   stretch to it, and a floor of 24 in a 22px content area overflowed by 2 and
+   pushed the segment labels a pixel and a half below every other baseline in
+   the row. A minimum that fights a stated height is not a minimum. */
+.seg:not(.seg-box *),.seg-on:not(.seg-box *){min-height:24px}
 .seg:hover{color:var(--text);background:var(--surf3)}
 .seg-on{background:var(--surf3);color:var(--text);font-weight:500}
 

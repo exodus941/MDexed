@@ -83,14 +83,21 @@ export default function Gallery({ onInspect, layout }) {
             <Label txt={txt}>filled</Label>
             <button className="btn btn-primary" {...ins('button-primary')}><Ico d={IconPlus} />New invoice</button>
             <button className="btn btn-primary" {...ins('button-primary')}>Continue<Ico d={IconArrow} end /></button>
-            <button className="btn btn-primary" {...ins('button-md')} style={{ padding: 0, width: 'var(--cmp-button-md-height, 36px)', cursor: 'pointer' }}><Ico d={IconPlus} /></button>
+            {/* `icon-only`, not a hand-rolled padding-and-width. The inline
+                version reproduced the class's box and none of its centring, so
+                this icon sat 4px left of the middle. */}
+            <button className="btn btn-primary icon-only" {...ins('button-md')}><Ico d={IconPlus} /></button>
           </div>
           <div className="row">
             <Label txt={txt}>outline</Label>
             <button className="btn btn-secondary" {...ins('button-secondary')}><Ico d={IconSearch} />Search</button>
             <button className="btn btn-secondary" {...ins('button-secondary')}>Sort<Ico d={IconChevron} end /></button>
-            <button className="btn btn-secondary btn-sm icon-only" {...ins('button-secondary')}><Ico d={IconTrash} /></button>
-            <button className="btn btn-secondary btn-sm icon-only" {...ins('button-secondary')}><Ico d={IconStar} /></button>
+            {/* Medium, like the two beside them. This row is about where an
+                icon sits, not how big a button is — `btn-sm` here made the row
+                28, 36, 36, 28 and put two of the four 4px lower than the rest.
+                The size scale has its own row below. */}
+            <button className="btn btn-secondary icon-only" {...ins('button-secondary')}><Ico d={IconTrash} /></button>
+            <button className="btn btn-secondary icon-only" {...ins('button-secondary')}><Ico d={IconStar} /></button>
           </div>
           <div className="row">
             <Label txt={txt}>sizes</Label>
@@ -205,8 +212,11 @@ export default function Gallery({ onInspect, layout }) {
             <span key={k} className={`badge badge-${k}`} {...ins(`badge-${k}`)}>{k}</span>
           ))}
           <span className="with-icon badge badge-success" {...ins("badge-success")}><Ico d={IconCheck} size="sm" />with icon</span>
-          <span className="badge badge-neutral" style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--icon-gap, 8px)' }} {...ins('badge-neutral')}>
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--c-success, green)' }} />live
+          {/* The dot is a class now, not an inline flex box. Inline styles here
+              were overriding the badge's own display and taking its baseline
+              with them, which is what put this badge 2px below its neighbours. */}
+          <span className="badge badge-neutral" {...ins('badge-neutral')}>
+            <span className="dot" style={{ background: 'var(--c-success, green)' }} />live
           </span>
         </div>
       </Section>

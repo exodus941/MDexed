@@ -62,7 +62,14 @@ function SeedRow({ seed, ramps, onChange, onRename, onDelete, onLock, open, onTo
         <button onClick={e => { e.stopPropagation(); onLock() }}
           title={seed.locked ? 'Locked — the generator will leave this alone' : 'Unlocked — the generator may replace this'}
           style={{
-            background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex',
+            /* The mark stays 12px. The target does not: 4px of padding made
+               this a 20px control, and 20px asks a mouse for aim it should not
+               need. 24 is the floor where a click stops being a small act of
+               marksmanship. Grow the box, not the glyph — centring keeps the
+               icon exactly where it was. */
+            background: 'none', border: 'none', cursor: 'pointer', padding: 4,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            minWidth: 24, minHeight: 24,
             color: seed.locked ? 'var(--accent)' : 'var(--dim)',
             transition: 'color var(--t) var(--ease)', alignSelf: 'center',
           }}>

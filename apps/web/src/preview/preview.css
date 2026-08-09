@@ -213,7 +213,18 @@
 
 /* ── Badges & status ── */
 .dmd .badge {
-  display: inline-flex; align-items: center;
+  /* inline-block, not inline-flex, and the reason is the baseline.
+   *
+   * A flex container takes its baseline from its FIRST flex item. So a plain
+   * badge got its label's baseline, a badge starting with a tick got the svg's,
+   * and one starting with a status dot got the dot's — three identical 24px
+   * badges on one line sitting at three different tops, measured 4px apart.
+   * The ornament was deciding where the row's text sat.
+   *
+   * An inline-block has a baseline of its own, from its own line box, and no
+   * child can move it. Same fix the buttons in this file already carry. The
+   * ornaments then align with vertical-align rather than by being first. */
+  display: inline-block; white-space: nowrap;
   padding: var(--cmp-badge-padding, 2px var(--space-xs, 8px));
   border-radius: var(--cmp-badge-rounded, var(--radius-full, 9999px));
   font-size: var(--cmp-badge-font-size, var(--font-caption-size, 12px));
@@ -235,6 +246,21 @@
   line-height: 1.5625;
   line-height: round(1.56em, 2px);
 }
+/* The ornaments a badge can carry, now that flex no longer spaces them.
+   Middle aligns to the x-height, which sits below the cap centre, so the same
+   optical lift the buttons use brings the mark back onto the label's own
+   middle. The gap is a margin because there is no flex gap to do it. */
+.dmd .badge > svg, .dmd .badge > .icon, .dmd .badge > .dot {
+  vertical-align: middle; transform: translateY(-0.12em);
+  margin-right: var(--cmp-badge-gap, var(--icon-gap, 6px));
+}
+.dmd .badge > .dot {
+  display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+}
+/* `.with-icon` turns things into flex boxes, which is right everywhere except
+   on a badge — there it undoes the inline-block above and hands the baseline
+   back to the icon. A badge already spaces its own ornaments. */
+.dmd .badge.with-icon { display: inline-block; gap: 0; }
 .dmd .badge-accent  { background: var(--cmp-badge-accent-background-color, var(--c-accent-subtle, #f6e9e6));  color: var(--cmp-badge-accent-text-color, var(--c-accent, #b8422e)); }
 .dmd .badge-success { background: var(--cmp-badge-success-background-color, var(--c-success-subtle, #e6f2eb)); color: var(--cmp-badge-success-text-color, var(--c-success, #3f8f63)); }
 .dmd .badge-warning { background: var(--cmp-badge-warning-background-color, var(--c-warning-subtle, #f7efe0)); color: var(--cmp-badge-warning-text-color, var(--c-warning, #c08a2e)); }
@@ -325,11 +351,21 @@
  * Staying inline-block keeps it aligned with its siblings. The icon is taken
  * out of flow and centred against the box, so it needs no x-height correction
  * either. */
-.dmd .btn.icon-only {
+/* Matched by structure as well as by class.
+ *
+ * A button holding nothing but an icon IS icon-only, whether or not anyone
+ * remembered to type the class. One in the component specimens did not, so it
+ * kept the leading-icon margin meant to separate a mark from a label that was
+ * not there, and its icon sat 4px left of centre — exactly half the icon gap.
+ * `:has` asks the question the class was standing in for. Anything that only
+ * supports the class still gets the old behaviour. */
+.dmd .btn.icon-only,
+.dmd .btn:has(> .icon:only-child) {
   width: var(--cmp-button-md-height, 36px); padding: 0;
   position: relative;
 }
-.dmd .btn.icon-only .icon {
+.dmd .btn.icon-only .icon,
+.dmd .btn:has(> .icon:only-child) > .icon {
   position: absolute; top: 50%; left: 50%;
   transform: translate(-50%, -50%);
   margin: 0;
@@ -342,11 +378,19 @@
  * baseline, that put it 8px high. The strut is invisible, occupies no width,
  * and inherits the same line-height, so the baseline lands exactly where a
  * label's would. */
-.dmd .btn.icon-only::before { content: "\200B"; }
-.dmd .btn.icon-only.btn-sm { width: var(--cmp-button-sm-height, 28px); }
-.dmd .btn.icon-only.btn-lg { width: var(--cmp-button-lg-height, 44px); }
-.dmd .btn.icon-only .icon { margin: 0; }
+.dmd .btn.icon-only::before,
+.dmd .btn:has(> .icon:only-child)::before { content: "\200B"; }
+.dmd .btn.icon-only.btn-sm,
+.dmd .btn.btn-sm:has(> .icon:only-child) { width: var(--cmp-button-sm-height, 28px); }
+.dmd .btn.icon-only.btn-lg,
+.dmd .btn.btn-lg:has(> .icon:only-child) { width: var(--cmp-button-lg-height, 44px); }
 .dmd .input-icon { position: relative; display: flex; align-items: center; }
+/* The mark has to sit ABOVE the field, not merely inside it.
+   Absolutely positioned and earlier in the DOM, it painted first and the
+   input's own background colour covered it completely — a search icon that
+   measured 16 by 16 and rendered none of it. Found by a paint check, not by
+   looking: at this contrast the difference is easy to read past. */
+.dmd .input-icon > .icon { z-index: 1; pointer-events: none; }
 .dmd .input-icon > svg { position: absolute; left: var(--space-sm, 12px); color: var(--c-text-subtle, #999); pointer-events: none; }
 .dmd .input-icon > .input { padding-left: calc(var(--space-sm, 12px) + var(--icon-md, 16px) + var(--icon-gap, 8px)); }
 
@@ -368,6 +412,10 @@
   display: flex; align-items: center; justify-content: space-between;
   gap: var(--space-sm, 8px); margin-bottom: var(--space-xs, 4px);
   list-style: none; cursor: default;
+  /* Sized by its own text this stood 20px. On a phone it carries the burger
+     and is the only way to open the menu, so it takes the touch floor there;
+     here it takes the mouse one. A disclosure nobody can hit is a dead end. */
+  min-height: 24px;
 }
 .dmd .nav-summary::-webkit-details-marker { display: none; }
 /* The list is a sibling of the disclosure, never a child.
