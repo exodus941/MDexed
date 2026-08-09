@@ -146,7 +146,12 @@ export const COMPONENT_LIBRARY = [
     base: { typography: 'body-sm', borderColor: '{colors.border-subtle}' },
     variants: {
       header: { textColor: '{colors.text-muted}', typography: 'overline', borderColor: '{colors.border}' },
-      cell:   { textColor: '{colors.text}', padding: '{spacing.sm} 0' },
+      /* Horizontal padding stated, not left at 0. A cell with no horizontal
+         value says the system has no column gutter, which is never true — it
+         only means nobody wrote one down. A generated dashboard reached for
+         the layout gutter instead and said so in its notes, which is the
+         polite version of guessing. */
+      cell:   { textColor: '{colors.text}', padding: '{spacing.sm} {spacing.md}' },
     },
   },
   {
