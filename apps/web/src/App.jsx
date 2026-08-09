@@ -1753,15 +1753,22 @@ function Shell() {
              edge, and they came out 2.5px apart. Equal heights plus centring
              puts their text within 0.4px without asking for baselines at all.
              The desktop row mixes text and controls, so it still wants them. */
-          /* Centre at both widths. The note above kept baseline on desktop
-             because the row "mixes text and controls" — but by the time it
-             reaches this element the text is inside groups, and what the header
-             actually lines up is two fixed-height boxes. Baseline asked each of
-             them where its own text sat and got different answers, so the mark
-             ran 0.5px above the buttons and a paddingBottom of 1 had been added
-             further down to push the other way. Centring removes the question
-             and both nudges with it. */
-          display: 'flex', alignItems: 'center',
+          /* Baseline, because this row is mostly TEXT.
+           *
+           * It was centred for one commit, to settle a 0.5px step between the
+           * mark and the buttons. That worked on the boxes and broke every word
+           * in the row: centring removes each item from the baseline set, so a
+           * 15px wordmark, a 9.5px chip and a 13px button label each centred on
+           * their own box and landed on three different lines. Measured against
+           * the button labels at 29.00 — wordmark 29.75, dev 26.88, unbuilt
+           * 27.63. They spotted it and marked the corrections on a screenshot:
+           * one up, two down, one down. Those are these numbers.
+           *
+           * Boxes are the minority here and they opt out with `align-self`.
+           * Text is the majority and it keeps the baseline. That is the right
+           * way round — a row of words with a square in it is not a row of
+           * squares. */
+          display: 'flex', alignItems: 'baseline',
           flexWrap: isMobile ? 'wrap' : 'nowrap',
           rowGap: isMobile ? 6 : 0, gap: isMobile ? 8 : 13,
           /* Symmetric. 7 over 5 shifted the whole row 1px off centre inside its
@@ -1769,32 +1776,40 @@ function Shell() {
           padding: isMobile ? '8px 12px' : '6px 20px',
           borderBottom: '1px solid var(--bdr)', background: 'var(--surf)',
         }}>
-          {/* Centre, not baseline. This row holds fixed-height controls, and
-              baseline asks each of them where its text sits — which is a
-              different answer for an inline-flex ghost button than for a
-              default one. Measured: 8.5 against 8, and a 1px step in a row of
-              buttons reads as a mistake even when nobody can name it. The mark
-              needed an explicit alignSelf to escape this, which was the tell.
-              The payload ships this exact rule; the chrome was breaking it. */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 9, flex: 1, minWidth: 0 }}>
-            {/* Two letters in the same box the single D had, so the mark
-                keeps its size — tighter tracking rather than a smaller face,
-                which would make it read as secondary next to the wordmark. */}
-            {/* Square, and the same height as the buttons beside it.
-                At 26 against their 36 it read as a smaller class of object
-                sitting in a row of controls. A mark in a control row is part
-                of that row, so it takes the row's height and stays 1:1. */}
-            {/* `minWidth` as well as `width`, or a squeezed flex row takes it
-                back down. It measured 32 by 36 with `width` alone, which is a
-                rectangle wearing a square's border radius. */}
-            {/* The size comes from a custom property, not from BAR_CTRL.
-                The constant said 36 and matched the buttons, until the touch
-                breakpoint promoted every header button to 40 and could not
-                reach an inline style to promote this with them. It measured 36
-                against their 40 on a phone — a mark half a step short of the
-                row it belongs to, which is the fault the constant was added to
-                prevent. A custom property lets the same media query move both. */}
-            <div className="bar-mark" style={{ borderRadius: 9, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', alignSelf: 'center', fontFamily: 'var(--display)', fontWeight: 800, fontSize: 14, letterSpacing: '-0.04em', color: 'var(--bg)', flexShrink: 0 }}>MD</div>
+          {/* The mark sits HERE, beside the text group rather than inside it.
+           *
+           * It is a square, not a word, and a square inside a baseline-aligned
+           * run of words is positioned by those words. Measured while it was in
+           * there: the text group's box ran 7 to 43 against the buttons' 6 to
+           * 42 — same 36px height, one pixel lower, because the two groups had
+           * different ascents above the shared baseline (22 against 23). The
+           * mark then centred in the wrong box.
+           *
+           * Out here it centres against the header band and lands within 0.5px
+           * of the buttons, which is half a CSS pixel and below the threshold
+           * worth chasing. The words keep their baseline either way. */}
+          {/* Two letters in the same box the single D had, so the mark
+              keeps its size — tighter tracking rather than a smaller face,
+              which would make it read as secondary next to the wordmark. */}
+          {/* Square, and the same height as the buttons beside it.
+              At 26 against their 36 it read as a smaller class of object
+              sitting in a row of controls. A mark in a control row is part
+              of that row, so it takes the row's height and stays 1:1. */}
+          {/* `minWidth` as well as `width`, or a squeezed flex row takes it
+              back down. It measured 32 by 36 with `width` alone, which is a
+              rectangle wearing a square's border radius. */}
+          {/* The size comes from a custom property, not from BAR_CTRL.
+              The constant said 36 and matched the buttons, until the touch
+              breakpoint promoted every header button to 40 and could not
+              reach an inline style to promote this with them. It measured 36
+              against their 40 on a phone — a mark half a step short of the
+              row it belongs to, which is the fault the constant was added to
+              prevent. A custom property lets the same media query move both. */}
+          <div className="bar-mark" style={{ borderRadius: 9, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', alignSelf: 'center', fontFamily: 'var(--display)', fontWeight: 800, fontSize: 14, letterSpacing: '-0.04em', color: 'var(--bg)', flexShrink: 0 }}>MD</div>
+
+          {/* The words. Baseline-aligned, so every size in here shares one
+              line with the button labels across the bar. */}
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 9, flex: 1, minWidth: 0 }}>
             {/* The wordmark, build number and palette are the first things to
                 go. The squircle already says which app this is, and the name
                 field is the only part of this group you can act on. */}
@@ -1826,14 +1841,17 @@ function Shell() {
            * there. Now the row keeps its own size and the header scrolls to
            * it, so the far end is always reachable even when the window is
            * too narrow to show everything at once. */}
-          {/* Centre, and no 1px pad. This group holds buttons of one fixed
-              height, so baseline had nothing useful to say about them: it put
-              their box 0.5px below the mark's centre and the padding added
-              another. Two nudges of half a pixel each, in opposite directions,
-              which is what a row looks like when it is aligned by correction
-              rather than by rule. */}
+          {/* Baseline, and no 1px pad. The padding was a correction and it is
+              gone. The alignment is not: this group has to donate a baseline to
+              the header, and a centred flex container donates nothing — it
+              leaves the baseline set empty and the header then synthesises one
+              from an edge. That is what put the wordmark, the build chip and
+              the name field on three different lines.
+
+              Its own buttons are all one height, so baseline and centre agree
+              inside here. The difference only shows one level up. */}
           <div className="no-bar" style={{
-            display: 'flex', gap: 6, alignItems: 'center',
+            display: 'flex', gap: 6, alignItems: 'baseline',
             minWidth: 0, overflowX: 'auto', overflowY: 'hidden',
             scrollbarWidth: 'none',
           }}>

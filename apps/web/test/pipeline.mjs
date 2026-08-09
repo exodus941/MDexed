@@ -801,6 +801,9 @@ line('\n- prompt construction -')
     ['the gap beside a heading has a floor', ['floor under the gap']],
     ['that floor is what triggers the collapse', ['fit with that gap intact']],
     ['a breakpoint moves a row, not an object', ['moves a **row**, never one object']],
+    /* The inversion: centring a mostly-text row to settle two boxes. */
+    ['count what a row is made of before aligning it', ['count what a row is made of']],
+    ['a box in a text run is positioned by the text', ['positioned by that text, not by its own height']],
     ['a responsive rule is checked at both widths', ['at **both** widths']],
   ]
   const missing = RULES.filter(([, terms]) => !terms.every(t => doc.includes(t))).map(([n]) => n)
