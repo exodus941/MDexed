@@ -130,6 +130,56 @@ function danglingCommentsInTemplates(src) {
   return hits
 }
 
+/* Layer three: a JSX comment that closes itself early.
+ *
+ * A JSX comment is a brace, a block comment, a brace. The block comment ends at
+ * the FIRST closing sequence inside it, and the author almost always meant the
+ * last one. Write the closing sequence in prose — explaining the syntax, which
+ * is exactly when it happens — and the comment ends there. Everything after it
+ * is no longer a comment. It becomes page text, and the app renders a paragraph
+ * of source commentary to the user in both panes.
+ *
+ * Nothing else catches it. The code stays syntactically valid, so the parser in
+ * layer one is happy, the build is green, and the only symptom is prose on
+ * screen. Same family as the backtick in a CSS comment that layer two finds:
+ * name a delimiter inside the thing it delimits and the thing ends early.
+ *
+ * Finding it took two attempts, and the first one is worth recording because it
+ * was the more obvious rule and it was wrong. I checked whether a comment's
+ * close was braced straight away. It always is: the closing sequence the author
+ * typed in prose came WITH its brace, because they were quoting the whole JSX
+ * comment form. So the comment looked perfectly terminated, one sentence early.
+ *
+ * The signature that does work is what comes AFTER. A comment ends, and then
+ * the JSX text that follows still contains another closing sequence — which
+ * only happens when the author meant to close there instead. Real JSX between
+ * the two clears the file: an element or an expression means the first close
+ * was deliberate. */
+function selfClosingJsxComments(src) {
+  const hits = []
+  const OPEN = '{' + '/' + '*'
+  const CLOSE = '*' + '/'
+  let i = 0
+  while (i < src.length) {
+    const start = src.indexOf(OPEN, i)
+    if (start < 0) break
+    const end = src.indexOf(CLOSE, start + OPEN.length)
+    if (end < 0) break
+    const after = end + CLOSE.length + (src[end + CLOSE.length] === '}' ? 1 : 0)
+    /* How far the orphaned text runs: up to the next real JSX, or the next
+       stray close, whichever comes first. */
+    const tail = src.slice(after, after + 600)
+    const nextJsx = tail.search(/[<{]/)
+    const strayClose = tail.indexOf(CLOSE)
+    if (strayClose >= 0 && (nextJsx < 0 || strayClose < nextJsx)) {
+      const line = src.slice(0, end).split('\n').length
+      hits.push({ line, snippet: src.slice(Math.max(0, end - 40), end + 40).replace(/\s+/g, ' ') })
+    }
+    i = after
+  }
+  return hits
+}
+
 const files = ROOTS.flatMap(walk)
 let bad = 0
 
@@ -156,6 +206,18 @@ for (const f of files) {
     console.log(`            A block comment opens inside a template literal and never closes inside it.`)
     console.log(`            This is what a stray backtick in a CSS comment looks like.`)
     console.log(`            …${h.snippet}…`)
+  }
+
+  /* Layer three, JSX only. */
+  if (loader === 'jsx' || loader === 'tsx') {
+    for (const h of selfClosingJsxComments(src)) {
+      bad++
+      console.log(`\n  JSXCOMMENT  ${f}:${h.line}`)
+      console.log(`              This JSX comment ends here, and the author kept writing.`)
+      console.log(`              Everything after this point renders as page text.`)
+      console.log(`              Describe comment syntax in words. Never type the delimiter.`)
+      console.log(`              …${h.snippet}…`)
+    }
   }
 }
 

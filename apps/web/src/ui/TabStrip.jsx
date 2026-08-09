@@ -510,10 +510,16 @@ export default function TabStrip({ tabs, active, onSelect, right, title, actions
           window was 790 and a media query asks the window. Wrapping asks
           nobody and holds at every width.
 
-          Both of these comments live OUTSIDE the expression below. A `{/* */}`
-          between `&&` and its element is a second child of an expression that
-          takes one, and it takes the whole module down with a 500. Second time
-          in this project. */}
+          Both of these comments live OUTSIDE the expression below. A JSX
+          comment between a logical AND and its element is a second child of an
+          expression that takes one, and it takes the whole module down with a
+          500. Second time in this project.
+
+          And never write the comment closing sequence inside a comment. Naming
+          the delimiter in prose ended this block early, and the rest of the
+          sentence rendered on screen as page text — in both panes. Same trap
+          as a backtick inside a template literal: describe the syntax in
+          words, never type it. */}
       {actions && (
         <div className="action-row" style={{
           display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, flexWrap: 'wrap',
