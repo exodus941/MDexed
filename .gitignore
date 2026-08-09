@@ -33,3 +33,4 @@ npm-debug.log*
 # Claude Code local state
 .claude/
 .vercel
+apps/web/public/layout-tools.js
