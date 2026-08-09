@@ -192,6 +192,25 @@ function targetSize(state, derived) {
     /* Only interactive things have targets. A 16px badge is fine. */
     if (!/button|input|select|switch|checkbox|radio|chip|tab|link|toggle|slider/.test(name)) continue
     if (v >= 24) continue
+    /* Drawn small and hit large, on purpose.
+     *
+     * A checkbox and a radio are 16px marks inside a label that carries the hit
+     * area. That is not a compromise, it is how every serious design system
+     * builds them, and inflating the mark to 24 to satisfy a size check makes
+     * the control wrong to fix a number.
+     *
+     * So this stopped being worth reporting once two things were true: the
+     * system declares a minimum target, and the exported document TELLS the
+     * builder to put that size on the label. Both hold here — the payload
+     * carries the rule in words. Warning anyway made this the only finding on
+     * an untouched, correct document, which is the fastest way to teach someone
+     * that the audit is noise and to stop reading it when it is right about a
+     * contrast failure.
+     *
+     * Without a declared minimum there is no claim to rely on, so it still
+     * reports below. That is the case where the spec really is missing
+     * something. */
+    if (/checkbox|radio/.test(name) && declared >= 24) continue
     seen.add(name)
     /* 2.5.8 has a spacing exception: an undersized target passes if a 24px
        circle centred on it doesn't touch its neighbours. A system that
