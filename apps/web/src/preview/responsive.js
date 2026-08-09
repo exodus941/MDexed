@@ -78,14 +78,17 @@ ${query(md)} {
      stacked above the page title, which pushes the heading below the fold and
      reads as a wide layout that gave up. Fold it behind the burger instead.
      The summary keeps the section label, so nothing is unlabelled. */
-  .dmd .nav-collapse:not([open]) > nav { display: none; }
+  /* Sibling, not child. A closed details renders none of its non-summary
+     children whatever CSS says, so the list lives outside it and this hides
+     it instead. Pure CSS, so the exported page behaves identically. */
+  .dmd .nav-collapse:not([open]) ~ .nav-list { display: none; }
   .dmd .nav-burger { display: flex; }
   .dmd .nav-summary { cursor: pointer; }
 
   /* A header menu opens downward as a stack, not as a squeezed row. Its call
      to action goes full width, because it is the reason the header exists. */
-  .dmd .header-nav > nav { flex-direction: column; align-items: stretch; }
-  .dmd .header-nav > nav > .btn { width: 100%; }
+  .dmd .header-nav .nav-list { flex-direction: column; align-items: stretch; }
+  .dmd .header-nav .nav-list > .btn { width: 100%; }
 }
 
 ${query(sm)} {

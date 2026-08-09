@@ -22,18 +22,20 @@ export default function Landing({ onInspect }) {
 
             Links, not spans. These are the most-copied lines in the payload,
             and a span cannot be tabbed to or announced as navigation. */}
-        <details className="nav-collapse header-nav">
-          <summary className="nav-summary">
-            <span className="caption" style={{ textTransform: 'uppercase', letterSpacing: '.08em' }}
-              {...txt('overline', 'text-muted')}>Menu</span>
-            <span className="nav-burger" aria-hidden="true"><span /><span /><span /></span>
-          </summary>
-          <nav className="row" aria-label="Main">
+        <div className="aside-rail header-nav">
+          <details className="nav-collapse">
+            <summary className="nav-summary" {...inspectProps("nav-item", onInspect, { passthrough: true })}>
+              <span className="caption" style={{ textTransform: 'uppercase', letterSpacing: '.08em' }}
+                {...txt('overline', 'text-muted')}>Menu</span>
+              <span className="nav-burger" aria-hidden="true"><span /><span /><span /></span>
+            </summary>
+          </details>
+          <nav className="row nav-list" aria-label="Main">
             <a className="nav-item" href="#pricing" {...ins('nav-item')}>Pricing</a>
             <a className="nav-item" href="#docs" {...ins('nav-item')}>Docs</a>
             <button className="btn btn-primary btn-sm" {...ins('button-sm')}><Ico d={IconPlus} size="sm" />Start free</button>
           </nav>
-        </details>
+        </div>
       </div>
 
       <hr className="divider" />

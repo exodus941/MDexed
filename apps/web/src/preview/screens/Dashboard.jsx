@@ -33,24 +33,32 @@ export default function Dashboard({ onInspect, layout }) {
           would work here and be dead in the payload, which is the half of
           this that an agent actually reads. Open on a wide screen and folded
           on a narrow one is CSS, in responsive.js. */}
-      {/* No `open` attribute. CSS forces the list visible at wide widths
-          whatever the element's state, so the wide layout never depends on it.
-          Below `md` the element behaves natively, which means closed until the
-          summary is pressed. Setting `open` here would start the phone layout
-          expanded, which is the thing being fixed. */}
-      <details className="nav-collapse">
-        <summary className="nav-summary">
-          <span className="caption" style={{ textTransform: 'uppercase', letterSpacing: '.08em' }}
-            {...txt('overline', 'text-muted')}>Workspace</span>
-          <span className="nav-burger" aria-hidden="true"><span /><span /><span /></span>
-        </summary>
-        <nav className="stack-sm">
+      {/* The list is a *sibling* of the details, not a child.
+          It was a child, with CSS forcing it visible at wide widths. That
+          cannot work: a closed `details` does not render its non-summary
+          children at all, and no `display` on the child overrides it. The list
+          had layout — 180 by 239, five items — inside a details box 28px tall,
+          and painted nothing. The desktop sidebar was empty.
+
+          As a sibling it is an ordinary element the whole time. At a narrow
+          width `details:not([open]) ~ nav` hides it, which is plain CSS and
+          needs no script, so the exported page behaves the same. */}
+      {/* One grid cell holding both, or `.with-aside` sees three children. */}
+      <div className="aside-rail">
+        <details className="nav-collapse">
+          <summary className="nav-summary" {...inspectProps("nav-item", onInspect, { passthrough: true })}>
+            <span className="caption" style={{ textTransform: 'uppercase', letterSpacing: '.08em' }}
+              {...txt('overline', 'text-muted')}>Workspace</span>
+            <span className="nav-burger" aria-hidden="true"><span /><span /><span /></span>
+          </summary>
+        </details>
+        <nav className="stack-sm nav-list">
           <div className="nav-item is-active with-icon" {...ins('nav-item-selected')}><Ico d={IconChart} />Overview</div>
           {[['Accounts', IconFolder], ['Invoices', IconSend], ['Reports', IconChart], ['Settings', IconMore]].map(([t, icon]) => (
             <div key={t} className="nav-item with-icon" {...ins('nav-item')}><Ico d={icon} />{t}</div>
           ))}
         </nav>
-      </details>
+      </div>
 
       <div className="stack">
         <div className="row row-wrap" style={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>

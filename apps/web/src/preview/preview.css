@@ -298,9 +298,14 @@
   list-style: none; cursor: default;
 }
 .dmd .nav-summary::-webkit-details-marker { display: none; }
-/* Visible whatever the element's open state, so the wide layout never depends
-   on an attribute. Below `md` responsive.js hands control back to `details`. */
-.dmd .nav-collapse > nav { display: flex; }
+/* The list is a sibling of the disclosure, never a child.
+   A closed `details` does not render its non-summary children, and no CSS on
+   the child changes that — `display: flex` gave the list layout and painted
+   nothing, so the wide sidebar was empty while measuring 180 by 239. As a
+   sibling it is a normal element, and responsive.js hides it below `md` with
+   `details:not([open]) ~ .nav-list`. */
+.dmd .aside-rail { display: flex; flex-direction: column; gap: var(--space-sm, 8px); }
+.dmd .nav-list { display: flex; }
 
 /* A table has a floor. Three columns of real content will not fold into 296px,
    and squeezing them turns every account name into three lines. Scroll it
