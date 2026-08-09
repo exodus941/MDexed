@@ -6,7 +6,11 @@ Live at **[mdexed.vercel.app](https://mdexed.vercel.app)**.
 
 Set a few seed colours and move five sliders. MDexed generates the colour scales, semantic roles, type scale, spacing, radii, elevation and a full component matrix. It shows all of it on live mock screens and audits it against WCAG while you work.
 
-The markdown is what an agent reads, and it is not the whole export. The payload also carries `tokens.css`, Sass, TypeScript, W3C design tokens, presets for Tailwind v3 and v4, and all six sample screens as standalone HTML. A `DESIGN.md` is advice. An agent can read it and still write the wrong hex, and nothing catches that. The other files are the same values as working code. Import `tokens.css` and `var(--color-accent)` can only ever be your accent. A hardcoded colour then shows up in a diff instead of passing for correct.
+The markdown is what an agent reads, and it is not the whole export. The payload also carries `tokens.css`, Sass, TypeScript, W3C design tokens, presets for Tailwind v3 and v4, and all six sample screens as standalone HTML.
+
+A `DESIGN.md` is advice. An agent can read it and still write the wrong hex, and nothing catches that. The other files are the same values as working code. Import `tokens.css` and `var(--color-accent)` can only ever be your accent. A hardcoded colour then shows up in a diff instead of passing for correct.
+
+Very special thanks to the incredible [ninienowrin](https://github.com/ninienowrin/) for putting together the first bones of the project based on my rambling descriptions, and then forcing me to go neck-deep into hands-on vibe coding, so that I could take it from there myself.
 
 ---
 
@@ -130,7 +134,7 @@ Duration scale, 125 / 250 / 500ms by default. Three personality presets. A **dra
 
 Every entry shows a **live sample** of itself beside its properties. The sample is inert and updates as you type. A modal or a table takes the full width above its controls. Everything else sits alongside, so the sample stays in view while you drag a slider.
 
-**Composition** is separate from appearance and sits next to the component it governs. For a modal you can edit icon placement, icon size, alignment, title-to-body gap, action arrangement and close control. The Overlays surface re-renders as you change them. None of this fits the eight component properties in the spec, so it leaves as a settings table plus imperative rules. Elevation and motion take the same route. A setting that stops applying, such as icon size when there is no icon, disappears from both the panel and the file.
+**Composition** is separate from appearance and sits next to the component it governs. For a modal you can change icon placement, icon size, alignment, title-to-body gap, action arrangement and close control. The Overlays surface re-renders as you change them. None of this fits the eight component properties in the spec, so it leaves as a settings table plus imperative rules. Elevation and motion take the same route. A setting that stops applying, such as icon size when there is no icon, disappears from both the panel and the file.
 
 - Each card has a **search** that matches entry names, property keys and values.
 - Property fields offer token pickers scoped to the property type, with resolved previews: swatches for colours, computed px for dimensions, a bar for gradients.
@@ -288,7 +292,7 @@ The DESIGN.md frontmatter schema is deliberately narrow. Allowed keys are `versi
 
 Generated tables sit inside `<!-- design.md:generated -->` comments. A renderer hides them, and import strips them precisely, so a re-import never pastes them into prose you wrote.
 
-The app validates every export before it leaves.
+The app checks every export before it leaves.
 
 ---
 
@@ -308,4 +312,4 @@ npx wrangler secret put OPENROUTER_API_KEY
 
 For local work, copy `apps/api/.dev.vars.example` to `apps/api/.dev.vars`, which git ignores, and fill it in. Wrangler reads it at startup, so restart the dev server afterwards.
 
-The app offers **free** models only. The catalogue is public, so `GET /api/v1/ai/models` needs no key. It filters to zero-cost text models, sorts by context length and caches for an hour. Free tiers are rate-limited, so a 429 comes back as "try another, or wait a moment" rather than as a stack trace. Your model choice persists, and the app re-validates it against the list, because free models come and go without notice.
+The app offers **free** models only. The catalogue is public, so `GET /api/v1/ai/models` needs no key. It filters to zero-cost text models, sorts by context length and caches for an hour. Free tiers are rate-limited, so a 429 comes back as "try another, or wait a moment" rather than as a stack trace. Your model choice persists, and the app re-checks it against the list, because free models come and go without notice.
