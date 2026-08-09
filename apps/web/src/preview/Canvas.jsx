@@ -154,7 +154,7 @@ function ContrastChip({ onOpen }) {
   }).length
 
   return (
-    <button onClick={onOpen} title="Open the contrast checker"
+    <button onClick={onOpen} title="Open the contrast checker" className="readout"
       style={{
         display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0, cursor: 'pointer',
         background: failing ? 'rgb(var(--danger-rgb) / .12)' : 'rgb(var(--success-rgb) / .10)',
@@ -245,7 +245,7 @@ function WarningsChip({ onJump, onApply }) {
 
   return (
     <div style={{ position: 'relative', flexShrink: 0 }}>
-      <button ref={btnRef} onClick={() => setOpen(o => !o)} aria-expanded={open}
+      <button ref={btnRef} onClick={() => setOpen(o => !o)} aria-expanded={open} className="readout"
         title={count ? 'What the accessibility audit found in this system' : 'The accessibility audit found nothing'}
         style={{
           display: 'flex', alignItems: 'center', gap: 5, cursor: 'pointer',
@@ -383,7 +383,12 @@ export default function Canvas({ onInspect, surface, setSurface, onOpenContrast,
               </select>
             </label>
 
-            <div className="seg-box" style={{ display: 'flex', gap: 2, background: 'var(--surf3)', padding: 2, borderRadius: 6, border: '1px solid var(--bdr)', flexShrink: 0 }}>
+            {/* 1px of inset, not 2. With a 1px border either side, 2px left the
+                segments 22px tall inside a 28px control — under the 24px floor
+                where a click starts needing aim, and these two are the most
+                used buttons in the bar. The stylesheet says the same thing and
+                lost to this inline value, which is the other lesson here. */}
+            <div className="seg-box" style={{ display: 'flex', gap: 2, background: 'var(--surf3)', padding: 1, borderRadius: 6, border: '1px solid var(--bdr)', flexShrink: 0 }}>
               {['light', 'dark'].map(m => (
                 <button key={m} onClick={() => setMode(m)} className={mode === m ? 'seg-on' : 'seg'} style={{ padding: '2px 10px' }}>
                   {m === 'light' ? 'Light' : 'Dark'}

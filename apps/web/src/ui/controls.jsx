@@ -27,6 +27,21 @@ export const PAD = {
   label: 12,  // a subcard's heading to its first row
 }
 
+/**
+ * The optical correction a chip forces on the row that carries it.
+ *
+ * A chip is a box around small text. Beside a label on a shared baseline it is
+ * the taller item, and all of its extra height hangs BELOW that baseline. The
+ * row therefore grows downward only, and the label it grew around ends up
+ * sitting high inside it. Symmetric padding cannot fix that, because the
+ * asymmetry is in the line box, not in the padding.
+ *
+ * One pixel, moved from the bottom padding to the top. Only where a chip is
+ * actually rendered — without one the row is already centred and this would
+ * break it. Derived by measurement at 0, 1 and 2px, not by taste.
+ */
+export const CHIP_OPTICAL_SHIFT = 1
+
 /* Button padding, on a 2px grid.
  *
  * Layout wants 4px steps; controls are too small for that — the gap between
@@ -208,12 +223,33 @@ export function Collapsible({ title, note, children, defaultOpen = false, right,
         <button
           onClick={() => setOpen(o => !o)}
           style={{
-            flex: 1, display: 'flex', alignItems: 'baseline', gap: 8, padding: `${PAD.sub}px ${PAD.card}px`,
+            flex: 1, display: 'flex', alignItems: 'baseline', gap: 8,
+            /* Symmetric padding does not optically centre this row, and the
+               reason is the chip. Label and chip share a baseline, correctly —
+               but the chip's box hangs 6.5px below that baseline where the
+               label's letters hang 3. The row grows DOWNWARD only: 48px
+               without a chip, 52 with one, and the label stays where it was.
+               Measured: 20px above the cap, 22 below the baseline.
+
+               So the correction is conditional on the chip, because a header
+               without one already reads 0. One pixel off the bottom onto the
+               top moves the text band by one and closes the 2px gap exactly.
+               Verified at 0, 1 and 2px of shift: 1px is the answer, not a
+               guess between two wrongs. */
+            paddingTop: PAD.sub + (note ? CHIP_OPTICAL_SHIFT : 0),
+            paddingBottom: PAD.sub - (note ? CHIP_OPTICAL_SHIFT : 0),
+            paddingLeft: PAD.card, paddingRight: PAD.card,
             background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text)',
             fontFamily: 'var(--sans)', fontSize: 13, textAlign: 'left', minWidth: 0,
           }}>
+          {/* No `alignSelf:center`. That centred the chevron on the button's box,
+              which put it 1px below the label's optical mid — the icon-beside-a-
+              label rule, broken by the one property that looks like it obeys it.
+              Baseline instead: an svg has no baseline of its own, so the row sits
+              its bottom edge on the label's, and a 10px mark under 13px text
+              lands on the cap centre. Measured, not assumed. */}
           <svg width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}
-            style={{ transform: open ? 'rotate(90deg)' : 'none', transition: 'transform var(--t) var(--ease)', color: 'var(--muted)', flexShrink: 0, alignSelf: 'center' }}>
+            style={{ transform: open ? 'rotate(90deg)' : 'none', transition: 'transform var(--t) var(--ease)', color: 'var(--muted)', flexShrink: 0 }}>
             <polyline points="9 6 15 12 9 18" />
           </svg>
           <span style={{ flex: 1, minWidth: 0 }}>{title}</span>

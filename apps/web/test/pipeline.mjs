@@ -730,6 +730,17 @@ line('\n- prompt construction -')
     ['never style bare element selectors', ['bare element selector']],
     ['colour fades want the normal step', ['under about 180ms']],
     ['reduced motion is honoured', ['prefers-reduced-motion']],
+    ['a flex box takes its baseline from its first item', ['first flex item']],
+    ['height and line-height are one decision', ['one decision, never two']],
+    ['height, line height and align-items travel together', ['three properties together']],
+    ['symmetric padding does not optically centre', ['symmetric padding does not optically centre']],
+    ['judge padding by the result, not the symmetry', ['judge padding by the result']],
+    ['equal boxes and equal baselines need one font-size', ['pick the size, not the alignment property']],
+    ['baseline-aligned boxes of different heights differ at the top', ['must** have different tops']],
+    ['grow the box, not the glyph', ['grow the box, not the glyph']],
+    ['a control clears the floor when its targets do', ['not when its container does']],
+    ['icon-only is matched by structure', [':has(> .icon:only-child)']],
+    ['a mark in a field sits above it', ['renders none of it']],
   ]
   const missing = RULES.filter(([, terms]) => !terms.every(t => doc.includes(t))).map(([n]) => n)
   assert(missing.length === 0,

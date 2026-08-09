@@ -175,11 +175,38 @@ ${query(sm)} {
   .dmd .stack-narrow > .btn-sm,
   .dmd .stack-narrow-rev > .btn-sm {
     height: var(--cmp-button-md-height, 36px);
-    line-height: var(--cmp-button-md-height, 36px);
+    /* Minus the two borders. Under border-box a line height equal to the stated
+       height belongs to a box 2px taller than the one the letters live in, so
+       the line overflows by a pixel at each end and the text lands a pixel low.
+       Measured 13 above the cap and 12 below the baseline. The base button rule
+       has always subtracted them. This promotion was written without that and
+       inherited the bug that rule exists to prevent. */
+    line-height: calc(var(--cmp-button-md-height, 36px) - 2px);
     padding: var(--cmp-button-md-padding, 0 var(--space-md, 16px));
     font-size: var(--cmp-button-md-font-size, var(--font-button-size, 14px));
   }
   .dmd .page-actions > .btn-sm.icon-only { width: var(--cmp-button-md-height, 36px); padding: 0; }
+
+  /* Navigation is a finger target at this width, and 40px is the floor.
+     Sized by their own padding these came out 38.3 and 24 — close enough to
+     look deliberate in a screenshot and wrong enough to miss on a phone. The
+     mark and the label do not change size, only the box that catches the tap.
+     A summary needs the box stated explicitly because it has no control
+     height of its own to grow. */
+  .dmd .nav-item { min-height: 40px; display: flex; align-items: center; }
+  .dmd .nav-summary { min-height: 40px; }
+
+  /* The call to action in a nav row is part of that row.
+     At 28px beside two 40px links it sat at the top of the band with its text
+     5.84px above theirs, which is the one place in a header where a mismatch
+     is unmissable. Height and line height together, so the box matches and the
+     label still centres — not display flex, which would hand this button's
+     baseline to the icon inside it. */
+  .dmd .nav-list > .btn {
+    height: 40px; line-height: 38px;
+    padding: 0 var(--space-md, 16px);
+    font-size: var(--cmp-button-md-font-size, var(--font-button-size, 14px));
+  }
 
   /* A two-word heading should not break in half.
      Balancing spreads the words evenly across the lines it does need, which is
