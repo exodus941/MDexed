@@ -804,6 +804,9 @@ line('\n- prompt construction -')
     /* The inversion: centring a mostly-text row to settle two boxes. */
     ['count what a row is made of before aligning it', ['count what a row is made of']],
     ['a box in a text run is positioned by the text', ['positioned by that text, not by its own height']],
+    ['the baseline is chosen, not read off an element', ['choose the line, then make everything obey it']],
+    ['a logotype is text and obeys the line', ['no exceptions for decoration']],
+    ['flex centring hides a label from its row', ['hides a label from the row it sits in']],
     ['a responsive rule is checked at both widths', ['at **both** widths']],
   ]
   const missing = RULES.filter(([, terms]) => !terms.every(t => doc.includes(t))).map(([n]) => n)

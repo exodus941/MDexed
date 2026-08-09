@@ -300,7 +300,20 @@ textarea:not(.dmd *){resize:vertical;min-height:90px;font-size:13px;line-height:
    that is the whole rule, and it is why the number appears twice rather than
    once. Set to 40 at both widths it was correct on a phone and a size too
    large on a desktop, which is the same fault the other way round. */
-.bar-mark{--bar-ctrl:36px;width:var(--bar-ctrl);min-width:var(--bar-ctrl);height:var(--bar-ctrl)}
+/* Its letters are text on the row's line, so they sit on the row's baseline
+   like every other word in the bar. They measured 30 against everyone else's
+   29 while the square was flex-centred: flexbox centres the glyphs in the box
+   and tells the row nothing about where they landed.
+
+   The line box does both jobs at once — it centres the letters AND makes them
+   the element's baseline, which is the whole reason this technique exists for
+   fixed-height controls. Paired with align-self: baseline in the markup.
+
+   Minus 2. Found by sweeping, not derived: at line-heights 30/32/34/36/38 the
+   square sat 2/1/0/-1/-2 pixels from the buttons' centre, so every 2px of line
+   height moves it 1px and 34 is where it crosses zero. Written against the
+   custom property so the touch step at 40px carries it. */
+.bar-mark{--bar-ctrl:36px;width:var(--bar-ctrl);min-width:var(--bar-ctrl);height:var(--bar-ctrl);display:inline-block;line-height:calc(var(--bar-ctrl) - 2px);text-align:center}
 @media (max-width:767px){.readout{min-height:40px}}
 
 /* ── A component property row ──

@@ -174,5 +174,15 @@ Check each of these against the code you wrote.
 
 If any check fails, fix it before you report. Do not report the failure as a
 limitation of the design system.
+
+## Re-measure the row you just changed, at both widths
+
+Applying these to the row you edited two minutes ago is the hard part. Measure
+THAT row again — not the page — narrow and wide. Three failures it catches:
+
+- Every box kept its height while the words inside moved onto different lines.
+- A control was promoted at a breakpoint and the mark beside it was not.
+- A correct rule lost to an inline style, so nothing changed at all. Measure
+  the computed result, never the stylesheet.
 `
 }
