@@ -15,7 +15,7 @@
  * inherit the editor's chrome and lie about everything.
  */
 
-import { Check, Switch } from './icons.jsx'
+import { Check, Switch, Ico, IconChevron } from './icons.jsx'
 
 /* Entry names are flattened: `button`, `button-primary`, `button-lg`,
    `button-primary-hover`. The component knows its own variants, sizes and
@@ -65,11 +65,23 @@ function markup({ base, variant, size, state, cls, style, label }) {
       return <input className={`input ${cls}`} style={style} defaultValue="Input value" readOnly />
     case 'textarea':
       return <textarea className={`input ${cls}`} style={{ minHeight: 54, ...style }} defaultValue="Multiple lines of text" readOnly />
+    /* The same markup the Form and the Gallery use, not a lookalike.
+     *
+     * This was a `.btn` with an inline `justify-content`, which does nothing on
+     * an inline-block, plus a hand-drawn chevron that missed every rule the
+     * icon class carries. The result put the value and the mark together in the
+     * middle of the box — a sample that showed a control this system does not
+     * contain. A preview that misreports the component is worse than no preview,
+     * because it is the thing people check their tokens against.
+     *
+     * Third instance of that dead `justify-content`. The other two were fixed
+     * hours earlier in the two files anyone would think to look in, and this
+     * one survived because nobody looks for a component inside a sample. */
     case 'select':
       return (
-        <button className={`btn btn-secondary ${cls}`} style={{ minWidth: 150, justifyContent: 'space-between', ...style }}>
-          Choose one
-          <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round"><polyline points="6 9 12 15 18 9" /></svg>
+        <button className={`btn btn-secondary select-trigger ${cls}`}
+          style={{ minWidth: 150, height: 'var(--cmp-select-height, 36px)', ...style }}>
+          <span>Choose one</span><Ico d={IconChevron} size="sm" />
         </button>
       )
     /* Neither of these has a stylesheet rule — they are drawn from tokens by
