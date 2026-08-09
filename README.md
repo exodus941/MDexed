@@ -10,7 +10,7 @@ The markdown is what an agent reads, and it is not the whole export. The payload
 
 A `DESIGN.md` is advice. An agent can read it and still write the wrong hex, and nothing catches that. The other files are the same values as working code. Import `tokens.css` and `var(--color-accent)` can only ever be your accent. A hardcoded colour then shows up in a diff instead of passing for correct.
 
-Very special thanks to the incredible [ninienowrin](https://github.com/ninienowrin/) for putting together the first bones of the project based on my near-incoherent rambling descriptions, and then forcing me to go neck-deep into hands-on vibe coding so that I could take it from there myself.
+**Very special thanks to the incredible [ninienowrin](https://github.com/ninienowrin/) for taking the trouble to put together the first bones of the project based on my rambling near-incoherent descriptions of a hazy half-formed concept, and then forcing me to go neck-deep into hands-on vibe coding so that I could take it from there myself.**
 
 ---
 
