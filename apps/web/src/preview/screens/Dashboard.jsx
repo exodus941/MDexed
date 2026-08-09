@@ -63,21 +63,34 @@ export default function Dashboard({ onInspect, layout }) {
       </div>
 
       <div className="stack">
-        <div className="row row-wrap" style={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <div>
+        {/* The heading and its actions share a row. The description sits under
+            that row, not inside it.
+         *
+         * This has now been wrong twice in two different ways. `flex-start`
+         * pinned the buttons to the top of the band, floating above a title
+         * whose letters sat well below them. Baseline then dropped them onto
+         * the title's baseline, which hangs most of a 28px box below a 32px
+         * heading — and this project's own DESIGN.md says that plainly: a
+         * heading much larger than the control beside it centres instead,
+         * because at that size difference a shared baseline reads as a mistake.
+         *
+         * With the description moved out, the row holds one line of heading
+         * and one group of controls, and `center` means what it should. */}
+        <div>
+          <div className="row row-wrap page-head" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
             <h2 {...txt('h2')}>Overview</h2>
-            <p className="muted small" style={{ marginTop: 4 }} {...txt('body-sm', 'text-muted')}>Fourth quarter, all accounts</p>
+            {/* Small is a desktop choice. These are the page's own actions, and
+                at 375px a 28px target beside a 28px icon button is neither
+                comfortable to hit nor the right weight for the top of a screen.
+                They take the medium size from the same scale — a different step
+                of the system, not a number invented outside it. */}
+            <div className="row page-actions">
+              <button className="btn btn-secondary btn-sm" {...ins('button-sm')}><Ico d={IconDownload} size="sm" />Export</button>
+              <button className="btn btn-primary btn-sm" {...ins('button-primary')}><Ico d={IconPlus} size="sm" />New invoice</button>
+              <button className="btn btn-secondary btn-sm icon-only" {...ins('button-secondary')}><Ico d={IconBell} /></button>
+            </div>
           </div>
-          {/* Small is a desktop choice. These are the page's own actions, and
-              at 375px a 28px target beside a 28px icon button is neither
-              comfortable to hit nor the right weight for the top of a screen.
-              They take the medium size from the same scale — a different step
-              of the system, not a number invented outside it. */}
-          <div className="row page-actions">
-            <button className="btn btn-secondary btn-sm" {...ins('button-sm')}><Ico d={IconDownload} size="sm" />Export</button>
-            <button className="btn btn-primary btn-sm" {...ins('button-primary')}><Ico d={IconPlus} size="sm" />New invoice</button>
-            <button className="btn btn-secondary btn-sm icon-only" {...ins('button-secondary')}><Ico d={IconBell} /></button>
-          </div>
+          <p className="muted small" style={{ marginTop: 4 }} {...txt('body-sm', 'text-muted')}>Fourth quarter, all accounts</p>
         </div>
 
         {/* Alerts belong on the screen that would actually raise one. */}

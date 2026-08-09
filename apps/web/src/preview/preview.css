@@ -65,7 +65,18 @@
      a button sitting in a row of text lines up with that text.
      The gap moves to a margin on the icon, since there is no flex gap now. */
   display: inline-block; text-align: center; white-space: nowrap;
-  line-height: var(--cmp-button-md-height, 36px);
+  /* The line-height matches the CONTENT box, not the border box.
+   *
+   * `box-sizing: border-box` means a 28px button with 1px borders has 26px of
+   * content. Setting line-height to the full 28 makes the line box 2px taller
+   * than the space it sits in, and a single line box starts at the content top
+   * — so it overflows downward and the text lands 1px low. Every labelled
+   * button in the app, at every size.
+   *
+   * Nothing to do with descenders. This font's ascent minus descent is 14-4,
+   * exactly its 10px cap height, which is the condition for a line box to
+   * centre its own text perfectly. The box was simply the wrong size. */
+  line-height: calc(var(--cmp-button-md-height, 36px) - 2px);
   height: var(--cmp-button-md-height, auto);
   padding: var(--cmp-button-md-padding, 0 var(--space-md, 16px));
   border-radius: var(--cmp-button-rounded, var(--radius-md, 8px));
@@ -157,11 +168,11 @@
   opacity: var(--cmp-button-primary-disabled-opacity, .5); cursor: not-allowed; pointer-events: none;
 }
 .dmd .btn-sm {
-  height: var(--cmp-button-sm-height, 28px); line-height: var(--cmp-button-sm-height, 28px);
+  height: var(--cmp-button-sm-height, 28px); line-height: calc(var(--cmp-button-sm-height, 28px) - 2px);
   padding: var(--cmp-button-sm-padding, 0 var(--space-xs, 8px));
   font-size: var(--cmp-button-sm-font-size, var(--font-caption-size, 12px));}
 .dmd .btn-lg {
-  height: var(--cmp-button-lg-height, 44px); line-height: var(--cmp-button-lg-height, 44px);
+  height: var(--cmp-button-lg-height, 44px); line-height: calc(var(--cmp-button-lg-height, 44px) - 2px);
   padding: var(--cmp-button-lg-padding, 0 var(--space-lg, 24px));
   font-size: var(--cmp-button-lg-font-size, var(--font-body-md-size, 16px));}
 
