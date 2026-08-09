@@ -2,7 +2,7 @@
    field, error against surface, focus ring against page. Kept on screen so
    those pairings can't quietly break. */
 import { inspectProps, text } from '../inspect.js'
-import { Ico, Check, Switch, IconCheck, IconX, IconTrash, IconChevron, IconCalendar } from '../icons.jsx'
+import { Ico, Check, Switch, IconCheck, IconX, IconTrash, IconChevron, IconCalendar, IconAlert } from '../icons.jsx'
 /* One place that knows how a field is assembled, so the composition settings
    are demonstrated rather than described. Every field on this screen goes
    through it.
@@ -21,9 +21,15 @@ function Field({ fl, ins, txt, entry, label, required, help, error, children }) 
   /* "Replaces help" is the default because a field that grows taller the
      moment it fails validation shifts everything below it. */
   const helpEl = help && !(error && fl.error === 'replace')
-    ? <span className="caption" {...txt('caption', 'text-muted')}>{help}</span> : null
+    ? <span className="caption field-note" {...txt('caption', 'text-muted')}>{help}</span> : null
+  /* An error carries a mark, not only a colour.
+     Colour alone is the one signal a red-green eye cannot read, and it is also
+     the first thing lost in a greyscale print or a screenshot. The icon says
+     "something is wrong" without asking anyone to see the hue. */
   const errorEl = error
-    ? <span className="caption" style={{ color: 'var(--c-danger, #c2453c)' }} {...txt('caption', 'danger')}>{error}</span> : null
+    ? <span className="caption field-note is-error" {...txt('caption', 'danger')}>
+        <Ico d={IconAlert} size="sm" />{error}
+      </span> : null
 
   const body = (
     <>
@@ -81,7 +87,10 @@ export default function Form({ onInspect, layout }) {
             <input className="input" disabled defaultValue="GB 429 8841 22" />
           </Field>
           <Field fl={fl} ins={ins} txt={txt} entry="select" label="Payment terms" required>
-            <button className="btn btn-secondary" style={{ width: '100%', justifyContent: 'space-between', height: 'var(--cmp-select-height, 36px)' }}>
+            {/* `select-trigger`, not an inline `justify-content`. A `.btn` is
+                inline-block, so that property did nothing and the value sat in
+                the middle of a full-width control. */}
+            <button className="btn btn-secondary select-trigger select-trigger-block" style={{ height: 'var(--cmp-select-height, 36px)' }}>
               <span>Net 30</span><Ico d={IconChevron} />
             </button>
           </Field>

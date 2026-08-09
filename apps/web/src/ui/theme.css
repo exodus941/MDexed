@@ -290,6 +290,24 @@ textarea:not(.dmd *){resize:vertical;min-height:90px;font-size:13px;line-height:
 .readout{min-height:24px;box-sizing:border-box}
 @media (max-width:767px){.readout{min-height:40px}}
 
+/* ── A component property row ──
+ *
+ * Asks the PANE, not the window. A splitter can leave this panel 330px wide
+ * inside a 1900px screen, so a media query is answering a question nobody
+ * asked. `main` declares itself a container and the row queries it.
+ *
+ * Wide: key, value, slider, unit, reset — one line.
+ * Narrow: the key takes its own line and the controls keep the next, because
+ * the four fixed columns plus their gaps came to 292px and left the value
+ * field nothing. Below that the row did not shrink, it CLIPPED — the slider
+ * and its unit label ran off the pane edge with no scrollbar to reach them. */
+main{container-type:inline-size}
+.prop-row{display:grid;grid-template-columns:128px minmax(0,1fr) 96px 16px 20px;gap:8px;align-items:center}
+@container (max-width: 460px){
+  .prop-row{grid-template-columns:minmax(0,1fr) 84px 16px 20px;row-gap:2px}
+  .prop-row>.prop-key{grid-column:1/-1}
+}
+
 /* ── The action row on a phone ──
    Measured before this: the Width select stood 36px, the Light/Dark box 27px,
    and their text baselines sat 4.5px apart. The select also overflowed the
