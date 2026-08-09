@@ -35,6 +35,7 @@ export default function Settings({ onInspect }) {
             <span className="nav-burger" aria-hidden="true"><span /><span /><span /></span>
           </summary>
         </details>
+        <div className="nav-fold">
         <nav className="stack-sm nav-list">
           {sections.map((s, i) => (
             <div key={s} className={`nav-item with-icon${i === 3 ? ' is-active' : ''}`}
@@ -43,6 +44,7 @@ export default function Settings({ onInspect }) {
             </div>
           ))}
         </nav>
+        </div>
       </div>
 
       <div className="stack">

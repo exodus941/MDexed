@@ -52,12 +52,14 @@ export default function Dashboard({ onInspect, layout }) {
             <span className="nav-burger" aria-hidden="true"><span /><span /><span /></span>
           </summary>
         </details>
+        <div className="nav-fold">
         <nav className="stack-sm nav-list">
           <div className="nav-item is-active with-icon" {...ins('nav-item-selected')}><Ico d={IconChart} />Overview</div>
           {[['Accounts', IconFolder], ['Invoices', IconSend], ['Reports', IconChart], ['Settings', IconMore]].map(([t, icon]) => (
             <div key={t} className="nav-item with-icon" {...ins('nav-item')}><Ico d={icon} />{t}</div>
           ))}
         </nav>
+        </div>
       </div>
 
       <div className="stack">

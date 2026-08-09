@@ -30,11 +30,13 @@ export default function Landing({ onInspect }) {
               <span className="nav-burger" aria-hidden="true"><span /><span /><span /></span>
             </summary>
           </details>
+          <div className="nav-fold">
           <nav className="row nav-list" aria-label="Main">
             <a className="nav-item" href="#pricing" {...ins('nav-item')}>Pricing</a>
             <a className="nav-item" href="#docs" {...ins('nav-item')}>Docs</a>
             <button className="btn btn-primary btn-sm" {...ins('button-sm')}><Ico d={IconPlus} size="sm" />Start free</button>
           </nav>
+          </div>
         </div>
       </div>
 
