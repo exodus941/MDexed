@@ -287,13 +287,35 @@
    inspection, which is the system claiming a size it was not keeping.
    Now it is `.btn` plus a square footprint, so the size scale governs it and
    a row of controls stays one height. */
-/* No label, so no baseline to donate, so no reason to keep the line box. Flex
-   centring puts the icon dead centre with no correction to guess at. */
+/* Dead-centred icon, without giving up the button's baseline.
+ *
+ * This was `inline-flex` with centred items, which does centre the icon and
+ * also stops the button being a baseline participant — so beside two
+ * inline-block siblings in a baseline-aligned row it sat 1px high and read as
+ * a smaller button. Same heights, different tops, which a height check never
+ * sees.
+ *
+ * Staying inline-block keeps it aligned with its siblings. The icon is taken
+ * out of flow and centred against the box, so it needs no x-height correction
+ * either. */
 .dmd .btn.icon-only {
   width: var(--cmp-button-md-height, 36px); padding: 0;
-  display: inline-flex; align-items: center; justify-content: center;
+  position: relative;
 }
-.dmd .btn.icon-only .icon { transform: none; }
+.dmd .btn.icon-only .icon {
+  position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  margin: 0;
+}
+/* A zero-width space, so the button has a text baseline like its siblings.
+ *
+ * With the icon taken out of flow this button had no in-flow content at all,
+ * and an inline-block with no content takes its *bottom margin edge* as its
+ * baseline. In a baseline-aligned row beside two buttons using their label's
+ * baseline, that put it 8px high. The strut is invisible, occupies no width,
+ * and inherits the same line-height, so the baseline lands exactly where a
+ * label's would. */
+.dmd .btn.icon-only::before { content: "\200B"; }
 .dmd .btn.icon-only.btn-sm { width: var(--cmp-button-sm-height, 28px); }
 .dmd .btn.icon-only.btn-lg { width: var(--cmp-button-lg-height, 44px); }
 .dmd .btn.icon-only .icon { margin: 0; }
