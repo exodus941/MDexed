@@ -437,9 +437,15 @@ export default function Canvas({ onInspect, surface, setSurface, onOpenContrast,
           }}>
             {/* Says "Fit" rather than nothing when there is no fixed width.
                 An empty slot reads as a missing value, and the readout is the
-                one place that reports what the surface is actually doing. */}
+                one place that reports what the surface is actually doing.
+
+                Except in compact, where this row sits directly under the width
+                select. There the select already says "Fit" in words, and the
+                readout repeating it 60px lower is the same fact twice. A pixel
+                count still earns its place, because the select does not give
+                one. */}
             <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--dim)' }}>
-              {width ? `${width}px` : 'Fit'}
+              {width ? `${width}px` : compact ? '' : 'Fit'}
             </span>
             {compact && (
               <span style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
