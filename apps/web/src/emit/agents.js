@@ -167,6 +167,10 @@ Check each of these against the code you wrote.
 - Every breakpoint moved a whole row, not one object in it. Check each
   responsive rule at BOTH widths — a fix verified at one is half tested, and the
   untested half is where the object you forgot is sitting.
+- No stylesheet is built from a JavaScript template literal. Put CSS in a
+  \`.css\` file. A backtick in a comment there is an ordinary character; inside a
+  template literal it ends the string, and the CSS after it parses as
+  JavaScript — which can still build clean and render nothing.
 
 If any check fails, fix it before you report. Do not report the failure as a
 limitation of the design system.

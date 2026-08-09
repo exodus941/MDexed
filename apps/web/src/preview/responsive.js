@@ -1,40 +1,29 @@
-/* NO-BACKTICKS-BELOW-RETURN
+/* Responsive rules for the preview surface and the exported pages.
  *
- * That marker is not decoration. The syntax guard reads it and then enforces
- * the rule below absolutely, because the rule alone has failed five times.
+ * Three files, one job:
  *
- * ⚠ NO BACKTICKS ANYWHERE BELOW THE RETURN IN THIS FILE. ⚠
+ *   responsive.rules.css    the rules themselves, a real stylesheet
+ *   responsive.build.js     the substitution, a pure function, no imports
+ *   responsive.js           this file, which wires the two together
  *
- * Everything this function returns is one template literal, comments included.
- * A backtick inside a CSS comment ends the string there, and the rest of the
- * stylesheet is then parsed as JavaScript expressions. Sometimes that is a
- * syntax error and sometimes it is valid code that silently produces nothing.
+ * WHY THE CSS IS NOT IN THIS FILE
  *
- * I have done this four times in this file alone, always while writing a
- * comment explaining a CSS property, always by quoting the property name.
- * Write the property name as plain words instead: "display contents", not the
- * quoted form. The guard catches it, but only after the build has broken.
+ * It used to be one 268-line template literal with its comments inside it. A
+ * backtick anywhere in those comments ends the literal early, and the CSS
+ * after it parses as JavaScript — sometimes a syntax error, sometimes valid
+ * code that silently produces nothing and takes the whole app down while the
+ * build stays green. That trap cost this project six incidents. Every one
+ * happened inside a comment, and every one was written while explaining the
+ * code rather than while writing it.
  *
- * Where the surfaces collapse, and which question they ask to decide.
+ * The rule against it was correct and kept being broken, because it asked for
+ * care in the one place where care is easiest to forget. Moving the CSS into a
+ * real stylesheet removes the requirement instead of restating it: in a .css
+ * file a backtick is an ordinary character with no power to end anything. The
+ * comments in there can now quote `flex-wrap: nowrap` freely, and so can this
+ * one, because there is no longer a template literal in this file to end.
  *
- * Split out of tokens.js so the test suite can import it. tokens.js pulls in
- * `./preview.css?raw`, which is a Vite feature Node cannot resolve, so nothing
- * in that file was reachable from a plain `node test/pipeline.mjs`. This module
- * imports nothing, which is the whole point of it being separate.
- *
- * Breakpoint values have to be literal, because neither a container query nor a
- * media query can read a custom property in its condition. So this is a
- * function of the document rather than a constant, and moving a breakpoint in
- * the editor moves the rule.
- *
- * Conditions are written as `max-width: n - 0.02px`, one hundredth below the
- * breakpoint, so a frame sitting exactly on the breakpoint gets the wide
- * layout. That matches how `min-width` behaves and removes the one-pixel band
- * where both rules would match.
- */
-const sp = (name, fallback) => `var(--space-${name}, ${fallback})`
-
-/* `mode` picks which question the rules ask.
+ * WHAT MODE MEANS
  *
  *   'container' — how wide is the frame. The editor needs this. Its preview is
  *   a pane inside a pane, so a media query would sit there reporting the
@@ -44,301 +33,16 @@ const sp = (name, fallback) => `var(--space-${name}, ${fallback})`
  *   'media' — how wide is the viewport. The exported pages need this. They are
  *   real standalone pages, and they are a style reference for an agent. The
  *   DESIGN.md beside them says to treat each breakpoint as a min-width, which
- *   is media-query language. Shipping `@container` taught a technique the prose
- *   never mentions, and an agent copying the reference would carry it into an
- *   application that has no frame to measure.
+ *   is media-query language. Shipping `@container` taught a technique the
+ *   prose never mentions, and an agent copying the reference would carry it
+ *   into an application that has no frame to measure.
  *
  * Both modes read the same breakpoints and collapse at the same widths, so the
- * exported page still behaves like the thing you were looking at.
+ * exported page behaves like the thing you were looking at.
  */
+import RULES from './responsive.rules.css?raw'
+import { buildResponsiveCss } from './responsive.build.js'
+
 export function responsiveCss (breakpoints = [], mode = 'container') {
-  const at = name => breakpoints.find(b => b.name === name)?.px
-  /* Two collapse points, named rather than positional: below `md` the
-     multi-column grids halve and side columns stack, and below `sm` everything
-     goes to a single column. Falling back to the conventional values keeps this
-     working for a document that renamed or removed them. */
-  const md = at('md') ?? breakpoints[1]?.px ?? 768
-  const sm = at('sm') ?? breakpoints[0]?.px ?? 640
-  const below = px => `${px - 0.02}px`
-  const query = px => mode === 'media'
-    ? `@media (max-width: ${below(px)})`
-    : `@container dmd (max-width: ${below(px)})`
-
-  /* The container is the frame around the surface, not the surface itself.
-     `container-type: inline-size` measures the *content* box, and `.dmd`
-     carries the page padding — so declaring it there would compare the
-     breakpoints against a width 64px narrower than the surface, and every
-     collapse would fire early by exactly the padding. The frame has no padding,
-     so its width is the width you asked for.
-
-     Media mode declares no container, because it measures nothing. */
-  return `
-${mode === 'media' ? '' : '.dmd-frame { container-type: inline-size; container-name: dmd; }\n'}
-${query(md)} {
-  .dmd .cols-3, .dmd .cols-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  /* A 180px rail beside 200px of content is not a layout. Stack it. */
-  .dmd .with-aside { grid-template-columns: minmax(0, 1fr); }
-
-  /* Stacking the rail is only half the job. Left alone it becomes five links
-     stacked above the page title, which pushes the heading below the fold and
-     reads as a wide layout that gave up. Fold it behind the burger instead.
-     The summary keeps the section label, so nothing is unlabelled. */
-  /* Sibling, not child. A closed details renders none of its non-summary
-     children whatever CSS says, so the list lives outside it and this hides
-     it instead. Pure CSS, so the exported page behaves identically.
-
-     Collapsed to a zero row rather than display none, so the fold animates on
-     the document's own duration and easing. A system that publishes a motion
-     scale should be seen using it. */
-  /* The disclosure appears only here. Hidden at every wider width, because a
-     desktop header has room for the links themselves. */
-  .dmd .nav-collapse { display: block; }
-  .dmd .nav-collapse:not([open]) ~ .nav-fold { grid-template-rows: 0fr; }
-  .dmd .nav-fold { transition: grid-template-rows var(--duration-normal, 200ms) var(--ease-standard, ease); }
-  .dmd .nav-burger { display: flex; }
-  .dmd .nav-summary { cursor: pointer; }
-
-  /* A header menu opens downward as a stack, not as a squeezed row. Its call
-     to action goes full width, because it is the reason the header exists. */
-  .dmd .header-nav .nav-list { flex-direction: column; align-items: stretch; }
-  .dmd .header-nav .nav-list > .btn { width: 100%; }
-}
-
-${query(sm)} {
-  .dmd .cols-2, .dmd .cols-3, .dmd .cols-4 { grid-template-columns: minmax(0, 1fr); }
-  /* Labels go above their fields — 112px of label leaves nothing for input. */
-  .dmd .field-inline { grid-template-columns: minmax(0, 1fr); gap: 4px; }
-  /* Every row wraps at this width, not only the ones opted in by class.
-     A footer holding Reset, Discard and Save was 112px wider than the page and
-     simply clipped its own primary action. Marking rows one at a time means
-     the next row added is clipped again until somebody notices. A row that
-     already fits is unaffected by permission to wrap.
-
-     No backticks in this comment. It sits inside a template literal, and one
-     would end the string here. */
-  .dmd .row { flex-wrap: wrap; }
-  /* Nested action groups stay together on their line rather than splitting
-     across two, so Discard and Save read as a pair. */
-  .dmd .row > .row { flex-wrap: nowrap; }
-
-  /* A row that should stop being a row.
-     Wrapping keeps items on the line until they run out of room, which leaves
-     a half-width button stranded beside a paragraph. These say the arrangement
-     instead: one column, every action at full width.
-
-     The reversed variant puts the primary action first. A footer that reads
-     Cancel, Save draft, Save changes is right on a desktop, where the eye ends
-     at the right. Stacked on a phone it buries the main action at the bottom,
-     furthest from the thumb. */
-  .dmd .stack-narrow, .dmd .stack-narrow-rev { flex-direction: column; align-items: stretch; }
-  .dmd .stack-narrow-rev { flex-direction: column-reverse; }
-  .dmd .stack-narrow > .btn, .dmd .stack-narrow-rev > .btn { width: 100%; }
-  /* A nested action group stacks with its parent rather than staying a row
-     inside a column. Otherwise a footer reads as two unrelated groups: one
-     button alone on a line, then a right-aligned pair under it. */
-  .dmd .stack-narrow-rev > .row { flex-direction: column-reverse; align-items: stretch; width: 100%; }
-  .dmd .stack-narrow > .row { flex-direction: column; align-items: stretch; width: 100%; }
-  .dmd .stack-narrow-rev > .row > .btn, .dmd .stack-narrow > .row > .btn { width: 100%; }
-
-  /* A spec group scrolls, it does not fold.
-     Four variants across four states only means anything read across the row,
-     so wrapping destroys the one thing it exists to show. It was clipping
-     instead, which loses the last column in silence. The scroller sits on the
-     group rather than the row, so every row moves together. */
-  .dmd .matrix { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-  .dmd .matrix > .row { flex-wrap: nowrap; min-width: max-content; }
-
-  /* Only the true matrix gets aligned columns.
-     Rows of independent flex boxes line up only by luck — measured at 7px of
-     drift on the variants grid, where the whole point is comparing one cell
-     against the one below it. One grid, with the rows dissolved into it by
-     display contents, makes the columns share a track.
-
-     Not applied to the size and icon groups. Those carry a different number of
-     items per row, so a shared column means nothing there. */
-  .dmd .matrix-grid { display: grid; grid-template-columns: repeat(5, max-content); gap: var(--space-sm, 8px); align-items: center; }
-  .dmd .matrix-grid > .row { display: contents; }
-}
-
-${query(sm)} {
-  /* Below this, a spec group stacks rather than scrolls.
-     Sideways scrolling is a last resort, not a layout. A table of real columns
-     has no other option, so it keeps its scroller. A run of buttons does have
-     one: give the label its own line and let the examples wrap underneath.
-
-     That also removes the second scrollbar. A pane that scrolls down inside a
-     page that scrolls down, wrapped around a group that scrolls sideways, is
-     three scrollbars for four buttons. */
-  .dmd .matrix { overflow-x: visible; }
-  .dmd .matrix > .row { flex-wrap: wrap; min-width: 0; }
-  .dmd .matrix-grid { display: flex; flex-direction: column; }
-  .dmd .matrix-grid > .row { display: flex; flex-wrap: wrap; }
-
-  /* The label takes its own line, and the rule is on the LABEL.
-     It used to sit on the first child of a matrix-grid row, so the same
-     component behaved two ways depending on an ancestor two levels up: GHOST
-     and DANGER stood alone while LIVE and FILLED shared a line with whichever
-     buttons happened to fit beside them. A row of specimens must read one way
-     down the whole page. Any row carrying a label wraps too, or the label has
-     nothing to wrap away from. */
-  .dmd .row:has(> .row-label) { flex-wrap: wrap; min-width: 0; }
-  .dmd .row-label { flex: 1 0 100%; }
-
-  /* The page's own actions take the medium step of the button scale.
-     Small is a desktop density choice. At this width it is an uncomfortable
-     target and the wrong weight for the top of a screen. Both values come from
-     the system's own scale, so nothing is invented here. */
-  /* Every button in an action row takes the LARGE step on a phone.
-   *
-   * The scale is 28, 36, 44 in even steps and it stays that way — a token is
-   * not the place to fix a touch problem. 36 is right for a mouse and under
-   * the 40px floor for a finger, so at this width the action rows reach for
-   * the step above rather than the scale being rewritten underneath them.
-   *
-   * Action rows only. The gallery specimens keep every size, because showing
-   * the scale is the whole reason they exist, and a specimen sheet is not
-   * something anyone taps their way through. */
-  /* The row has to be able to wrap before its buttons are made bigger.
-     Promoting to the large step widened them by the difference between the
-     medium and large padding, and a page-actions row that could not wrap then
-     ran 16px past the frame with no scroller to reach it. Growing a control
-     without giving its row somewhere to put the extra width just moves the
-     failure outward. */
-  /* Three classes, not two. Written with two it tied with the plain row rule on
-     specificity and lost on line order, so the row still read nowrap and only
-     fitted by luck: 342px of buttons in a 342px row. The next label to grow by
-     a character would have pushed it out again.
-
-     No backticks in this comment. Naming those two selectors in backticks is
-     what broke the build the first time this was written — the template literal
-     ended at the first one, and the CSS after it parsed as JavaScript property
-     access. The error read "cannot read properties of undefined (reading
-     page)", which points nowhere near the cause. */
-  .dmd .row.page-actions { flex-wrap: wrap; }
-
-  /* A wrap is what a flex row does when nobody decides. It left one button
-     stranded beside the title and two below it, which reads as an accident
-     rather than a layout. The whole row moves under the heading and its
-     description instead, and the three of them share one left edge.
-
-     display contents on the head promotes the heading and the action row into
-     this column, so order can put the description between them. Without it the
-     actions can only ever sit above a paragraph that is not their sibling. */
-  .dmd .page-header { gap: 0; }
-  .dmd .page-header > .page-head { display: contents; }
-  .dmd .page-header > .page-head > h2 { order: 1; }
-  .dmd .page-header > .page-sub { order: 2; margin-top: 4px; }
-  /* How an action row breaks when it stops fitting.
-   *
-   * Three buttons need 342px and the column holds 309, so the row must break.
-   * A plain wrap strands one button beside the title; nowrap crushed the
-   * icon button to 10.9px of its 44. Neither is a decision.
-   * (No backticks in this file. Quoting a CSS keyword in a comment ends the
-   * template literal and the rest parses as JavaScript.)
-   *
-   * The rule, which the payload carries in full, and which holds for any
-   * number of buttons rather than only these three:
-   *   1. If they all fit one line, leave them — own widths, own ratios.
-   *   2. The single most important action takes a full-width line to itself.
-   *   3. Everything else packs onto the lines below in priority order, as many
-   *      per line as fit, the last labelled button on each line absorbing the
-   *      slack so every line is flush on both edges.
-   *   4. Two of equal top importance each take their own full-width line.
-   *
-   * The three declarations below are the whole rule, not a special case for
-   * this row. The primary is pinned to 100%, so it takes a line whatever else
-   * is present. Everything else grows and wraps naturally, which
-   * packs each line and stretches its last member to the edge for free. The
-   * icon-only square is the one exception, because a bar with a lone glyph
-   * centred in it says nothing. Add a fourth and fifth button and the same
-   * three rules still describe the result. */
-  .dmd .page-header > .page-head > .page-actions {
-    order: 3;
-    margin-top: var(--space-sm, 12px);
-    flex-wrap: wrap;
-    align-items: stretch;
-  }
-  /* General first, specific after. Both selectors carry five classes, so they
-     tie on specificity and the later one wins — written the other way round,
-     the general rule overrode the primary's own line and put it back beside
-     Export. Measured: the primary computed to a growing item instead of a
-     full-width one, and five buttons packed onto two lines with the primary
-     sharing the first. Equal specificity is decided by position, so position
-     has to carry the meaning: broad rule, then the exceptions to it. */
-  .dmd .page-header > .page-head > .page-actions > .btn { flex: 1 1 auto; }
-  /* Order, not markup: the primary reads last in a row because the eye ends
-     there, and first in a column because the top line is the one pressed. */
-  .dmd .page-header > .page-head > .page-actions > .btn-primary {
-    order: -1;
-    flex: 0 0 100%;
-  }
-  /* Except the square, which is a square. It holds its side and lets the
-     labelled button beside it take the rest. */
-  .dmd .page-header > .page-head > .page-actions > .btn.icon-only {
-    flex: 0 0 var(--cmp-button-lg-height, 44px);
-    width: var(--cmp-button-lg-height, 44px);
-  }
-
-  .dmd .page-actions > .btn,
-  .dmd .stack-narrow > .btn,
-  .dmd .stack-narrow-rev > .btn {
-    height: var(--cmp-button-lg-height, 44px);
-    line-height: calc(var(--cmp-button-lg-height, 44px) - 2px);
-    padding: var(--cmp-button-lg-padding, 0 var(--space-lg, 24px));
-    font-size: var(--cmp-button-lg-font-size, var(--font-body-md-size, 16px));
-  }
-  .dmd .page-actions > .btn.icon-only,
-  .dmd .stack-narrow > .btn.icon-only,
-  .dmd .stack-narrow-rev > .btn.icon-only {
-    width: var(--cmp-button-lg-height, 44px); padding: 0;
-  }
-
-  /* There was a second rule here promoting only the small size, and only as far
-     as the medium step. It sat AFTER the rule above with equal specificity, so
-     it quietly won for every small button and parked them at 36 — under the
-     floor the promotion exists to clear. One rule now covers every size, and
-     nothing depends on which line came last.
-
-     Note the line height above: the LARGE height minus its two borders. Under
-     border-box a line height equal to the stated height belongs to a box 2px
-     taller than the one the letters live in, and the label lands a pixel low.
-     Every promotion in this file has sprung that trap at least once. */
-
-  /* Navigation is a finger target at this width, and 40px is the floor.
-     Sized by their own padding these came out 38.3 and 24 — close enough to
-     look deliberate in a screenshot and wrong enough to miss on a phone. The
-     mark and the label do not change size, only the box that catches the tap.
-     A summary needs the box stated explicitly because it has no control
-     height of its own to grow. */
-  .dmd .nav-item { min-height: 40px; display: flex; align-items: center; }
-  .dmd .nav-summary { min-height: 40px; }
-
-  /* The call to action in a nav row is part of that row.
-     At 28px beside two 40px links it sat at the top of the band with its text
-     5.84px above theirs, which is the one place in a header where a mismatch
-     is unmissable. Height and line height together, so the box matches and the
-     label still centres — not display flex, which would hand this button's
-     baseline to the icon inside it. */
-  /* The call to action matches its links on BOTH counts, height and font size.
-     It carried the large step from the promotion above — 36px tall at 15.1px
-     against links 40px tall at 14.3px — so the row disagreed on the box and on
-     the baseline at once, measured 1.84px apart. Two different font sizes
-     cannot give you equal boxes and equal baselines, so the row takes one
-     size. Stated after the promotion, and more specific than it, so this is
-     not decided by which line came last. */
-  .dmd .nav-list > .btn,
-  .dmd .header-nav .nav-list > .btn {
-    height: 40px; line-height: 38px;
-    padding: 0 var(--space-md, 16px);
-    font-size: var(--cmp-nav-item-font-size, var(--font-body-sm-size, 14px));
-  }
-
-  /* A two-word heading should not break in half.
-     Balancing spreads the words evenly across the lines it does need, which is
-     the cheat that stops "Account settings" reading as "Account" over
-     "settings". Falls back to normal wrapping where unsupported. */
-  .dmd h1, .dmd h2, .dmd h3 { text-wrap: balance; }
-  .dmd { padding: ${sp('md', '16px')}; }
-}
-`
+  return buildResponsiveCss(RULES, breakpoints, mode)
 }

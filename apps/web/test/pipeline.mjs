@@ -21,7 +21,16 @@ import { PROSE_SECTIONS } from '../src/state/schema.js'
 /* theme.js re-exports a `?raw` import, which is a Vite feature Node cannot
    resolve, so the chrome stylesheet is read from disk instead. */
 const APP_CSS = fs.readFileSync(new URL('../src/ui/theme.css', import.meta.url), 'utf8')
-import { responsiveCss } from '../src/preview/responsive.js'
+/* The pure substitution, not the wired module. responsive.js imports the
+   stylesheet with Vite's `?raw` suffix, which plain Node cannot resolve — it
+   throws "Unknown file extension .css" before a single assertion runs. This
+   imports the same transform the app uses and feeds it the same file, read
+   from disk. */
+import { readFileSync as readCssFile } from 'node:fs'
+import { buildResponsiveCss } from '../src/preview/responsive.build.js'
+const RESPONSIVE_RULES = readCssFile(
+  new URL('../src/preview/responsive.rules.css', import.meta.url), 'utf8')
+const responsiveCss = (bps, mode) => buildResponsiveCss(RESPONSIVE_RULES, bps, mode)
 
 const line = s => console.log(s)
 let failures = 0
@@ -685,6 +694,18 @@ line('\n- prompt construction -')
   /* And those widths come from the document, not from a constant. */
   const moved = responsiveCss(bps.map(b => b.name === 'md' ? { ...b, px: 900 } : b), 'media')
   assert(moved.includes('899.98px'), 'moving a breakpoint moves the rule')
+
+  /* The CSS now lives in a real stylesheet and reaches this function as raw
+     text, with the two collapse conditions standing in as sentinel widths.
+     A sentinel that survives substitution is a rule that never matches and a
+     layout that silently never collapses — no error, nothing in the console,
+     just a page that stays wide. Cheap to assert, invisible otherwise. */
+  assert(!/99990[12]/.test(inEditor + inExport + moved),
+    'no sentinel width survives into the emitted CSS')
+  /* The move out of the template literal must have changed nothing. If either
+     mode stops producing rules at all, the substitution broke. */
+  assert(inEditor.length > 10000 && inExport.length > 10000,
+    `both modes still emit the full sheet (${inExport.length}B, ${inEditor.length}B)`)
 
   const rules = css => [...css.matchAll(/\.dmd[^{]*\{/g)].map(m => m[0].trim()).sort()
   assert(JSON.stringify(rules(inEditor).filter(r => !r.includes('-frame'))) === JSON.stringify(rules(inExport)),
