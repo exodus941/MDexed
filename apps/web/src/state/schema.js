@@ -190,10 +190,17 @@ export const FRAMEWORKS = ['React + Tailwind', 'React + CSS variables', 'Plain H
  * are decisions about this system specifically, carried over from the payload
  * the defaults were authored in.
  *
- * The two sizes are not cosmetic. A 16px checkbox and a 20px switch are the
- * two findings the audit raises on an untouched document, and shipping a
- * default that fails your own checker teaches people to ignore it. 24px is
- * exactly 2.5.8's minimum.
+ * The switch height is not cosmetic. A 20px switch is a finding the audit
+ * raises on an untouched document, and shipping a default that fails your own
+ * checker teaches people to ignore it. 24px is exactly 2.5.8's minimum.
+ *
+ * The checkbox used to be forced to 24px for the same reason, and that was the
+ * wrong answer to the right worry. **A checkbox is drawn at 16px and hit at the
+ * label**, which is what everyone actually builds and what 2.5.8's spacing
+ * exception is for. This document declares a 44px minimum target, so the audit
+ * already reports the 16px box as a warning that says exactly that — keep the
+ * hit area at 44, with padding on the label rather than a bigger box. Forcing
+ * the drawn size to 24 silenced a warning by making the control wrong.
  *
  * A fresh copy per call — a shared object literal would let one document's
  * edits leak into the next New. */
@@ -201,7 +208,6 @@ const defaultComponentOverrides = () => ({
   /* Was `{colors.danger}`, which made every ghost button red — a stray from a
      click-test that came back in the next payload corrected. */
   'button-ghost.textColor': '{colors.ring}',
-  'checkbox.size': '24px',
   'switch.height': '24px',
   'badge-neutral.backgroundColor': '{colors.bg}',
 })

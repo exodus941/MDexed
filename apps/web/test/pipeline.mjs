@@ -741,6 +741,15 @@ line('\n- prompt construction -')
     ['a control clears the floor when its targets do', ['not when its container does']],
     ['icon-only is matched by structure', [':has(> .icon:only-child)']],
     ['a mark in a field sits above it', ['renders none of it']],
+    ['a line mark goes inside the line', ['inside that line']],
+    ['a textless control has no baseline to offer', ['nothing to put on a baseline']],
+    ['a control centres on the label first line', ['first line']],
+    ['centring the control alone is worse', ['centring the control alone is worse']],
+    ['equal gaps do not read equal around text', ['do not read equal']],
+    ['proximity is a ratio', ['decided by the ratio']],
+    ['a checkbox draws at 16 and is hit at its label', ['hit at its label']],
+    ['an optical correction belongs to its mechanism', ['belongs to the mechanism it corrects']],
+    ['a selector needs the class to be on the node', ['actually on the node']],
   ]
   const missing = RULES.filter(([, terms]) => !terms.every(t => doc.includes(t))).map(([n]) => n)
   assert(missing.length === 0,

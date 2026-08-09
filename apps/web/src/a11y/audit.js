@@ -205,11 +205,11 @@ function targetSize(state, derived) {
       tab: 'components', entry: name,
       title: `${name} draws at ${v}px`,
       detail: covered
-        ? `Below the 24×24 minimum, but this system declares a ${declared}px minimum target, and 2.5.8 exempts a small control whose neighbours are far enough away. The declaration is the thing making that true — an agent that puts these in a tight row breaks it.`
-        : `Interactive targets need 24×24, and nothing in this system declares a minimum that would invoke the spacing exception.`,
+        ? `The rule asks for 24px and this draws at ${v}. It still passes, because you have set a ${declared}px minimum target, and the rule lets a small control through when nothing sits close enough to mis-tap. That is the part to protect: crowd these into a tight row and the exemption is gone.`
+        : `Anything people click needs 24×24 to hit reliably, and this draws at ${v}. There is no minimum target set on this system, so there is nothing claiming the spacing that would let a smaller control pass.`,
       fix: covered
-        ? `Keep the hit area at ${declared}px even though the control draws at ${v}px — padding on the label, not a bigger box.`
-        : `Either raise ${name} to 24px, or set a minimum target in the Directives panel and honour it with spacing.`,
+        ? `Draw the box at ${v}px and make the thing people click ${declared}px. The extra size goes on the label wrapped around it, never on the box itself.`
+        : `Either draw ${name} at 24px, or set a minimum target in the Directives panel and keep these ${declared || 24}px apart.`,
       measured: `${v}px`,
     })
   }

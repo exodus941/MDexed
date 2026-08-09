@@ -19,10 +19,18 @@
  *
  * There is no selector that fixes this, because the thing CSS needs to see is
  * a text node it cannot select. So the markup says which it is. */
-export const Ico = ({ d, size = 'md', end = false }) => (
-  <svg className={end ? 'icon icon-end' : 'icon'} aria-hidden="true" focusable="false"
+/* `...rest` is not a convenience. Without it this component silently DROPPED
+   every prop it did not name — I passed a green `style` to the toast tick and
+   the tick stayed grey, with nothing anywhere to say the prop had been thrown
+   away. A component that discards what it is given is the same fault as a CSS
+   property that does nothing: the instruction is written, it looks right in the
+   source, and it never reaches the screen. */
+export const Ico = ({ d, size = 'md', end = false, className = '', ...rest }) => (
+  <svg className={`${end ? 'icon icon-end' : 'icon'}${className ? ' ' + className : ''}`}
+    aria-hidden="true" focusable="false"
     width={`var(--icon-${size}, 16px)`} height={`var(--icon-${size}, 16px)`}
-    viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
+    viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"
+    {...rest}>
     {d}
   </svg>
 )
@@ -50,8 +58,14 @@ export const IconChart = <><line x1="18" y1="20" x2="18" y2="10" /><line x1="12"
 
 /* Form controls drawn from tokens rather than native widgets, so radius,
    colour and size all follow the system. */
+/* `className="checkbox"` is not decoration. The preview stylesheet already
+   centres `.row > .checkbox`, because a box with no text in it cannot sit on a
+   baseline — it has nothing to put there, so a baseline row aligns it by its
+   bottom edge and it rides high beside its label. The rule was written and this
+   component never carried the class, so the rule matched nothing for as long as
+   both existed. A selector is only as good as the class actually on the node. */
 export const Check = ({ on }) => (
-  <span style={{
+  <span className="checkbox" style={{
     width: 'var(--cmp-checkbox-size, 16px)', height: 'var(--cmp-checkbox-size, 16px)',
     borderRadius: 'var(--cmp-checkbox-rounded, var(--radius-sm, 4px))',
     border: `1px solid ${on ? 'var(--cmp-checkbox-checked-border-color, var(--c-accent, #333))' : 'var(--cmp-checkbox-border-color, var(--c-border, #ccc))'}`,
@@ -64,7 +78,7 @@ export const Check = ({ on }) => (
 )
 
 export const Switch = ({ on }) => (
-  <span style={{
+  <span className="switch" style={{
     width: 'var(--cmp-switch-width, 36px)', height: 'var(--cmp-switch-height, 20px)',
     borderRadius: 'var(--cmp-switch-rounded, 9999px)',
     background: on ? 'var(--cmp-switch-checked-background-color, var(--c-accent, #333))' : 'var(--cmp-switch-background-color, var(--c-border, #ccc))',
