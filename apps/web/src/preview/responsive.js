@@ -1,4 +1,9 @@
-/* ⚠ NO BACKTICKS ANYWHERE BELOW THE `return` IN THIS FILE. ⚠
+/* NO-BACKTICKS-BELOW-RETURN
+ *
+ * That marker is not decoration. The syntax guard reads it and then enforces
+ * the rule below absolutely, because the rule alone has failed five times.
+ *
+ * ⚠ NO BACKTICKS ANYWHERE BELOW THE RETURN IN THIS FILE. ⚠
  *
  * Everything this function returns is one template literal, comments included.
  * A backtick inside a CSS comment ends the string there, and the rest of the
@@ -193,6 +198,24 @@ ${query(sm)} {
    * Action rows only. The gallery specimens keep every size, because showing
    * the scale is the whole reason they exist, and a specimen sheet is not
    * something anyone taps their way through. */
+  /* The row has to be able to wrap before its buttons are made bigger.
+     Promoting to the large step widened them by the difference between the
+     medium and large padding, and a page-actions row that could not wrap then
+     ran 16px past the frame with no scroller to reach it. Growing a control
+     without giving its row somewhere to put the extra width just moves the
+     failure outward. */
+  /* Three classes, not two. Written with two it tied with the plain row rule on
+     specificity and lost on line order, so the row still read nowrap and only
+     fitted by luck: 342px of buttons in a 342px row. The next label to grow by
+     a character would have pushed it out again.
+
+     No backticks in this comment. Naming those two selectors in backticks is
+     what broke the build the first time this was written — the template literal
+     ended at the first one, and the CSS after it parsed as JavaScript property
+     access. The error read "cannot read properties of undefined (reading
+     page)", which points nowhere near the cause. */
+  .dmd .row.page-actions { flex-wrap: wrap; }
+
   .dmd .page-actions > .btn,
   .dmd .stack-narrow > .btn,
   .dmd .stack-narrow-rev > .btn {
@@ -233,10 +256,18 @@ ${query(sm)} {
      is unmissable. Height and line height together, so the box matches and the
      label still centres — not display flex, which would hand this button's
      baseline to the icon inside it. */
-  .dmd .nav-list > .btn {
+  /* The call to action matches its links on BOTH counts, height and font size.
+     It carried the large step from the promotion above — 36px tall at 15.1px
+     against links 40px tall at 14.3px — so the row disagreed on the box and on
+     the baseline at once, measured 1.84px apart. Two different font sizes
+     cannot give you equal boxes and equal baselines, so the row takes one
+     size. Stated after the promotion, and more specific than it, so this is
+     not decided by which line came last. */
+  .dmd .nav-list > .btn,
+  .dmd .header-nav .nav-list > .btn {
     height: 40px; line-height: 38px;
     padding: 0 var(--space-md, 16px);
-    font-size: var(--cmp-button-md-font-size, var(--font-button-size, 14px));
+    font-size: var(--cmp-nav-item-font-size, var(--font-body-sm-size, 14px));
   }
 
   /* A two-word heading should not break in half.

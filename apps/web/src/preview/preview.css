@@ -284,6 +284,14 @@
    * child can move it. Same fix the buttons in this file already carry. The
    * ornaments then align with vertical-align rather than by being first. */
   display: inline-block; white-space: nowrap;
+  /* A badge is as wide as its word and no wider.
+     `inline-block` says that in normal flow, and a flex or grid parent ignores
+     it: a flex item is blockified and then stretched by the default
+     `align-items: stretch`, so inside a column stack this badge ran the full
+     width of the card. It reads as a filled bar, not a badge.
+     `align-self` covers the flex and grid cases, `width: fit-content` covers a
+     block context. Between them there is no parent that can stretch it. */
+  align-self: flex-start; width: fit-content;
   padding: var(--cmp-badge-padding, 2px var(--space-xs, 8px));
   border-radius: var(--cmp-badge-rounded, var(--radius-full, 9999px));
   font-size: var(--cmp-badge-font-size, var(--font-caption-size, 12px));
@@ -561,8 +569,14 @@
    and reveals the burger. The `open` attribute is on the element, so a browser
    with no CSS still shows the links rather than hiding them. */
 .dmd .nav-summary {
-  display: flex; align-items: center; justify-content: space-between;
-  gap: var(--space-sm, 8px); margin-bottom: var(--space-xs, 4px);
+  /* The word and the mark are ONE control, so they sit together.
+     `space-between` flung the label to the far left and the burger to the far
+     right of the whole header, which reads as two unrelated things and leaves
+     a lake of nothing between them. A disclosure is a small object you press.
+     Right-aligned, because that is where a burger lives and where the hand
+     already is. */
+  display: flex; align-items: center; justify-content: flex-end;
+  gap: var(--space-xs, 8px); margin-bottom: var(--space-xs, 4px);
   list-style: none; cursor: default;
   /* Sized by its own text this stood 20px. On a phone it carries the burger
      and is the only way to open the menu, so it takes the touch floor there;

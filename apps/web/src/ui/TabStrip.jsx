@@ -25,6 +25,12 @@ const BAR_H = 42
    different baselines however well each aligned to its own tabs. */
 const TAB_FS = 12
 
+/* One number for the chevron's width, because two things depend on it: the
+   button itself, and the padding that keeps a tab from resting underneath it.
+   Written twice, they drift, and the tab that ends up half-covered is the one
+   nobody thinks to measure. */
+const CHEVRON_W = 40
+
 /* Pixels per 16ms tick at the inner and outer edges of a chevron, so roughly
    78 to 780 px/s. The floor is slow enough to walk a tab into place one at a
    time; the ceiling crosses the whole strip in well under a second. A ten to
@@ -103,7 +109,7 @@ function Chevron({ dir, state, onEnter, onLeave, onClick }) {
       style={{
         flexShrink: 0, display: 'flex', alignItems: 'center',
         justifyContent: dir < 0 ? 'flex-start' : 'flex-end',
-        width: 40, height: '100%', border: 'none',
+        width: CHEVRON_W, height: '100%', border: 'none',
         cursor: spent ? 'default' : 'pointer',
         opacity: state === 'leaving' ? 0 : spent ? 0.3 : 1,
         color: 'var(--muted)', padding: dir < 0 ? '0 0 0 10px' : '0 10px 0 0',
@@ -459,6 +465,15 @@ export default function TabStrip({ tabs, active, onSelect, right, title, actions
         )}
 
         {phase.left && <Chevron dir={-1} state={phase.left} onEnter={() => startScroll(-1)} onLeave={stopScroll} onClick={() => nudge(-1)} />}
+        {/* No padding for the chevrons, and that was checked rather than
+            assumed. A probe reported a tab 51.6% covered by one, so I padded
+            the scroller by a chevron's width — and the probe was wrong. It was
+            measuring tabs that had SCROLLED OUT: a clipped tab keeps a layout
+            rect at its old position, and that position sits under a chevron
+            while the tab itself is unreachable. Clipped is not covered.
+            Measured against the visible part of each tab, at three scroll
+            positions: 0% covered everywhere. The chevrons are flex siblings of
+            this scroller, so they cannot overlap it at all. */}
         <div ref={ref} className="no-bar" onScroll={measure}
           style={{ display: 'flex', flex: 1, minWidth: 0, overflowX: 'auto' }}>
           {rest.map(t => {
