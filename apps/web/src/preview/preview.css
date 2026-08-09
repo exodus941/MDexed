@@ -70,16 +70,33 @@
   padding: var(--cmp-button-md-padding, 0 var(--space-md, 16px));
   border-radius: var(--cmp-button-rounded, var(--radius-md, 8px));
   border: 1px solid transparent;
+  /* Every hover state fades. The document publishes a duration scale and an
+     easing set, and a button that snaps between colours has demonstrated
+     neither. Named properties rather than `all`, so a layout value never
+     animates by accident. */
+  transition:
+    background-color var(--duration-fast, 120ms) var(--ease-standard, ease),
+    border-color var(--duration-fast, 120ms) var(--ease-standard, ease),
+    color var(--duration-fast, 120ms) var(--ease-standard, ease),
+    box-shadow var(--duration-fast, 120ms) var(--ease-standard, ease),
+    opacity var(--duration-fast, 120ms) var(--ease-standard, ease);
   cursor: pointer;
-  transition: background var(--duration-fast, 120ms) var(--ease-standard, ease),
-              border-color var(--duration-fast, 120ms) var(--ease-standard, ease),
-              color var(--duration-fast, 120ms) var(--ease-standard, ease);
 }
 /* A leading icon is the default, and a trailing one says so in the markup.
    This was `:last-child`, which cannot see a text node — so a leading icon in
    `<button><svg/>Export</button>` was also the last *element* child, took the
-   trailing rule, and put its 8px on the wrong side. See icons.jsx. */
-.dmd .btn .icon { vertical-align: middle; margin-right: var(--cmp-button-gap, var(--icon-gap, 8px)); margin-left: 0; }
+   trailing rule, and put its 8px on the wrong side. See icons.jsx.
+
+   `vertical-align: middle` does not mean the middle of the box. It puts the
+   icon's centre on the baseline plus half the x-height, which lands below the
+   line-box centre — measured at 2.55px low on every button in the app. The
+   translate lifts it onto the label's cap-height centre, which is the middle
+   the eye actually compares against. It is a transform so it changes no
+   layout, and roughly half the difference between cap height and x-height. */
+.dmd .btn .icon {
+  vertical-align: middle; margin-right: var(--cmp-button-gap, var(--icon-gap, 8px)); margin-left: 0;
+  transform: translateY(-0.12em);
+}
 .dmd .btn .icon-end { margin-right: 0; margin-left: var(--cmp-button-gap, var(--icon-gap, 8px)); }
 .dmd .btn:focus-visible {
   outline: var(--focus-width, 2px) var(--focus-style, solid) var(--c-ring, #4f6ef7);
@@ -270,7 +287,13 @@
    inspection, which is the system claiming a size it was not keeping.
    Now it is `.btn` plus a square footprint, so the size scale governs it and
    a row of controls stays one height. */
-.dmd .btn.icon-only { width: var(--cmp-button-md-height, 36px); padding: 0; }
+/* No label, so no baseline to donate, so no reason to keep the line box. Flex
+   centring puts the icon dead centre with no correction to guess at. */
+.dmd .btn.icon-only {
+  width: var(--cmp-button-md-height, 36px); padding: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.dmd .btn.icon-only .icon { transform: none; }
 .dmd .btn.icon-only.btn-sm { width: var(--cmp-button-sm-height, 28px); }
 .dmd .btn.icon-only.btn-lg { width: var(--cmp-button-lg-height, 44px); }
 .dmd .btn.icon-only .icon { margin: 0; }
@@ -395,7 +418,12 @@
   color: var(--cmp-nav-item-text-color, var(--c-text-muted, #666));
   font-size: var(--cmp-nav-item-font-size, var(--font-body-sm-size, 14px));
   cursor: pointer;
-  transition: background var(--duration-fast, 120ms) var(--ease-standard, ease);
+  /* Colour moves with the background. Fading one and snapping the other reads
+     as a glitch rather than a transition. */
+  transition:
+    background-color var(--duration-fast, 120ms) var(--ease-standard, ease),
+    color var(--duration-fast, 120ms) var(--ease-standard, ease),
+    border-color var(--duration-fast, 120ms) var(--ease-standard, ease);
 }
 .dmd .nav-item:hover { background: var(--cmp-nav-item-hover-background-color, var(--c-bg-subtle, #f4f4f4)); }
 .dmd .nav-item.is-active {
