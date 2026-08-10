@@ -170,6 +170,20 @@ export const Strut = ({ size, family }) => (
  * old code had a bare `hr` carrying 24 over 20 and no answer at all for the
  * unruled case, so the next panel to stack two sections would have invented
  * one. */
+/* A real mark, at the same 13px and 2 stroke as the header set.
+ *
+ * The three Add buttons wrote a literal "+" into the label — "+ Add Seed" —
+ * so the glyph was a letter in a sentence rather than an icon beside one. It
+ * took the label's font, it took no icon gap, and it sat hard against the A
+ * with only a word space between them. A text plus is not an icon, and a word
+ * space is not an icon gap. */
+export const Plus = () => (
+  <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+    strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M12 5v14M5 12h14" />
+  </svg>
+)
+
 export const SECTION_GAP = 48
 
 /* The panel body is a flex column with this much between every child, so a

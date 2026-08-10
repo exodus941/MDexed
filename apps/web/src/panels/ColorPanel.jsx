@@ -12,7 +12,7 @@ import { bestOn } from '../color/contrast.js'
 import ColorPicker from '../ui/ColorPicker.jsx'
 import TokenColorPicker, { paletteGroups } from '../ui/TokenColorPicker.jsx'
 import { GRADIENT_TYPES, GRADIENT_PURPOSES, purposeOf } from '../color/modes.js'
-import { SectionHeader, Collapsible, Expand, Slider, NumField, Toggle, OverrideBadge, ConfirmDelete, Banner, PAD, BTN } from '../ui/controls.jsx'
+import { SectionHeader, Collapsible, Expand, Slider, NumField, Toggle, OverrideBadge, ConfirmDelete, Banner, Plus, PAD, BTN } from '../ui/controls.jsx'
 import { useAi } from '../ai/ui.jsx'
 import { complete } from '../ai/client.js'
 import { systemPrompt, gradientNotePrompt } from '../ai/prompts.js'
@@ -364,7 +364,7 @@ function GradientRow({ grad, css, options, resolved, onChange, onDelete }) {
           </div>
           <button className="btn-add" style={{ marginTop: 8 }}
             onClick={() => onChange({ ...grad, stops: [...grad.stops, { color: 'accent', position: 100 }] })}>
-            + Add stop
+            <Plus />Add stop
           </button>
           <code style={{ display: 'block', marginTop: 10, fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--dim)', wordBreak: 'break-all' }}>{css}</code>
         </div>
@@ -498,7 +498,7 @@ export default function ColorPanel() {
               onDelete={() => deleteSeed(seed.id)} />
           ))}
         </div>
-        <button className="btn-add" onClick={addSeed}>+ Add Seed</button>
+        <button className="btn-add" onClick={addSeed}><Plus />Add Seed</button>
         <datalist id="dmd-seed-names">
           {SEED_NAME_SUGGESTIONS.filter(n => !color.seeds.some(s => s.name === n)).map(n => <option key={n} value={n} />)}
         </datalist>
@@ -560,7 +560,7 @@ export default function ColorPanel() {
               onDelete={() => upd(c => ({ ...c, gradients: c.gradients.filter(x => x.id !== g.id) }))} />
           ))}
         </div>
-        <button className="btn-add" onClick={addGradient}>+ Add gradient</button>
+        <button className="btn-add" onClick={addGradient}><Plus />Add gradient</button>
         <p className="panel-note" style={{ marginTop: 10 }}>
           Gradient <strong>strokes</strong> have no direct CSS property. They need
           <code style={{ fontFamily: 'var(--mono)', fontSize: 10.5 }}> border-image</code>, or a two-layer background with
