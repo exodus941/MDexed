@@ -155,12 +155,50 @@ export const Strut = ({ size, family }) => (
   <span aria-hidden="true" style={{ fontSize: size, fontFamily: family }}>&#8203;</span>
 )
 
+/* The space between two sections, as one decision.
+ *
+ * Two sections are 48px apart. A rule between them does not change that — it
+ * sits in the middle of the same 48, taking 24 on each side. So the rhythm of
+ * the panel is identical whether or not a section is marked off, and the rule
+ * only says where a boundary is, never how big it is.
+ *
+ * Against the 9px a heading keeps from its own body, that is a ratio of more
+ * than five to one. Proximity is a ratio: the separation has to beat the
+ * cohesion by enough that nobody has to look twice.
+ *
+ * A component rather than a value, because the pair only works together. The
+ * old code had a bare `hr` carrying 24 over 20 and no answer at all for the
+ * unruled case, so the next panel to stack two sections would have invented
+ * one. */
+export const SECTION_GAP = 48
+
+/* The panel body is a flex column with this much between every child, so a
+   margin on a child ADDS to it rather than replacing it. That caught me here:
+   halving the header's margin from 18 to 9 moved the visible gap from 28 to
+   19, not to 14, because 10 of it was never the margin's to give.
+ *
+ * Both numbers are named and the subtraction is written out, so the value on
+ * screen is the value in the code. A bare `marginBottom: 4` would land in the
+ * same place and tell the next reader nothing. */
+export const PANEL_GAP = 10
+export const TITLE_GAP = 14
+
+export function SectionBreak({ rule = true }) {
+  return rule
+    ? <hr style={{ border: 0, borderTop: '1px solid var(--bdr)', margin: `${SECTION_GAP / 2}px 0` }} />
+    : <div aria-hidden="true" style={{ height: SECTION_GAP }} />
+}
+
 export function SectionHeader({ title, desc, count, right }) {
   /* Always baseline, description or not. The right-hand slot belongs to the
      title, not to the title-and-description pair, so it sits on the title's
      line. Centring it on the block drops it into the gap between the two. */
+  /* 14 on screen, halved from 28. A title and its body are one thing, and at
+     28 this gap was close enough to the 48 between sections that a heading
+     read as floating between the two. Proximity is a ratio: pulling the title
+     in and pushing the sections apart are one change, not two. */
   return (
-    <div style={{ marginBottom: 18, display: 'flex', alignItems: 'baseline', gap: 12 }}>
+    <div style={{ marginBottom: TITLE_GAP - PANEL_GAP, display: 'flex', alignItems: 'baseline', gap: 12 }}>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 9 }}>
           <h2 style={{ fontFamily: 'var(--display)', fontSize: 18, fontWeight: 700, letterSpacing: '-0.025em', color: 'var(--text)' }}>{title}</h2>

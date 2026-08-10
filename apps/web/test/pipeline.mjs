@@ -809,6 +809,9 @@ line('\n- prompt construction -')
     ['flex centring hides a label from its row', ['hides a label from the row it sits in']],
     ['reach the touch floor before trimming a gap', ['stated touch floor']],
     ['an empty box that grows is never rendered', ['never render an empty box that grows']],
+    ['a heading belongs to the block under it', ['belongs to the block under it']],
+    ['a rule sits inside the section gap', ['sits inside that gap']],
+    ['a margin adds to a container gap', ['two sources feeding one gap']],
     ['a responsive rule is checked at both widths', ['at **both** widths']],
   ]
   const missing = RULES.filter(([, terms]) => !terms.every(t => doc.includes(t))).map(([n]) => n)

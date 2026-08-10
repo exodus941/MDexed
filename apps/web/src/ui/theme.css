@@ -373,6 +373,16 @@ main{container-type:inline-size}
      anyone actually taps — stood 36 after its border and padding. A control
      clears the floor when its targets do, not when its container does. The
      rest of the row follows so the band stays one height. */
+  /* The buttons were left out of this promotion. The row grew to 56 and every
+     select, segment and readout in it went to 44, while Undo, Save and Import
+     Reference stayed at 28 — a container clearing the floor while the things
+     anyone actually taps do not, which is the exact failure this project's own
+     payload warns other agents about. Measured: 13 targets under the floor on
+     a phone, all of them here.
+
+     Line height with the height, as always: 44 minus the two borders. */
+  .action-row .btn-ghost,.action-row .btn-fill,.action-row .btn-outline,
+  .action-row .btn-primary,.action-row .btn-secondary{height:44px;line-height:42px}
   .action-row select{height:44px;padding:0 28px 0 10px}
   .action-row .seg-box{height:44px;box-sizing:border-box;align-items:stretch}
   .action-row .seg-box button{height:100%;display:flex;align-items:center}
