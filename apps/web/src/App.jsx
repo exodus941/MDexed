@@ -15,7 +15,7 @@ import { serializeProject, parseProject, projectFilename, PROJECT_EXT } from './
 import { isValidColor } from './color/convert.js'
 import { APP_CSS } from './ui/theme.js'
 import { loadDocumentFonts } from './type/fonts.js'
-import { Banner, ResetButton, CloseButton, SectionHeader, SectionBreak, Strut, PAD, BTN, MODAL_BTN } from './ui/controls.jsx'
+import { Banner, ResetButton, CloseButton, SectionHeader, SectionBreak, Collapsible, Strut, PAD, BTN, MODAL_BTN } from './ui/controls.jsx'
 import CrossFade from './ui/CrossFade.jsx'
 import TabStrip, { scrollableUnder } from './ui/TabStrip.jsx'
 import ImportModal, { IMPORT_FORMATS } from './ui/ImportModal.jsx'
@@ -569,16 +569,27 @@ function GlobalMetrics() {
           </button>
         } />
 
-      {/* Wraps rather than scrolls. This lived in a horizontal strip across the
-          top of the window, where five controls plus two editor settings made
-          the chrome taller than the thing being edited. In a panel they can
-          reflow to the column width instead of fighting for it. */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: PAD.card, marginBottom: PAD.card + 4 }}>
-        {MACROS.map(m => (
-          <MacroControl key={m.key} macro={m} value={state.macros[m.key]} resolved={resolvedFor(m.key)}
-            onChange={v => setMacro(m.key, v)} />
-        ))}
-      </div>
+      {/* In a card, like every other section in the app.
+       *
+       * This was the one block anywhere that sat bare on the panel — every
+       * other panel puts its content in a Collapsible, and a lone unbordered
+       * stack read as a different KIND of thing rather than the same thing
+       * without a border.
+       *
+       * And the spacing was the wrong way round. Each macro is internally
+       * tight, 3px between its label, its field and its slider, while the
+       * macros themselves sat 24px apart — eight times their own rhythm, for
+       * five items in one list. Proximity is a ratio, and that one said the
+       * five controls were five separate sections. `PAD.row` is the step for
+       * rows inside a card, which is exactly what these are. */}
+      <Collapsible title="Multipliers" note={String(MACROS.length)} defaultOpen>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: PAD.row }}>
+          {MACROS.map(m => (
+            <MacroControl key={m.key} macro={m} value={state.macros[m.key]} resolved={resolvedFor(m.key)}
+              onChange={v => setMacro(m.key, v)} />
+          ))}
+        </div>
+      </Collapsible>
 
 
     </div>

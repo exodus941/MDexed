@@ -812,6 +812,8 @@ line('\n- prompt construction -')
     ['a heading belongs to the block under it', ['belongs to the block under it']],
     ['a rule sits inside the section gap', ['sits inside that gap']],
     ['a margin adds to a container gap', ['two sources feeding one gap']],
+    ['every section gets the same container', ['same container']],
+    ['a separator is drawn above, not below', ['above each item in a list']],
     ['a responsive rule is checked at both widths', ['at **both** widths']],
   ]
   const missing = RULES.filter(([, terms]) => !terms.every(t => doc.includes(t))).map(([n]) => n)

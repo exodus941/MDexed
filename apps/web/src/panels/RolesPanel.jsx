@@ -34,8 +34,18 @@ function RoleRow({ role, roles, refs, ramps, overrides, onSetRef, onOverride, on
      you want when a theme reads well in dark and badly in light. */
   const modes = scope === 'both' ? ['light', 'dark'] : [scope]
 
+  /* The rule sits ABOVE each row, not below it.
+   *
+   * A separator belongs between two items. Drawn below, the last row in a card
+   * puts one directly against the card's own bottom border — two lines a pixel
+   * apart, closing nothing. Drawn above, the first row supplies the rule under
+   * the group header and the last row ends clean.
+   *
+   * No index and no last-child rule needed: a top border on every row IS the
+   * between-ness, because nothing sits above the first row to separate it
+   * from. */
   return (
-    <div ref={ref} style={{ borderBottom: '1px solid var(--bdr)', ...revealStyle(targeted) }}>
+    <div ref={ref} style={{ borderTop: '1px solid var(--bdr)', ...revealStyle(targeted) }}>
       <div onClick={() => setOpen(o => !o)}
         style={{ display: 'grid', gridTemplateColumns: `1fr ${modes.map(() => '22px').join(' ')}`, gap: 8, alignItems: 'center', padding: PAD.sub, cursor: 'pointer' }}>
         <div style={{ minWidth: 0 }}>
@@ -196,7 +206,10 @@ function ContrastReport({ roles, mode }) {
           const bad = isFailing(row)
           return (
             <div key={`${pair.fg}|${pair.bg}`} title={`${pair.fg} on ${pair.bg}`}
-              style={{ display: 'grid', gridTemplateColumns: '1fr auto auto auto', gap: 9, alignItems: 'baseline', padding: '5px 0', borderBottom: '1px solid var(--bdr)' }}>
+              /* Above each row, so the list ends on a row rather than on a
+                 rule. Same reason as the role rows: a separator is a thing
+                 BETWEEN two items, and drawn below it outlives the last one. */
+              style={{ display: 'grid', gridTemplateColumns: '1fr auto auto auto', gap: 9, alignItems: 'baseline', padding: '5px 0', borderTop: '1px solid var(--bdr)' }}>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 7, minWidth: 0 }}>
                 {/* The "A" is a specimen inside a swatch, not part of the row's
                     line of text — it stays centred in its own chip. */}
@@ -310,8 +323,11 @@ export default function RolesPanel({ inspect }) {
             gridTemplateColumns: `1fr ${(scope === 'both' ? ['', ''] : ['']).map(() => '22px').join(' ')}`,
             gap: 8, alignItems: 'baseline',
             /* The same padding as the role rows underneath, so the header is
-               part of the same rhythm rather than a squashed strip above it. */
-            padding: PAD.sub, borderBottom: '1px solid var(--bdr)',
+               part of the same rhythm rather than a squashed strip above it.
+               No border of its own — the first role row draws the rule below
+               this one, which is the same line and one less thing to keep in
+               step. */
+            padding: PAD.sub,
           }}>
             <p className="panel-note" style={{ margin: 0 }}>{group.desc}</p>
             {(scope === 'both' ? ['L', 'D'] : [scope === 'light' ? 'L' : 'D']).map(l => (
