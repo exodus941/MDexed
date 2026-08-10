@@ -553,7 +553,12 @@ label.check input[type=checkbox]:not(.dmd *){flex-shrink:0;margin:0}
    bottom edges disagreed. One font-size satisfies both. You cannot get equal
    boxes AND equal baselines out of two different font sizes — pick the size,
    not the alignment property. */
-.btn-add{margin-top:8px;width:100%;padding:10px 16px;background:var(--accent-wash);color:var(--accent);border:1px dashed var(--accent-line);border-radius:8px;cursor:pointer;font-size:13px;font-family:var(--sans);transition:background var(--t-hover) var(--ease)}
+/* A control that holds a mark and a label needs the three properties every
+   other button here already has: flex, centring, and the icon gap. This one
+   had none of them, because its "icon" was a plus typed into the label and a
+   word space was doing the spacing. 5px is the gap every other chrome button
+   uses — btn-ghost and btn-fill both state it. */
+.btn-add{margin-top:8px;width:100%;padding:10px 16px;background:var(--accent-wash);color:var(--accent);border:1px dashed var(--accent-line);border-radius:8px;cursor:pointer;font-size:13px;font-family:var(--sans);display:inline-flex;align-items:center;justify-content:center;gap:5px;transition:background var(--t-hover) var(--ease)}
 .btn-add:hover{background:var(--accent-soft)}
 /* 24px is the target, 13px is the mark. Sized by its icon and 4px of padding
    this came out 21, and a 21px destructive control is the one you least want
