@@ -254,7 +254,11 @@ export default function HistoryPanel() {
                      detail line hangs below them. They also share a baseline
                      with each other, see below. */
                   display: 'grid', gridTemplateColumns: '8px 1fr auto', gap: 10, alignItems: 'baseline',
-                  padding: PAD.sub, borderBottom: '1px solid var(--bdr)',
+                  /* Above, not below. The last entry in the list otherwise
+                     draws a rule straight onto the card's own bottom border.
+                     A separator belongs between two items, and a top border
+                     is that by construction — nothing sits above the first. */
+                  padding: PAD.sub, borderTop: '1px solid var(--bdr)',
                 }}>
                   <span style={{ width: 6, height: 6, borderRadius: '50%', background: cat.colour, marginTop: 5, alignSelf: 'start' }} title={cat.label} />
                   <div style={{ minWidth: 0 }}>
