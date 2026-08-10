@@ -15,7 +15,7 @@ import { serializeProject, parseProject, projectFilename, PROJECT_EXT } from './
 import { isValidColor } from './color/convert.js'
 import { APP_CSS } from './ui/theme.js'
 import { loadDocumentFonts } from './type/fonts.js'
-import { Banner, ResetButton, CloseButton, SectionHeader, Strut, PAD, BTN, MODAL_BTN } from './ui/controls.jsx'
+import { Banner, ResetButton, CloseButton, SectionHeader, SectionBreak, Strut, PAD, BTN, MODAL_BTN } from './ui/controls.jsx'
 import CrossFade from './ui/CrossFade.jsx'
 import TabStrip, { scrollableUnder } from './ui/TabStrip.jsx'
 import ImportModal, { IMPORT_FORMATS } from './ui/ImportModal.jsx'
@@ -1152,7 +1152,10 @@ function MetaGlobalTab() {
   return (
     <div>
       <MetaTab />
-      <hr style={{ border: 0, borderTop: '1px solid var(--bdr)', margin: '24px 0 20px' }} />
+      {/* One decision, in one place. 48 between two sections, and a rule sits
+          in the middle of that 48 rather than adding to it. Pass rule={false}
+          where a boundary needs no line. */}
+      <SectionBreak />
       <GlobalMetrics />
     </div>
   )

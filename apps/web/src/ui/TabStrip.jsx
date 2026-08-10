@@ -229,6 +229,101 @@ export default function TabStrip({ tabs, active, onSelect, right, title, actions
     })
   }, [])
 
+  /* The wheel scrolls the strip sideways.
+   *
+   * A vertical wheel does nothing to a horizontal scroller on its own —
+   * measured before this existed: three notches over the tabs left
+   * `scrollLeft` at 0. The only ways across the strip were the chevrons and a
+   * touchpad, which is a poor deal for anyone on a mouse.
+   *
+   * Wheel up scrolls LEFT, wheel down scrolls right. Up and left are both
+   * "back towards the start", so the two gestures agree.
+   *
+   * A horizontal swipe keeps its own direction and is not remapped. Only the
+   * vertical wheel is an arbitrary mapping onto a sideways axis. Inverting a
+   * gesture that already has a direction would make a touchpad feel broken.
+   *
+   * Bound here rather than with `onWheel`, because React attaches wheel
+   * listeners passively and `preventDefault` is a no-op inside one. It matters:
+   * without it the page scrolls as well and the tabs slide while the panel
+   * underneath moves too.
+   *
+   * The listener sits on the scroller, and the chevrons are its flex siblings
+   * rather than its children — so hovering a chevron never reaches this, which
+   * is what was asked for and needs no test on the target.
+   *
+   * Only prevents the default when the strip actually moved. At either end the
+   * gesture falls through to the page, so the wheel never feels trapped.
+   *
+   * Each notch glides rather than jumps. The animation chases a target that
+   * the wheel moves, so notches compound into one longer glide instead of
+   * restarting a tween three times. */
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+
+    /* Where the strip is heading, which is not where it is. Each notch adds to
+       this and the frame loop chases it, so three quick notches compound into
+       one longer glide instead of three fights over the same property. */
+    let target = null
+    let frame = 0
+
+    /* Exponential ease-out: close a fixed fraction of the remaining distance
+       each frame. Fast at the start, slow at the end, and it settles wherever
+       the target moved to mid-flight without restarting.
+     *
+     * The fraction comes from the chrome's own duration token rather than a
+     * number picked here, because an interface that publishes a motion scale
+     * should move on it. --t is 125ms; a time constant of a third of that puts
+     * roughly 95% of the distance inside the stated duration. */
+    const glideMs = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--t')) || 125
+    /* Three time constants is about 95% of the distance, so the glide is over
+       within `glideMs`. That is the number to change: it is milliseconds, and
+       the token it reads is 125. */
+    const tau = Math.max(16, glideMs / 3)
+    const closePerFrame = 1 - Math.exp(-16 / tau)
+
+    const tick = () => {
+      const remaining = target - el.scrollLeft
+      /* Under half a pixel there is nothing left to see. Land exactly, so the
+         edge test that drives the chevrons gets a whole number. */
+      if (Math.abs(remaining) < 0.5) {
+        el.scrollLeft = target
+        target = null
+        frame = 0
+        return
+      }
+      el.scrollLeft += remaining * closePerFrame
+      frame = requestAnimationFrame(tick)
+    }
+
+    const onWheel = e => {
+      /* Whichever axis the gesture leads with. A touchpad swipe reports
+         deltaX, a mouse reports deltaY, and both mean the same thing here. */
+      const raw = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY
+      if (!raw) return
+      /* deltaMode 1 counts lines, not pixels. A mouse that reports lines moved
+         the strip by three pixels a notch without this. */
+      const step = e.deltaMode === 1 ? raw * 16 : e.deltaMode === 2 ? raw * el.clientWidth : raw
+
+      const max = el.scrollWidth - el.clientWidth
+      const from = target == null ? el.scrollLeft : target
+      const next = Math.max(0, Math.min(max, from + step))
+      /* Already against that end, so let the page have the gesture. */
+      if (next === from) return
+
+      target = next
+      e.preventDefault()
+      if (!frame) frame = requestAnimationFrame(tick)
+    }
+
+    el.addEventListener('wheel', onWheel, { passive: false })
+    return () => {
+      el.removeEventListener('wheel', onWheel)
+      if (frame) cancelAnimationFrame(frame)
+    }
+  }, [])
+
   /* Drive the phases off the edges and the pointer.
    *
    * The only interesting transition is losing an edge: if the pointer is on

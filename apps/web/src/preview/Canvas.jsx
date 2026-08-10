@@ -396,8 +396,6 @@ export default function Canvas({ onInspect, surface, setSurface, onOpenContrast,
               ))}
             </div>
 
-            <div style={{ flex: 1 }} />
-
             {/* Back beside the thing it describes. It was on the macro bar,
                 which is where you set values, not where you look at them — and
                 the palette it grades is the one rendering two inches below.
@@ -407,11 +405,24 @@ export default function Canvas({ onInspect, surface, setSurface, onOpenContrast,
                 control that cannot display what it is set to is broken. They
                 move down to the surface's own edge, where there is room and
                 where they are still beside what they grade. */}
+            {/* One group, and it is the thing that grows.
+             *
+             * These were two siblings after a `flex: 1` spacer. At 480px the
+             * row wrapped and left the warnings chip alone on a line of its
+             * own at 109.6px, which is the orphan this project's own payload
+             * tells other agents never to ship. They are a pair — both answer
+             * "is anything wrong with what I am looking at" — so they wrap
+             * together or not at all.
+             *
+             * Growing replaces the spacer rather than joining it. On one line
+             * the group absorbs the slack and sits right, which is what the
+             * spacer did. Wrapped, it takes the whole line, which is what the
+             * orphan rule asks and what a bare pair could never do. */}
             {!compact && (
-              <>
+              <div style={{ display: 'flex', gap: 6, flex: '1 1 auto', justifyContent: 'flex-end', minWidth: 0 }}>
                 <ContrastChip onOpen={onOpenContrast} />
                 <WarningsChip onJump={onJump} onApply={onApply} />
-              </>
+              </div>
             )}
           </>
         } />
