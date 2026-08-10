@@ -181,7 +181,7 @@ export const SECTION_GAP = 48
  * screen is the value in the code. A bare `marginBottom: 4` would land in the
  * same place and tell the next reader nothing. */
 export const PANEL_GAP = 10
-export const TITLE_GAP = 14
+export const TITLE_GAP = 12
 
 export function SectionBreak({ rule = true }) {
   return rule
@@ -193,10 +193,10 @@ export function SectionHeader({ title, desc, count, right }) {
   /* Always baseline, description or not. The right-hand slot belongs to the
      title, not to the title-and-description pair, so it sits on the title's
      line. Centring it on the block drops it into the gap between the two. */
-  /* 14 on screen, halved from 28. A title and its body are one thing, and at
-     28 this gap was close enough to the 48 between sections that a heading
-     read as floating between the two. Proximity is a ratio: pulling the title
-     in and pushing the sections apart are one change, not two. */
+  /* 12 on screen, down from 28. A title and its body are one thing, and at 28
+     this gap was close enough to the 48 between sections that a heading read
+     as floating between the two. Proximity is a ratio: pulling the title in
+     and pushing the sections apart are one change, not two. */
   return (
     <div style={{ marginBottom: TITLE_GAP - PANEL_GAP, display: 'flex', alignItems: 'baseline', gap: 12 }}>
       <div style={{ flex: 1, minWidth: 0 }}>
