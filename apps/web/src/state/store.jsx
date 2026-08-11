@@ -34,6 +34,17 @@ const saveLog = log => {
   try { localStorage.setItem(LOG_KEY, JSON.stringify(log.slice(-LOG_LIMIT))) } catch { /* quota */ }
 }
 
+/* Tags that change what you are LOOKING at, never what the document says.
+ *
+ * The test for membership is not "does it feel like a preference". It is:
+ * generate the payload before and after, and see whether a single byte moves.
+ * `preview-mode` changes none of the ten files, so it is a lens.
+ *
+ * Exported, because the autosave has to make the same distinction — a lens
+ * change should not raise "Saved to this browser" over a document nobody
+ * edited. */
+export const VIEW_TAGS = new Set(['preview-mode'])
+
 let logSeq = 0
 const initHistory = state => ({ present: state, past: [], future: [], lastTag: null, lastAt: 0, log: loadLog() })
 
@@ -58,6 +69,25 @@ function reducer(h, action) {
         ? action.updater(h.present)
         : { ...h.present, ...action.updater }
       if (next === h.present) return h
+
+      /* A view change is not an edit.
+       *
+       * The preview's Light/Dark switch writes `color.mode`, which lives in
+       * the document — and every write here pushed an undo step, wrote a
+       * history-log line, marked the file dirty and popped a "Saved to this
+       * browser" toast. For a control that changes what you are LOOKING at.
+       *
+       * Proved before changing anything: generating the whole payload with
+       * mode light and mode dark produces ten byte-identical files. Nothing
+       * downstream reads it. It is a lens, not a value.
+       *
+       * So it still updates, and it still persists with the next save, but it
+       * leaves the past, the future and the log exactly as they were. Undo
+       * after toggling the mode now undoes your last real edit, which is the
+       * one thing anybody pressing undo is asking for. */
+      if (VIEW_TAGS.has(action.tag)) {
+        return { ...h, present: next, lastTag: action.tag, lastAt: action.now }
+      }
       const coalesce = action.tag != null && action.tag === h.lastTag && action.now - h.lastAt < COALESCE_MS
       const keys = changedKeys(h.present, next)
       const { category, label } = describeChange(action.tag, keys)
@@ -157,7 +187,10 @@ export function StoreProvider({ children, initial }) {
     log: h.log, logLimit, setLogLimit,
     canUndo: h.past.length > 0,
     canRedo: h.future.length > 0,
-  }), [state, derived, set, load, undo, redo, clearLog, h.log, logLimit, setLogLimit, h.past.length, h.future.length])
+    /* What the last change was, so the autosave can tell an edit from a lens.
+       The reducer already keeps this to coalesce a slider drag. */
+    lastTag: h.lastTag,
+  }), [state, derived, set, load, undo, redo, clearLog, h.log, logLimit, setLogLimit, h.past.length, h.future.length, h.lastTag])
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>
 }

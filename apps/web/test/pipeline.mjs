@@ -816,6 +816,8 @@ line('\n- prompt construction -')
     ['a separator is drawn above, not below', ['above each item in a list']],
     ['a glyph is never typed where an icon belongs', ['never type a glyph where an icon belongs']],
     ['a word space is not a gap', ['a word space is not a gap']],
+    ['no save message for an unedited document', ['never tell someone you saved a document they did not change']],
+    ['a lens is found by diffing the output', ['the test for whether a control is a lens']],
     ['a responsive rule is checked at both widths', ['at **both** widths']],
   ]
   const missing = RULES.filter(([, terms]) => !terms.every(t => doc.includes(t))).map(([n]) => n)

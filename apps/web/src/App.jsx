@@ -2,7 +2,7 @@
    All document state lives in the store; this file only wires things together
    and owns cloud sync. */
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
-import { StoreProvider, useStore } from './state/store.jsx'
+import { StoreProvider, useStore, VIEW_TAGS } from './state/store.jsx'
 import { createInitialState, MACROS, DEFAULT_MACROS, CONTRAST_PAIRS } from './state/schema.js'
 import { PRESETS, applyPreset } from './state/presets.js'
 import { check } from './color/contrast.js'
@@ -1195,7 +1195,7 @@ const TAB_KIND = { components: 'component', roles: 'role', type: 'type' }
 const KIND_TAB = { component: 'components', role: 'roles', type: 'type' }
 
 function Shell() {
-  const { state, derived, set, load, undo, redo, canUndo, canRedo } = useStore()
+  const { state, derived, set, load, undo, redo, canUndo, canRedo, lastTag } = useStore()
   const [tab, setTab] = useState('colors')
   const [showFile, setShowFile] = useState(false)
   const [showNew, setShowNew] = useState(false)
@@ -1459,6 +1459,17 @@ function Shell() {
   useEffect(() => {
     if (isInitialSync.current) { isInitialSync.current = false; return }
     if (window.location.pathname.startsWith('/p/') && !projectId) return
+
+    /* A lens change is not an edit, so it raises no toast and sets no dirty
+       flag. It still rides along with the next real save, which is why it is
+       a `return` here rather than a write of its own — the choice survives a
+       reload as soon as anything else is saved, and until then nobody has
+       been told their untouched document was written to disk.
+
+       Switching the preview between Light and Dark used to announce "Saved to
+       this browser" every time, on a document where nothing had changed. */
+    if (VIEW_TAGS.has(lastTag)) return
+
     dirtyRef.current = true
     setDirty(true)
     const t = setTimeout(() => { persist('auto').then(ok => ok && setDirty(false)) }, projectId ? 1500 : 600)
