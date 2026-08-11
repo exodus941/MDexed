@@ -127,6 +127,20 @@ function Chevron({ dir, state, onEnter, onLeave, onClick }) {
 
 export default function TabStrip({ tabs, active, onSelect, right, title, actions }) {
   const ref = useRef(null)
+
+  /* The wheel's glide, held where the chevron can reach it.
+   *
+   * Only one thing may drive `scrollLeft` at a time. Whoever starts second
+   * cancels the first, and the chevron starts second by definition — you
+   * cannot hover it without having stopped turning the wheel. */
+  const glideTarget = useRef(null)
+  const glideFrame = useRef(0)
+  const cancelGlide = useCallback(() => {
+    if (glideFrame.current) cancelAnimationFrame(glideFrame.current)
+    glideFrame.current = 0
+    glideTarget.current = null
+  }, [])
+
   const [edges, setEdges] = useState({ left: false, right: false })
   const [menuOpen, setMenuOpen] = useState(false)
   /* What each chevron is doing, which lags `edges` on purpose: null, 'live',
@@ -263,10 +277,16 @@ export default function TabStrip({ tabs, active, onSelect, right, title, actions
     if (!el) return
 
     /* Where the strip is heading, which is not where it is. Each notch adds to
-       this and the frame loop chases it, so three quick notches compound into
-       one longer glide instead of three fights over the same property. */
-    let target = null
-    let frame = 0
+       this and the loop chases it, so three quick notches compound into one
+       longer glide instead of three fights over the same property.
+     *
+     * In refs, not closure variables, because the chevron's loop has to be
+     * able to STOP this one. Two animations writing `scrollLeft` together do
+     * not average out — they fight, and the one with the bigger step wins by a
+     * few pixels a frame. Measured with a glide still running: a chevron
+     * asking for 6px a tick moved the strip 8px in half a second instead of
+     * 180, and reversed direction twice doing it. That is the jitter, and the
+     * "works about half the time" is whether the glide had already finished. */
 
     /* Exponential ease-out: close a fixed fraction of the remaining distance
        each frame. Fast at the start, slow at the end, and it settles wherever
@@ -284,17 +304,19 @@ export default function TabStrip({ tabs, active, onSelect, right, title, actions
     const closePerFrame = 1 - Math.exp(-16 / tau)
 
     const tick = () => {
+      const target = glideTarget.current
+      if (target == null) { glideFrame.current = 0; return }
       const remaining = target - el.scrollLeft
       /* Under half a pixel there is nothing left to see. Land exactly, so the
          edge test that drives the chevrons gets a whole number. */
       if (Math.abs(remaining) < 0.5) {
         el.scrollLeft = target
-        target = null
-        frame = 0
+        glideTarget.current = null
+        glideFrame.current = 0
         return
       }
       el.scrollLeft += remaining * closePerFrame
-      frame = requestAnimationFrame(tick)
+      glideFrame.current = requestAnimationFrame(tick)
     }
 
     const onWheel = e => {
@@ -307,20 +329,20 @@ export default function TabStrip({ tabs, active, onSelect, right, title, actions
       const step = e.deltaMode === 1 ? raw * 16 : e.deltaMode === 2 ? raw * el.clientWidth : raw
 
       const max = el.scrollWidth - el.clientWidth
-      const from = target == null ? el.scrollLeft : target
+      const from = glideTarget.current == null ? el.scrollLeft : glideTarget.current
       const next = Math.max(0, Math.min(max, from + step))
       /* Already against that end, so let the page have the gesture. */
       if (next === from) return
 
-      target = next
+      glideTarget.current = next
       e.preventDefault()
-      if (!frame) frame = requestAnimationFrame(tick)
+      if (!glideFrame.current) glideFrame.current = requestAnimationFrame(tick)
     }
 
     el.addEventListener('wheel', onWheel, { passive: false })
     return () => {
       el.removeEventListener('wheel', onWheel)
-      if (frame) cancelAnimationFrame(frame)
+      cancelGlide()
     }
   }, [])
 
@@ -399,6 +421,11 @@ export default function TabStrip({ tabs, active, onSelect, right, title, actions
   const stopScroll = useCallback(() => { clearInterval(scroller.current); scroller.current = 0 }, [])
   const startScroll = useCallback(dir => {
     stopScroll()
+    /* Take sole ownership of scrollLeft. A wheel glide still in flight would
+       otherwise keep pulling the strip back towards where the wheel left off,
+       and the two would trade pixels for as long as the pointer stayed on the
+       chevron. */
+    cancelGlide()
     /* Start slow. The pointermove below corrects within a frame, but without
        this the first tick would inherit whatever speed the other chevron was
        left at. */
@@ -428,7 +455,7 @@ export default function TabStrip({ tabs, active, onSelect, right, title, actions
       el.scrollBy({ left: dir * actual.current, behavior: 'auto' })
       measure()
     }, SCROLL_TICK_MS)
-  }, [stopScroll, measure])
+  }, [stopScroll, measure, cancelGlide])
 
   /* One listener owns everything that depends on where the pointer is:
      whether to scroll, how fast, and which chevron is being pointed at.
