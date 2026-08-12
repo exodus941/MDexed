@@ -12,12 +12,13 @@ import { check } from '../src/color/contrast.js'
 import { TYPE_ROLES } from '../src/type/scale.js'
 import { generateFile, validate } from '../src/emit/designmd.js'
 import { parseFile } from '../src/emit/parse.js'
+import { collectComponents } from '../src/emit/yaml.js'
 import { agentContract, CONTRACT_MAX_LINES, CONTRACT_MAX_BYTES } from '../src/emit/agents.js'
-import { payloadTextFiles, REQUIRED_FILES } from '../src/emit/payload.js'
+import { payloadTextFiles, REQUIRED_FILES, HTML_EXAMPLES_DIR, HTML_EXAMPLES_MODES } from '../src/emit/payload.js'
 import { serializeProject, parseProject, projectFilename } from '../src/emit/project.js'
 import { diffWords, diffStats } from '../src/ai/diff.js'
 import { contextFor, refinePrompt, draftPrompt, systemPrompt } from '../src/ai/prompts.js'
-import { PROSE_SECTIONS } from '../src/state/schema.js'
+import { PROSE_SECTIONS, TEXT_ROLES, SURFACE_ROLES } from '../src/state/schema.js'
 /* theme.js re-exports a `?raw` import, which is a Vite feature Node cannot
    resolve, so the chrome stylesheet is read from disk instead. */
 const APP_CSS = fs.readFileSync(new URL('../src/ui/theme.css', import.meta.url), 'utf8')
@@ -507,9 +508,18 @@ line('\n- prompt construction -')
        A name merely discussed in a comment, or written as
        `OPENROUTER_API_KEY=sk-...` in a help string, sits before the `=` rather
        than after it and is correctly ignored. */
-    const used = new Set(
-      [...code.matchAll(/[={,(]\s*(?:\.\.\.)?\s*([A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+)\b/g)].map(m => m[1]),
-    )
+    /* A loop head is an evaluated position too, and it contains no
+       punctuation this pattern watches. A constant iterated as
+       `for (const r of TEXT_ROLES)` and imported nowhere sat outside the net
+       entirely, so the check passed a file that would throw on load.
+       Matched as a whole `for (…of NAME)` rather than on the keyword: a bare
+       `\bin\s+NAME` is ordinary English and found `in PREVIEW_CSS` inside a
+       comment on the first run. A check that fires on correct code is a
+       defect in the check. */
+    const used = new Set([
+      ...[...code.matchAll(/[={,(]\s*(?:\.\.\.)?\s*([A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+)\b/g)].map(m => m[1]),
+      ...[...code.matchAll(/\bfor\s*\([^()]*\b(?:of|in)\s+([A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+)\s*\)/g)].map(m => m[1]),
+    ])
     for (const name of used) {
       if (GLOBAL.has(name)) continue
       /* Any assignment counts as a declaration, not just `const NAME`. A
@@ -519,7 +529,14 @@ line('\n- prompt construction -')
       const declared = new RegExp(`\\b${name}\\s*=[^=]`).test(code)
         || new RegExp(`function\\s+${name}\\b`).test(code)
       const imported = new RegExp(`import[^;]*\\b${name}\\b[^;]*from`).test(code)
-      if (!declared && !imported) missing.push(`${f.pathname.split('/src/')[1]}: ${name}`)
+      /* A destructure from a dynamic import brings the name into scope just as
+         a static import does, and App.jsx uses one to keep the payload
+         emitters out of the main bundle. Without this the check fired on
+         correct code, which is a defect in the check and not in the code.
+         Kept tight: the name must sit inside a destructuring pattern that is
+         assigned from an `await`, so a genuinely missing import still fails. */
+      const awaited = new RegExp(`\\{[^{}]*\\b${name}\\b[^{}]*\\}[^=]*=\\s*await\\b`).test(code)
+      if (!declared && !imported && !awaited) missing.push(`${f.pathname.split('/src/')[1]}: ${name}`)
     }
   }
   assert(missing.length === 0, `every shared constant is in scope${missing.length ? ` — ${missing.slice(0, 5).join(', ')}` : ''}`)
@@ -611,11 +628,118 @@ line('\n- prompt construction -')
   /* Every filename the README names in backticks must actually be produced,
      apart from the examples folder, which App.jsx adds after this. */
   const named = [...files['README.md'].matchAll(/`([\w.\-/]+\.\w+)`/g)].map(m => m[1])
-  const promised = [...new Set(named)].filter(f => !f.startsWith('html-examples'))
+  const promised = [...new Set(named)].filter(f => !f.startsWith(HTML_EXAMPLES_DIR))
   const broken = promised.filter(f => !files[f])
   assert(broken.length === 0, `README names only files the payload ships${broken.length ? ` — ${broken.join(', ')}` : ''}`)
 
   assert(files['README.md'].includes('AGENTS.md'), 'README points agents at the contract')
+
+  /* The sample-page folder is named in the contract prose and built in
+     App.jsx, which no Node test can run. The joinable part is the name: if
+     the prose and the exporter disagree, every instruction about the folder
+     points at nothing. Two simulations reported it missing for a different
+     reason, and neither could have caught a real rename. */
+  const contractText = files['AGENTS.md'] + files['README.md'] + files['DESIGN.md']
+  assert(contractText.includes(HTML_EXAMPLES_DIR + '/'),
+    `the contract names the sample folder the exporter writes (${HTML_EXAMPLES_DIR}/)`)
+  for (const mode of HTML_EXAMPLES_MODES) {
+    assert(files['AGENTS.md'].includes(mode) || files['README.md'].includes(`${mode}/`),
+      `the contract accounts for the ${mode}/ sample pages`)
+  }
+}
+
+/* ── The package loads the fonts it names ──
+ *
+ * Every `--font-*-family` quoted a Google family and nothing fetched one. A
+ * project that imported tokens.css and no more rendered the entire system in
+ * system-ui, which is the last entry in every stack and looks close enough
+ * that nobody checks. The sample pages carried a <link> all along; the
+ * stylesheet a real build imports did not. */
+{
+  const css = payloadTextFiles(state, derived)['tokens.css']
+  const families = [...new Set([...css.matchAll(/--font-[\w-]*family:\s*'([^']+)'/g)].map(m => m[1]))]
+  assert(families.length > 0, `tokens.css names at least one family (${families.length})`)
+
+  const imports = [...css.matchAll(/@import\s+url\('([^']+)'\)/g)].map(m => m[1])
+  assert(imports.length === 1, `tokens.css carries exactly one font import (${imports.length})`)
+
+  const unloaded = families.filter(f => !imports[0]?.includes(f.replace(/ /g, '+')))
+  assert(unloaded.length === 0,
+    `every family tokens.css names is loaded by its own @import${unloaded.length ? ` — ${unloaded.join(', ')}` : ` (${families.length})`}`)
+
+  /* The import must come before the first rule, or the browser drops it. */
+  assert(css.indexOf('@import') < css.indexOf(':root'), '@import precedes the first rule, as CSS requires')
+}
+
+/* ── No frontmatter key is emitted with nothing under it ──
+ *
+ * A component whose every property falls outside the spec's legal eight was
+ * emitted as a bare `input-focus:` — which YAML reads as null, and null reads
+ * as "this state has no styling". The truth was the opposite: its styling was
+ * every property the spec cannot hold, sitting in the table below. Four
+ * entries in one export said nothing while looking like they said something. */
+{
+  const md = payloadTextFiles(state, derived)['DESIGN.md']
+  const fm = md.split('\n---\n')[0].split('\n')
+  const empty = []
+  for (let i = 0; i < fm.length; i++) {
+    /* A two-space key is empty only when no four-space child follows it.
+       Testing the key alone counts every parent as empty too, which is what
+       the first version of this check did — it reported 62. */
+    if (!/^ {2}[\w"'-]+:\s*$/.test(fm[i])) continue
+    if (!/^ {4}\S/.test(fm[i + 1] ?? '')) empty.push(fm[i].trim())
+  }
+  assert(empty.length === 0,
+    `no frontmatter key is emitted empty${empty.length ? ` — ${empty.join(' ')}` : ''}`)
+
+  /* And the entries left out are named in the prose, or they vanish. */
+  const { proseOnly } = collectComponents(derived.components)
+  for (const name of proseOnly) {
+    assert(md.includes(name), `${name} has no frontmatter entry and is named in the prose instead`)
+  }
+}
+
+/* ── The contrast section measures every mode, and reports what falls short ──
+ *
+ * The table carried the words "light mode" and measured light only, beneath a
+ * role table that shipped a Dark column. A dark system was exported whose
+ * light side passed every pair and whose dark side failed four, and the file
+ * said nothing — the unmeasured mode is where the failures live.
+ *
+ * The curated pair list is a guess about what gets built. The sweep is not: it
+ * walks every text role against every surface role and prints the shortfalls,
+ * so a pair nobody thought to list still gets measured. */
+{
+  const md = payloadTextFiles(state, derived)['DESIGN.md']
+  const header = md.split('\n').find(l => l.startsWith('| Pair | Tokens'))
+  assert(header != null, 'the contrast table is emitted')
+  assert(!/light mode/.test(md.slice(md.indexOf('Measured contrast'), md.indexOf('Measured contrast') + 120)),
+    'the contrast heading no longer claims to be light-only')
+
+  if (state.color.emitDark) {
+    assert(/\| Pair \| Tokens \| Light \| Dark \|/.test(md),
+      'a system that ships dark measures every pair in dark as well as light')
+    const row = md.split('\n').find(l => l.startsWith('| Body on card |'))
+    assert((row.match(/:1/g) ?? []).length === 2, `each pair reports both modes (${row?.trim()})`)
+  }
+
+  /* The sweep. It has to be able to say something, or it is decoration. */
+  const sweep = md.includes('fall below AA (4.5:1)')
+  const swept = []
+  for (const fg of TEXT_ROLES) {
+    for (const bg of SURFACE_ROLES) {
+      for (const mode of state.color.emitDark ? ['light', 'dark'] : ['light']) {
+        const set = derived.roles[mode]
+        if (set[fg] && set[bg] && check(set[fg], set[bg]).ratio < 4.5) swept.push(`${fg}/${bg}/${mode}`)
+      }
+    }
+  }
+  assert(swept.length === 0 ? !sweep : sweep,
+    `the sweep block appears exactly when a pair falls short (${swept.length} short)`)
+  for (const s of swept.slice(0, 3)) {
+    const [fg, bg] = s.split('/')
+    assert(md.includes(`\`${fg}\` on \`${bg}\``), `the sweep names ${fg} on ${bg}`)
+  }
 }
 
 /* ── The project file is lossless, which the DESIGN.md path is not ──
@@ -821,6 +945,10 @@ line('\n- prompt construction -')
     ['no save message for an unedited document', ['never tell someone you saved a document they did not change']],
     ['a lens is found by diffing the output', ['the test for whether a control is a lens']],
     ['a responsive rule is checked at both widths', ['at **both** widths']],
+    ['contrast is measured in every mode shipped', ['the mode nobody measured is the mode the failures live in']],
+    ['a token name not defined anywhere is a lie', ['a custom property that no stylesheet declares']],
+    ['an empty frontmatter entry is not an unstyled one', ['absence from the frontmatter never means unstyled']],
+    ['a named family is a loaded family', ['load a family before you name it']],
   ]
   const missing = RULES.filter(([, terms]) => !terms.every(t => doc.includes(t))).map(([n]) => n)
   assert(missing.length === 0,

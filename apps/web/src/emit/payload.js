@@ -21,6 +21,14 @@ export const REQUIRED_FILES = [
   '_tokens.scss', 'tokens.json',
 ]
 
+/* The sample-page folder, named in five places across the contract prose and
+   built in one place in the exporter. Nothing joined the two, so a rename
+   would have left five instructions pointing at a folder that no longer
+   existed — and the reader who noticed would be an agent, mid-build. One
+   constant, asserted by the suite against the prose. */
+export const HTML_EXAMPLES_DIR = 'html-examples'
+export const HTML_EXAMPLES_MODES = ['light', 'dark']
+
 export function payloadTextFiles (state, derived) {
   /* The same contract under both names agents already hunt for. Claude Code
      opens CLAUDE.md unprompted, and AGENTS.md is the cross-tool convention.

@@ -51,6 +51,8 @@ export function collectColors(state, derived) {
 export function collectComponents(components = []) {
   const kept = []
   const dropped = []
+  /* Entries styled entirely by properties the spec has no slot for. */
+  const proseOnly = []
   for (const comp of components) {
     if (!comp.name) continue
     const props = []
@@ -59,9 +61,16 @@ export function collectComponents(components = []) {
       if (SPEC_COMPONENT_PROPS.includes(p.key)) props.push(p)
       else dropped.push({ component: comp.name, key: p.key })
     }
-    kept.push({ name: comp.name, properties: props })
+    /* An entry with no legal property was emitted as a bare `input-focus:`
+       with nothing under it. YAML reads that as null, and null reads as "this
+       state has no styling" — the opposite of the truth, since its styling is
+       every property the spec cannot hold (borderColor, boxShadow, opacity)
+       and all of it is in the table below. A key with no body is a claim, so
+       do not make it. */
+    if (props.length) kept.push({ name: comp.name, properties: props })
+    else if ((comp.properties ?? []).some(p => p.key)) proseOnly.push(comp.name)
   }
-  return { kept, dropped }
+  return { kept, dropped, proseOnly }
 }
 
 /**
