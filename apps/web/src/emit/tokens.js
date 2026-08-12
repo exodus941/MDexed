@@ -13,6 +13,7 @@ import { buildCssVars } from '../state/derive.js'
 import { gradientCss } from '../color/modes.js'
 import { resolveRef } from '../color/ramp.js'
 import { RAMP_STEPS } from '../color/ramp.js'
+import { fontsHref } from '../type/fonts.js'
 
 const stamp = name => `/* ${name} — generated from DESIGN.md. Edit the system, not this file. */`
 
@@ -35,9 +36,26 @@ export function tokensCss(state, derived) {
   const dark = varsFor(state, derived, 'dark')
   const decl = vars => Object.entries(vars).map(([k, v]) => `  ${k}: ${v};`).join('\n')
 
+  /* Load the families this file names.
+   *
+   * Every `--font-*-family` here quoted a Google family, and nothing in the
+   * package fetched one. A project that imported tokens.css and no more
+   * rendered the whole system in `system-ui` — the fallback at the end of
+   * every stack — and looked close enough that nobody checked. The sample
+   * pages already carry a <link>; the stylesheet an actual build imports
+   * did not. It does now. */
+  const href = fontsHref(derived.families)
+  const fontImport = href
+    ? `/* The families named below, from Google Fonts. Self-host instead by
+   replacing this line — the custom properties do not change either way. */
+@import url('${href}');
+
+`
+    : ''
+
   return `${stamp('tokens.css')}
 
-:root {
+${fontImport}:root {
 ${decl(light)}
 }
 

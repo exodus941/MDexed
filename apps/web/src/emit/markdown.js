@@ -6,9 +6,9 @@
    `## Elevation & Depth` as guidance and acts on it; it would skim past an
    unrecognised frontmatter key. Prose is the better channel for this content,
    and it keeps the file spec-legal. */
-import { PROSE_SECTIONS, CONTRAST_PAIRS, ROLE_GROUPS } from '../state/schema.js'
+import { PROSE_SECTIONS, CONTRAST_PAIRS, ROLE_GROUPS, TEXT_ROLES, SURFACE_ROLES } from '../state/schema.js'
 import { check } from '../color/contrast.js'
-import { SPEC_COMPONENT_PROPS } from './yaml.js'
+import { SPEC_COMPONENT_PROPS, collectComponents } from './yaml.js'
 import { LAYOUT_COMPONENTS, layoutRows, layoutSentences } from '../state/componentLayout.js'
 import { audit, REQUIREMENTS as A11Y_REQUIREMENTS } from '../a11y/audit.js'
 import { purposeOf } from '../color/modes.js'
@@ -77,12 +77,40 @@ function colorsBody(state, derived) {
   }
   const roleTable = table(dark ? ['Property', 'Light', 'Dark', 'Use for'] : ['Property', 'Value', 'Use for'], rows)
 
-  const contrastRows = CONTRAST_PAIRS.map(p => {
-    const fg = roles.light[p.fg], bg = roles.light[p.bg]
-    if (!fg || !bg) return null
+  /* Measure every mode the system ships.
+   *
+   * This table said "light mode" and measured light only, while the role table
+   * above it shipped a Dark column. A dark system was exported whose light side
+   * passed every pair and whose dark side failed four — and the file reported
+   * nothing, because it never looked. The mode that is not measured is the mode
+   * the failures live in. */
+  const grade = (r, ui) => (ui ? (r.ratio >= 3 ? 'Pass' : 'Fail') : r.label)
+  const cell = (fg, bg, ui) => {
     const r = check(fg, bg)
-    return [p.label, `\`${p.fg}\` on \`${p.bg}\``, `${r.ratio}:1`, p.ui ? (r.ratio >= 3 ? 'Pass' : 'Fail') : r.label, `Lc ${r.lc}`]
+    return { text: `${r.ratio}:1 ${grade(r, ui)} · Lc ${r.lc}`, fails: ui ? r.ratio < 3 : r.ratio < 4.5 }
+  }
+
+  const contrastRows = CONTRAST_PAIRS.map(p => {
+    const l = roles.light[p.fg] && roles.light[p.bg] ? cell(roles.light[p.fg], roles.light[p.bg], p.ui) : null
+    if (!l) return null
+    const tokens = `\`${p.fg}\` on \`${p.bg}\``
+    if (!dark) return [p.label, tokens, l.text]
+    const d = roles.dark[p.fg] && roles.dark[p.bg] ? cell(roles.dark[p.fg], roles.dark[p.bg], p.ui) : null
+    return [p.label, tokens, l.text, d ? d.text : '—']
   }).filter(Boolean)
+
+  /* The sweep. Every text role against every surface role, in every mode
+     shipped. It reports failures only, so it is silent on a sound system. */
+  const sweepFails = []
+  for (const [mode, set] of dark ? [['light', roles.light], ['dark', roles.dark]] : [['light', roles.light]]) {
+    for (const fg of TEXT_ROLES) {
+      for (const bg of SURFACE_ROLES) {
+        if (!set[fg] || !set[bg]) continue
+        const r = check(set[fg], set[bg])
+        if (r.ratio < 4.5) sweepFails.push([`\`${fg}\` on \`${bg}\``, mode, `${r.ratio}:1`, `${set[fg]} on ${set[bg]}`])
+      }
+    }
+  }
 
   const gradientBlock = gradientSection(state, derived)
 
@@ -99,12 +127,37 @@ function colorsBody(state, derived) {
     'Write these as CSS custom properties with a `--c-` prefix: the role `accent` is `var(--c-accent)`, `text-muted` is `var(--c-text-muted)`. The role names in the table below are the part after the prefix.',
     roleTable,
     gradientBlock,
-    contrastRows.length && '**Measured contrast** (WCAG ratio and APCA Lc, light mode):',
-    contrastRows.length && table(['Pair', 'Tokens', 'Ratio', 'WCAG', 'APCA'], contrastRows),
+    contrastRows.length && (dark
+      ? '**Measured contrast** (WCAG ratio, grade and APCA Lc, per mode):'
+      : '**Measured contrast** (WCAG ratio, grade and APCA Lc):'),
+    contrastRows.length && table(
+      dark ? ['Pair', 'Tokens', 'Light', 'Dark'] : ['Pair', 'Tokens', 'Measured'],
+      contrastRows),
+    /* Say what the rows do not mean, or the reader discounts the whole block
+       on the first row that has a good reason to be there. `text-subtle`
+       covers placeholders and disabled text, and 1.4.3 exempts the second but
+       not the first — so the row is right and the remedy depends on the use. */
+    sweepFails.length && `**These pairs fall below AA (4.5:1) for body text.** Do not put the first token's colour on the second's at body size. Raise the text to large-text size (18.66px bold, or 24px, where 3:1 applies), or pick a different role. Two cases are not defects: text inside a disabled control is exempt from 1.4.3, and a pair you never build does not matter.`,
+    sweepFails.length && table(['Pair', 'Mode', 'Ratio', 'Values'], sweepFails),
     bullets([
-      dark && 'Every token has a `dark-` prefixed counterpart; pair them by name when building a theme toggle.',
+      /* This line promised `--c-dark-accent` and every sibling. No file in the
+         package defines one: tokens.css reassigns the same name inside
+         `@media (prefers-color-scheme: dark)` and `:root[data-theme="dark"]`.
+         An agent following it wrote a theme toggle against variables that do
+         not exist — the same failure as the `var(--color-accent)` one above,
+         from the same cause, which is a sentence describing tokens the
+         package never emitted. */
+      dark && 'There is no separate dark token. `tokens.css` reassigns the same custom properties under `@media (prefers-color-scheme: dark)` and under `:root[data-theme="dark"]`, so `var(--c-surface)` is correct in both themes. Build a toggle by setting `data-theme` on the root element and change no variable name.',
       state.color.emitRamps && 'Numbered scales (`accent-50` … `accent-950`) exist for cases the semantic roles do not cover. Prefer the semantic role wherever one applies — it carries intent, the raw step does not.',
       'Never introduce a colour that is not listed here.',
+      /* Learned twice, the second time by a simulation that read a sentence
+         about `dark-` prefixed tokens and built a theme toggle against
+         variables no file in the package defined. */
+      'Never write a token name this file does not define. A custom property that no stylesheet declares resolves to nothing, paints nothing and reports nothing — the page renders, and the colour is simply absent. If a name is not in the table above, it does not exist.',
+      /* The contrast table measured light only while the role table shipped a
+         dark column, and a system whose light side passed every pair shipped
+         four dark failures with a clean report above them. */
+      'Check a colour in every mode the system ships. A ratio measured in one mode says nothing about the other: the same pair can pass on paper and fail in the dark, and the mode nobody measured is the mode the failures live in.',
       /* The table above pairs each role against the page and against its own
          foreground. A component that combines two roles of its own makes a
          third pair, and that pair is in no row here. */
@@ -256,6 +309,11 @@ function typographyBody(state, derived) {
       t.features?.body?.length && `Body text enables: ${t.features.body.map(f => `\`${f}\``).join(', ')}.`,
       t.features?.mono?.length && `Monospace enables: ${t.features.mono.map(f => `\`${f}\``).join(', ')}.`,
       'Use the token name, not the raw size.',
+      /* Every `--font-*-family` quoted a Google family and no file in the
+         package fetched one, so a project that imported tokens.css rendered
+         the whole system in `system-ui` — the last entry in every stack — and
+         looked close enough that nobody checked. */
+      'Load a family before you name it. `tokens.css` opens with an `@import` covering every family above; keep it, or replace it with self-hosted `@font-face` rules. A stack whose first family never loads falls through to `system-ui` silently, and the page looks deliberate.',
     ]),
 
     /* The scale gives one number per role, and the file tells the agent to use
@@ -416,6 +474,9 @@ function componentsBody(state, derived) {
       if (!SPEC_COMPONENT_PROPS.includes(p.key)) proseOnly.push([`\`${c.name}\``, `\`${p.key}\``, p.value])
     }
   }
+  /* Read it from the emitter rather than recomputing the rule here. Two copies
+     of one condition drift, and this one decides whether a name appears. */
+  const frontmatterless = collectComponents(derived.components).proseOnly
 
   const icons = state.icons
   const iconTable = table(['Size', 'Value'], Object.entries(icons.sizes ?? {}).map(([k, v]) => [`\`${k}\``, `${v}px`]))
@@ -572,8 +633,16 @@ function componentsBody(state, derived) {
 
     ...alignment,
     ...targets,
+    /* Stated whether or not any entry is affected today. A rule that only
+       appears when it bites has to be learned during the incident. */
+    'The frontmatter holds eight properties per component and no more — the spec allows no others. Everything else is in the tables in this section. Absence from the frontmatter never means unstyled: read both, and treat the tables as equal in force.',
     proseOnly.length && '**Additional component properties** (outside the DESIGN.md component schema, applied the same way):',
     proseOnly.length && table(['Component', 'Property', 'Value'], proseOnly),
+    /* An entry whose every property is outside the schema has no frontmatter
+       key at all — it would have been a name with nothing under it, which
+       reads as "unstyled". Name the entries here so the absence is a stated
+       fact rather than a hole an agent has to notice. */
+    frontmatterless.length && `**${frontmatterless.join('`, `').replace(/^/, '`') + '`'}** ${frontmatterless.length === 1 ? 'has' : 'have'} no entry in the frontmatter. Every property ${frontmatterless.length === 1 ? 'it uses is' : 'they use are'} outside the component schema, so the table above is the whole definition. Absence from the frontmatter never means unstyled.`,
 
     ...composition,
 

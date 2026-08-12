@@ -47,7 +47,19 @@ export const ROLE_GROUPS = [
     id: 'accent', label: 'Accent', desc: 'Primary actions and active state',
     roles: [
       /* accent sits at 700 rather than 600 in light mode so it also clears AA
-         as text, not just as a fill — it is routinely used for links. */
+         as text, not just as a fill — it is routinely used for links.
+
+         In dark the same role sits at 400 and measures 4.03:1 as text on
+         `surface-raised`, so the light fix does not carry across. Mirroring it
+         to 300 — which every other role pair here does, light 700 against dark
+         300 — was tried and reverted: at 300 the ramp has shed enough chroma
+         that accent and danger converge under red-green simulation, and the
+         editorial and terminal presets both failed the separation check.
+         Two accessibility requirements pull opposite ways and the palette
+         cannot satisfy both at one step. Colourblind separation wins, because
+         its failure has no remedy at the point of use and a low contrast ratio
+         does: raise the size, or pick another role. The contrast sweep in the
+         exported document names every surface where that applies. */
       { name: 'accent',          desc: 'Primary action fill',        light: 'accent.700',  dark: 'accent.400'  },
       { name: 'accent-hover',    desc: 'Hover state',                light: 'accent.800',  dark: 'accent.300'  },
       { name: 'accent-active',   desc: 'Pressed state',              light: 'accent.900',  dark: 'accent.200'  },
@@ -58,6 +70,17 @@ export const ROLE_GROUPS = [
   {
     id: 'status', label: 'Status', desc: 'Feedback and validation',
     roles: [
+      /* These stay at dark 400 while `accent` moves to 300, and the asymmetry
+         is deliberate.
+         Mirroring them to 300 for the same text-contrast reason was tried and
+         reverted: at 300 the ramps have shed enough chroma that success and
+         danger converge under red-green simulation, and six of the seven
+         presets failed the separation check. A palette that fails colourblind
+         separation is worse than one that fails AA as small text, because the
+         second has a remedy at the point of use and the first does not.
+         So the fill keeps its step, and the contrast sweep in the exported
+         document reports every surface where the colour is too low for body
+         text. The limit is stated rather than designed away. */
       { name: 'success',         desc: 'Success fill',               light: 'success.700', dark: 'success.400' },
       { name: 'success-subtle',  desc: 'Success background',         light: 'success.100', dark: 'success.900' },
       { name: 'success-fg',      desc: 'Content on success fill',    light: 'neutral.50',  dark: 'neutral.950' },
@@ -83,19 +106,34 @@ export const ALL_ROLES = ROLE_GROUPS.flatMap(g => g.roles)
 /* Pairs worth checking for contrast. `ui` marks non-text pairs held to the
    3:1 bar instead of 4.5. */
 export const CONTRAST_PAIRS = [
-  { fg: 'text',         bg: 'bg',        label: 'Body on page' },
-  { fg: 'text',         bg: 'surface',   label: 'Body on card' },
-  { fg: 'text-muted',   bg: 'bg',        label: 'Muted on page' },
-  { fg: 'text-muted',   bg: 'surface',   label: 'Muted on card' },
-  { fg: 'text-subtle',  bg: 'surface',   label: 'Placeholder on card' },
-  { fg: 'accent-fg',    bg: 'accent',    label: 'Label on primary button' },
-  { fg: 'accent',       bg: 'bg',        label: 'Accent text on page' },
-  { fg: 'success-fg',   bg: 'success',   label: 'Label on success' },
-  { fg: 'warning-fg',   bg: 'warning',   label: 'Label on warning' },
-  { fg: 'danger-fg',    bg: 'danger',    label: 'Label on destructive' },
-  { fg: 'border',       bg: 'surface',   label: 'Control outline',  ui: true },
-  { fg: 'ring',         bg: 'bg',        label: 'Focus ring',       ui: true },
+  { fg: 'text',         bg: 'bg',             label: 'Body on page' },
+  { fg: 'text',         bg: 'surface',        label: 'Body on card' },
+  { fg: 'text',         bg: 'surface-raised', label: 'Body on popover' },
+  { fg: 'text-muted',   bg: 'bg',             label: 'Muted on page' },
+  { fg: 'text-muted',   bg: 'surface',        label: 'Muted on card' },
+  { fg: 'text-muted',   bg: 'surface-raised', label: 'Muted on popover' },
+  { fg: 'text-subtle',  bg: 'surface',        label: 'Placeholder on card' },
+  { fg: 'accent-fg',    bg: 'accent',         label: 'Label on primary button' },
+  { fg: 'accent',       bg: 'bg',             label: 'Accent text on page' },
+  /* A status colour used as a word, rather than as a fill, is deliberately
+     absent from this list. Its ratio depends on a step the palette cannot move
+     without breaking red-green separation, so the system does not guarantee
+     it and a row here would read as a promise. The sweep below measures those
+     combinations and reports the ones that fall short, which is the honest
+     form: a stated limit rather than a guarantee that is sometimes false. */
+  { fg: 'success-fg',   bg: 'success',        label: 'Label on success' },
+  { fg: 'warning-fg',   bg: 'warning',        label: 'Label on warning' },
+  { fg: 'danger-fg',    bg: 'danger',         label: 'Label on destructive' },
+  { fg: 'border',       bg: 'surface',        label: 'Control outline',  ui: true },
+  { fg: 'ring',         bg: 'bg',             label: 'Focus ring',       ui: true },
 ]
+
+/* The curated list above is a guess about which combinations get built. The
+   sweep below needs no guess: every role that carries words, against every
+   role that sits behind them. It reports only what fails, so it costs nothing
+   when the system is sound and names the exact pair when it is not. */
+export const TEXT_ROLES    = ['text', 'text-muted', 'text-subtle', 'accent', 'success', 'warning', 'danger']
+export const SURFACE_ROLES = ['bg', 'bg-subtle', 'surface', 'surface-raised', 'surface-sunken']
 
 const defaultRoles = () =>
   Object.fromEntries(ALL_ROLES.map(r => [r.name, { light: r.light, dark: r.dark }]))

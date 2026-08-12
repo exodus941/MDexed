@@ -1640,7 +1640,7 @@ function Shell() {
   const exportPackage = async () => {
     setPackaging(true)
     try {
-      const [{ renderToStaticMarkup }, html, { payloadTextFiles }, { zip }] = await Promise.all([
+      const [{ renderToStaticMarkup }, html, { payloadTextFiles, HTML_EXAMPLES_DIR, HTML_EXAMPLES_MODES }, { zip }] = await Promise.all([
         import('react-dom/server'),
         import('./emit/html.js'),
         import('./emit/payload.js'),
@@ -1669,13 +1669,13 @@ function Shell() {
          The markup is rendered once and reused. It is identical between the
          two, because the theme is a variable swap and nothing else — which is
          itself worth demonstrating. */
-      const modes = ['light', 'dark']
+      const modes = HTML_EXAMPLES_MODES
       for (const s of SURFACES) {
         const markup = renderToStaticMarkup(
           <div className="dmd-frame"><div className="dmd"><s.Component layout={derived.componentLayout} /></div></div>
         )
         for (const mode of modes) {
-          files[`html-examples/${mode}/${s.id}.html`] =
+          files[`${HTML_EXAMPLES_DIR}/${mode}/${s.id}.html`] =
             html.previewHtml({ state: stamped, derived, markup, surface: s.label, mode })
         }
       }
