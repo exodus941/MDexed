@@ -634,7 +634,7 @@
   .dmd .with-context { grid-template-columns: minmax(0, 1fr); }
 }
 
-/* 792 — a comparison that no longer fits stacks, and never scrolls.
+/* 400 — a comparison that no longer fits stacks, and never scrolls.
  *
  * Two states, never three. The rail rule, applied to a table: the tempting
  * middle step keeps four columns and squeezes them, which measured 43.6px of

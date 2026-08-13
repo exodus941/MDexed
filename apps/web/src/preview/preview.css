@@ -1091,16 +1091,29 @@
    one distance is how a stated value stops matching the screen. */
 .dmd .plans { margin-bottom: var(--space-2xl, 48px); }
 .dmd .stack > .plans { margin-bottom: calc(var(--space-2xl, 48px) - var(--space-md, 16px)); }
+/* NO column gap. The separation lives inside the cells as padding.
+ *
+ * A gap between tracks is empty space that belongs to no cell, so nothing can
+ * paint across it. With the divider drawn per cell, every row rule broke into
+ * three pieces with a 16px hole at each track boundary. Moving the divider to
+ * the row instead put it back across the marked column, which is the fault it
+ * was moved to escape. The gap itself was the cause of both.
+ *
+ * Closed to zero, adjacent cells touch, so their top borders form one
+ * continuous rule — and the rule stops exactly at the marked column, because
+ * that column's cells do not draw one. Horizontal padding restores the breathing
+ * room. It is safe on a CELL: it sits inside the track and moves nothing. Only
+ * padding on the ROW shifts the track list. */
 .dmd .plan-wide {
   display: grid;
   grid-template-columns: max-content repeat(3, minmax(0, 1fr));
-  column-gap: var(--space-md, 16px);
+  column-gap: 0;
 }
 .dmd .plan-grid {
   display: grid;
   grid-column: 1 / -1;
   grid-template-columns: max-content repeat(3, minmax(0, 1fr));
-  column-gap: var(--space-md, 16px);
+  column-gap: 0;
   align-items: center;
 }
 @supports (grid-template-columns: subgrid) {
@@ -1165,7 +1178,11 @@
    padding anywhere: an inset here shifts the tracks and undoes the alignment
    this grid exists for. */
 .dmd .plan-row { padding: 0; }
-.dmd .plan-row > * { padding: var(--space-sm, 12px) 0; }
+.dmd .plan-row > * { padding: var(--space-sm, 12px) var(--space-md, 16px); }
+/* The label column reads from the left edge of the table, so it keeps no
+   padding on that side. */
+.dmd .plan-row > *:first-child { padding-left: 0; }
+.dmd .plan-row > *:last-child { padding-right: 0; }
 /* The stacked form, hidden until the columns stop fitting. Only one of the two
    forms is ever in the tree's flow, so neither leaves an empty container
    holding a gap. */

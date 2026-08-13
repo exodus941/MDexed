@@ -106,20 +106,28 @@ export const TABS_SENTINEL = '@media (max-width: 999906px)'          // 712
    comparison nobody can read and no overflow check reports.
 
    Measured by shrinking the real surface with the wide form forced on, and
-   reading every cell, label and button's scrollWidth against its clientWidth.
-   The binding item is not the widest ANSWER — "Unlimited" needs 56px and had
-   186 to sit in. It is the widest call to action: "Choose Team" needs 136. The
-   grid holds at 788 and clips at 784, so 792 swaps before the clip.
+   reading every cell and label's scrollWidth against its clientWidth. The
+   table holds at 396 and spills at 392, so 400 swaps before the spill.
 
-   It moved three times, and each move was a measurement rather than a guess.
-   A guess of 664 went in first and was wrong in both directions. With the
-   label column taking a 1.1fr share it broke at 880. With the label column at
-   max-content per row it held to 724. With the rows made subgrids of one grid
-   — which is what makes the columns line up at all — the shared label track
-   sizes to "Automatic chasing" instead of "Feature", and it breaks at 788.
-   The alignment fix cost 64px of comparison, and it was worth it. */
-export const PLANS_SENTINEL = '@media (max-width: 999907px)'         // 792
-export const LADDER = { bare: 384, tabs: 712, plans: 792 }
+   It moved four times, and every move was a measurement rather than a guess.
+   A guess of 664 went in first and was wrong in both directions. A 1.1fr label
+   column broke at 880. A max-content label column per row held to 724. Making
+   the rows subgrids of one grid — which is what makes the columns line up at
+   all — moved it to 788, because the shared label track sizes to "Automatic
+   Chasing" rather than "Feature".
+
+   Then the plan cards left this grid and the column gap went to zero, so the
+   widest CALL TO ACTION stopped constraining it. The binding item is now the
+   widest answer: "Unlimited" at 56px. The arithmetic agrees with the
+   measurement for once, which is the sign a derivation is sound — three value
+   columns at 56 plus 32 of padding, and a label column at 110 plus 16, comes
+   to 390 against a measured 396.
+
+   Recompute it for your own content. The formula is the widest answer plus its
+   cell padding, times the number of options, plus the widest row label plus
+   its padding. */
+export const PLANS_SENTINEL = '@media (max-width: 999907px)'         // 400
+export const LADDER = { bare: 384, tabs: 712, plans: 400 }
 
 export const CONTAINER_LINE = '.dmd-frame { container-type: inline-size; container-name: dmd; }'
 
