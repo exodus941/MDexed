@@ -55,10 +55,42 @@ export const SM_SENTINEL = '@media (max-width: 999902px)'
  *
  * `Workspace` is the widest label in the samples at 84.8; `Settings` is 68.1.
  * One threshold serves both, sized by the wider, because a container query
- * cannot measure text. */
-export const LADDER_LABEL_SENTINEL = '@media (max-width: 999903px)'   // 656
-export const LADDER_STACK_SENTINEL = '@media (max-width: 999904px)'   // 552
-export const LADDER_BARE_SENTINEL = '@media (max-width: 999905px)'    // 332
+ * cannot measure text.
+ *
+ * ALL OF THE ABOVE IS HISTORY. Kept because it records how four thresholds
+ * were arrived at and why three of them were wrong. What ships is below. */
+
+/* ── One threshold, not four ──
+ *
+ * The ladder had four. Three of them turned out to be machinery with no
+ * measured purpose, and they went when the action group started taking a line
+ * of its own at every folded width.
+ *
+ * Once the actions leave the row, the only thing competing for it is the title
+ * and the menu control. Measured with the label forced on at every width: the
+ * menu never leaves the title's line, and the title never wraps for it. The
+ * label was costing nothing, so dropping it twice and restoring it once was
+ * three transitions doing no work.
+ *
+ * What IS real: below some width the labelled control squeezes the title until
+ * the heading no longer fits its box. That is one transition, and this is it.
+ *
+ * And for the first time the arithmetic agrees with the measurement:
+ *
+ *   threshold = title + gap + labelled control + 2 × surface padding
+ *             = 163  + 8   + 160              + 48                = 379
+ *   measured: the title starts overflowing just under 380
+ *
+ * The control is 160 rather than 136 because it takes the large step below the
+ * `sm` breakpoint, and a control that grows at a breakpoint has two natural
+ * widths. A probe that forced the small padding measured 354 and agreed with
+ * the wrong sum — the same trap twice in one hour. Measure the part at the
+ * width where it is used.
+ *
+ * Every earlier attempt to add up a threshold was wrong by 16 to 32px, because
+ * the row held four things and a sum missed a gap or a size step. A row with
+ * two things in it can be added up. That is the reason to simplify, not tidiness. */
+export const LADDER_BARE_SENTINEL = '@media (max-width: 999905px)'    // 384
 
 /* A tab strip that does not fit becomes a dropdown, at the width where it
    stops fitting. Measured by shrinking the real Shell until the left strip's
@@ -66,7 +98,7 @@ export const LADDER_BARE_SENTINEL = '@media (max-width: 999905px)'    // 332
    262px pane. Rounded up to 712 so the swap happens before the clip, not on
    the pixel it starts. */
 export const TABS_SENTINEL = '@media (max-width: 999906px)'          // 712
-export const LADDER = { label: 656, stack: 552, bare: 332, tabs: 712 }
+export const LADDER = { bare: 384, tabs: 712 }
 
 export const CONTAINER_LINE = '.dmd-frame { container-type: inline-size; container-name: dmd; }'
 
@@ -110,8 +142,6 @@ export function buildResponsiveCss (css, breakpoints = [], mode = 'container') {
     /* Fixed, because they are measured from the header's content rather than
        taken from the document. A document that renames its breakpoints does
        not move these, and it should not. */
-    .split(LADDER_LABEL_SENTINEL).join(query(LADDER.label))
-    .split(LADDER_STACK_SENTINEL).join(query(LADDER.stack))
     .split(LADDER_BARE_SENTINEL).join(query(LADDER.bare))
     .split(TABS_SENTINEL).join(query(LADDER.tabs))
 }
