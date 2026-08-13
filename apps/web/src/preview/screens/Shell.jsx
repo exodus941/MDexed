@@ -19,6 +19,30 @@
 import { inspectProps, text } from '../inspect.js'
 import { Ico, IconPlus, IconDownload, IconBell, IconMore } from '../icons.jsx'
 
+/* `inspectProps` returns click-to-inspect metadata and NO style — deliberately,
+   because a `style` key in a spread replaces the element's own style object and
+   once dropped the font sizes off every heading. So `{...txt('caption')}` marks
+   a run as caption-coloured for the inspector and applies not one typographic
+   property.
+ *
+ * I built this whole surface on that misreading. Every run inherited body size:
+ * a caption timestamp rendered at 16px beside a 12.8px chip, and a stat's label
+ * and its value came out identical, which is the one thing a stat tile must
+ * never do. The baselines I measured were genuinely aligned, so the check I ran
+ * passed while the type was wrong everywhere — I measured the row I was working
+ * on rather than the screen.
+ *
+ * `typeRun` is the fix and the guard: it returns the tokens AND the inspect
+ * props from one call, so a run of text in this file cannot be marked without
+ * also being styled. */
+const TYPE_TOKENS = name => ({
+  fontFamily: `var(--font-${name}-family, inherit)`,
+  fontSize: `var(--font-${name}-size, 1rem)`,
+  fontWeight: `var(--font-${name}-weight, 400)`,
+  lineHeight: `var(--font-${name}-leading, normal)`,
+  letterSpacing: `var(--font-${name}-tracking, normal)`,
+})
+
 /* Every run of text on the bar sits on ONE line, and the line is chosen rather
    than inherited. The row is mostly words, so it takes `baseline`; the boxes
    in it opt in with the line-box technique so they donate their label's
@@ -74,15 +98,21 @@ function TitleBar({ ins, txt }) {
       borderBottom: '1px solid var(--c-border, #ccc)',
     }}>
       <Mark ins={ins}>MD</Mark>
-      <span {...txt('h6')} style={{ fontWeight: 700, alignSelf: 'baseline' }}>Northwind</span>
+      <span {...txt('h6')} style={{ ...TYPE_TOKENS('h6'), alignSelf: 'baseline', color: 'var(--c-text, #111)' }}>Northwind</span>
+      {/* A chip beside a heading is a box on a line of words, so it takes the
+          line-box technique: its label is centred AND is the chip's baseline.
+          `line-height` is stated with the height it belongs to, never apart
+          from it. */}
       <span className="badge" {...ins('badge-neutral')} style={{
-        display: 'inline-block', alignSelf: 'baseline', lineHeight: '18px', padding: '0 8px',
+        ...TYPE_TOKENS('caption'),
+        display: 'inline-block', alignSelf: 'baseline', height: 18, lineHeight: '18px',
+        padding: '0 var(--space-2xs, 6px)',
         borderRadius: 'var(--radius-sm, 4px)',
         background: 'var(--c-bg-subtle, #eee)', color: 'var(--c-text-muted, #666)',
-        fontFamily: 'var(--font-caption-family, inherit)',
-        fontSize: 'var(--font-caption-size, 12px)',
       }}>draft</span>
-      <span {...txt('caption', 'text-subtle')} style={{ alignSelf: 'baseline' }}>Saved 2m ago</span>
+      <span {...txt('caption', 'text-muted')} style={{
+        ...TYPE_TOKENS('caption'), alignSelf: 'baseline', color: 'var(--c-text-muted, #666)',
+      }}>Saved 2m ago</span>
       <span style={{ flex: 1 }} />
       <BarButton ins={ins}>Import</BarButton>
       <BarButton ins={ins}>Export</BarButton>
@@ -146,9 +176,24 @@ function Stat({ ins, txt, label, value, delta, up }) {
       border: '1px solid var(--c-border-subtle, #eee)',
       borderRadius: 'var(--cmp-card-rounded, var(--radius-lg, 12px))',
     }}>
-      <div {...txt('overline', 'text-muted')}>{label}</div>
-      <div {...txt('h4')} style={{ margin: '4px 0 2px' }}>{value}</div>
-      <div {...txt('caption', up ? 'success' : 'danger')}>{up ? '+' : '−'}{delta}</div>
+      {/* Three sizes, three weights, three colours. The label, the value and
+          the delta had none of them applied and came out identical, which
+          leaves a tile with no hierarchy at all — the one thing a stat tile
+          exists to have. `overline` carries its own tracking and uppercase. */}
+      <div {...txt('overline', 'text-muted')} style={{
+        ...TYPE_TOKENS('overline'),
+        textTransform: 'uppercase', color: 'var(--c-text-muted, #666)',
+      }}>{label}</div>
+      <div {...txt('h4')} style={{
+        ...TYPE_TOKENS('h4'),
+        color: 'var(--c-text, #111)', margin: 'var(--space-2xs, 6px) 0 2px',
+      }}>{value}</div>
+      {/* The sign carries the meaning as well as the colour, so nothing rests
+          on colour alone. */}
+      <div {...txt('caption', up ? 'success' : 'danger')} style={{
+        ...TYPE_TOKENS('caption'),
+        color: up ? 'var(--c-success, #2a7)' : 'var(--c-danger, #c33)',
+      }}>{up ? '+' : '−'}{delta}</div>
     </div>
   )
 }
@@ -178,7 +223,7 @@ export default function Shell({ onInspect, layout, tabStyle }) {
             }}>
               {/* A heading and its count chip share one line. */}
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 'var(--space-sm, 12px)', marginBottom: 'var(--space-xs, 8px)' }}>
-                <span {...txt('h6')} style={{ fontWeight: 600 }}>Seeds</span>
+                <span {...txt('h6')} style={{ ...TYPE_TOKENS('h6'), color: 'var(--c-text, #111)' }}>Seeds</span>
                 <span style={{ flex: 1 }} />
                 <span className="badge" {...ins('badge-neutral')} style={{
                   display: 'inline-block', lineHeight: '18px', padding: '0 8px',
@@ -196,8 +241,8 @@ export default function Shell({ onInspect, layout, tabStyle }) {
                   padding: 'var(--space-xs, 8px) 0',
                   borderTop: i === 0 ? 0 : '1px solid var(--c-border-subtle, #eee)',
                 }}>
-                  <span {...txt('body-sm')}>{n}</span>
-                  <span {...txt('code', 'text-muted')}>#dc9055</span>
+                  <span {...txt('body-sm')} style={{ ...TYPE_TOKENS('body-sm'), color: 'var(--c-text, #111)' }}>{n}</span>
+                  <span {...txt('code', 'text-muted')} style={{ ...TYPE_TOKENS('code'), color: 'var(--c-text-muted, #666)' }}>#dc9055</span>
                 </div>
               ))}
             </div>

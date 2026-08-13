@@ -918,6 +918,41 @@ line('\n- prompt construction -')
     ['a statistic tile', /function Stat\b/],
   ]) assert(re.test(shell), `the shell demonstrates ${what}`)
 
+  /* ── A marker is not a style ──
+   *
+   * `inspectProps` returns click-to-inspect metadata and deliberately no
+   * `style`, because a style key in a spread replaces the element's own style
+   * object. So `{...txt('caption')}` marks a run for the inspector and applies
+   * not one typographic property.
+   *
+   * I built this whole surface on that misreading. Every run inherited body
+   * size: a caption timestamp rendered at 16px beside a 12.8px chip, and a
+   * stat's label and value came out identical — the one thing a stat tile must
+   * never do. The baseline check I ran passed the whole time, because the runs
+   * genuinely shared a line. I measured the property I was thinking about and
+   * not the screen.
+   *
+   * Every `txt(...)` in this file must carry its tokens on the same element. */
+  /* Comments stripped first. The file's own note explains the trap by quoting
+     the broken pattern, so scanning raw source reported the documentation as
+     the defect. A check that fires on correct things is a defect in the
+     check — and this one would have fired forever, because the comment exists
+     precisely to stop the bug recurring. */
+  const shellCode = shell.replace(/\/\*[\s\S]*?\*\//g, '')
+  const runs = [...shellCode.matchAll(/\{\.\.\.txt\(([^)]*)\)\}([^>]*)>/g)]
+  assert(runs.length > 0, `the shell marks its text runs for the inspector (${runs.length})`)
+  const unstyled = runs
+    .filter(m => !/TYPE_TOKENS\(/.test(m[2]))
+    .map(m => m[1].replace(/['"]/g, ''))
+  assert(unstyled.length === 0, unstyled.length
+    ? `every marked run also applies its type — missing on ${unstyled.join(', ')}`
+    : `every marked run also applies its type (${runs.length})`)
+
+  /* And the tile must not render two of its three lines the same. */
+  for (const role of ['overline', 'h4', 'caption']) {
+    assert(shell.includes(`TYPE_TOKENS('${role}')`), `the stat tile styles its ${role} line`)
+  }
+
   /* The three rules this surface exists to show, obeyed in the surface itself.
      A sample that renders a component wrongly is a specification that lies. */
   assert(/alignItems: 'baseline'/.test(shell), 'the title bar is baseline-aligned, not centred')
