@@ -5,21 +5,60 @@
   /* A 180px rail beside 200px of content is not a layout. Stack it. */
   /* Head, then the menu, then the body. The burger sits in the head, so the
      fold opens directly under the row that carries it. */
+  /* ── The menu floats. It does not push the page down ──
+   *
+   * Inline, opening the menu moved every word on the screen. A drawer that
+   * shifts the thing you were reading is the thing a floating panel exists to
+   * avoid, and it is what every application does.
+   *
+   * So the rail leaves the flow at this width: two areas, not three, and the
+   * rail is positioned against the grid. The offset is the title row's own
+   * height, `size × leading`, which is exactly what the row measures — 39.1 ×
+   * 1.34 = 52.39, and the row is 52.38. Both tokens are published by the type
+   * scale, so a bigger heading moves the panel with it and no number is typed.
+   *
+   * `right: 0`, because that is where the mark is. */
   .dmd .with-aside {
+    position: relative;
     grid-template-columns: minmax(0, 1fr);
-    grid-template-areas: "head" "rail" "body";
-    /* Zero, and the spacing moves into the items.
-       A shut fold is a zero-height track, and a track still takes a gap on
-       each side however small it is: measured 32px between the header and the
-       body where the content column's own step is 16. A negative margin does
-       not help — it moves the item's box and leaves both gaps where they are.
-       Carried as margins instead, the closed menu takes its spacing with it. */
-    row-gap: 0;
+    grid-template-areas: "head" "body";
+    row-gap: var(--space-md, 16px);
   }
-  .dmd .with-aside > .page-header { margin-bottom: var(--space-md, 16px); }
-  /* Inside the clipped box, so it collapses with the fold. Same reason as the
-     title's top margin above. */
-  .dmd .nav-fold > .nav-list > :last-child { margin-bottom: var(--space-md, 16px); }
+  .dmd .with-aside > .aside-rail {
+    position: absolute; z-index: 30;
+    top: calc(var(--font-h2-size, 32px) * var(--font-h2-leading, 1.3));
+    right: 0; width: min(17rem, 82%);
+  }
+  /* A floating panel is a surface of its own, on the system's own overlay
+     elevation. Flat, it would read as text lying on the page. */
+  .dmd .with-aside > .aside-rail > .nav-fold,
+  .dmd .header-nav > .nav-fold {
+    background: var(--c-surface-raised, #fff);
+    border: 1px solid var(--c-border-subtle, #ddd);
+    border-radius: var(--radius-md, 8px);
+    box-shadow: var(--shadow-overlay, none);
+  }
+  /* Nothing to draw when it is shut, or a 1px line and a shadow hang under the
+     mark with no menu attached to them. */
+  .dmd:has(.nav-collapse:not([open])) .nav-fold {
+    border-color: transparent; box-shadow: none; background: none;
+  }
+  .dmd .with-aside > .aside-rail > .nav-fold > .nav-list,
+  .dmd .header-nav > .nav-fold > .nav-list { padding: 0 var(--space-sm, 12px); }
+
+  /* A bar does not wrap. Everything else here may.
+     The general `.row { flex-wrap: wrap }` above reached the Landing header and
+     dropped its burger onto a line of its own, at the LEFT, 275px from where a
+     hand reaches for it. A brand and the mark that opens the menu are one bar. */
+  .dmd .row.bar-row { flex-wrap: nowrap; }
+  .dmd .row.bar-row > .row:first-child { min-width: 0; }
+
+  /* Landing's rail sits in the header row, so the row itself is the anchor and
+     the panel hangs from its bottom edge. */
+  .dmd .header-nav { position: relative; }
+  .dmd .header-nav > .nav-fold {
+    position: absolute; top: 100%; right: 0; z-index: 30; width: min(17rem, 82vw);
+  }
 
   /* The heading and the burger, side by side.
      `min-width: 0` on the heading so a long title wraps to the next line

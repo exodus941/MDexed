@@ -369,14 +369,32 @@ export const createInitialState = () => ({
      lightness — the hue has to carry blue, so success is a teal. Danger keeps
      its hue family and gains chroma, which suits a destructive colour anyway.
 
-     The cost is that accent and success are both teals, thirteen degrees
-     apart, separating on lightness rather than hue. Legible, but close;
-     moving the accent is the fix if it ever grates.
+     It grated. The accent WAS a petrol teal, and it and success measured
+     1.01:1 apart with eleven degrees of hue between them — the same colour by
+     every practical test, so a filled button and a "paid" mark said nothing
+     different. Contrast could never have caught it: a ratio measures lightness,
+     and two roles one step apart on the ramp always read about 1:1 whatever
+     their hue. `meaningCollision` in the audit compares OKLCH hue instead.
+
+     Success is the constrained role and cannot move. Every green candidate
+     tried — #1c7a42, #127a3a, #2e7d32, #0f7b45, #1f7a4d — produced four audit
+     failures, because a green collides with danger under deuteranopia. That is
+     the whole reason success is a teal.
+
+     So the accent moved, to a blue they specified in HSB: hue 208, saturation
+     88, brightness 75. Brightness is the fine-tuning axis and 75 is the bottom
+     of the range they gave, because the derivation darkens the accent until it
+     clears its contrast requirement and a brighter seed comes out MORE
+     saturated: 89% rendered at 75, against 98% at 80 and 100% at 82. 75 lands
+     the rendered accent at 208/89/55, which is the colour they asked for.
+
+     Measured after: 60° from success in light, 61° in dark, accent on bg
+     5.84:1, accent-fg on accent 7.40:1, zero failures and zero warnings.
 
      Change these freely — the audit in the Access tab will tell you what it
      costs. */
     seeds: [
-      { id: 'sd-accent',  name: 'accent',  hex: '#006b72', desc: 'Primary action and emphasis' },
+      { id: 'sd-accent',  name: 'accent',  hex: '#1771bf', desc: 'Primary action and emphasis' },
       { id: 'sd-neutral', name: 'neutral', hex: '#627072', desc: 'Surfaces, text, borders' },
       { id: 'sd-success', name: 'success', hex: '#007974', desc: 'Confirmation' },
       { id: 'sd-warning', name: 'warning', hex: '#966b00', desc: 'Caution' },

@@ -209,6 +209,21 @@ export const COMPONENT_LIBRARY = [
     /* States come from TAB_STYLES, chosen by `components.tabStyle`. */
     states: {},
   },
+  /* The mark that opens a folded navigation.
+   *
+   * It had no entry, so clicking it in the preview offered `nav-item` — the
+   * links it opens — and there was no way to change the mark itself. A
+   * component the payload tells an agent to build, with nothing describing it,
+   * is a component the agent invents.
+   *
+   * `size` is the bar length and `height` its thickness; `backgroundColor` is
+   * what paints them. Those are three of the eight properties the spec allows,
+   * so the entry survives into the frontmatter rather than into prose. */
+  {
+    name: 'nav-burger', label: 'Menu mark', group: 'Navigation', on: true,
+    base: { size: '16px', height: '2px', backgroundColor: '{colors.text-muted}',
+      rounded: '{rounded.sm}', gap: '{spacing.3xs}', padding: '{spacing.3xs}' },
+  },
   {
     name: 'avatar', label: 'Avatar', group: 'Data', on: true,
     base: { size: '32px', rounded: '{rounded.full}', backgroundColor: '{colors.accent-subtle}', textColor: '{colors.accent}', typography: 'caption' },
