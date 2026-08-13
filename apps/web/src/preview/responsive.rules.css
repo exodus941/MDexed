@@ -145,9 +145,29 @@
    * for it. A mark beside a heading answers to that heading's cap centre; a
    * button in a row of buttons answers to the buttons, and `.btn` already puts
    * it there. */
-  .dmd .page-head > .page-title { order: 1; }
-  .dmd .page-head > .page-actions { order: 2; }
-  .dmd .page-head > .nav-collapse { order: 3; flex: 0 0 auto; }
+  /* ── The menu button holds the title's row, and the actions take their own ──
+   *
+   * Two rules met here and disagreed, and they chose which wins.
+   *
+   *   A. the menu button is rightmost, grouped with the actions
+   *   B. when the actions take their own line, the menu stays with the title
+   *
+   * A short title lets both hold. A long one makes the action group wrap on its
+   * own, before any threshold fires — and in ONE wrapping row the two cannot
+   * both be satisfied. Ordered after the actions the menu is rightmost and
+   * wraps with them; ordered before them it keeps the title's row and stops
+   * being rightmost among the buttons.
+   *
+   * They picked B. So at every folded width the action group owns a line and
+   * the menu sits at the right end of the title's row — rightmost on the row it
+   * is on, and always within reach of the title it opens.
+   *
+   * The label ladder is untouched by this: its stages differ by the label, not
+   * by where the actions sit. */
+  .dmd .page-head > .page-title { order: 1; flex: 1 1 0; }
+  .dmd .page-head > .nav-collapse { order: 2; flex: 0 0 auto; margin-left: auto; }
+  .dmd .page-head > .page-sub { order: 3; }
+  .dmd .page-head > .page-actions { order: 4; flex: 1 0 100%; margin-left: 0; }
 
   /* Stacking the rail is only half the job. Left alone it becomes five links
      stacked above the page title, which pushes the heading below the fold and
