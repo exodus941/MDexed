@@ -507,6 +507,59 @@ function ComponentBlock({ def, cfg, layout, onSetLayout, onToggle, onSet, onRese
   )
 }
 
+/* A tab strip rendered in the document's own colours, which is also the
+   control. Picking a look by reading a description is guessing; picking it by
+   looking at it is not.
+   Three tabs, one selected, one disabled — the three states this setting
+   writes — so the row shows the whole decision rather than the happy case. */
+function TabStyleChoice({ id, spec, roles, selected, onPick }) {
+  const pill = id === 'pill'
+  const tab = (label, state) => {
+    const on = state === 'on'
+    const off = state === 'off'
+    return (
+      <span key={label} style={{
+        display: 'inline-block', lineHeight: pill ? '22px' : '26px',
+        padding: pill ? '0 9px' : '0 8px', fontSize: 11.5,
+        whiteSpace: 'nowrap',
+        fontWeight: on ? 500 : 400,
+        color: off ? roles['text-subtle'] : on ? (pill ? roles.accent : roles.text) : roles['text-muted'],
+        ...(pill
+          ? { borderRadius: 5, background: on ? roles['accent-subtle'] : 'transparent' }
+          /* An inset shadow, never a border: a border would make the selected
+             tab taller than its neighbours and push it past the strip's rule. */
+          : { boxShadow: on ? `inset 0 -2px 0 ${roles.accent}` : 'none' }),
+      }}>{label}</span>
+    )
+  }
+
+  return (
+    <button type="button" onClick={onPick} aria-pressed={selected}
+      title={spec.desc}
+      style={{
+        display: 'flex', alignItems: 'center', gap: 11, width: '100%', textAlign: 'left',
+        padding: 7, cursor: 'pointer', borderRadius: 8,
+        background: selected ? 'rgb(var(--accent-rgb) / .10)' : 'var(--surf)',
+        border: '1px solid ' + (selected ? 'rgb(var(--accent-rgb) / .45)' : 'var(--bdr)'),
+        color: 'var(--text)', fontFamily: 'var(--sans)',
+      }}>
+      {/* The sample sits on the document's surface, not the editor's, or the
+          strip's own rule is measured against the wrong background. */}
+      <span style={{
+        display: 'flex', gap: 3, flexShrink: 0, padding: pill ? '4px 6px' : '0 6px',
+        background: roles.surface, borderRadius: 5,
+        borderBottom: pill ? '1px solid transparent' : `1px solid ${roles.border}`,
+      }}>
+        {tab('Meta', 'idle')}{tab('Colour', 'on')}{tab('Type', 'off')}
+      </span>
+      <span style={{ minWidth: 0 }}>
+        <span style={{ display: 'block', fontSize: 12.5, fontWeight: 500 }}>{spec.label}</span>
+        <span style={{ display: 'block', fontSize: 11, color: 'var(--muted)', marginTop: 1 }}>{spec.desc}</span>
+      </span>
+    </button>
+  )
+}
+
 export default function ComponentsPanel({ inspect }) {
   const { state, derived, set } = useStore()
   const cfg = state.components
@@ -520,6 +573,35 @@ export default function ComponentsPanel({ inspect }) {
   /* Defaulted here too, so a document saved before the setting existed opens
      on the underline rather than on undefined. */
   const tabStyle = cfg.tabStyle ?? DEFAULT_TAB_STYLE
+  const roles = derived.roles[state.color.mode]
+
+  /* Panel-wide search.
+   *
+   * The panel already had a property filter INSIDE each open component, which
+   * only helps once you have found the component. With 30 entries across six
+   * closed groups, finding every button meant opening six accordions and
+   * reading. Typing "button" should do it.
+   *
+   * Matches a component's own name, its label, and every flattened entry it
+   * emits — so "hover" finds the components that have a hover state, and
+   * "danger" finds `button-danger` under Actions. */
+  const [search, setSearch] = useState('')
+  const q = search.trim().toLowerCase()
+  const hits = useMemo(() => {
+    const set = new Set()
+    for (const def of COMPONENT_LIBRARY) {
+      if (!q) { set.add(def.name); continue }
+      const haystack = [def.name, def.label, def.group, ...entriesFor(def, cfg)]
+      if (haystack.some(s => String(s).toLowerCase().includes(q))) set.add(def.name)
+    }
+    return set
+  }, [q, cfg])
+
+  /* Report entries, not components. "3 components match" is a smaller number
+     than the list underneath and reads as a miscount. */
+  const matchedEntries = useMemo(
+    () => COMPONENT_LIBRARY.filter(d => hits.has(d.name)).reduce((n, d) => n + entriesFor(d, cfg).length, 0),
+    [hits, cfg])
   const onToggle = (name, on) => upd(c => ({ ...c, enabled: { ...c.enabled, [name]: on } }))
   const onSet = (key, value) => upd(c => {
     const next = { ...c.overrides }
@@ -576,6 +658,33 @@ export default function ComponentsPanel({ inspect }) {
         the file. {proseOnly} propert{proseOnly === 1 ? 'y is' : 'ies are'} taking that route right now.
       </Banner>
 
+      {/* Full width, and directly under the warning, because it is the first
+          thing anyone needs on a panel of thirty entries in six closed groups.
+          The existing filter lives inside an open component and only helps
+          once you have already found it. */}
+      <div>
+        <input value={search} onChange={e => setSearch(e.target.value)}
+          placeholder="Search components and properties — try “button”, “hover”, “danger”"
+          aria-label="Search components"
+          style={{ width: '100%' }} />
+        {q && (
+          <div className="panel-note" style={{ marginTop: 5, display: 'flex', alignItems: 'baseline', gap: 8 }}>
+            <span>
+              {hits.size === 0
+                ? <>Nothing matches <strong>{search.trim()}</strong>.</>
+                : <>{hits.size} component{hits.size === 1 ? '' : 's'} match <strong>{search.trim()}</strong>, {matchedEntries} entr{matchedEntries === 1 ? 'y' : 'ies'} in total.</>}
+            </span>
+            <span style={{ flex: 1 }} />
+            {/* A filtered view with no way out reads as a broken panel. */}
+            <button type="button" onClick={() => setSearch('')}
+              style={{
+                background: 'none', border: 0, padding: 0, cursor: 'pointer',
+                color: 'var(--accent)', fontFamily: 'var(--sans)', fontSize: 11.5,
+              }}>Clear</button>
+          </div>
+        )}
+      </div>
+
       <Collapsible title="What Gets Emitted">
         <div style={{ display: 'flex', gap: 14 }}>
           <Toggle label="Emit sizes" checked={cfg.emitSizes} onChange={v => upd(c => ({ ...c, emitSizes: v }))} />
@@ -590,16 +699,24 @@ export default function ComponentsPanel({ inspect }) {
           the old browser-chrome idiom. An option nobody picks is a decision
           the reader still has to make. */}
       <Collapsible title="Tab Style" note={TAB_STYLES[tabStyle]?.label ?? tabStyle} defaultOpen>
-        <Segmented value={tabStyle} size="sm"
-          onChange={v => upd(c => ({ ...c, tabStyle: v }))}
-          options={Object.entries(TAB_STYLES).map(([k, s]) => ({ value: k, label: s.label }))} />
-        <div className="panel-note" style={{ marginTop: 5 }}>
-          {TAB_STYLES[tabStyle]?.desc} Sets <code>tab-selected</code>, <code>tab-hover</code> and <code>tab-disabled</code>. The Shell preview shows it.
+        {/* The card used to carry a segmented control and the sentence "The
+            Shell preview shows it". A pointer to a preview is not a preview,
+            and every other picker in this panel shows what it does. You choose
+            a look, so the choice has to show the look. */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+          {Object.entries(TAB_STYLES).map(([key, s]) => (
+            <TabStyleChoice key={key} id={key} spec={s} roles={roles}
+              selected={tabStyle === key} onPick={() => upd(c => ({ ...c, tabStyle: key }))} />
+          ))}
+        </div>
+        <div className="panel-note" style={{ marginTop: 7 }}>
+          Sets <code>tab-selected</code>, <code>tab-hover</code> and <code>tab-disabled</code> together.
         </div>
       </Collapsible>
 
       {COMPONENT_GROUPS.map(group => {
-        const defs = COMPONENT_LIBRARY.filter(d => d.group === group)
+        const defs = COMPONENT_LIBRARY.filter(d => d.group === group).filter(d => hits.has(d.name))
+        if (!defs.length) return null
         const on = defs.filter(d => cfg.enabled[d.name] ?? d.on).length
         /* Same roll-up as the card headers, one level out. A finding on the
            checkbox is three closed disclosures deep on a fresh load, and a
@@ -612,7 +729,11 @@ export default function ComponentsPanel({ inspect }) {
               ? <span className="chip" style={{ color: 'var(--warn)', borderColor: 'rgb(var(--warn-rgb) / .4)' }}
                   title={`${groupFindings} accessibility ${groupFindings === 1 ? 'finding' : 'findings'} in this group`}>⚠ {groupFindings}</span>
               : null}
+            /* A search that finds a match inside a closed accordion has found
+               nothing. While a query is active the groups are open, and they
+               return to their own state when it clears. */
             defaultOpen={group === 'Actions'}
+            open={search ? true : undefined}
             openSignal={targetGroup === group ? inspect.at : null}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: PAD.gap }}>
               {defs.map(def => (
