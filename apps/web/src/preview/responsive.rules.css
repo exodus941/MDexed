@@ -625,3 +625,21 @@
 @media (max-width: 999901px) {
   .dmd .with-context { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* 792 — a comparison that no longer fits stacks, and never scrolls.
+ *
+ * Two states, never three. The rail rule, applied to a table: the tempting
+ * middle step keeps four columns and squeezes them, which measured 43.6px of
+ * column holding 56px of the word "Unlimited". Nothing overflowed its box, so
+ * no check objected, and the comparison was unreadable anyway.
+ *
+ * The stacked form gives each plan its own card and repeats every feature as a
+ * label and a value. It is longer to read and it can be read, which is the
+ * trade a stack always makes. */
+@media (max-width: 999907px) {
+  /* The whole wide form goes, not only its rows. Hiding the rows and leaving
+     their container behind is the empty-box fault the system already names:
+     a grid with a 16px column gap and nothing in it. */
+  .dmd .plan-wide { display: none; }
+  .dmd .plan-stack { display: flex; }
+}

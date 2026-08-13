@@ -49,13 +49,19 @@ function State({ ins, txt, mark, tone, title, body, primary, secondary, primaryI
       </div>
       {/* The way out. One primary, and a secondary only where there genuinely
           is a second thing to do — an empty state with two equal buttons asks
-          the reader to choose before they have anything to choose about. */}
+          the reader to choose before they have anything to choose about.
+          `secondary`, not `ghost`. A ghost is the variant for an action that
+          sits INSIDE something already framed — a row in a table, a toolbar, a
+          dialog footer. This pair stands alone in the middle of a card with
+          nothing around it, so the second action needs an edge to be a button
+          at all. Five other surfaces demonstrate the ghost; none of them
+          demonstrate this. */}
       <div className="row stack-narrow" style={{ justifyContent: 'center' }}>
         <button className="btn btn-primary" {...ins('button-primary')}>
           {primaryIcon && <Ico d={primaryIcon} />}{primary}
         </button>
         {secondary && (
-          <button className="btn btn-ghost" {...ins('button-ghost')}>{secondary}</button>
+          <button className="btn btn-secondary" {...ins('button-secondary')}>{secondary}</button>
         )}
       </div>
     </div>

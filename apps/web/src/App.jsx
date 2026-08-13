@@ -1816,7 +1816,23 @@ function Shell() {
            * and a media query cannot reach this. */
           display: 'flex', alignItems: isMobile ? 'center' : 'baseline',
           flexWrap: isMobile ? 'wrap' : 'nowrap',
-          rowGap: isMobile ? 6 : 0, gap: isMobile ? 8 : 13,
+          /* Both axes named, and no `gap` shorthand.
+           *
+           * This read `rowGap: isMobile ? 6 : 0, gap: isMobile ? 8 : 13`, and
+           * the 6 never once applied: a style object obeys declaration order
+           * like a stylesheet, so the shorthand written after it set BOTH axes
+           * and overwrote the row value. The bar ran an 8px row gap that
+           * nothing had chosen.
+           *
+           * Zero, not 6, because the row that wraps supplies its own spacing.
+           * The project name row animates `margin-top` from 0 to 6 as it
+           * opens, and a margin on a flex child ADDS to the container's gap —
+           * so the open gap was 14 and, worse, the CLOSED one was 8. A row
+           * collapsed to `max-height: 0` still sits on a flex line, and the
+           * line gap is charged whether or not anything is in it. Measured:
+           * the bar stood 65px tall to hold 40px of button, and 9 of those
+           * pixels were a gap under a row nobody had opened. */
+          columnGap: isMobile ? 8 : 13, rowGap: 0,
           /* Symmetric. 7 over 5 shifted the whole row 1px off centre inside its
              own band, which is invisible until something in it is measured. */
           padding: isMobile ? '8px 12px' : '6px 20px',
@@ -1916,9 +1932,26 @@ function Shell() {
 
               Its own buttons are all one height, so baseline and centre agree
               inside here. The difference only shows one level up. */}
+          {/* `marginLeft: auto`, so the actions sit against the right edge
+              whatever else is on the bar.
+           *
+           * They were held there by the words group's `flex: 1` — the wordmark,
+           * the name field and the palette. That group is behind `hasWords` and
+           * goes entirely on a narrow bar, and the actions then packed left
+           * against the mark with 226px of empty bar to their right. The mark
+           * belongs on the left and everything else belongs on the right, and
+           * nothing in the layout said so: it was a side effect of a group that
+           * is allowed to disappear.
+           *
+           * An auto margin rather than `space-between` on the bar. Between
+           * spreads the slack across EVERY gap, so the four action groups would
+           * drift apart from each other as the bar widened. The margin puts all
+           * of it in one place and leaves the groups packed. Where the words
+           * group does render, its `flex: 1` takes the free space first and the
+           * margin resolves to zero, so one rule covers both widths. */}
           <div className="no-bar" style={{
             display: 'flex', gap: 6, alignItems: 'baseline',
-            minWidth: 0, overflowX: 'auto', overflowY: 'hidden',
+            minWidth: 0, marginLeft: 'auto', overflowX: 'auto', overflowY: 'hidden',
             scrollbarWidth: 'none',
           }}>
             {/* Two readouts, then the controls. Tighter gap between them than

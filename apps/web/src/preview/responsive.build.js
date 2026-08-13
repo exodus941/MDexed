@@ -98,7 +98,28 @@ export const LADDER_BARE_SENTINEL = '@media (max-width: 999905px)'    // 384
    262px pane. Rounded up to 712 so the swap happens before the clip, not on
    the pixel it starts. */
 export const TABS_SENTINEL = '@media (max-width: 999906px)'          // 712
-export const LADDER = { bare: 384, tabs: 712 }
+
+/* A comparison keeps its columns while they fit and stacks when they do not.
+   It never scrolls, and it never passes through a middle step — the same two
+   states a side rail has, for the same reason. Three columns squeezed to
+   43.6px put 56px of the word "Unlimited" in each of them, which is a
+   comparison nobody can read and no overflow check reports.
+
+   Measured by shrinking the real surface with the wide form forced on, and
+   reading every cell, label and button's scrollWidth against its clientWidth.
+   The binding item is not the widest ANSWER — "Unlimited" needs 56px and had
+   186 to sit in. It is the widest call to action: "Choose Team" needs 136. The
+   grid holds at 788 and clips at 784, so 792 swaps before the clip.
+
+   It moved three times, and each move was a measurement rather than a guess.
+   A guess of 664 went in first and was wrong in both directions. With the
+   label column taking a 1.1fr share it broke at 880. With the label column at
+   max-content per row it held to 724. With the rows made subgrids of one grid
+   — which is what makes the columns line up at all — the shared label track
+   sizes to "Automatic chasing" instead of "Feature", and it breaks at 788.
+   The alignment fix cost 64px of comparison, and it was worth it. */
+export const PLANS_SENTINEL = '@media (max-width: 999907px)'         // 792
+export const LADDER = { bare: 384, tabs: 712, plans: 792 }
 
 export const CONTAINER_LINE = '.dmd-frame { container-type: inline-size; container-name: dmd; }'
 
@@ -144,4 +165,5 @@ export function buildResponsiveCss (css, breakpoints = [], mode = 'container') {
        not move these, and it should not. */
     .split(LADDER_BARE_SENTINEL).join(query(LADDER.bare))
     .split(TABS_SENTINEL).join(query(LADDER.tabs))
+    .split(PLANS_SENTINEL).join(query(LADDER.plans))
 }

@@ -944,17 +944,73 @@
 
 /* ── A comparison ──
    The rows have to line up across the columns, or the eye cannot read across
-   and the comparison stops being one. One grid with the rows dissolved into it
-   shares a track; three independent cards drift. Same mechanism, same reason,
-   as the component matrix in the Gallery. */
-.dmd .plan-row {
+   and the comparison stops being one.
+
+   The first build got this wrong in the way that is hardest to see. The plan
+   cards sat in `.cols-3` and the feature rows in a four-track grid of their
+   own, so the two grids agreed about nothing. Measured at 1280: the cell
+   holding Solo's answer stood 180.1px from the Solo card, Team's 100.4px and
+   Scale's 20.9px. Nothing overflowed, so every sweep called it clean — and the
+   matrix carried no column headers either, which left three columns of answers
+   belonging to no question the reader could see.
+
+   So there is ONE track list, and both the card row and every feature row are
+   laid out by it. The plan names in the cards are the column headers, which is
+   only true while the columns line up. */
+/* The label track takes its content and no more. Given a share of the width it
+   takes that share at every width, and the share it steals comes out of the
+   columns being compared — which is where the width is actually needed. Sized
+   as a fraction it forced the stack at 880px, because the widest call to
+   action ("Choose Team", 136px) no longer fit its column. At max-content the
+   grid holds down to 788, which is 92px of comparison bought by giving a label
+   column exactly what it asks for and no share of the rest.
+
+   ONE grid, and the rows are subgrids of it. Repeating the same track list on
+   each row is not the same thing and does not work: `max-content` resolves
+   against the row it is written on, so the header row sized its label track to
+   "Feature" and the feature rows sized theirs to "Automatic chasing". The
+   columns then missed each other by 44.1, 26.5 and 8.9px — better than the
+   180px the first build managed, and still a comparison that does not line up.
+   Only a shared track list is shared.
+
+   The fallback below the @supports is the repeated list, so a browser without
+   subgrid renders a comparison that is slightly out rather than one column of
+   everything. */
+.dmd .plan-wide {
   display: grid;
-  grid-template-columns: minmax(0, 1.4fr) repeat(3, minmax(0, 1fr));
-  align-items: center;
-  gap: var(--space-sm, 12px);
-  padding: var(--space-sm, 12px) var(--space-md, 16px);
+  grid-template-columns: max-content repeat(3, minmax(0, 1fr));
+  column-gap: var(--space-md, 16px);
 }
+.dmd .plan-grid {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: max-content repeat(3, minmax(0, 1fr));
+  column-gap: var(--space-md, 16px);
+  align-items: center;
+}
+@supports (grid-template-columns: subgrid) {
+  .dmd .plan-grid { grid-template-columns: subgrid; }
+}
+/* The card row is the header row, so its cells align to the bottom: the plan
+   name, the price and the call to action are a block, and the corner label
+   belongs on the line where the feature rows start. */
+.dmd .plan-grid.plan-head { align-items: end; }
 .dmd .plan-cell { display: flex; align-items: center; justify-content: center; }
+/* Vertical padding only. A feature row carries no horizontal padding of its
+   own, because any inset here shifts its tracks away from the card row's and
+   undoes the alignment this grid exists for. */
+.dmd .plan-row { padding: var(--space-sm, 12px) 0; }
+/* The stacked form, hidden until the columns stop fitting. Only one of the two
+   forms is ever in the tree's flow, so neither leaves an empty container
+   holding a gap. */
+.dmd .plan-stack { display: none; }
+.dmd .plan-stack .plan-fact {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-md, 16px);
+  padding: var(--space-2xs, 6px) 0;
+}
 /* The recommended column is marked by its EDGE, never by a fill. A filled
    column beside two unfilled ones reads as chosen, and nobody has chosen
    anything yet. */
