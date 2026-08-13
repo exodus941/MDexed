@@ -2,12 +2,16 @@
 import { useStore } from '../state/store.jsx'
 import { PROSE_SECTIONS, NAME_MAX } from '../state/schema.js'
 import { PRESETS, applyPreset } from '../state/presets.js'
-import { SectionHeader, Collapsible, Banner, PAD } from '../ui/controls.jsx'
+import { SectionHeader, Collapsible, Banner, Segmented, Toggle, PAD } from '../ui/controls.jsx'
 import { AiProvider, AiHeader, SectionAi } from '../ai/ui.jsx'
 
 export function MetaTab() {
   const { state, set, load } = useStore()
   const up = (k, v) => set(s => ({ ...s, meta: { ...s.meta, [k]: v } }), `meta:${k}`)
+  /* Defaulted here as well as in the schema, so a document saved before this
+     section existed opens without throwing on `build.labelCase`. */
+  const build = state.build ?? { labelCase: 'sentence', themeToggle: false }
+  const upBuild = (k, v) => set(s => ({ ...s, build: { ...build, [k]: v } }), `build:${k}`)
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -36,6 +40,33 @@ export function MetaTab() {
           <input value={state.meta.version} onChange={e => up('version', e.target.value)} placeholder="alpha" />
           <div className="panel-note" style={{ marginTop: 5 }}>The DESIGN.md format version. Currently <code>alpha</code>.</div>
         </div>
+      </Collapsible>
+
+      {/* Build Preferences — decisions about the page an agent produces,
+          rather than about the system it produces it from. Both settings exist
+          because a generated build had to guess and said so in its notes. */}
+      <Collapsible title="Build Preferences" note={build.labelCase === 'title' ? 'Title Case' : 'Sentence case'} defaultOpen>
+        <div style={{ marginBottom: 14 }}>
+          <label>Label capitalisation</label>
+          {/* A build kept the brief's capitalisation for labels it was handed
+              and used sentence case for the ones it invented, then reported
+              the inconsistency. Both readings were defensible, because the
+              document asked for sentence case in prose and showed Title Case
+              in its own examples. Stating it removes the guess. */}
+          <Segmented value={build.labelCase} onChange={val => upBuild('labelCase', val)} size="sm"
+            options={[{ value: 'sentence', label: 'Sentence case' }, { value: 'title', label: 'Title Case' }]} />
+          <div className="panel-note" style={{ marginTop: 5 }}>
+            Applies to every button, tab, menu item and column heading an agent writes.
+            {build.labelCase === 'sentence'
+              ? ' “Export payload”, not “Export Payload”.'
+              : ' “Export Payload”, not “Export payload”.'}
+          </div>
+        </div>
+        <Toggle label="Build a theme toggle into the page" checked={build.themeToggle}
+          onChange={val => upBuild('themeToggle', val)}
+          desc={state.color.emitDark
+            ? 'Adds a control that switches themes by setting data-theme on the root element. The tokens already support it.'
+            : 'This system ships light only, so a toggle would have nothing to switch to. Turn on dark mode in the Roles panel first.'} />
       </Collapsible>
 
       <Collapsible title="Start from a Preset" note={String(PRESETS.length)}>

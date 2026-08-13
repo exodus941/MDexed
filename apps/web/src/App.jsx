@@ -1640,7 +1640,7 @@ function Shell() {
   const exportPackage = async () => {
     setPackaging(true)
     try {
-      const [{ renderToStaticMarkup }, html, { payloadTextFiles, HTML_EXAMPLES_DIR, HTML_EXAMPLES_MODES }, { zip }] = await Promise.all([
+      const [{ renderToStaticMarkup }, html, { payloadTextFiles, exampleFilename, HTML_EXAMPLES_MODES }, { zip }] = await Promise.all([
         import('react-dom/server'),
         import('./emit/html.js'),
         import('./emit/payload.js'),
@@ -1675,7 +1675,7 @@ function Shell() {
           <div className="dmd-frame"><div className="dmd"><s.Component layout={derived.componentLayout} /></div></div>
         )
         for (const mode of modes) {
-          files[`${HTML_EXAMPLES_DIR}/${mode}/${s.id}.html`] =
+          files[exampleFilename(mode, s.id)] =
             html.previewHtml({ state: stamped, derived, markup, surface: s.label, mode })
         }
       }

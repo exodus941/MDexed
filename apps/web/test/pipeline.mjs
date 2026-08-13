@@ -14,7 +14,7 @@ import { generateFile, validate } from '../src/emit/designmd.js'
 import { parseFile } from '../src/emit/parse.js'
 import { collectComponents } from '../src/emit/yaml.js'
 import { agentContract, CONTRACT_MAX_LINES, CONTRACT_MAX_BYTES } from '../src/emit/agents.js'
-import { payloadTextFiles, REQUIRED_FILES, HTML_EXAMPLES_DIR, HTML_EXAMPLES_MODES } from '../src/emit/payload.js'
+import { payloadTextFiles, REQUIRED_FILES, EXAMPLE_PREFIX, HTML_EXAMPLES_MODES, exampleFilename } from '../src/emit/payload.js'
 import { serializeProject, parseProject, projectFilename } from '../src/emit/project.js'
 import { diffWords, diffStats } from '../src/ai/diff.js'
 import { contextFor, refinePrompt, draftPrompt, systemPrompt } from '../src/ai/prompts.js'
@@ -628,23 +628,26 @@ line('\n- prompt construction -')
   /* Every filename the README names in backticks must actually be produced,
      apart from the examples folder, which App.jsx adds after this. */
   const named = [...files['README.md'].matchAll(/`([\w.\-/]+\.\w+)`/g)].map(m => m[1])
-  const promised = [...new Set(named)].filter(f => !f.startsWith(HTML_EXAMPLES_DIR))
+  const promised = [...new Set(named)].filter(f => !f.startsWith(EXAMPLE_PREFIX))
   const broken = promised.filter(f => !files[f])
   assert(broken.length === 0, `README names only files the payload ships${broken.length ? ` — ${broken.join(', ')}` : ''}`)
 
   assert(files['README.md'].includes('AGENTS.md'), 'README points agents at the contract')
 
-  /* The sample-page folder is named in the contract prose and built in
-     App.jsx, which no Node test can run. The joinable part is the name: if
-     the prose and the exporter disagree, every instruction about the folder
-     points at nothing. Two simulations reported it missing for a different
-     reason, and neither could have caught a real rename. */
-  const contractText = files['AGENTS.md'] + files['README.md'] + files['DESIGN.md']
-  assert(contractText.includes(HTML_EXAMPLES_DIR + '/'),
-    `the contract names the sample folder the exporter writes (${HTML_EXAMPLES_DIR}/)`)
+  /* The sample pages are named in the contract prose and built in App.jsx,
+     which no Node test can run. The joinable part is the name: if the prose
+     and the exporter disagree, every instruction about them points at nothing.
+     Two simulations reported them missing, both because the reader walked past
+     a subfolder — which is why they are flat in the root now, and why the
+     prose must carry the same prefix the exporter writes. */
+  const contractText = files['AGENTS.md'] + files['README.md'] + files['DESIGN.md'] + files['tokens.css']
+  assert(contractText.includes(EXAMPLE_PREFIX + '-'),
+    `the contract names the sample pages the exporter writes (${EXAMPLE_PREFIX}-*)`)
+  assert(!/html-examples/.test(contractText),
+    'no instruction still points at the retired html-examples/ folder')
   for (const mode of HTML_EXAMPLES_MODES) {
-    assert(files['AGENTS.md'].includes(mode) || files['README.md'].includes(`${mode}/`),
-      `the contract accounts for the ${mode}/ sample pages`)
+    assert(exampleFilename(mode, 'dashboard') === `${EXAMPLE_PREFIX}-${mode}-dashboard.html`,
+      `the ${mode} sample name is flat and self-describing (${exampleFilename(mode, 'dashboard')})`)
   }
 }
 
@@ -697,6 +700,151 @@ line('\n- prompt construction -')
   for (const name of proseOnly) {
     assert(md.includes(name), `${name} has no frontmatter entry and is named in the prose instead`)
   }
+}
+
+/* ── A build preference that does not move the bytes is decoration ──
+ *
+ * Two controls were added because a generated build had to guess and said so:
+ * it kept the brief's capitalisation for labels it was handed and used sentence
+ * case for the ones it invented. A panel that stores a choice and emits the
+ * same document either way would leave the next build guessing identically. */
+{
+  const doc = build => {
+    const s = createInitialState()
+    s.build = { ...s.build, ...build }
+    return generateFile(s, derive(s)).text
+  }
+  const sentence = doc({ labelCase: 'sentence', themeToggle: false })
+  const title    = doc({ labelCase: 'title',    themeToggle: false })
+  const toggled  = doc({ labelCase: 'sentence', themeToggle: true  })
+
+  assert(sentence !== title, 'the capitalisation choice changes the document')
+  assert(sentence !== toggled, 'the theme-toggle choice changes the document')
+  assert(/sentence case/i.test(sentence) && /Title Case/.test(title),
+    'each capitalisation names itself in the document')
+  assert(/Build a \*\*theme toggle\*\*/.test(toggled) && /Do not build a theme toggle/.test(sentence),
+    'the toggle instruction states both directions')
+
+  /* A light-only system must forbid a toggle rather than describe one, however
+     the preference is set. Otherwise an agent invents a dark palette to fill
+     the control, which is the worst outcome of the three. */
+  const s = createInitialState()
+  s.color.emitDark = false
+  s.build = { labelCase: 'sentence', themeToggle: true }
+  const lightOnly = generateFile(s, derive(s)).text
+  assert(/ships one theme/.test(lightOnly) && !/Build a \*\*theme toggle\*\*/.test(lightOnly),
+    'a light-only system forbids a toggle even when the preference asks for one')
+
+  /* And an older document without the field takes the defaults rather than
+     emitting "no capitalisation stated", which is the gap this closed. */
+  const bare = createInitialState()
+  delete bare.build
+  assert(/Capitalise every UI label/.test(generateFile(bare, derive(bare)).text),
+    'a document with no build preferences still states a capitalisation')
+}
+
+/* ── The dark values are reachable by name, and the sentence is true ──
+ *
+ * The document promised a `dark-` prefixed counterpart for every token and no
+ * file defined one. Deleting the sentence would have made the file true;
+ * emitting the tokens makes it true and answers what the sentence was for —
+ * a dark value you can name while the light theme is in force, which the
+ * media-query mechanism cannot give you. */
+{
+  const css = payloadTextFiles(state, derived)['tokens.css']
+  const block = re => {
+    const i = css.search(re)
+    if (i < 0) return ''
+    let depth = 0
+    const j = css.indexOf('{', i)
+    for (let k = j; k < css.length; k++) {
+      if (css[k] === '{') depth++
+      else if (css[k] === '}' && --depth === 0) return css.slice(j, k)
+    }
+    return ''
+  }
+  const read = text => Object.fromEntries(
+    [...text.matchAll(/(--c-[a-z0-9-]+):\s*(#[0-9a-fA-F]{6})/g)].map(m => [m[1], m[2].toLowerCase()]))
+
+  const root = read(block(/:root\s*\{/))
+  const darkBlock = read(block(/:root\[data-theme="dark"\]\s*\{/))
+
+  const aliases = Object.keys(root).filter(k => k.startsWith('--c-dark-'))
+  assert(aliases.length > 0, `tokens.css defines the dark aliases (${aliases.length})`)
+
+  /* Every alias must equal the dark block's value for the same role, or the
+     name is worse than absent — it resolves, and to the wrong colour. */
+  const wrong = aliases.filter(a => darkBlock[a.replace('--c-dark-', '--c-')] !== root[a])
+  assert(wrong.length === 0,
+    `every dark alias carries the dark value${wrong.length ? ` — ${wrong.slice(0, 3).join(', ')}` : ` (${aliases.length})`}`)
+
+  /* One alias per role, not one per role plus the ones we forgot. */
+  const roles = Object.keys(darkBlock).filter(k => !k.startsWith('--c-dark-'))
+  assert(aliases.length === roles.length,
+    `one alias per role (${aliases.length} aliases, ${roles.length} roles)`)
+}
+
+/* ── A line is never the colour of what it divides ──
+ *
+ * Dark `border-subtle` and dark `surface-raised` both resolved to neutral.800:
+ * the same hex, 1.00:1, a divider inside a popover that paints nothing. No
+ * contrast check looked, because a hairline is decorative and 1.4.11 sets no
+ * bar for it. An agent building from the file found it and worked around it. */
+{
+  const LINES = ['border-subtle', 'border', 'border-strong']
+  /* Collected and asserted once. The first version asserted per combination
+     and printed 27 failures for one root cause, which buries the diagnosis
+     under its own repetitions. */
+  const invisible = []
+  let checked = 0
+  for (const preset of [null, ...PRESETS.map(p => p.id)]) {
+    const s = preset ? applyPreset(preset, createInitialState()) : createInitialState()
+    const d = derive(s)
+    for (const mode of ['light', 'dark']) {
+      for (const line of LINES) {
+        for (const bg of SURFACE_ROLES) {
+          const a = d.roles[mode][line], b = d.roles[mode][bg]
+          if (!a || !b) continue
+          checked++
+          const r = check(a, b).ratio
+          if (r < 1.2) invisible.push(`${preset ?? 'default'}/${mode}: ${line} on ${bg} ${r}:1`)
+        }
+      }
+    }
+  }
+  assert(invisible.length === 0, invisible.length
+    ? `${invisible.length} line/surface pairs are invisible — ${invisible.slice(0, 3).join('; ')}`
+    : `no line token is invisible on any surface, in any preset or mode (${checked} combinations)`)
+}
+
+/* ── The library covers what the payload tells an agent to build ──
+ *
+ * A tab strip reached a build with no `tab` entry in the matrix. The agent took
+ * nav-item's padding, type and colours, dropped nav-item-selected's background
+ * fill because the brief asked for an underline, and wrote a note explaining
+ * the conflict it had resolved alone. Both halves of that conflict came from
+ * this document. Nothing said which applied to a tab, because there was no tab.
+ *
+ * A missing component is not a gap an agent reports. It is a gap an agent
+ * fills, and then the system contains a component nobody specified. */
+{
+  const names = new Set(derived.components.map(c => c.name))
+  /* Named surfaces the payload's own prose instructs an agent to build. */
+  for (const required of ['tab', 'tab-selected', 'nav-item', 'nav-item-selected']) {
+    assert(names.has(required), `the matrix defines ${required}, so nothing has to be improvised`)
+  }
+
+  const propsOf = n => Object.fromEntries((derived.components.find(c => c.name === n)?.properties ?? []).map(p => [p.key, p.value]))
+  const tabSel = propsOf('tab-selected')
+  const navSel = propsOf('nav-item-selected')
+
+  /* The two must differ on the axis that caused the conflict, or the entries
+     exist and the ambiguity survives. */
+  assert(!tabSel.backgroundColor, 'a selected tab has no background fill — the underline is the whole marker')
+  assert(/inset 0 -2px 0/.test(String(tabSel.boxShadow ?? '')),
+    `a selected tab is underlined by an inset shadow, which adds no height (${tabSel.boxShadow ?? 'none'})`)
+  assert(!!navSel.backgroundColor, 'a selected nav item is marked by a fill, not an underline')
+  assert(!/inset 0 -2px/.test(String(navSel.boxShadow ?? '')), 'a selected nav item carries no underline')
 }
 
 /* ── The contrast section measures every mode, and reports what falls short ──
@@ -949,6 +1097,12 @@ line('\n- prompt construction -')
     ['a token name not defined anywhere is a lie', ['a custom property that no stylesheet declares']],
     ['an empty frontmatter entry is not an unstyled one', ['absence from the frontmatter never means unstyled']],
     ['a named family is a loaded family', ['load a family before you name it']],
+    ['a tab and a nav item mark selection differently', ['is marked by a tinted fill and carries no underline']],
+    ['structural and content lines take different tokens', ['a line that separates **content of the same kind**']],
+    ['label capitalisation is stated, never guessed', ['capitalise every ui label as']],
+    ['the theme toggle is a stated decision', ['theme toggle']],
+    ['the dark alias serves what reassignment cannot', ['reach for it only when you need the dark value']],
+    ['the sample pages are flat in the root', ['pages in the package root']],
   ]
   const missing = RULES.filter(([, terms]) => !terms.every(t => doc.includes(t))).map(([n]) => n)
   assert(missing.length === 0,

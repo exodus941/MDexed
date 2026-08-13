@@ -18,21 +18,23 @@ import { fontsHref } from '../type/fonts.js'
 const stamp = name => `/* ${name} — generated from DESIGN.md. Edit the system, not this file. */`
 
 /** Custom properties for one mode, resolved exactly as the preview does. */
-const varsFor = (state, derived, mode) => buildCssVars({
+const varsFor = (state, derived, mode, opts) => buildCssVars({
   ...derived,
   elevationCfg: state.elevation,
   gradients: derived.gradients.map(g => ({
     ...g,
     css: gradientCss(g, { roles: derived.roles[mode], ramps: derived.ramps, resolveRef }),
   })),
-}, mode)
+}, mode, opts)
 
 /* ── tokens.css ───────────────────────────────────────────────────────────
    Both themes, switched by `data-theme` on the root, plus a
    `prefers-color-scheme` block so a page with no toggle still does the right
    thing. The media query comes first so an explicit data-theme always wins. */
 export function tokensCss(state, derived) {
-  const light = varsFor(state, derived, 'light')
+  /* The light block carries the dark set under `--c-dark-*` as well, so a
+     value can be named from a light context. See buildCssVars. */
+  const light = varsFor(state, derived, 'light', { darkAliases: state.color.emitDark })
   const dark = varsFor(state, derived, 'dark')
   const decl = vars => Object.entries(vars).map(([k, v]) => `  ${k}: ${v};`).join('\n')
 
@@ -379,7 +381,7 @@ your stack, and ignore the rest.
 | \`tailwind.config.js\` | Tailwind **v3**. A preset — merge it, don't replace your config. |
 | \`_tokens.scss\` | Sass variables, maps and a breakpoint mixin. |
 | \`tokens.json\` | W3C Design Tokens format, for Style Dictionary, Figma and similar. |
-| \`html-examples/\` | Every surface as a standalone page. Both themes when the system ships both, in \`light/\` and \`dark/\`. The markup is identical between them — the theme is a variable swap and nothing else. |
+| \`EXAMPLE-<theme>-<surface>.html\` | Every surface as a standalone page, in the package root. Both themes when the system ships both, named in the file. The markup is identical between them — the theme is a variable swap and nothing else. |
 
 Both Tailwind files are present because v3 and v4 configure themselves in
 different places and neither can read the other's. Use the one matching your

@@ -27,7 +27,8 @@
  * isn't legitimate is failing it without knowing.
  */
 import { parseColor, toOklchObj, toHex } from '../color/convert.js'
-import { wcag, apca } from '../color/contrast.js'
+import { wcag, apca, check } from '../color/contrast.js'
+import { TEXT_ROLES, SURFACE_ROLES } from '../state/schema.js'
 import { converter, filterDeficiencyDeuter, filterDeficiencyProt, differenceEuclidean } from 'culori'
 
 const rgb = converter('rgb')
@@ -37,6 +38,14 @@ const rgb = converter('rgb')
    a AAA criterion or a well-established practice with no criterion behind it.
    `note` is a judgement call worth seeing once. Nothing here is fatal. */
 const FAIL = 'fail', WARN = 'warn', NOTE = 'note'
+
+/* Two places, not one, and floored rather than rounded. A ratio of 4.4996
+   rounds to "4.5:1", and a finding that reads "4.5:1, which needs 4.5:1" looks
+   like the check is broken even when it is right. Contrast is the one number
+   here that a reader compares against a threshold by eye.
+   Module scope because three checks now need it. The second copy would have
+   been the one that drifted. */
+const r2 = n => (Math.floor(n * 100) / 100).toFixed(2)
 
 const px = v => {
   const n = parseFloat(String(v ?? ''))
@@ -753,12 +762,6 @@ function componentContrast(state, derived, mode) {
 
     const r = ratio(fg, bg)
     if (r == null) continue
-    /* Two places, not one. A ratio of 4.4996 rounds to "4.5:1", and a finding
-       that reads "4.5:1, which needs 4.5:1" looks like the check is broken
-       even when it is right. Contrast is the one number here where the reader
-       is comparing against a threshold by eye. */
-    const r2 = n => (Math.floor(n * 100) / 100).toFixed(2)
-
     /* Large text is 24px, or 18.66px at 700 and above. Below that the bar is
        4.5:1 and no rounding gets a component over it. */
     const size = px(vars[`--cmp-${comp.name}-font-size`])
@@ -785,6 +788,90 @@ function componentContrast(state, derived, mode) {
   return out
 }
 
+/* ── Every text role against every surface role ──
+ *
+ * The curated pair list held twelve combinations somebody thought to list, and
+ * a dark system shipped four failures that all sat outside it. A list measures
+ * what you predicted. This asks the whole question instead: it needs no guess,
+ * and it is silent when the system is sound.
+ *
+ * Severity splits on whether a remedy exists, and never reaches FAIL, because
+ * a pair nobody builds is not a defect.
+ *
+ * The first version made every shortfall a WARN and put 14 of them on a
+ * healthy default system — `text-subtle on bg` among them, when a placeholder
+ * only ever sits inside a field on `surface`, a pair that passes at 6.93:1.
+ * That is the same crying-wolf failure as a finger rule pointed at a desktop:
+ * it spends attention on decisions that do not exist and teaches the reader to
+ * skim real findings. A check that fires on correct things is a defect in the
+ * check.
+ *
+ *   at or below 3:1  → WARN. No text size rescues it, so the pair is unusable.
+ *   3:1 to 4.5:1     → NOTE. Legal at large-text size; reference, not a fault.
+ */
+function roleSweep(derived, mode) {
+  const roles = derived.roles?.[mode] ?? {}
+  const out = []
+  for (const fg of TEXT_ROLES) {
+    for (const bg of SURFACE_ROLES) {
+      if (!roles[fg] || !roles[bg]) continue
+      const r = check(roles[fg], roles[bg])
+      if (r.ratio >= 4.5) continue
+      out.push({
+        req: 'contrast', id: `sweep:${mode}:${fg}:${bg}`, level: r.ratio < 3 ? WARN : NOTE,
+        criterion: '1.4.3 Contrast minimum (AA)', tab: 'roles', entry: fg, mode,
+        title: `${fg} on ${bg} is ${r2(r.ratio)}:1 in ${mode}`,
+        detail: `Body text needs 4.5:1. This pair is in no row of the contrast table, because that table lists the combinations we predicted and a real build makes its own. It is a warning rather than a failure: if nothing puts ${fg} text on a ${bg} fill, nothing is wrong.`,
+        fix: r.ratio >= 3
+          ? `Use it only at large-text size (18.66px bold, or 24px), where 3:1 applies. Otherwise pick another role.`
+          : `Below 3:1 there is no size that rescues it. Pick another role for this combination.`,
+        measured: `${r2(r.ratio)}:1`,
+      })
+    }
+  }
+  return out
+}
+
+/* ── A line must never be the colour of what it divides ──
+ *
+ * Dark `border-subtle` and dark `surface-raised` both resolved to neutral.800:
+ * the same hex, 1.00:1, a divider inside a popover that cannot be seen. No
+ * contrast check looked, because a hairline is decorative and 1.4.11 sets no
+ * bar for it — so nothing had an opinion until an agent building from the file
+ * reported the line as unreadable and substituted a different token.
+ *
+ * There is no WCAG number to cite here. The bar is lower: a line that is
+ * within a hair of its background is not subtle, it is absent. */
+function hairlineChecks(derived, mode) {
+  const roles = derived.roles?.[mode] ?? {}
+  const out = []
+  const LINES = ['border-subtle', 'border', 'border-strong']
+  for (const line of LINES) {
+    for (const bg of SURFACE_ROLES) {
+      if (!roles[line] || !roles[bg]) continue
+      const r = check(roles[line], roles[bg])
+      /* 1.2:1 is where a hairline stops being visible on a normal display.
+         Set below the decorative range on purpose — `border-subtle` is meant
+         to sit around 1.6 to 2.1, and flagging that would be crying wolf. */
+      if (r.ratio >= 1.2) continue
+      const same = roles[line].toLowerCase() === roles[bg].toLowerCase()
+      out.push({
+        req: 'contrast', id: `hairline:${mode}:${line}:${bg}`, level: FAIL,
+        criterion: 'Practice', tab: 'roles', entry: line, mode,
+        title: same
+          ? `${line} and ${bg} are the same colour in ${mode}`
+          : `${line} is invisible on ${bg} in ${mode} (${r2(r.ratio)}:1)`,
+        detail: same
+          ? `Both resolve to ${roles[line]}. A rule drawn in the colour of the surface behind it paints nothing, and every layout built on it loses a boundary with no error anywhere.`
+          : `At ${r2(r.ratio)}:1 the line does not read as a line. A divider that cannot be seen is not a subtle divider.`,
+        fix: `Move ${line} one or two steps away from ${bg} in the Roles panel. A line token must differ from every surface it divides.`,
+        measured: `${r2(r.ratio)}:1`,
+      })
+    }
+  }
+  return out
+}
+
 export function audit(state, derived) {
   const all = [
     ...focusChecks(state),
@@ -798,6 +885,8 @@ export function audit(state, derived) {
       ...colourAlone(derived, mode),
       ...componentContrast(state, derived, mode),
       ...disabledCheck(state, derived, mode),
+      ...roleSweep(derived, mode),
+      ...hairlineChecks(derived, mode),
     ]),
   ]
   const rank = { fail: 0, warn: 1, note: 2 }

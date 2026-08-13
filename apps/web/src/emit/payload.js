@@ -21,13 +21,20 @@ export const REQUIRED_FILES = [
   '_tokens.scss', 'tokens.json',
 ]
 
-/* The sample-page folder, named in five places across the contract prose and
-   built in one place in the exporter. Nothing joined the two, so a rename
-   would have left five instructions pointing at a folder that no longer
-   existed — and the reader who noticed would be an agent, mid-build. One
-   constant, asserted by the suite against the prose. */
-export const HTML_EXAMPLES_DIR = 'html-examples'
+/* The sample pages, named in the contract prose and built in the exporter.
+   Nothing joined the two, so a rename would have left every instruction
+   pointing at files that no longer existed — and the reader who noticed would
+   be an agent, mid-build. One place, asserted by the suite against the prose.
+
+   Flat, in the zip root, and not in a folder. Two simulations reported the
+   samples missing, both times because the reader took the text files and left
+   a subfolder behind. That is a reader error twice over, which makes it a
+   packaging problem: a name in the root cannot be walked past, and a folder
+   evidently can. `EXAMPLE-dark-dashboard.html` says what it is, which theme it
+   shows and which surface, before anyone opens it. */
 export const HTML_EXAMPLES_MODES = ['light', 'dark']
+export const EXAMPLE_PREFIX = 'EXAMPLE'
+export const exampleFilename = (mode, id) => `${EXAMPLE_PREFIX}-${mode}-${id}.html`
 
 export function payloadTextFiles (state, derived) {
   /* The same contract under both names agents already hunt for. Claude Code

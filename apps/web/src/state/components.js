@@ -162,6 +162,29 @@ export const COMPONENT_LIBRARY = [
       selected: { _: { backgroundColor: '{colors.accent-subtle}', textColor: '{colors.accent}' } },
     },
   },
+  /* A tab is not a nav item, and leaving it out made an agent prove it.
+     Handed a tab strip with no `tab` entry, it took nav-item's padding, type
+     and colours, then dropped nav-item-selected's background fill because the
+     brief asked for an underline — and wrote a note explaining the conflict it
+     had resolved on its own. Both halves of that conflict came from this file:
+     the selected nav item is FILLED, and the layout rules say an underline is
+     `box-shadow: inset`, never a border. Nothing said which one a tab takes.
+
+     So the two now differ on the axis that matters. A nav item marks the
+     current place with a tinted fill, because it sits in a list where a fill
+     reads as "you are here". A tab marks it with a 2px underline on the strip's
+     own rule, because a fill inside a strip fights the rule underneath it. The
+     underline is a shadow so it adds no height and breaks no line. */
+  {
+    name: 'tab', label: 'Tab', group: 'Navigation', on: true,
+    base: { padding: '{spacing.xs} {spacing.sm}', typography: 'body-sm', textColor: '{colors.text-muted}', gap: '{spacing.2xs}', iconSize: '{icons.md}' },
+    states: {
+      hover:    { _: { textColor: '{colors.text}' } },
+      /* No backgroundColor, deliberately. The underline is the whole marker. */
+      selected: { _: { textColor: '{colors.text}', boxShadow: 'inset 0 -2px 0 {colors.accent}' } },
+      disabled: { _: { textColor: '{colors.text-subtle}' } },
+    },
+  },
   {
     name: 'avatar', label: 'Avatar', group: 'Data', on: true,
     base: { size: '32px', rounded: '{rounded.full}', backgroundColor: '{colors.accent-subtle}', textColor: '{colors.accent}', typography: 'caption' },

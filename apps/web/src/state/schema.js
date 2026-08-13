@@ -37,7 +37,17 @@ export const ROLE_GROUPS = [
   {
     id: 'border', label: 'Borders', desc: 'Dividers, outlines, rings',
     roles: [
-      { name: 'border-subtle',   desc: 'Hairlines, table rules',     light: 'neutral.200', dark: 'neutral.800' },
+      /* Moved off 200/800 because dark `border-subtle` and dark
+         `surface-raised` both resolved to neutral.800 — the same hex, 1.00:1,
+         a divider inside a popover that cannot be seen at all. An agent
+         building from this reported the line as unreadable and substituted
+         `border` for every structural rule, which was the right call and had
+         to be improvised because nothing here said it.
+         A line token must never equal a surface it divides. Mirrored, so
+         light 300 pairs with dark 700: surface-raised goes 1.00 to 1.38 in
+         dark, and the faintest light case goes 1.28 to 1.67. Still subtle —
+         `border` sits at 3.82 on a card — and now visible. */
+      { name: 'border-subtle',   desc: 'Hairlines, table rules',     light: 'neutral.300', dark: 'neutral.700' },
       { name: 'border',          desc: 'Default control outline',    light: 'neutral.500', dark: 'neutral.500' },
       { name: 'border-strong',   desc: 'Emphasised outline',         light: 'neutral.600', dark: 'neutral.400' },
       { name: 'ring',            desc: 'Focus indicator',            light: 'accent.600',  dark: 'accent.400'  },
@@ -371,12 +381,19 @@ export const createInitialState = () => ({
     columns: 12,
     gutter: 'lg',
     maxMeasure: 68,
-    /* Two widths that live outside the spacing scale, because neither is
+    /* Widths that live outside the spacing scale, because none of them is
        spacing. Without them every page invents its own — the simulated
        dashboard reached for 216px and 320px, both off any scale in the file,
        which is the agent guessing where the system went quiet. Naming them
-       does not freeze them: the exported file says they are starting points. */
-    fixedWidths: { rail: 224, field: 320 },
+       does not freeze them: the exported file says they are starting points.
+
+       A field needs three steps, not one. With a single `field: 320` an agent
+       building a search box into a title bar had nothing narrower to reach
+       for. It obeyed the rule it was given — change the token, never one
+       page — and reported the mismatch instead of fixing it, which was
+       correct and left the bar wrong. The system said "take a different step"
+       and published no other step. Three widths is a scale it can obey. */
+    fixedWidths: { rail: 224, 'field-sm': 200, field: 320, 'field-lg': 480 },
   },
 
   elevation: {
@@ -439,6 +456,18 @@ export const createInitialState = () => ({
     framework: 'React + Tailwind',
     classNaming: 'utility',
     notes: '',
+  },
+
+  /* Build preferences — decisions about the page an agent produces, rather
+     than about the system it produces it from.
+     `labelCase` exists because a generated build kept the brief's
+     capitalisation for labels it was handed and used sentence case for labels
+     it invented, then said so in its notes. Both readings were defensible,
+     because the document asked for sentence case in prose and demonstrated
+     Title Case in its own examples. A stated choice removes the guess. */
+  build: {
+    labelCase: 'sentence',   // sentence | title
+    themeToggle: false,
   },
 
   prose: emptyProse(),
