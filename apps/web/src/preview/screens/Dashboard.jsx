@@ -83,21 +83,8 @@ export default function Dashboard({ onInspect, layout }) {
             `display: contents` at that width and hands its children up. */}
         <div className="page-header">
           <div className="row row-wrap page-head" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-            {/* The heading and the burger are one row. A folded nav sits BESIDE
-                the page title, never above it — that is how every application
-                has done it for a decade, and a bar of its own put 44px of
-                nothing between the two.
-                `.page-title` is `display: contents` at wide widths, so the
-                heading is a direct child of this row exactly as before and the
-                disclosure is hidden. */}
             <div className="page-title">
               <h2 {...txt('h2')}>Overview</h2>
-              <details className="nav-collapse">
-                <summary className="nav-summary" aria-label="Workspace menu" {...inspectProps(['nav-burger', 'nav-item'], onInspect, { passthrough: true })}>
-                  <span className="nav-label" aria-hidden="true">Workspace</span>
-                  <span className="nav-burger" aria-hidden="true"><span /><span /><span /></span>
-                </summary>
-              </details>
             </div>
             {/* Small is a desktop choice. These are the page's own actions, and
                 at 375px a 28px target beside a 28px icon button is neither
@@ -109,10 +96,36 @@ export default function Dashboard({ onInspect, layout }) {
               <button className="btn btn-primary btn-sm" {...ins('button-primary')}><Ico d={IconPlus} size="sm" />New invoice</button>
               <button className="btn btn-secondary btn-sm icon-only" {...ins('button-secondary')}><Ico d={IconBell} /></button>
             </div>
+            {/* The menu control is a BUTTON, and it belongs to the action group.
+             *
+             * It sat beside the heading before, and that was wrong: a control
+             * parked against a title reads as part of the title rather than as
+             * something you press. It takes the same `.btn` shell as Export and
+             * New invoice, and it is the LAST of them, because navigation
+             * outranks every action on the page — the rightmost seat is the one
+             * a hand reaches first and the one nothing else may take.
+             *
+             * A sibling of `.page-actions` rather than a child of it, because
+             * the ladder keeps this control on the title's row after the other
+             * buttons have dropped to a line of their own. Inside the group it
+             * could only ever go where the group went. `order` places it. */}
+            <details className="nav-collapse">
+              <summary className="nav-summary btn btn-secondary btn-sm" aria-label="Workspace menu"
+                {...inspectProps(['nav-burger', 'nav-item'], onInspect, { passthrough: true })}>
+                <span className="nav-burger" aria-hidden="true"><span /><span /><span /></span>
+                <span className="nav-label">Workspace</span>
+              </summary>
+            </details>
+            {/* The description lives IN the row, at full width.
+             *
+             * It was a sibling of the row, and the row used `display: contents`
+             * at narrow widths so the actions could land under it. That works
+             * and it dissolves the row — which is fine until something has to
+             * STAY on the title's line. The menu button does, so the row has to
+             * survive. Everything is one wrapping row now, and `order` with a
+             * 100% basis says which items own a line of their own. */}
+            <p className="muted small page-sub" {...txt('body-sm', 'text-muted')}>Fourth quarter, all accounts</p>
           </div>
-          {/* The 4px gap lives in the stylesheet, not inline. Inline wins over
-              every rule, so the narrow layout could not have changed it. */}
-          <p className="muted small page-sub" {...txt('body-sm', 'text-muted')}>Fourth quarter, all accounts</p>
         </div>
 
       <div className="stack">

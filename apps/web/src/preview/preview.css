@@ -584,24 +584,21 @@
    this renders exactly as the old markup did. Narrow: responsive.js closes it
    and reveals the burger. The `open` attribute is on the element, so a browser
    with no CSS still shows the links rather than hiding them. */
+/* ── The menu control is a BUTTON ──
+ *
+ * It carried its own shape before: a bare summary with a mark in it, sitting
+ * against the page title. A control parked against a heading reads as part of
+ * the heading rather than as something you press.
+ *
+ * It takes the `.btn` shell now, so it inherits the height, the padding, the
+ * radius, the border and the hover of every other button, and it sits in the
+ * action group. This rule adds only what a `summary` needs on top: the marker
+ * removed, and the flex the label and the mark share.
+ *
+ * Nothing here sets a height, a colour or a padding. `.btn` already did. */
 .dmd .nav-summary {
-  /* A folded nav is ONE control. It carries the mark and nothing else.
-   *
-   * It used to carry a section label beside the burger, which made the
-   * disclosure a full-width bar: 48px of row for a 28px control, and 44px of
-   * nothing between it and the page heading. The label belongs to the menu, so
-   * it now lives inside the fold with the links it names.
-   *
-   * `width: max-content` with `margin-left: auto` rather than a flex
-   * `justify-content`, because the summary is the only child that decides its
-   * own width here — a full-width box with its contents pushed right still
-   * catches a press anywhere along the row. */
-  display: flex; align-items: center; justify-content: center;
-  width: max-content; margin-left: auto; margin-bottom: var(--space-xs, 4px);
-  list-style: none; cursor: default;
-  /* On a phone this is the only way to open the menu, so it takes the touch
-     floor there; here it takes the mouse one. */
-  min-width: 24px; min-height: 24px;
+  display: inline-flex; align-items: center; gap: var(--space-2xs, 6px);
+  list-style: none; cursor: pointer;
 }
 
 /* A title's metadata is one object, and it only becomes one at a narrow width.
@@ -639,7 +636,16 @@
    sibling. The gap was an inline `marginTop` on the paragraph until the narrow
    layout needed to change it and could not. */
 .dmd .page-header { display: flex; flex-direction: column; }
-.dmd .page-header > .page-sub { margin-top: 4px; }
+
+/* One wrapping row holds the whole header: the title, the actions, the menu
+   button and the description. `order` says the reading order and a 100% basis
+   says which items own a line of their own.
+   The description used to sit outside the row, and the row used
+   `display: contents` at narrow widths so the actions could land beneath it.
+   That dissolves the row, which is fine until something has to STAY on the
+   title's line — and the menu button does. */
+.dmd .page-head { flex-wrap: wrap; }
+.dmd .page-head > .page-sub { flex: 1 0 100%; order: 9; margin-top: 4px; }
 
 /* The gap between a heading and the actions beside it, as a floor rather than
    a preference.

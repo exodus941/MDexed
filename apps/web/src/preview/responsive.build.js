@@ -32,7 +32,10 @@ export const SM_SENTINEL = '@media (max-width: 999902px)'
  *
  * Measured on the Dashboard header, at its natural widths:
  *
- *   heading 162.8 · mark 24 · label 84.8 · actions 250.5
+ *   heading 163 · menu button 136 labelled, 46 bare · actions 251
+ *   the head gap is the `lg` step between EVERY pair, so three items mean TWO
+ *   gaps of 24 — assuming 8 for the second one put the label threshold 16px
+ *   too low, and the heading broke mid-word rather than the label dropping
  *
  * The first two came from arithmetic and one was wrong. Adding the parts gave
  * 606 for the label threshold; forcing the label on and shrinking the frame
@@ -53,10 +56,10 @@ export const SM_SENTINEL = '@media (max-width: 999902px)'
  * `Workspace` is the widest label in the samples at 84.8; `Settings` is 68.1.
  * One threshold serves both, sized by the wider, because a container query
  * cannot measure text. */
-export const LADDER_LABEL_SENTINEL = '@media (max-width: 999903px)'   // 640
-export const LADDER_STACK_SENTINEL = '@media (max-width: 999904px)'   // 617
+export const LADDER_LABEL_SENTINEL = '@media (max-width: 999903px)'   // 656
+export const LADDER_STACK_SENTINEL = '@media (max-width: 999904px)'   // 552
 export const LADDER_BARE_SENTINEL = '@media (max-width: 999905px)'    // 332
-export const LADDER = { label: 640, stack: 617, bare: 332 }
+export const LADDER = { label: 656, stack: 552, bare: 332 }
 
 export const CONTAINER_LINE = '.dmd-frame { container-type: inline-size; container-name: dmd; }'
 
