@@ -585,20 +585,30 @@
    and reveals the burger. The `open` attribute is on the element, so a browser
    with no CSS still shows the links rather than hiding them. */
 .dmd .nav-summary {
-  /* The word and the mark are ONE control, so they sit together.
-     `space-between` flung the label to the far left and the burger to the far
-     right of the whole header, which reads as two unrelated things and leaves
-     a lake of nothing between them. A disclosure is a small object you press.
-     Right-aligned, because that is where a burger lives and where the hand
-     already is. */
-  display: flex; align-items: center; justify-content: flex-end;
-  gap: var(--space-xs, 8px); margin-bottom: var(--space-xs, 4px);
+  /* A folded nav is ONE control. It carries the mark and nothing else.
+   *
+   * It used to carry a section label beside the burger, which made the
+   * disclosure a full-width bar: 48px of row for a 28px control, and 44px of
+   * nothing between it and the page heading. The label belongs to the menu, so
+   * it now lives inside the fold with the links it names.
+   *
+   * `width: max-content` with `margin-left: auto` rather than a flex
+   * `justify-content`, because the summary is the only child that decides its
+   * own width here — a full-width box with its contents pushed right still
+   * catches a press anywhere along the row. */
+  display: flex; align-items: center; justify-content: center;
+  width: max-content; margin-left: auto; margin-bottom: var(--space-xs, 4px);
   list-style: none; cursor: default;
-  /* Sized by its own text this stood 20px. On a phone it carries the burger
-     and is the only way to open the menu, so it takes the touch floor there;
-     here it takes the mouse one. A disclosure nobody can hit is a dead end. */
-  min-height: 24px;
+  /* On a phone this is the only way to open the menu, so it takes the touch
+     floor there; here it takes the mouse one. */
+  min-width: 24px; min-height: 24px;
 }
+
+/* The menu's own title. It exists only while the menu exists.
+   Shown at wide widths it would sit inline among the links on the Landing
+   header, whose list is a row — a heading in the middle of a nav bar. The
+   responsive sheet reveals it where the fold is real. */
+.dmd .nav-title { display: none; }
 .dmd .nav-summary::-webkit-details-marker { display: none; }
 /* The list is a sibling of the disclosure, never a child.
    A closed `details` does not render its non-summary children, and no CSS on
@@ -701,7 +711,31 @@
 .dmd .cols-4 { display: grid; gap: var(--space-md, 16px); grid-template-columns: repeat(4, minmax(0, 1fr)); }
 /* A fixed-width side column beside fluid content. --aside lets each screen
    pick its own width without needing a class of its own. */
-.dmd .with-aside { display: grid; gap: var(--space-lg, 32px); align-items: start; grid-template-columns: var(--aside, 180px) minmax(0, 1fr); }
+/* Three named parts, not two columns.
+ *
+ * The page header is a sibling of the rail rather than the first block of the
+ * content column, because only then can a narrow layout put the menu BETWEEN
+ * the title row and the body — a menu that opens under the bar that owns it.
+ * Wide, the rail spans both rows and this renders exactly as two columns did.
+ *
+ * `row-gap` is the content column's own step, not the column gutter. The head
+ * and the body used to be two items in one `.stack`, so a bare `gap` here
+ * would have moved them 24px apart where they had been 16. */
+.dmd .with-aside {
+  display: grid; align-items: start;
+  column-gap: var(--space-lg, 32px); row-gap: var(--space-md, 16px);
+  grid-template-columns: var(--aside, 180px) minmax(0, 1fr);
+  grid-template-areas: "rail head" "rail body";
+}
+.dmd .with-aside > .aside-rail { grid-area: rail; }
+.dmd .with-aside > .page-header { grid-area: head; }
+.dmd .with-aside > .stack { grid-area: body; }
+
+/* The heading and its disclosure are one row.
+   `contents` at wide widths, so the heading stays a direct child of
+   `.page-head` and every rule written against that row still reaches it. The
+   disclosure is hidden at these widths anyway. */
+.dmd .page-title { display: contents; }
 /* A label sitting beside its field rather than above it. */
 .dmd .field-inline { display: grid; gap: var(--space-sm, 12px); align-items: baseline; grid-template-columns: 112px minmax(0, 1fr); }
 .dmd .divider { height: 1px; background: var(--c-border-subtle, #eee); border: 0; margin: 0; }

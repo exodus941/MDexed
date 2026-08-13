@@ -3,7 +3,53 @@
 @media (max-width: 999901px) {
   .dmd .cols-3, .dmd .cols-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   /* A 180px rail beside 200px of content is not a layout. Stack it. */
-  .dmd .with-aside { grid-template-columns: minmax(0, 1fr); }
+  /* Head, then the menu, then the body. The burger sits in the head, so the
+     fold opens directly under the row that carries it. */
+  .dmd .with-aside {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "head" "rail" "body";
+    /* Zero, and the spacing moves into the items.
+       A shut fold is a zero-height track, and a track still takes a gap on
+       each side however small it is: measured 32px between the header and the
+       body where the content column's own step is 16. A negative margin does
+       not help — it moves the item's box and leaves both gaps where they are.
+       Carried as margins instead, the closed menu takes its spacing with it. */
+    row-gap: 0;
+  }
+  .dmd .with-aside > .page-header { margin-bottom: var(--space-md, 16px); }
+  /* Inside the clipped box, so it collapses with the fold. Same reason as the
+     title's top margin above. */
+  .dmd .nav-fold > .nav-list > :last-child { margin-bottom: var(--space-md, 16px); }
+
+  /* The heading and the burger, side by side.
+     `min-width: 0` on the heading so a long title wraps to the next line
+     instead of pushing the burger off the row; the burger never shrinks. */
+  .dmd .page-title {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: var(--space-md, 16px); width: 100%; min-width: 0;
+  }
+  .dmd .page-title > h2 { min-width: 0; overflow-wrap: anywhere; }
+  /* The mark aligns to the heading's CAP CENTRE, not to its box.
+   *
+   * A heading's line box is not symmetric about the cap-to-baseline band: at
+   * 39.1px with a 52.4px line box there is more room under the baseline than
+   * above the cap, so `align-items: center` puts the mark high. Measured 2.81px
+   * above the cap centre, and they saw it in a screenshot.
+   *
+   * Two causes, both removed. The summary carried an 8px bottom margin from
+   * when it sat above a list, which is 4px of the error and simply wrong here.
+   * The rest is the line box, corrected with a transform so no layout moves.
+   *
+   * The shift is measured, not picked: with the margin gone and no transform,
+   * the mark sat 1.19px BELOW the cap centre at a 39.1px heading, so the factor
+   * is 1.19/39.1. It is stated against the HEADING's size token rather than in
+   * `em`, because `em` on this element resolves against the inherited body size
+   * — the first attempt moved 0.8px where 1.19 was needed. */
+  .dmd .page-title > .nav-collapse {
+    flex: 0 0 auto;
+    transform: translateY(calc(var(--font-h2-size, 32px) * -0.0304));
+  }
+  .dmd .page-title > .nav-collapse > .nav-summary { margin-bottom: 0; }
 
   /* Stacking the rail is only half the job. Left alone it becomes five links
      stacked above the page title, which pushes the heading below the fold and
@@ -19,10 +65,29 @@
   /* The disclosure appears only here. Hidden at every wider width, because a
      desktop header has room for the links themselves. */
   .dmd .nav-collapse { display: block; }
-  .dmd .nav-collapse:not([open]) ~ .nav-fold { grid-template-rows: 0fr; }
+  /* Asked of the SURFACE, not of a sibling.
+     The disclosure sits in the page-header row and the fold sits in the rail,
+     so they are no longer siblings and `~` cannot reach across. Every surface
+     holds exactly one of each, which is what makes this safe. */
+  .dmd:has(.nav-collapse:not([open])) .nav-fold { grid-template-rows: 0fr; }
   .dmd .nav-fold { transition: grid-template-rows var(--duration-normal, 200ms) var(--ease-standard, ease); }
   .dmd .nav-burger { display: flex; }
   .dmd .nav-summary { cursor: pointer; }
+  /* The menu's title appears with the menu, above the links it names. It is
+     also the first thing inside the clipped box, so it carries the space that
+     used to sit outside it. */
+  .dmd .nav-title { display: block; margin-top: var(--space-sm, 12px); }
+
+  /* A gap to a closed fold is dead space.
+     The fold collapses to a `0fr` row, but the rail's flex `gap` does not
+     collapse with it — 12px of nothing sat under the shut menu and read as a
+     hole above the page heading.
+     The space has to sit INSIDE the clipped area, not on the box that does the
+     clipping. `padding-top` on `.nav-list` grew the clip box itself and simply
+     moved the 12px rather than removing them: rail 60px either way. A margin
+     on the first child is inside, so the closed row clips it with everything
+     else. Measured closed: rail 48px, and the hole is gone. */
+  .dmd .aside-rail { gap: 0; }
 
   /* A header menu opens downward as a stack, not as a squeezed row. Its call
      to action goes full width, because it is the reason the header exists. */

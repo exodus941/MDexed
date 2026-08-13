@@ -45,15 +45,10 @@ export default function Dashboard({ onInspect, layout }) {
           needs no script, so the exported page behaves the same. */}
       {/* One grid cell holding both, or `.with-aside` sees three children. */}
       <div className="aside-rail">
-        <details className="nav-collapse">
-          <summary className="nav-summary" {...inspectProps("nav-item", onInspect, { passthrough: true })}>
-            <span className="caption" style={{ textTransform: 'uppercase', letterSpacing: '.08em' }}
-              {...txt('overline', 'text-muted')}>Workspace</span>
-            <span className="nav-burger" aria-hidden="true"><span /><span /><span /></span>
-          </summary>
-        </details>
         <div className="nav-fold">
         <nav className="stack-sm nav-list">
+          <span className="caption nav-title" style={{ textTransform: 'uppercase', letterSpacing: '.08em' }}
+            {...txt('overline', 'text-muted')}>Workspace</span>
           <div className="nav-item is-active with-icon" {...ins('nav-item-selected')}><Ico d={IconChart} />Overview</div>
           {[['Accounts', IconFolder], ['Invoices', IconSend], ['Reports', IconChart], ['Settings', IconMore]].map(([t, icon]) => (
             <div key={t} className="nav-item with-icon" {...ins('nav-item')}><Ico d={icon} />{t}</div>
@@ -62,7 +57,13 @@ export default function Dashboard({ onInspect, layout }) {
         </div>
       </div>
 
-      <div className="stack">
+      {/* The page header is a SIBLING of the rail, not a child of the content
+          column. Only then can the grid put the menu between the title row and
+          the body at a narrow width — a menu that opens under the bar that
+          owns it. `grid-template-areas` names the three parts, so the wide
+          layout reads "rail beside head, rail beside body" and the narrow one
+          reads "head, rail, body". */}
+      <>
         {/* The heading and its actions share a row. The description sits under
             that row, not inside it.
          *
@@ -82,7 +83,21 @@ export default function Dashboard({ onInspect, layout }) {
             `display: contents` at that width and hands its children up. */}
         <div className="page-header">
           <div className="row row-wrap page-head" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-            <h2 {...txt('h2')}>Overview</h2>
+            {/* The heading and the burger are one row. A folded nav sits BESIDE
+                the page title, never above it — that is how every application
+                has done it for a decade, and a bar of its own put 44px of
+                nothing between the two.
+                `.page-title` is `display: contents` at wide widths, so the
+                heading is a direct child of this row exactly as before and the
+                disclosure is hidden. */}
+            <div className="page-title">
+              <h2 {...txt('h2')}>Overview</h2>
+              <details className="nav-collapse">
+                <summary className="nav-summary" aria-label="Workspace menu" {...inspectProps("nav-item", onInspect, { passthrough: true })}>
+                  <span className="nav-burger" aria-hidden="true"><span /><span /><span /></span>
+                </summary>
+              </details>
+            </div>
             {/* Small is a desktop choice. These are the page's own actions, and
                 at 375px a 28px target beside a 28px icon button is neither
                 comfortable to hit nor the right weight for the top of a screen.
@@ -99,6 +114,7 @@ export default function Dashboard({ onInspect, layout }) {
           <p className="muted small page-sub" {...txt('body-sm', 'text-muted')}>Fourth quarter, all accounts</p>
         </div>
 
+      <div className="stack">
         {/* Alerts belong on the screen that would actually raise one. */}
         <div className="alert alert-warning" {...ins('alert-warning')}>
           {al.icon !== 'none' && <Ico d={IconAlert} />}
@@ -188,6 +204,7 @@ export default function Dashboard({ onInspect, layout }) {
           </div>
         </div>
       </div>
+      </>
     </div>
   )
 }

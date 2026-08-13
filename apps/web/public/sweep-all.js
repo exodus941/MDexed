@@ -41,7 +41,10 @@ return (async () => {
       continue
     }
 
-    const r = sweep('.dmd')
+    /* The frame's own element, not the selector. `sweep('.dmd')` took the
+       first of four `.dmd` nodes — the preview plus three component samples —
+       so every run here had been measuring a surface nobody was looking at. */
+    const r = sweep(frame)
     rows.push({
       surface: name,
       clean: r.clean,
