@@ -257,26 +257,17 @@ export const TAB_STYLES = {
 
 export const DEFAULT_TAB_STYLE = 'underline'
 
-/* ── A strip under a major rule takes the pill ──
+/* The document's treatment, or the default when the name is unknown.
  *
- * An underlined strip carries a rule of its own. Put one directly beneath a
- * page rule and the screen shows two lines within about 47px, in the same
- * colour, at the same weight. Two panes make it three. The eye reads the
- * repetition before it reads the tabs.
+ * A promotion once lived here: a strip under a major rule was forced to the
+ * pill, because an underlined strip repeats the page rule about 47px below it.
+ * They rejected the look on sight and asked for it to be rescinded, so the
+ * chosen treatment now stands everywhere. Do not reinstate it.
  *
- * Measured on the real palette: the underline layout drew rules at y=67 and
- * y=114 twice over; the pill layout drew one, at y=67. A pill marks the active
- * tab by fill, so the strip needs no line and nothing repeats.
- *
- * One function, called wherever a strip renders. Written inline at each call
- * site it would disagree with itself the first time one site changed.
- *
- * @param {string} tabStyle    the document's chosen treatment
- * @param {boolean} underRule  true when a major rule sits directly above
- */
-export function stripStyle(tabStyle, underRule = false) {
-  const style = TAB_STYLES[tabStyle] ? tabStyle : DEFAULT_TAB_STYLE
-  return underRule ? 'pill' : style
+ * The function stays, because the fallback still needs one implementation. Two
+ * call sites restating it would disagree the first time one changed. */
+export function stripStyle(tabStyle) {
+  return TAB_STYLES[tabStyle] ? tabStyle : DEFAULT_TAB_STYLE
 }
 
 /** Merge an override map over a property set. */
