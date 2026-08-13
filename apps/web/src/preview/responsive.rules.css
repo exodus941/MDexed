@@ -619,3 +619,9 @@
   .dmd .tab-strip { display: none; }
   .dmd .tab-select { display: block; }
 }
+
+/* Context stacks under the content it belongs to, at the same width every
+   other two-column block here collapses. */
+@media (max-width: 999901px) {
+  .dmd .with-context { grid-template-columns: minmax(0, 1fr); }
+}
