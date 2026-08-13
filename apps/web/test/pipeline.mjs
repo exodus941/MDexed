@@ -1429,6 +1429,9 @@ line('\n- prompt construction -')
     ['a comparison never scrolls sideways', ['never scrolls sideways']],
     ['a comparison puts every row on one grid', ['every row of a comparison on **one** grid']],
     ['a recommendation is marked by its edge', ['never by a fill']],
+    ['a marked column is one unbroken edge', ['stop against it rather than crossing it']],
+    ['a bordered cell is stretched, never centred', ['stretch any cell that carries a border']],
+    ['a column marker cannot span auto-placed rows', ['names the end of the explicit grid']],
     ['content beside context is not navigation', ['beside **context** is not content beside **navigation**']],
     /* The second pass over the comparison. Every one of these was a real
        defect in the surface that exists to demonstrate the rule it broke. */

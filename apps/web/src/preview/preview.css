@@ -1110,6 +1110,29 @@
    reader scanning the rows has lost sight of the cards, so the column has to
    say which plan it is on its own. Its edge, never a fill: a filled column
    beside two unfilled ones reads as already chosen. */
+/* The recommended column is ONE unbroken edge, and the dividers stop at it.
+ *
+ * Three attempts, each measured:
+ *
+ *   1. Edges on centred cells. A centred cell is only as tall as its content —
+ *      44px inside a 47.6px row, and 38px on the row holding a tick. Every
+ *      outline floated inside its row with 2.3px above and 1.3px below, so six
+ *      rows read as six separate boxes. This is what they photographed.
+ *   2. Edges on stretched cells. The cells then touched to exactly 1px, which
+ *      is the row's own `border-top` crossing the column. A seam every 47.6px
+ *      is still a seam.
+ *   3. One element spanning the column. `grid-row: 1 / -1` collapsed it to
+ *      2px, because `-1` means the end of the EXPLICIT grid and these rows are
+ *      auto-placed. Giving it a span would have made auto-placement push every
+ *      row below it.
+ *
+ * The answer is not to draw the column differently. It is to stop cutting it:
+ * the divider belongs to the cells it divides, and the recommended column is
+ * not one of them. Its cells then meet at 0 and the edge runs the full height.
+ */
+.dmd .plan-row:not(:first-of-type) > *:not(.is-picked) {
+  border-top: 1px solid var(--c-border-subtle);
+}
 .dmd .plan-cell.is-picked {
   box-shadow: inset 1px 0 0 var(--c-accent), inset -1px 0 0 var(--c-accent);
 }
@@ -1121,7 +1144,19 @@
   box-shadow: inset 1px 0 0 var(--c-accent), inset -1px 0 0 var(--c-accent),
               inset 0 -1px 0 var(--c-accent);
 }
-.dmd .plan-cell { display: flex; align-items: center; justify-content: center; }
+/* `align-self: stretch`, so a cell fills its row's full height.
+ *
+ * The row centres its items, and a centred cell is only as tall as its own
+ * content — measured 44px inside a 47.6px row, and 38px on the row holding a
+ * tick. The mark on the recommended column is drawn on the cells, so every
+ * outline floated inside its row with 2.3px of nothing above it and 1.3px
+ * below. Six rows of that read as six separate boxes rather than one column.
+ * Stretched, consecutive cells touch exactly and the edge runs unbroken. The
+ * content stays centred by the cell's own flex centring. */
+.dmd .plan-cell {
+  display: flex; align-items: center; justify-content: center;
+  align-self: stretch;
+}
 /* The padding sits on the CELLS, not on the row.
    On the row it fell outside the grid items, so the accent edge marking the
    recommended column broke into segments with 24px of nothing between them —

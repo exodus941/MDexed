@@ -130,9 +130,11 @@ export default function Pricing({ onInspect, casing }) {
 
         {/* A separator goes above each row and never below, so the first row
             carries the rule under the header and the last ends clean. */}
+        {/* No border on the ROW. A row-wide rule crosses the recommended
+            column and cuts its edge into segments. The divider is drawn by the
+            cells that are not in that column, so it stops against it. */}
         {ROWS.map(([label, ...cells]) => (
-          <div key={label} className="plan-grid plan-row"
-            style={{ borderTop: '1px solid var(--c-border-subtle)' }}>
+          <div key={label} className="plan-grid plan-row">
             <span className="small" {...txt('body-sm')} style={{ fontWeight: 500 }}>{L(label)}</span>
             {cells.map((cell, j) => (
               <span key={j} className={`plan-cell${PLANS[j].pick ? ' is-picked' : ''}`}>{answer(cell)}</span>
