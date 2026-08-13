@@ -1448,7 +1448,8 @@ line('\n- prompt construction -')
     ['a card action stands clear of the body', ['the action row stands further from the body']],
     ['a delta belongs to its number', ['not to the tile']],
     ['an empty-state mark is drawn large', ['twice the largest icon step']],
-    ['an inherited custom property can cancel a gap that is not there', ['custom properties inherit']],
+    ['a gap subtraction is written on the container', ['write the rule on the container']],
+    ['a calc property must exist where the calc runs', ['everywhere that calc runs']],
     ['equalise a heading gap on ink, not on boxes', ['two different corrections, not one scaled']],
   ]
   const missing = RULES.filter(([, terms]) => !terms.every(t => doc.includes(t))).map(([n]) => n)

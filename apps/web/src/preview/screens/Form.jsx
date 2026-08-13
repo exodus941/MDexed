@@ -129,7 +129,7 @@ export default function Form({ onInspect, layout, casing }) {
         {/* Reversed when stacked, so the primary action is the one nearest the
             thumb and the one read first. Right-aligned in a row puts Save last,
             which is correct on a desktop and backwards on a phone. */}
-        <div className="row stack-narrow-rev" style={{ justifyContent: 'flex-end' }}>
+        <div className="row stack-narrow-rev card-actions" style={{ justifyContent: 'flex-end' }}>
           <button className="btn btn-ghost" {...ins('button-ghost')}><Ico d={IconX} />Cancel</button>
           <button className="btn btn-secondary" {...ins('button-secondary')}>{L('Save draft')}</button>
           <button className="btn btn-primary" {...ins('button-primary')}><Ico d={IconCheck} />{L('Save changes')}</button>

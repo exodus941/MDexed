@@ -72,9 +72,14 @@ export default function Pricing({ onInspect, casing }) {
       </div>
       <div {...txt('h3')} style={{ fontSize: 'var(--font-h3-size)', fontWeight: 'var(--font-h3-weight)' }}>{p.price}</div>
       <p className="muted small" {...txt('body-sm', 'text-muted')}>{p.note}</p>
-      <button className={`btn ${p.variant}`} {...ins(p.variant === 'btn-primary' ? 'button-primary' : 'button-secondary')}>
-        {L(p.cta)}{p.variant === 'btn-primary' && <Ico d={IconArrow} end />}
-      </button>
+      {/* The call to action stands clear of the sentence describing the plan,
+          the same distance every other card in the system uses. */}
+      <div className="card-actions">
+        <button className={`btn ${p.variant}`} {...ins(p.variant === 'btn-primary' ? 'button-primary' : 'button-secondary')}
+          style={{ width: '100%', justifyContent: 'center' }}>
+          {L(p.cta)}{p.variant === 'btn-primary' && <Ico d={IconArrow} end />}
+        </button>
+      </div>
     </div>
   )
 
