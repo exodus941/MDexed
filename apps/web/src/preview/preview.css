@@ -596,8 +596,15 @@
  * removed, and the flex the label and the mark share.
  *
  * Nothing here sets a height, a colour or a padding. `.btn` already did. */
+/* The `details` is the flex item, so it has to be the same box as the summary.
+   Left as a block it wrapped an INLINE-flex summary, so the box gained the
+   line's descender space and centring put the button 3.5px below the buttons
+   beside it — same height, different top. Both are flex now and the boxes are
+   identical. */
+.dmd .nav-collapse { display: flex; }
 .dmd .nav-summary {
-  display: inline-flex; align-items: center; gap: var(--space-2xs, 6px);
+  display: flex; align-items: center; justify-content: center;
+  gap: var(--space-2xs, 6px);
   list-style: none; cursor: pointer;
 }
 
@@ -660,7 +667,22 @@
  * that fits only by letting the title and the first button touch has already
  * failed; it just has not been told yet. Setting the floor here and the
  * collapse in the responsive sheet keeps one number in charge of both. */
-.dmd .page-head { column-gap: var(--space-lg, 24px); }
+/* ── The action cluster keeps its own gap; the free space goes in one place ──
+ *
+ * `justify-content: space-between` on a three-item row spreads the slack across
+ * BOTH gaps. Measured: 8px between Export and the bell, and 65.3px between the
+ * bell and the menu button beside them — one group with a hole in it.
+ *
+ * So the row starts at the left and the action group takes an auto margin. All
+ * the slack lands in one place, between the title and the cluster, and every
+ * button keeps the group's own `xs` step.
+ *
+ * The floor between the heading and the first control is still `lg`, written as
+ * the subtraction it now is: the title's own right margin plus the row's gap.
+ * At the tightest fit the auto margin is zero and the distance is exactly 24. */
+.dmd .page-head { column-gap: var(--space-xs, 8px); align-items: center; }
+.dmd .page-head > .page-title { margin-right: calc(var(--space-lg, 24px) - var(--space-xs, 8px)); }
+.dmd .page-head > .page-actions { margin-left: auto; }
 
 /* Navigation is not body copy. An underline in running text means "this is a
    link"; a whole nav bar of underlines means nothing and reads as damage.
@@ -835,4 +857,37 @@
     animation: none !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* ── Too many tabs to fit: the strip becomes a dropdown ──
+ *
+ * Their rule, and it replaces the strip rather than shrinking it. A run of
+ * destinations that does not fit is not a strip with a scrollbar bolted on. It
+ * is a list, and a list you pick from is a select.
+ *
+ * Both are in the markup and CSS shows one, because the exported examples are
+ * static HTML and a rule that needs script is a rule the payload cannot
+ * demonstrate.
+ *
+ * The select carries the TAB's type tokens, not the input's, so its text lands
+ * where the strip's text lands. Their words: "make sure that the dropdown's
+ * text has the same baseline as the text of the tab bar." */
+.dmd .tab-select { display: none; }
+.dmd .tab-select > select {
+  /* The same BOX as a tab, not the same line-height.
+     A native select ignores `line-height` on its value: mine computed to
+     `normal` while the tab read 22.31px. It centres the value in its content
+     box instead, so the way to land the text where the tab's text landed is to
+     give it the tab's font size and the tab's padding. */
+  font-family: var(--cmp-tab-font-family, inherit);
+  font-size: var(--cmp-tab-font-size, var(--font-body-sm-size, 14px));
+  padding: var(--cmp-tab-padding, var(--space-xs, 8px) var(--space-sm, 12px));
+  color: var(--cmp-tab-selected-text-color, var(--c-text, #111));
+  width: 100%;
+  /* And the same HEIGHT, or the content below jumps when the swap happens.
+     A tab's box is its line box plus its padding; the select's line box is the
+     UA's `normal`, which measured 4px shorter. Derived from the same two
+     tokens the tab's line box comes from, so a type-scale change carries. */
+  min-height: calc(var(--font-body-sm-size, 14px) * var(--font-body-sm-leading, 1.58)
+                   + 2 * var(--space-xs, 8px));
 }

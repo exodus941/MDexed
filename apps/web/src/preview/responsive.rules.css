@@ -388,6 +388,12 @@
   .dmd .page-head > .nav-collapse { order: 2; }
   .dmd .page-head > .page-sub { order: 3; }
   .dmd .page-head > .page-actions { order: 4; flex: 1 0 100%; }
+  /* The auto margin moves with the control that needs it. It sits on the action
+     group above, which pushes that group right — but here the group is on a
+     line of its own and the menu button shares the title's line, so the button
+     takes it. Measured before: 168px short of the edge at 548. */
+  .dmd .page-head > .nav-collapse { margin-left: auto; }
+  .dmd .page-head > .page-actions { margin-left: 0; }
   /* How an action row breaks when it stops fitting.
    *
    * Three buttons need 342px and the column holds 309, so the row must break.
@@ -567,4 +573,17 @@
 @media (max-width: 999905px) {
   .dmd .nav-label { display: none; }
   .dmd .nav-title { display: block; }
+}
+
+/* 712 — a tab strip that does not fit becomes a dropdown.
+ *
+ * Their rule: replace the bar, do not shrink it. Measured on the real Shell by
+ * shrinking until the left strip's scrollWidth passed its clientWidth — 704px,
+ * where four tabs needed 264 in a 262px pane. 712 swaps before the clip.
+ *
+ * The select takes the tab's own type tokens, so its text sits where the
+ * strip's text sat. That is the half they asked for by name. */
+@media (max-width: 999906px) {
+  .dmd .tab-strip { display: none; }
+  .dmd .tab-select { display: block; }
 }
