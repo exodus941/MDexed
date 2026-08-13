@@ -31,6 +31,7 @@ export default function Landing({ onInspect }) {
             {/* The burger alone. Its label goes inside the menu, with the links
                 it names. See the same change on Dashboard and Settings. */}
             <summary className="nav-summary" aria-label="Menu" {...inspectProps(['nav-burger', 'nav-item'], onInspect, { passthrough: true })}>
+              <span className="nav-label" aria-hidden="true">Menu</span>
               <span className="nav-burger" aria-hidden="true"><span /><span /><span /></span>
             </summary>
           </details>

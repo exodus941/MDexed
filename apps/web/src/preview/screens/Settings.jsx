@@ -54,6 +54,7 @@ export default function Settings({ onInspect }) {
             <h2 {...txt("h2")}>Notifications</h2>
             <details className="nav-collapse">
               <summary className="nav-summary" aria-label="Settings menu" {...inspectProps(['nav-burger', 'nav-item'], onInspect, { passthrough: true })}>
+                <span className="nav-label" aria-hidden="true">Settings</span>
                 <span className="nav-burger" aria-hidden="true"><span /><span /><span /></span>
               </summary>
             </details>
