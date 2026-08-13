@@ -28,12 +28,11 @@ import { stripStyle } from '../../state/components.js'
  * the Tab entry says. The two treatments differ on one axis: an underline sits
  * ON the strip's rule, a pill floats clear of it.
  *
- * `underRule` says a major rule sits directly above. `stripStyle` then promotes
- * an underline to a pill, because two rules that close together read as one
- * doubled line. The Tab entry in the Components panel shows the chosen
- * treatment untouched, so the selector still previews what it selects. */
-function TabStrip({ ins, tabs, selected, style, label, underRule }) {
-  const pill = stripStyle(style, underRule) === 'pill'
+ * The strip renders the treatment the document names, wherever it sits. A
+ * promotion to the pill under a major rule was built and then rescinded on
+ * sight. Do not reinstate it. */
+function TabStrip({ ins, tabs, selected, style, label }) {
+  const pill = stripStyle(style) === 'pill'
   return (
     /* A `nav` landmark, because a tab strip is navigation. The suite asserts
        this for any screen using `.nav-item`, and my first rewrite dropped it —
@@ -75,7 +74,11 @@ function TabStrip({ ins, tabs, selected, style, label, underRule }) {
  * Conflating them painted "Warnings −4" in the danger colour. */
 function Stat({ ins, txt, label, value, delta, rose, good }) {
   return (
-    <div className="card stack-sm" {...ins('card')} style={{ flex: 1, minWidth: 0 }}>
+    /* `flex: 1` with `min-width: 0` let a tile shrink under its own label:
+       "Warnings" needs 73px and had 34, so all three read as cut words. A tile
+       grows to share the row and never goes under its content. The row wraps
+       instead, which is the answer everywhere else in this system. */
+    <div className="card stack-sm" {...ins('card')} style={{ flex: '1 1 max-content', minWidth: 'max-content' }}>
       <div className="caption muted" {...txt('overline', 'text-muted')}
         style={{ textTransform: 'uppercase', letterSpacing: 'var(--font-overline-tracking)' }}>{label}</div>
       <div {...txt('h4')} style={{ fontSize: 'var(--font-h4-size)', fontWeight: 'var(--font-h4-weight)' }}>{value}</div>
@@ -122,11 +125,22 @@ export default function Shell({ onInspect, tabStyle }) {
 
       {/* Two panes, separated by space. A border between them read as one bar
           cut in half by a divider, when they are two independent strips over
-          two independent panes. */}
-      <div className="shell-split row" style={{ alignItems: 'stretch' }}>
-        <div className="stack" style={{ width: '46%', minWidth: 0 }}>
+          two independent panes.
+
+          The gutter is a step of its own, not the row's. `.row` gives 8px, and
+          the tabs inside each strip sit 4px apart: two to one, so the two
+          strips read as one long strip. Proximity is a ratio and it wants more
+          than three to one. `lg` puts 24px between the columns against 4px
+          inside them — six to one, and the columns separate. */}
+      <div className="shell-split row" style={{ alignItems: 'stretch', gap: 'var(--space-lg)' }}>
+        {/* 40, not 46. The right column carries three tiles and the left
+            carries one card, so an even-handed split starves the side with
+            more in it: the tiles came out 4.4px short of fitting and wrapped
+            two-and-one at every width. Measured after: 390px against the 356px
+            the three tiles need. */}
+        <div className="stack" style={{ width: '40%', minWidth: 0 }}>
           {/* Four, not five. Five overflowed the pane by 24px and scrolled. */}
-          <TabStrip ins={ins} style={tabStyle} underRule selected="Colour" label="Editor sections"
+          <TabStrip ins={ins} style={tabStyle} selected="Colour" label="Editor sections"
             tabs={['Meta', 'Colour', 'Type', 'Layout']} />
 
           <div className="card stack-sm" {...ins('card')}>
@@ -157,8 +171,11 @@ export default function Shell({ onInspect, tabStyle }) {
         </div>
 
         <div className="stack" style={{ flex: 1, minWidth: 0 }}>
-          <TabStrip ins={ins} style={tabStyle} underRule selected="Dashboard" label="Preview surfaces" tabs={['Dashboard', 'Form', 'Settings']} />
-          <div className="row" style={{ alignItems: 'stretch' }}>
+          <TabStrip ins={ins} style={tabStyle} selected="Dashboard" label="Preview surfaces" tabs={['Dashboard', 'Form', 'Settings']} />
+          {/* The tiles wrap rather than clip. `.row` only wraps once the FRAME
+              is narrow, and this pane is narrow inside a wide frame — the
+              container is the wrong size to ask. */}
+          <div className="row row-wrap" style={{ alignItems: 'stretch', flexWrap: 'wrap' }}>
             <Stat ins={ins} txt={txt} label="Tokens"   value="284"   delta="12"  rose good />
             <Stat ins={ins} txt={txt} label="Contrast" value="4.9:1" delta="0.3" rose good />
             {/* Fell by four, and that is the good direction. */}

@@ -980,25 +980,27 @@ line('\n- prompt construction -')
   assert(/var\(--c-border-subtle\)/.test(shell), 'rules are drawn in border-subtle, not the control-outline weight')
   assert(/borderTop: i === 0 \? 0 :/.test(shell), 'row separators are drawn above, never below')
 
-  /* ── A strip under a major rule takes the pill ──
+  /* ── The chosen treatment stands, wherever the strip sits ──
    *
-   * An underlined strip carries a rule of its own. Under a page rule it draws a
-   * second line about 47px below the first, same colour, same weight; two panes
-   * make it three. Measured on the real palette: underline drew rules at y=67
-   * and y=114 twice over, the pill drew one, at y=67.
-   *
-   * Test the function, not the file. A regex on the source would pass on a
-   * `underRule` prop that nothing reads. */
+   * A promotion to the pill under a major rule was built, measured and then
+   * rescinded on sight. These assertions exist so nothing reinstates it. */
   const { stripStyle } = await import('../src/state/components.js')
-  assert(stripStyle('underline', true) === 'pill', 'an underlined strip under a rule is promoted to a pill')
-  assert(stripStyle('pill', true) === 'pill', 'a pill under a rule stays a pill')
-  assert(stripStyle('underline', false) === 'underline', 'away from a rule the chosen treatment stands')
-  assert(stripStyle('nonsense', false) === 'underline', 'an unknown treatment falls back rather than rendering nothing')
-  /* Both strips in the shell sit directly under the page divider. */
-  assert((shell.match(/<TabStrip[^>]*underRule/g) ?? []).length === 2,
-    'both shell strips declare that a rule sits above them')
-  assert(/stripStyle\(style, underRule\)/.test(shell),
-    'the shell asks stripStyle rather than restating the promotion')
+  assert(stripStyle('underline') === 'underline', 'an underlined strip stays underlined')
+  assert(stripStyle('pill') === 'pill', 'a pill strip stays a pill')
+  assert(stripStyle('nonsense') === 'underline', 'an unknown treatment falls back rather than rendering nothing')
+  assert(!/underRule/.test(shell), 'no strip in the shell is promoted by position')
+  assert(/stripStyle\(style\)/.test(shell), 'the shell asks stripStyle rather than restating the fallback')
+
+  /* ── A nav scrolls, it never wraps ──
+   *
+   * `.row` wraps at narrow container widths, and a nav is a `.row`. Four tabs
+   * in a 248px pane folded to two rows, 92px tall. The matrix already answered
+   * this question the same way. */
+  const responsive = fs.readFileSync(new URL('../src/preview/responsive.rules.css', import.meta.url), 'utf8')
+  assert(/\.dmd nav\.row \{[^}]*flex-wrap: nowrap/.test(responsive), 'a nav strip does not wrap')
+  assert(/\.dmd nav\.row \{[^}]*overflow-x: auto/.test(responsive), 'a nav strip scrolls instead')
+  assert(/\.dmd nav\.row::-webkit-scrollbar/.test(responsive),
+    'the bar is hidden, so two strips side by side keep one height')
 }
 
 /* ── The library covers what the payload tells an agent to build ──

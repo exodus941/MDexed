@@ -74,6 +74,26 @@
   .dmd .matrix { overflow-x: auto; -webkit-overflow-scrolling: touch; }
   .dmd .matrix > .row { flex-wrap: nowrap; min-width: max-content; }
 
+  /* A tab strip scrolls too. It never folds.
+     A nav is one line of destinations, and the strip's shape is what says so.
+     Folded to two rows it stops reading as one control: measured at 92px tall
+     over two rows for four tabs in a 248px pane, with the pill on row two
+     looking like a different thing entirely. Same answer as the matrix above,
+     for the same reason.
+
+     `nav.row` beats the general `.row` on specificity, so this does not depend
+     on which rule is written last. */
+  .dmd nav.row { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .dmd nav.row > * { flex-shrink: 0; }
+  /* The bar is hidden, and only here.
+     A scrollbar takes its height from the strip it sits under: one strip that
+     overflowed grew to 58px while its neighbour stayed 48, so two strips on
+     one line stopped agreeing. The matrix keeps its bar, because a specimen
+     sheet is a thing you scan and nothing sits beside it. A cut tab is the
+     affordance here, and keyboard focus scrolls the strip anyway. */
+  .dmd nav.row { scrollbar-width: none; }
+  .dmd nav.row::-webkit-scrollbar { display: none; }
+
   /* Only the true matrix gets aligned columns.
      Rows of independent flex boxes line up only by luck — measured at 7px of
      drift on the variants grid, where the whole point is comparing one cell
@@ -97,7 +117,17 @@
      three scrollbars for four buttons. */
   .dmd .matrix { overflow-x: visible; }
   .dmd .matrix > .row { flex-wrap: wrap; min-width: 0; }
-  .dmd .matrix-grid { display: flex; flex-direction: column; }
+  /* `align-items: stretch` is stated, and it is not a default being restated.
+     The grid rule above sets `align-items: center` for its own reasons. This
+     rule replaces the display and the direction and inherited that property,
+     so the flex column CENTRED its rows: a secondary row 6.5px wider than the
+     others started 3.2px to their left, on the one grid whose whole job is
+     comparing a cell against the cell below it.
+
+     Change a container's display and restate every property the old display
+     needed. A leftover reads as correct because the rule it belonged to is
+     right there above it. */
+  .dmd .matrix-grid { display: flex; flex-direction: column; align-items: stretch; }
   .dmd .matrix-grid > .row { display: flex; flex-wrap: wrap; }
 
   /* The label takes its own line, and the rule is on the LABEL.

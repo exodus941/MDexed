@@ -57,11 +57,25 @@ return (async () => {
       text: r.textOffCentre.length,
       edges: r.edges.length,
       gaps: r.gaps.length,
-      detail: r.clean ? null : {
-        baselines: r.baselines.slice(0, 3),
-        heights: r.heights.slice(0, 3),
-        other: [...r.ghosts, ...r.covered, ...r.contentSpill, ...r.overflow].slice(0, 3),
-      },
+      /* Every non-empty field, named. The old version listed four of them by
+         hand, so a surface with only an `edges` finding reported as dirty with
+         an empty body — a verdict I could not act on and nearly skipped. What
+         the sweep found is the sweep's answer, not a list I curate here. */
+      detail: r.clean ? null : Object.fromEntries(
+        Object.entries(r)
+          .filter(([, v]) => Array.isArray(v) && v.length)
+          .map(([k, v]) => [k, v.slice(0, 3)])),
+      /* Notices, which `clean` excludes on purpose: a sideways scroller, an
+         uneven gap, a small target. Each is a question rather than a fault, so
+         it must not fail the run — and it must not vanish either. Returned for
+         every surface, clean ones included, because the old version attached
+         detail only to dirty rows and a notice on a clean surface was
+         invisible to anything reading the value. */
+      notices: [
+        ...r.scrollers.map(x => 'scroller ' + x.axis + ' on ' + x.el),
+        ...r.gaps.map(x => 'gaps ' + JSON.stringify(x).slice(0, 90)),
+        ...r.smallTargets.map(x => 'small target ' + JSON.stringify(x).slice(0, 90)),
+      ],
     })
   }
 
@@ -72,6 +86,8 @@ return (async () => {
     ofExpected: SURFACES.length,
     allClean: dirty.length === 0,
     dirty: dirty.map(d => ({ surface: d.surface, ...d.detail })),
+    notices: rows.filter(x => x.notices?.length)
+      .map(x => x.surface + ': ' + x.notices.join('; ')),
     skipped: rows.filter(x => x.note).map(x => x.surface + ': ' + x.note),
   }
 })()
