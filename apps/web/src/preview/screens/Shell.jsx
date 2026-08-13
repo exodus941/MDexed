@@ -122,7 +122,15 @@ function TitleBar({ ins, txt }) {
          6/2 is the first that reads 0.00 without changing the height. Do not
          "tidy" this back to symmetric — that restores the fault. */
       padding: 'calc(var(--space-2xs, 4px) + 2px) var(--space-md, 16px) calc(var(--space-2xs, 4px) - 2px)',
-      background: 'var(--c-surface, #fff)',
+      /* No fill of its own.
+       *
+       * It was `surface`, which in a light system is near-white against a grey
+       * page — a bright slab floating over the shell for no stated reason. A
+       * different background has to earn itself by meaning something: a card
+       * is raised, a well is recessed. A title bar is neither. It is the top
+       * of the page, so it takes the page, and its lower rule does the
+       * separating on its own. */
+      background: 'transparent',
       /* A title bar's lower edge defines the structure of the page, so it
          takes `border`, not `border-subtle`. */
       borderBottom: '1px solid var(--c-border, #ccc)',
@@ -187,8 +195,13 @@ function TabStrip({ ins, tabs, selected, style }) {
         const on = t === selected
         return (
           <span key={t} {...ins(on ? 'tab-selected' : 'tab')} style={{
-            display: 'inline-block', lineHeight: pill ? '28px' : '34px', whiteSpace: 'nowrap',
-            padding: 'var(--cmp-tab-padding, 0 12px)',
+            /* The tab's height comes from the line box alone. It used to take
+               the component's full padding AND a 34px line height, so an 8px
+               pad sat above and below a 34px box: a 50px tab with the word
+               floating in the middle and a wide empty band under it before the
+               rule. Height belongs to one property, not two. */
+            display: 'inline-block', lineHeight: pill ? '26px' : '30px', whiteSpace: 'nowrap',
+            padding: '0 var(--space-sm, 12px)',
             fontFamily: 'var(--cmp-tab-font-family, inherit)',
             fontSize: 'var(--cmp-tab-font-size, 13px)',
             fontWeight: on ? 500 : 400,
@@ -258,16 +271,24 @@ export default function Shell({ onInspect, layout, tabStyle }) {
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
       <TitleBar ins={ins} txt={txt} />
 
-      <div className="shell-split" style={{ display: 'flex', minHeight: 0 }}>
-        <div style={{
-          width: '46%', minWidth: 0, display: 'flex', flexDirection: 'column',
-          /* A divider between two panes is structure. */
-          borderRight: '1px solid var(--c-border, #ccc)',
-        }}>
+      {/* Two panes, separated by space rather than a line.
+       *
+       * The left pane carried a right border, so the two tab strips read as ONE
+       * bar cut in half by a divider — two groups of tabs pretending to be a
+       * single control. They are two independent strips over two independent
+       * panes. A gap says that; a line says the opposite.
+       *
+       * The row also had no vertical breathing room at all: the strips sat
+       * flush against the title bar above and the content below. */}
+      <div className="shell-split" style={{
+        display: 'flex', gap: 'var(--space-md, 16px)', minHeight: 0,
+        padding: 'var(--space-sm, 12px) var(--space-md, 16px) 0',
+      }}>
+        <div style={{ width: '46%', minWidth: 0, display: 'flex', flexDirection: 'column' }}>
           {/* Four, not five. Five needed 358px in a 334px pane. */}
           <TabStrip ins={ins} style={tabStyle} selected="Colour"
             tabs={['Meta', 'Colour', 'Type', 'Layout']} />
-          <div style={{ padding: 'var(--space-md, 16px)', background: 'var(--c-bg, #fafafa)', flex: 1 }}>
+          <div style={{ padding: 'var(--space-md, 16px) 0', flex: 1 }}>
             <div className="card" {...ins('card')} style={{
               padding: 'var(--cmp-card-padding, var(--space-md, 16px))',
               background: 'var(--cmp-card-background-color, var(--c-surface, #fff))',
@@ -335,7 +356,7 @@ export default function Shell({ onInspect, layout, tabStyle }) {
 
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
           <TabStrip ins={ins} style={tabStyle} selected="Dashboard" tabs={['Dashboard', 'Form', 'Settings']} />
-          <div style={{ padding: 'var(--space-md, 16px)', background: 'var(--c-bg, #fafafa)', flex: 1 }}>
+          <div style={{ padding: 'var(--space-md, 16px) 0', flex: 1 }}>
             <div className="stat-row" style={{ display: 'flex', gap: 'var(--space-sm, 12px)' }}>
               <Stat ins={ins} txt={txt} label="Tokens"   value="284"   delta="12"  rose good />
               <Stat ins={ins} txt={txt} label="Contrast" value="4.9:1" delta="0.3" rose good />

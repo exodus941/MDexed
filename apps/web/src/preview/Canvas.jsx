@@ -2,7 +2,7 @@
    stylesheet, then renders whichever surface is selected inside them. */
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useStore } from '../state/store.jsx'
-import { CONTRAST_PAIRS } from '../state/schema.js'
+import { CONTRAST_PAIRS, pairFails } from '../state/schema.js'
 import { check } from '../color/contrast.js'
 import { audit } from '../a11y/audit.js'
 import { Finding } from '../a11y/PanelAlerts.jsx'
@@ -24,13 +24,14 @@ import Gallery from './Gallery.jsx'
 import { viewport } from '../ui/zoom.js'
 
 export const SURFACES = [
-  /* First, because it is the surface the others cannot stand in for. A
-     dashboard, a form and a settings list are documents; a shell is chrome,
-     and chrome is where a title bar, a tab strip and a stat tile live. Two
-     agents building a tool shell from the exported package each reported that
-     no sample page showed any of the three. */
-  { id: 'shell',     label: 'Shell',     Component: Shell },
+  /* Dashboard leads, because it is what people open first and what they judge
+     the system by. Shell sits second: it is the surface the others cannot
+     stand in for — a dashboard, a form and a settings list are documents,
+     while a shell is chrome, and chrome is where a title bar, a tab strip and
+     a stat tile live. Two agents building a tool shell from the exported
+     package each reported that no sample showed any of the three. */
   { id: 'dashboard', label: 'Dashboard', Component: Dashboard },
+  { id: 'shell',     label: 'Shell',     Component: Shell },
   { id: 'landing',   label: 'Landing',   Component: Landing },
   { id: 'form',      label: 'Form',      Component: Form },
   { id: 'settings',  label: 'Settings',  Component: Settings },
@@ -155,10 +156,8 @@ function ChipMark({ ok }) {
 function ContrastChip({ onOpen }) {
   const { state, derived } = useStore()
   const mode = state.color.mode
-  const failing = CONTRAST_PAIRS.filter(p => {
-    const r = check(derived.roles[mode][p.fg], derived.roles[mode][p.bg])
-    return p.ui ? r.ratio < 3 : !r.pass
-  }).length
+  const failing = CONTRAST_PAIRS.filter(p =>
+    pairFails(p, check(derived.roles[mode][p.fg], derived.roles[mode][p.bg]))).length
 
   return (
     <button onClick={onOpen} title="Open the contrast checker" className="readout"

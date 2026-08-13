@@ -15,6 +15,19 @@ if ! node tools/syntax-guard.mjs; then
   exit 1
 fi
 
+# ── 1b. Scope. Blocking. ──
+# An identifier with no binding is a runtime error, and nothing before runtime
+# looks for one. `tabStyle={cfg.tabStyle}` was pasted into a component with no
+# `cfg`: it compiled, it bundled, the syntax guard said clean, the suite passed,
+# and it blacked out the app the moment that component rendered.
+# Babel's own scope analysis, so it agrees with the bundler.
+if ! node tools/scope-guard.mjs; then
+  echo
+  echo "pre-commit: scope guard failed. Commit refused."
+  echo "Every name above has no binding. That is a blank screen at runtime."
+  exit 1
+fi
+
 # ── 2. The build number. Not blocking. ──
 # Advanced once per batch of commits, so it counts deploys rather than commits:
 # it bumps only when there is nothing unpushed, which means the first commit

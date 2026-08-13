@@ -3,7 +3,7 @@
    and owns cloud sync. */
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import { StoreProvider, useStore, VIEW_TAGS } from './state/store.jsx'
-import { createInitialState, MACROS, DEFAULT_MACROS, CONTRAST_PAIRS } from './state/schema.js'
+import { createInitialState, MACROS, DEFAULT_MACROS, CONTRAST_PAIRS, pairFails } from './state/schema.js'
 import { PRESETS, applyPreset } from './state/presets.js'
 import { check } from './color/contrast.js'
 import { migrate } from './state/migrate.js'
@@ -554,10 +554,12 @@ function GlobalMetrics() {
     }
   }
 
-  const failing = CONTRAST_PAIRS.filter(p => {
-    const r = check(derived.roles[state.color.mode][p.fg], derived.roles[state.color.mode][p.bg])
-    return p.ui ? r.ratio < 3 : !r.pass
-  }).length
+  /* `pairFails`, not a fifth copy of the rule. Five call sites each spelled it
+     out; when `exempt` arrived for disabled text, three learned about it and
+     two did not, so a clean document opened reporting a contrast failure the
+     document itself grades "Exempt (1.4.3)". */
+  const failing = CONTRAST_PAIRS.filter(p =>
+    pairFails(p, check(derived.roles[state.color.mode][p.fg], derived.roles[state.color.mode][p.bg]))).length
 
   return (
     <div>

@@ -3,7 +3,7 @@
    which is where the correctness risk actually lives. */
 import fs from 'node:fs'
 import { load as yamlLoad } from 'js-yaml'
-import { createInitialState, CONTRAST_PAIRS, ANTI_PATTERNS } from '../src/state/schema.js'
+import { createInitialState, CONTRAST_PAIRS, ANTI_PATTERNS, pairFails } from '../src/state/schema.js'
 import { derive, buildCssVars } from '../src/state/derive.js'
 import { migrate } from '../src/state/migrate.js'
 import { applyPreset, PRESETS } from '../src/state/presets.js'
@@ -223,12 +223,10 @@ line('\n- default palette passes its own checks -')
 for (const mode of ['light', 'dark']) {
   const fails = CONTRAST_PAIRS.map(p => {
     const r = check(derived.roles[mode][p.fg], derived.roles[mode][p.bg])
-    /* An exempt pair is measured and reported, never failed. 1.4.3 does not
-       cover text inside a disabled control, and dimming disabled text is the
-       correct behaviour — failing it here would report the intent as the fault,
-       and the obvious "fix" is to make disabled look enabled. */
-    if (p.exempt) return null
-    return (p.ui ? r.ratio < 3 : !r.pass) ? `${p.label} ${r.ratio}:1` : null
+    /* `pairFails` decides, here and in all four other places. The rule was
+       written out five times, and when `exempt` arrived for disabled text only
+       three of the five learned about it. */
+    return pairFails(p, r) ? `${p.label} ${r.ratio}:1` : null
   }).filter(Boolean)
   assert(fails.length === 0, `${mode} mode: ${fails.length ? fails.join(' | ') : 'all pairs pass'}`)
 }
@@ -834,6 +832,40 @@ line('\n- prompt construction -')
   assert(invisible.length === 0, invisible.length
     ? `${invisible.length} line/surface pairs are invisible — ${invisible.slice(0, 3).join('; ')}`
     : `no line token is invisible on any surface, in any preset or mode (${checked} combinations)`)
+}
+
+/* ── One implementation of "does this pair fail" ──
+ *
+ * The rule lived at five call sites, each spelling out
+ * `p.ui ? ratio < 3 : !pass`. When `exempt` arrived for disabled text, three
+ * learned about it and two did not — so a clean document opened reporting
+ * "1 contrast" from the one pair the document itself grades "Exempt (1.4.3)".
+ * Fixing three of five is the class-not-instance failure with a number on it. */
+{
+  const src = ['src/App.jsx', 'src/preview/Canvas.jsx', 'src/panels/RolesPanel.jsx']
+    .map(f => [f, fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8')])
+  const copies = src.filter(([, t]) => /\.ui \?\s*\w+\.ratio < 3/.test(t)).map(([f]) => f)
+  assert(copies.length === 0, copies.length
+    ? `the pass/fail rule is spelled out again in ${copies.join(', ')}`
+    : `every consumer asks pairFails rather than restating the rule (${src.length})`)
+
+  /* And the rule itself, both ways. */
+  const ok = { ratio: 9, pass: true }
+  const low = { ratio: 2, pass: false }
+  assert(pairFails({ fg: 'a', bg: 'b' }, low), 'a failing text pair fails')
+  assert(!pairFails({ fg: 'a', bg: 'b' }, ok), 'a passing text pair does not')
+  assert(!pairFails({ fg: 'a', bg: 'b', ui: true }, { ratio: 3.5, pass: false }), 'a ui pair clears at 3:1')
+  assert(pairFails({ fg: 'a', bg: 'b', ui: true }, { ratio: 2.1, pass: false }), 'a ui pair below 3:1 fails')
+  assert(!pairFails({ fg: 'a', bg: 'b', exempt: true }, low), 'an exempt pair never fails')
+
+  /* The whole point: a fresh document opens with nothing to report. */
+  const clean = createInitialState()
+  const cd = derive(clean)
+  for (const mode of ['light', 'dark']) {
+    const n = CONTRAST_PAIRS.filter(p =>
+      pairFails(p, check(cd.roles[mode][p.fg], cd.roles[mode][p.bg]))).length
+    assert(n === 0, `a fresh document reports no contrast failure in ${mode} (${n})`)
+  }
 }
 
 /* ── A role serves one contrast requirement, not two ──
