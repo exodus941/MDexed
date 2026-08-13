@@ -7,7 +7,7 @@
    at export. */
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { useStore } from '../state/store.jsx'
-import { COMPONENT_LIBRARY, COMPONENT_GROUPS } from '../state/components.js'
+import { COMPONENT_LIBRARY, COMPONENT_GROUPS, TAB_STYLES, DEFAULT_TAB_STYLE } from '../state/components.js'
 import { SPEC_COMPONENT_PROPS } from '../emit/yaml.js'
 import { LAYOUT_BY_NAME, fieldActive } from '../state/componentLayout.js'
 import { SectionHeader, Toggle, ResetButton, Banner, Collapsible, Expand, FilterField, Segmented, PAD, SnapSlider } from '../ui/controls.jsx'
@@ -517,6 +517,9 @@ export default function ComponentsPanel({ inspect }) {
     : null
 
   const upd = (fn, tag) => set(s => ({ ...s, components: fn(s.components) }), tag)
+  /* Defaulted here too, so a document saved before the setting existed opens
+     on the underline rather than on undefined. */
+  const tabStyle = cfg.tabStyle ?? DEFAULT_TAB_STYLE
   const onToggle = (name, on) => upd(c => ({ ...c, enabled: { ...c.enabled, [name]: on } }))
   const onSet = (key, value) => upd(c => {
     const next = { ...c.overrides }
@@ -577,6 +580,21 @@ export default function ComponentsPanel({ inspect }) {
         <div style={{ display: 'flex', gap: 14 }}>
           <Toggle label="Emit sizes" checked={cfg.emitSizes} onChange={v => upd(c => ({ ...c, emitSizes: v }))} />
           <Toggle label="Emit states" checked={cfg.emitStates} onChange={v => upd(c => ({ ...c, emitStates: v }))} />
+        </div>
+      </Collapsible>
+
+      {/* One treatment was not enough. A strip sitting on a rule wants the
+          underline; a strip floating in a toolbar wants the pill, and forcing
+          the underline there draws a 2px mark against nothing. Two further
+          styles were built and rejected — a raised tab and a boxed one, both
+          the old browser-chrome idiom. An option nobody picks is a decision
+          the reader still has to make. */}
+      <Collapsible title="Tab Style" note={TAB_STYLES[tabStyle]?.label ?? tabStyle} defaultOpen>
+        <Segmented value={tabStyle} size="sm"
+          onChange={v => upd(c => ({ ...c, tabStyle: v }))}
+          options={Object.entries(TAB_STYLES).map(([k, s]) => ({ value: k, label: s.label }))} />
+        <div className="panel-note" style={{ marginTop: 5 }}>
+          {TAB_STYLES[tabStyle]?.desc} Sets <code>tab-selected</code>, <code>tab-hover</code> and <code>tab-disabled</code>. The Shell preview shows it.
         </div>
       </Collapsible>
 

@@ -507,6 +507,7 @@ function shapesBody(state, derived) {
    gain. Icons, focus and state conventions ride along in this section because
    they are component-level concerns with no schema slot of their own. */
 function componentsBody(state, derived) {
+  const tabStyle = state.components?.tabStyle ?? 'underline'
   const proseOnly = []
   for (const c of derived.components) {
     for (const p of c.properties ?? []) {
@@ -627,7 +628,12 @@ function componentsBody(state, derived) {
          It reached the right answer. Both halves of the conflict came from
          this document — a selected nav item is filled, and a tab wants an
          underline — and nothing said which applied to which. */
-      'A selected **tab** is marked by that underline and nothing else: no background fill. A selected **nav item** is marked by a tinted fill and carries no underline. Both are in the component tables with their own entries, so neither needs improvising. The reason they differ: a tab sits on a strip with a rule beneath it, and a fill inside the strip competes with that rule; a nav item sits in a list, where a fill is what reads as "you are here".',
+      /* The style is a system setting now, so the document states which one is
+         in force rather than describing the only one that existed. */
+      tabStyle === 'pill'
+        ? 'This system marks a selected **tab** with a **pill**: a tinted fill at `var(--c-accent-subtle)` with the accent as its text, full radius, and no underline. The strip carries no rule of its own, so give it vertical padding and let the pill float clear. Do not add an underline as well — a 2px mark against no line reads as a stray rule.'
+        : 'This system marks a selected **tab** with an **underline**: a 2px inset shadow sitting on the strip\'s own rule, and no background fill. A fill inside a strip competes with that rule. Keep the rule under the strip, because the mark is on that line.',
+      'A selected **nav item** is a different component and a different answer: a tinted fill, never an underline. It marks the current place in a list, where a fill is what reads as "you are here"; a tab marks the active view in a row. Both have their own entries in the component tables, so neither needs improvising.',
       /* The same agent measured `border-subtle` at 1.38:1 against the page in
          dark, judged that it did not read as a line, and substituted `border`
          for every structural rule while leaving card and row rules alone.

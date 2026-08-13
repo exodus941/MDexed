@@ -7,6 +7,7 @@ import { createInitialState, CONTRAST_PAIRS, ANTI_PATTERNS } from '../src/state/
 import { derive, buildCssVars } from '../src/state/derive.js'
 import { migrate } from '../src/state/migrate.js'
 import { applyPreset, PRESETS } from '../src/state/presets.js'
+import { TAB_STYLES } from '../src/state/components.js'
 import { audit } from '../src/a11y/audit.js'
 import { check } from '../src/color/contrast.js'
 import { TYPE_ROLES } from '../src/type/scale.js'
@@ -943,9 +944,9 @@ line('\n- prompt construction -')
     assert(names.has(required), `the matrix defines ${required}, so nothing has to be improvised`)
   }
 
-  const propsOf = n => Object.fromEntries((derived.components.find(c => c.name === n)?.properties ?? []).map(p => [p.key, p.value]))
-  const tabSel = propsOf('tab-selected')
-  const navSel = propsOf('nav-item-selected')
+  const propsOf = (d, n) => Object.fromEntries((d.components.find(c => c.name === n)?.properties ?? []).map(p => [p.key, p.value]))
+  const tabSel = propsOf(derived, 'tab-selected')
+  const navSel = propsOf(derived, 'nav-item-selected')
 
   /* The two must differ on the axis that caused the conflict, or the entries
      exist and the ambiguity survives. */
@@ -954,6 +955,39 @@ line('\n- prompt construction -')
     `a selected tab is underlined by an inset shadow, which adds no height (${tabSel.boxShadow ?? 'none'})`)
   assert(!!navSel.backgroundColor, 'a selected nav item is marked by a fill, not an underline')
   assert(!/inset 0 -2px/.test(String(navSel.boxShadow ?? '')), 'a selected nav item carries no underline')
+
+  /* ── Two tab styles, and each is only itself ──
+   *
+   * One treatment was not enough: a strip on a rule wants the underline, a
+   * strip floating in a toolbar wants the pill, and forcing the underline
+   * there draws a 2px mark against nothing. A raised and a boxed style were
+   * built and rejected on sight as the old browser idiom.
+   *
+   * The failure to guard against is a style that carries BOTH markers — a
+   * pill with an underline reads as a stray rule under a fill. */
+  const withStyle = tabStyle => {
+    const s = createInitialState()
+    s.components = { ...s.components, tabStyle }
+    return derive(s)
+  }
+  const styles = Object.keys(TAB_STYLES)
+  assert(styles.length === 2 && styles.includes('underline') && styles.includes('pill'),
+    `exactly two tab styles ship (${styles.join(', ')})`)
+
+  const under = propsOf(withStyle('underline'), 'tab-selected')
+  const pill = propsOf(withStyle('pill'), 'tab-selected')
+  assert(JSON.stringify(under) !== JSON.stringify(pill), 'the two styles produce different components')
+  assert(/inset 0 -2px 0/.test(String(under.boxShadow ?? '')) && !under.backgroundColor,
+    'underline: an inset mark and no fill')
+  assert(!!pill.backgroundColor && !/inset 0 -2px/.test(String(pill.boxShadow ?? '')),
+    'pill: a fill and no underline')
+
+  /* And an older document with no setting opens on the underline, which is
+     what its tab entries already described. */
+  const bare = createInitialState()
+  delete bare.components.tabStyle
+  assert(/inset 0 -2px 0/.test(String(propsOf(derive(bare), 'tab-selected').boxShadow ?? '')),
+    'a document with no tab style falls back to the underline')
 }
 
 /* ── The contrast section measures every mode, and reports what falls short ──
@@ -1206,7 +1240,8 @@ line('\n- prompt construction -')
     ['a token name not defined anywhere is a lie', ['a custom property that no stylesheet declares']],
     ['an empty frontmatter entry is not an unstyled one', ['absence from the frontmatter never means unstyled']],
     ['a named family is a loaded family', ['load a family before you name it']],
-    ['a tab and a nav item mark selection differently', ['is marked by a tinted fill and carries no underline']],
+    ['a tab and a nav item mark selection differently', ['a tinted fill, never an underline']],
+    ['the document names which tab style is in force', ['marks a selected **tab** with an']],
     ['structural and content lines take different tokens', ['a line that separates **content of the same kind**']],
     ['label capitalisation is stated, never guessed', ['capitalise every ui label as']],
     ['the theme toggle is a stated decision', ['theme toggle']],

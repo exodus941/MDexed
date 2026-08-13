@@ -5,6 +5,8 @@
    importantly, means moving a macro slider retroactively reshapes the whole
    system instead of leaving stale values behind. */
 import { DEFAULT_SHAPE } from '../color/ramp.js'
+/* Safe: components.js imports nothing, so this cannot cycle back. */
+import { DEFAULT_TAB_STYLE } from './components.js'
 
 export const SCHEMA_VERSION = 3
 
@@ -465,7 +467,9 @@ export const createInitialState = () => ({
      arrangement — that have no slot in the spec's eight component properties
      and are emitted as guidance instead. Absent in older documents; readers go
      through `resolveAllLayouts`, which fills the defaults. */
-  components: { enabled: {}, overrides: defaultComponentOverrides(), custom: [], emitStates: true, emitSizes: true, layout: {} },
+  /* `tabStyle` picks which treatment marks a selected tab. See TAB_STYLES:
+     `underline` for a strip that sits on a rule, `pill` for one that floats. */
+  components: { enabled: {}, overrides: defaultComponentOverrides(), custom: [], emitStates: true, emitSizes: true, layout: {}, tabStyle: DEFAULT_TAB_STYLE },
 
   voice: {
     /* The single source of truth for label capitalisation.

@@ -107,7 +107,10 @@ function toV3(mid) {
     type: foldTypography(mid.typography, base.type),
     space: { ...base.space, ...space },
     radius: { ...base.radius, ...radius },
-    components: foldComponents(mid.components, base.components),
+    /* `tabStyle` arrived after this version. A document without it opens on the
+       underline, which is what its tab entries already described. */
+    components: { ...foldComponents(mid.components, base.components),
+      tabStyle: mid.components?.tabStyle ?? base.components.tabStyle },
     prose: { ...emptyProse(), ...(mid.prose ?? {}) },
     /* Build preferences arrived after this version shipped. A document without
        them takes the defaults rather than an undefined, which the emitter

@@ -505,7 +505,7 @@ export default function Canvas({ onInspect, surface, setSurface, onOpenContrast,
             <div className="dmd" style={{ ...varsToStyle(vars), borderRadius: 10, border: '1px solid var(--bdr)' }}
               {...(onInspect ? inspectProps(role('bg', 'Page background · bg'), handleInspect) : {})}>
               {/* Every surface is inspectable, not just the gallery. */}
-              <Component onInspect={onInspect ? handleInspect : undefined} layout={derived.componentLayout} />
+              <Component onInspect={onInspect ? handleInspect : undefined} layout={derived.componentLayout} tabStyle={state.components?.tabStyle} />
             </div>
           </div>
         </CrossFade>
