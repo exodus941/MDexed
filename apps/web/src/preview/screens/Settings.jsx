@@ -49,17 +49,23 @@ export default function Settings({ onInspect }) {
           between the title row and the body. See the note on Dashboard. */}
       <>
         <div className="page-header">
-          {/* The heading and the burger are one row, as on Dashboard. */}
-          <div className="page-title">
-            <h2 {...txt("h2")}>Notifications</h2>
+          <div className="row row-wrap page-head" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+            <div className="page-title">
+              <h2 {...txt("h2")}>Notifications</h2>
+            </div>
+            {/* The menu control is a button in the action group, rightmost. This
+                screen has no other actions, so it is the only one — and it still
+                takes the same shell and the same seat. See Dashboard. */}
             <details className="nav-collapse">
-              <summary className="nav-summary" aria-label="Settings menu" {...inspectProps(['nav-burger', 'nav-item'], onInspect, { passthrough: true })}>
-                <span className="nav-label" aria-hidden="true">Settings</span>
+              <summary className="nav-summary btn btn-secondary btn-sm" aria-label="Settings menu"
+                {...inspectProps(['nav-burger', 'nav-item'], onInspect, { passthrough: true })}>
                 <span className="nav-burger" aria-hidden="true"><span /><span /><span /></span>
+                <span className="nav-label">Settings</span>
               </summary>
             </details>
+            {/* In the row, at full width. See the note on Dashboard. */}
+            <p className="muted small page-sub" {...txt("body-sm", "text-muted")}>Choose what reaches you, and where.</p>
           </div>
-          <p className="muted small page-sub" {...txt("body-sm", "text-muted")}>Choose what reaches you, and where.</p>
         </div>
 
       <div className="stack">

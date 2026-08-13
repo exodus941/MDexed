@@ -30,9 +30,12 @@ export default function Landing({ onInspect }) {
           <details className="nav-collapse">
             {/* The burger alone. Its label goes inside the menu, with the links
                 it names. See the same change on Dashboard and Settings. */}
-            <summary className="nav-summary" aria-label="Menu" {...inspectProps(['nav-burger', 'nav-item'], onInspect, { passthrough: true })}>
-              <span className="nav-label" aria-hidden="true">Menu</span>
+            {/* A button, like every other control in this header, and last in
+                the row. See the note on Dashboard. */}
+            <summary className="nav-summary btn btn-secondary btn-sm" aria-label="Menu"
+              {...inspectProps(['nav-burger', 'nav-item'], onInspect, { passthrough: true })}>
               <span className="nav-burger" aria-hidden="true"><span /><span /><span /></span>
+              <span className="nav-label">Menu</span>
             </summary>
           </details>
           <div className="nav-fold">

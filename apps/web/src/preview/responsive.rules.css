@@ -125,28 +125,29 @@
     display: flex; align-items: center; justify-content: space-between;
     gap: var(--space-md, 16px); flex: 0 1 auto; min-width: 0;
   }
-  .dmd .page-title > h2 { min-width: 0; overflow-wrap: anywhere; }
-  /* The mark aligns to the heading's CAP CENTRE, not to its box.
+  /* No `overflow-wrap: anywhere`. It let the heading break mid-word rather than
+     run out of room — "Overview" rendered as "Overvie" over "w" at 640px, which
+     is a worse answer than any of the ones the ladder chooses between. A title
+     wraps at spaces or it does not wrap, and if it genuinely does not fit the
+     sweep says so instead of the layout hiding it. */
+  .dmd .page-title > h2 { min-width: 0; }
+  /* ── Where the menu button sits ──
    *
-   * A heading's line box is not symmetric about the cap-to-baseline band: at
-   * 39.1px with a 52.4px line box there is more room under the baseline than
-   * above the cap, so `align-items: center` puts the mark high. Measured 2.81px
-   * above the cap centre, and they saw it in a screenshot.
+   * Last. Always last, because navigation outranks every action on the page and
+   * the rightmost seat is the one a hand reaches first.
    *
-   * Two causes, both removed. The summary carried an 8px bottom margin from
-   * when it sat above a list, which is 4px of the error and simply wrong here.
-   * The rest is the line box, corrected with a transform so no layout moves.
+   * A sibling of the action group rather than a member of it, so the ladder can
+   * keep it on the title's row after the other buttons have dropped to a line
+   * of their own. `order` decides which of the two arrangements applies, and
+   * the DOM order stays the reading order for anything that ignores `order`.
    *
-   * The shift is measured, not picked: with the margin gone and no transform,
-   * the mark sat 1.19px BELOW the cap centre at a 39.1px heading, so the factor
-   * is 1.19/39.1. It is stated against the HEADING's size token rather than in
-   * `em`, because `em` on this element resolves against the inherited body size
-   * — the first attempt moved 0.8px where 1.19 was needed. */
-  .dmd .page-title > .nav-collapse {
-    flex: 0 0 auto;
-    transform: translateY(calc(var(--font-h2-size, 32px) * -0.0304));
-  }
-  .dmd .page-title > .nav-collapse > .nav-summary { margin-bottom: 0; }
+   * The cap-centre correction that used to live here is gone with the reason
+   * for it. A mark beside a heading answers to that heading's cap centre; a
+   * button in a row of buttons answers to the buttons, and `.btn` already puts
+   * it there. */
+  .dmd .page-head > .page-title { order: 1; }
+  .dmd .page-head > .page-actions { order: 2; }
+  .dmd .page-head > .nav-collapse { order: 3; flex: 0 0 auto; }
 
   /* Stacking the rail is only half the job. Left alone it becomes five links
      stacked above the page title, which pushes the heading below the fold and
@@ -374,16 +375,19 @@
    * the actions stop fitting at 515. Between those the title, the mark and the
    * buttons all share one line, which is the stage they asked for.
    *
-   * A nested at-rule, because everything below depends on `display: contents`
-   * above it and moving the block would separate the two. */
+   * A nested at-rule, because everything below belongs to this threshold and
+   * moving the block would separate it from the rules it depends on. */
   @media (max-width: 999904px) {
   .dmd .page-header { gap: 0; }
-  .dmd .page-header > .page-head { display: contents; }
-  /* `.page-title`, not `h2`. The heading moved inside the title row when the
-     mark joined it, so this selector had stopped matching anything — the order
-     held only because the default put it first. */
-  .dmd .page-header > .page-head > .page-title { order: 1; }
-  .dmd .page-header > .page-sub { order: 2; margin-top: 4px; }
+  /* `display: contents` used to sit here, to promote the actions into the
+     column so the description could come between them and the heading. It
+     dissolved the row, and the menu button has to STAY on the title's line.
+     The row survives now; the description is inside it at a 100% basis, and
+     these two orders put the actions after it. */
+  .dmd .page-head > .page-title { order: 1; }
+  .dmd .page-head > .nav-collapse { order: 2; }
+  .dmd .page-head > .page-sub { order: 3; }
+  .dmd .page-head > .page-actions { order: 4; flex: 1 0 100%; }
   /* How an action row breaks when it stops fitting.
    *
    * Three buttons need 342px and the column holds 309, so the row must break.
@@ -408,8 +412,12 @@
    * icon-only square is the one exception, because a bar with a lone glyph
    * centred in it says nothing. Add a fourth and fifth button and the same
    * three rules still describe the result. */
-  .dmd .page-header > .page-head > .page-actions {
-    order: 3;
+  /* One rule, not two. A duplicate pair here set the actions to order 3 while
+     the block above set them to 4, and the description shares 3 — so the
+     description and the actions tied and the DOM decided, which put the actions
+     above the line that describes the page. The orders live in one place now,
+     forty lines up. */
+  .dmd .page-head > .page-actions {
     margin-top: var(--space-sm, 12px);
     flex-wrap: wrap;
     align-items: stretch;
@@ -421,21 +429,38 @@
      full-width one, and five buttons packed onto two lines with the primary
      sharing the first. Equal specificity is decided by position, so position
      has to carry the meaning: broad rule, then the exceptions to it. */
-  .dmd .page-header > .page-head > .page-actions > .btn { flex: 1 1 auto; }
+  .dmd .page-head > .page-actions > .btn { flex: 1 1 auto; }
   /* Order, not markup: the primary reads last in a row because the eye ends
      there, and first in a column because the top line is the one pressed. */
-  .dmd .page-header > .page-head > .page-actions > .btn-primary {
+  .dmd .page-head > .page-actions > .btn-primary {
     order: -1;
     flex: 0 0 100%;
   }
   /* Except the square, which is a square. It holds its side and lets the
      labelled button beside it take the rest. */
-  .dmd .page-header > .page-head > .page-actions > .btn.icon-only {
+  .dmd .page-head > .page-actions > .btn.icon-only {
     flex: 0 0 var(--cmp-button-lg-height, 44px);
     width: var(--cmp-button-lg-height, 44px);
   }
-  }   /* end of the ladder's stacking threshold */
 
+  /* ── The touch step waits for the buttons to get their own line ──
+   *
+   * It used to fire at `sm`. The same three buttons then grew from 234.5px to
+   * 326.2px at the exact width where the label left the menu control, so the
+   * room the label gave back was eaten immediately and stage three of the
+   * ladder survived across 23px. Nobody sees a 23px band.
+   *
+   * Moved here, the buttons keep the small step while they share the title's
+   * row and take the large one when they drop below it — which is also where a
+   * finger target matters most, since that is the narrow layout. Stage three is
+   * 125px wide now.
+   *
+   * The menu button IS in this list. It is a button, and a button answers to
+   * the row it sits in — at 40 beside three 28px buttons it was the "everything
+   * in a control row is one height" fault, measured at exactly that. Below this
+   * threshold every button in the header takes the large step together, whether
+   * it stayed on the title's row or dropped below it. */
+  .dmd .nav-summary,
   .dmd .page-actions > .btn,
   .dmd .stack-narrow > .btn,
   .dmd .stack-narrow-rev > .btn {
@@ -449,6 +474,7 @@
   .dmd .stack-narrow-rev > .btn.icon-only {
     width: var(--cmp-button-lg-height, 44px); padding: 0;
   }
+  }   /* end of the ladder's stacking threshold */
 
   /* There was a second rule here promoting only the small size, and only as far
      as the medium step. It sat AFTER the rule above with equal specificity, so
@@ -468,7 +494,12 @@
      A summary needs the box stated explicitly because it has no control
      height of its own to grow. */
   .dmd .nav-item { min-height: 40px; display: flex; align-items: center; }
-  .dmd .nav-summary { min-height: 40px; }
+  /* The menu control used to take a 40px floor here, written when it was a bare
+     disclosure with no control height of its own. It is a button now, and a
+     button answers to the row it sits in: 40 beside three 28px buttons is the
+     "everything in a control row is one height" fault, measured at exactly that
+     on the Dashboard at 600px. It takes the same step as the buttons beside it,
+     in the block below. */
 
   /* The call to action in a nav row is part of that row.
      At 28px beside two 40px links it sat at the top of the band with its text
@@ -525,10 +556,11 @@
 @media (max-width: 999904px) {
   .dmd .nav-label { display: inline-block; }
   .dmd .nav-title { display: none; }
-  /* The title claims the whole line HERE, and only here. That is what puts the
-     buttons below it, so the rule that moves them and the rule that widens the
-     title are one decision at one threshold. */
-  .dmd .page-title { flex: 1 0 100%; }
+  /* The title does NOT claim the line. It did while the menu button lived
+     inside it, and the button became a sibling — so this rule went on pushing
+     the button onto a row of its own, measured at 500px with the title 466 wide
+     and the menu below it. The ACTIONS claim the line, which is what puts them
+     below; the title and the menu share the one above. */
 }
 
 /* 332 — the title and the label no longer share a line. */
