@@ -50,6 +50,14 @@ export const COMPONENT_LIBRARY = [
     name: 'input', label: 'Text input', group: 'Forms', on: true,
     base: {
       backgroundColor: '{colors.surface}', textColor: '{colors.text}', borderColor: '{colors.border}',
+      /* Stated, because it was the one text colour in the system that nothing
+         specified. The roles list offered `text-subtle` for it — "Placeholders,
+         disabled" — and that role fails AA on three of five light surfaces. A
+         placeholder is readable content and is not exempt from 1.4.3, so it
+         takes `text-muted`, which clears AA on every surface in both modes
+         (worst case 4.57 light, 4.83 dark). Unspecified, an agent reaches for
+         whichever muted role it saw last. */
+      placeholderColor: '{colors.text-muted}',
       rounded: '{rounded.md}', height: '36px', padding: '0 {spacing.sm}', typography: 'body-sm',
     },
     states: {
@@ -62,6 +70,7 @@ export const COMPONENT_LIBRARY = [
     name: 'textarea', label: 'Textarea', group: 'Forms', on: true,
     base: {
       backgroundColor: '{colors.surface}', textColor: '{colors.text}', borderColor: '{colors.border}',
+      placeholderColor: '{colors.text-muted}',
       rounded: '{rounded.md}', padding: '{spacing.sm}', typography: 'body-sm', minHeight: '88px',
     },
   },

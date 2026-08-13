@@ -30,7 +30,23 @@ export const ROLE_GROUPS = [
     roles: [
       { name: 'text',            desc: 'Primary body and headings',  light: 'neutral.900', dark: 'neutral.50'  },
       { name: 'text-muted',      desc: 'Secondary, captions, meta',  light: 'neutral.700', dark: 'neutral.300' },
-      { name: 'text-subtle',     desc: 'Placeholders, disabled',     light: 'neutral.600', dark: 'neutral.400' },
+      /* Disabled only. The description used to read "Placeholders, disabled",
+         and that pairing was the whole defect: the two uses have different
+         contrast requirements and no single step satisfies both.
+         Measured at step 600 it fails AA on three of five light surfaces —
+         bg 3.74, bg-subtle 2.93, surface-sunken 2.93 — and on dark
+         surface-raised at 3.61, in all seven presets. Raising it to 700 clears
+         every pair and lands on `text-muted` exactly, so the system would
+         carry two names for one hex and disabled text would stop looking
+         disabled. Lightening the surfaces instead puts surface-sunken onto
+         `bg` at 1.00:1, which is the invisible-line bug in another place.
+         Neither is the fix, because the paint was never wrong. Nothing in the
+         matrix ever used this as a placeholder — only `input-disabled` and
+         `tab-disabled` reference it, and 1.4.3 exempts both. Faint is the
+         point: a disabled control should look disabled. A placeholder is
+         readable content and takes `text-muted`, which clears AA on every
+         surface in both modes. */
+      { name: 'text-subtle',     desc: 'Disabled text and controls', light: 'neutral.600', dark: 'neutral.400' },
       { name: 'text-inverse',    desc: 'On strong-coloured fills',   light: 'neutral.50',  dark: 'neutral.950' },
     ],
   },
@@ -122,7 +138,13 @@ export const CONTRAST_PAIRS = [
   { fg: 'text-muted',   bg: 'bg',             label: 'Muted on page' },
   { fg: 'text-muted',   bg: 'surface',        label: 'Muted on card' },
   { fg: 'text-muted',   bg: 'surface-raised', label: 'Muted on popover' },
-  { fg: 'text-subtle',  bg: 'surface',        label: 'Placeholder on card' },
+  /* Was `text-subtle` on `surface`, and it passed at 4.74 — which is how the
+     role's real problem stayed hidden. That one pair was the only surface
+     `text-subtle` clears, so measuring it and nothing else reported the
+     healthiest case in the set as though it covered the role. The placeholder
+     colour is `text-muted` now, and `text-subtle` is disabled-only. */
+  { fg: 'text-muted',   bg: 'surface-sunken', label: 'Placeholder in a well' },
+  { fg: 'text-subtle',  bg: 'surface-sunken', label: 'Disabled text',  exempt: true },
   { fg: 'accent-fg',    bg: 'accent',         label: 'Label on primary button' },
   { fg: 'accent',       bg: 'bg',             label: 'Accent text on page' },
   /* A status colour used as a word, rather than as a fill, is deliberately
@@ -142,7 +164,12 @@ export const CONTRAST_PAIRS = [
    sweep below needs no guess: every role that carries words, against every
    role that sits behind them. It reports only what fails, so it costs nothing
    when the system is sound and names the exact pair when it is not. */
-export const TEXT_ROLES    = ['text', 'text-muted', 'text-subtle', 'accent', 'success', 'warning', 'danger']
+/* `text-subtle` is deliberately absent. It is the disabled-text role, and 1.4.3
+   exempts text inside a disabled control — so sweeping it as body text produced
+   four warnings that were correct against its old description and wrong against
+   what it actually is. Removing it corrects the premise rather than silencing
+   the check; the audit's `disabledCheck` covers that role with the right bar. */
+export const TEXT_ROLES    = ['text', 'text-muted', 'accent', 'success', 'warning', 'danger']
 export const SURFACE_ROLES = ['bg', 'bg-subtle', 'surface', 'surface-raised', 'surface-sunken']
 
 const defaultRoles = () =>

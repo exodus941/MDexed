@@ -188,7 +188,11 @@ function ContrastReport({ roles, mode }) {
     return { pair, res: check(fg, bg), fgHex: fg, bgHex: bg }
   }).filter(Boolean)
 
-  const isFailing = ({ pair, res }) => (pair.ui ? res.ratio < 3 : !res.pass)
+  /* An exempt pair still reports its ratio and is never a failure. 1.4.3 does
+     not cover text inside a disabled control, and a system that dims disabled
+     text is doing the right thing — flagging it would report the intent as the
+     fault, and someone would "fix" it by making disabled look enabled. */
+  const isFailing = ({ pair, res }) => (pair.exempt ? false : pair.ui ? res.ratio < 3 : !res.pass)
   const failing = results.filter(isFailing)
 
   return (
@@ -268,6 +272,7 @@ export default function RolesPanel({ inspect }) {
   const targetGroup = inspect ? ROLE_GROUPS.find(g => g.roles.some(r => r.name === inspect.entry))?.id : null
   const overrideCount = Object.keys(color.roleOverrides ?? {}).length
   const failing = CONTRAST_PAIRS.filter(p => {
+    if (p.exempt) return false
     const r = check(roles[color.mode][p.fg], roles[color.mode][p.bg])
     return p.ui ? r.ratio < 3 : !r.pass
   }).length
