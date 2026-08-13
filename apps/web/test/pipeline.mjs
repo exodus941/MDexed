@@ -868,6 +868,43 @@ line('\n- prompt construction -')
   }
 }
 
+/* ── Two meanings must not be one colour ──
+ *
+ * `accent` and `success` shipped as the same teal: 1.01:1 apart, eleven degrees
+ * of hue, 0.2 of lightness. A filled button and a "paid" mark said nothing
+ * different, and no contrast check could ever have caught it — a ratio measures
+ * lightness, so two roles one step apart on the ramp always read about 1:1
+ * whatever their hue.
+ *
+ * Success is the constrained role: every green candidate collides with danger
+ * under deuteranopia, which is why it is a teal. So the accent moved. */
+{
+  const { PRESETS } = await import('../src/state/presets.js')
+  const fresh = createInitialState()
+  const collisions = s => audit(s, derive(s)).filter(f => f.id.startsWith('meaning:'))
+
+  assert(collisions(fresh).length === 0, 'the shipped default has no two roles reading as one colour')
+  const total = audit(fresh, derive(fresh)).length
+  assert(total === 0, `the shipped default reports nothing at all (${total})`)
+
+  /* The fault it was built for, injected. A check that cannot catch this again
+     is a blindfold, and this one has already been narrowed once. */
+  const old = createInitialState()
+  old.color.seeds = old.color.seeds.map(x => (x.name === 'accent' ? { ...x, hex: '#006b72' } : x))
+  assert(collisions(old).length === 2,
+    'the old teal accent is still reported, in both modes')
+
+  /* And the narrowing must not have silenced anything real. Two presets put a
+     rust or red brand beside a red danger — 1° to 9° of hue — and move the
+     danger ramp to the ends to separate them: 15.5 points of lightness. That is
+     a mitigation at the point of use, and reporting it calls a solved problem
+     open. */
+  for (const p of PRESETS) {
+    const n = collisions(p.patch()).length
+    assert(n === 0, `preset ${p.id} reports no colour collision (${n})`)
+  }
+}
+
 /* ── A role serves one contrast requirement, not two ──
  *
  * `text-subtle` was described as "Placeholders, disabled". Those two uses have

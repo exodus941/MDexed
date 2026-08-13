@@ -691,10 +691,22 @@
 .dmd .table-scroll > .table { min-width: 22rem; }
 /* Hidden until the layout folds. Three bars, drawn rather than an icon font,
    at the same stroke weight the icon set uses. */
-.dmd .nav-burger { display: none; flex-direction: column; gap: 3px; padding: 6px; cursor: pointer; }
+/* Drawn from its own entry, not from numbers typed here.
+   The mark had no component entry, so its three bars were 16 by 2 with a 3px
+   gap because somebody wrote that, and nothing in the document could change
+   it. Now `nav-burger` states the bar length, its thickness and its colour,
+   and this reads them. */
+.dmd .nav-burger {
+  display: none; flex-direction: column; cursor: pointer;
+  gap: var(--cmp-nav-burger-gap, var(--space-3xs, 3px));
+  padding: var(--cmp-nav-burger-padding, var(--space-3xs, 3px));
+}
 .dmd .nav-burger > span {
-  display: block; width: 16px; height: 2px; border-radius: 1px;
-  background: var(--c-text-muted, #666);
+  display: block;
+  width: var(--cmp-nav-burger-size, 16px);
+  height: var(--cmp-nav-burger-height, 2px);
+  border-radius: var(--cmp-nav-burger-rounded, var(--radius-sm, 1px));
+  background: var(--cmp-nav-burger-background-color, var(--c-text-muted, #666));
 }
 .dmd .grid { display: grid; gap: var(--space-md, 16px); }
 

@@ -93,7 +93,7 @@ export default function Dashboard({ onInspect, layout }) {
             <div className="page-title">
               <h2 {...txt('h2')}>Overview</h2>
               <details className="nav-collapse">
-                <summary className="nav-summary" aria-label="Workspace menu" {...inspectProps("nav-item", onInspect, { passthrough: true })}>
+                <summary className="nav-summary" aria-label="Workspace menu" {...inspectProps(['nav-burger', 'nav-item'], onInspect, { passthrough: true })}>
                   <span className="nav-burger" aria-hidden="true"><span /><span /><span /></span>
                 </summary>
               </details>

@@ -11,7 +11,11 @@ export default function Landing({ onInspect }) {
   const txt = (typeName, roleName = 'text') => inspectProps(text(typeName, roleName), onInspect)
   return (
     <div style={{ maxWidth: 'var(--measure, 68ch)', margin: '0 auto' }} className="stack">
-      <div className="row row-wrap" style={{ justifyContent: 'space-between' }}>
+      {/* `bar-row`, not `row-wrap`. A brand and the mark that opens the menu are
+          one bar, and this row wrapped at 320px — the burger dropped to a line
+          of its own at the LEFT, 275px from where a hand expects it. A bar does
+          not wrap. The brand shrinks instead. */}
+      <div className="row bar-row" style={{ justifyContent: 'space-between' }}>
         <div className="row">
           <div className="avatar" {...ins('avatar')}>N</div>
           <strong {...txt('body-md', 'text')} style={{ fontSize: 'var(--font-body-md-size, 16px)', cursor: onInspect ? 'pointer' : undefined }}>Northwind</strong>
@@ -26,7 +30,7 @@ export default function Landing({ onInspect }) {
           <details className="nav-collapse">
             {/* The burger alone. Its label goes inside the menu, with the links
                 it names. See the same change on Dashboard and Settings. */}
-            <summary className="nav-summary" aria-label="Menu" {...inspectProps("nav-item", onInspect, { passthrough: true })}>
+            <summary className="nav-summary" aria-label="Menu" {...inspectProps(['nav-burger', 'nav-item'], onInspect, { passthrough: true })}>
               <span className="nav-burger" aria-hidden="true"><span /><span /><span /></span>
             </summary>
           </details>

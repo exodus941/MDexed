@@ -897,7 +897,9 @@ const MEANING_PAIRS = [
   ['accent', 'success'], ['accent', 'warning'], ['accent', 'danger'],
   ['success', 'warning'],
 ]
-const HUE_MIN = 25   // below this two hues read as one colour at a glance
+const HUE_MIN = 25
+/* Points of OKLCH lightness. See the note in meaningCollision. */
+const LIGHTNESS_MIN = 10   // below this two hues read as one colour at a glance
 
 function meaningCollision(derived, mode) {
   const roles = derived.roles?.[mode] ?? {}
@@ -911,6 +913,19 @@ function meaningCollision(derived, mode) {
     const raw = Math.abs((x.h ?? 0) - (y.h ?? 0))
     const gap = Math.min(raw, 360 - raw)
     if (gap >= HUE_MIN) continue
+    /* Hue was the wrong question on its own.
+     *
+     * "Do these read as one colour" is answered by hue AND lightness. The pair
+     * this check was built for measured 11° of hue and 0.2 of lightness — the
+     * same colour twice. Two presets that deliberately put a rust or red brand
+     * beside a red danger measure 1° to 9° of hue and 15.5 of lightness, and
+     * their own comments say so: the danger ramp was moved to the ends for
+     * exactly this reason. That is a mitigation at the point of use, and a
+     * check that cannot see it reports a solved problem as an open one.
+     *
+     * Ten, between 0.2 and 15.3, and nowhere near either. */
+    const dL = Math.abs((x.l ?? 0) - (y.l ?? 0)) * 100
+    if (dL >= LIGHTNESS_MIN) continue
     out.push({
       req: 'colour', id: `meaning:${mode}:${a}:${b}`, level: WARN, criterion: '1.4.1 Use of colour (A)',
       tab: 'roles', entry: b, mode,
