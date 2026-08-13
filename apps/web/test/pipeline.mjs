@@ -1373,9 +1373,20 @@ line('\n- prompt construction -')
     ['an empty state is centred, not stretched', ['not `stretch`']],
     ['a comparison keeps its columns and stacks', ['read across, so it keeps its columns']],
     ['a comparison never scrolls sideways', ['never scrolls sideways']],
-    ['a comparison puts every row on one grid', ['every row of a comparison on one grid']],
+    ['a comparison puts every row on one grid', ['every row of a comparison on **one** grid']],
     ['a recommendation is marked by its edge', ['never by a fill']],
     ['content beside context is not navigation', ['beside **context** is not content beside **navigation**']],
+    /* The second pass over the comparison. Every one of these was a real
+       defect in the surface that exists to demonstrate the rule it broke. */
+    ['a repeated track list is not a shared one', ['is not the same as sharing one', 'subgrid']],
+    ['a label column takes max-content, not a fraction', ['never a fraction']],
+    ['a comparison collapses on its widest control', ['not its widest answer']],
+    ['a variant is chosen by what contains the action', ['a ghost in open space']],
+    /* The title bar, third pass. Nine pixels of gap under a closed row, and a
+       right edge that was holding only because a neighbour happened to. */
+    ['a collapsed row still costs its line gap', ['a collapsed row still costs its line gap']],
+    ['no shorthand beside its own longhand', ['never mix a shorthand and a longhand']],
+    ['alignment is stated on the element that holds it', ['never leave it to a neighbour']],
   ]
   const missing = RULES.filter(([, terms]) => !terms.every(t => doc.includes(t))).map(([n]) => n)
   assert(missing.length === 0,
