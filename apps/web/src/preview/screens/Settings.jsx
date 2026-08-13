@@ -133,7 +133,7 @@ export default function Settings({ onInspect, casing }) {
             Reset from the top. Wrapping alone left Reset alone on one line and
             the other two right-aligned on the next, which looks like two
             unrelated groups rather than one footer. */}
-        <div className="row stack-narrow-rev" style={{ justifyContent: 'space-between' }}>
+        <div className="row stack-narrow-rev card-actions" style={{ justifyContent: 'space-between' }}>
           {/* Destructive — it throws away everything on the page — but a
               secondary action sitting beside Save, so it takes the ghost
               treatment in the danger colour rather than a filled red. */}

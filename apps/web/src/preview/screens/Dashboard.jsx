@@ -212,7 +212,10 @@ export default function Dashboard({ onInspect, layout, casing }) {
           <div className="card card-overlay" {...ins('card-overlay')}>
             <h3 style={{ fontSize: 'var(--font-body-md-size, 16px)', marginBottom: 4 }} {...txt('h6')}>{L('Renewal due')}</h3>
             <p className="muted small" {...txt('body-sm', 'text-muted')}>Halcyon Group renews in 6 days and has an overdue balance.</p>
-            <div className="row" style={{ marginTop: 'var(--space-md, 16px)' }}>
+            {/* `.card-actions` rather than a typed 16px. The action stands one
+                step clear of the sentence explaining it, and that step is
+                stated once for every card in the system. */}
+            <div className="row card-actions">
               <button className="btn btn-primary btn-sm" {...ins('button-primary')}>{L('Send reminder')}</button>
               {/* Destructive, but not what the card is for — dismissing an
                   overdue renewal loses the reminder, so it should read as

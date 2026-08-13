@@ -581,12 +581,13 @@
 }
 /* These sit beside single-line text, so the whole-row centre is right for them. */
 .dmd .row > .icon, .dmd .row > .bar, .dmd .row > .swatch { align-self: center; }
-/* Each stack publishes its own gap, so a child that needs a different distance
-   can write the subtraction instead of adding a second source to it. A margin
-   on a flex child ADDS to the container's gap; naming the gap is what makes
-   that arithmetic possible in CSS rather than in somebody's head. */
-.dmd .stack { --stack-gap: var(--space-md, 16px); display: flex; flex-direction: column; gap: var(--stack-gap); }
-.dmd .stack-sm { --stack-gap: var(--space-sm, 8px); display: flex; flex-direction: column; gap: var(--stack-gap); }
+/* These published their gap as `--stack-gap` for a child to subtract. The
+   property is gone: it inherited, so a descendant could not tell whether the
+   value came from its own parent, and two separate defects came out of that.
+   The subtraction now lives on the parent as a child-combinator rule, where
+   the relationship is real. Nothing reads a gap it cannot see. */
+.dmd .stack { display: flex; flex-direction: column; gap: var(--space-md, 16px); }
+.dmd .stack-sm { display: flex; flex-direction: column; gap: var(--space-sm, 8px); }
 
 /* ── Inside a card ──
  *
@@ -599,15 +600,29 @@
  * sentence. Measured before: 16px on the landing card and 12px in an empty
  * state, against body text on both. It is one distance now, and the
  * subtraction against the stack's own gap is written rather than assumed. */
-.dmd .card { --card-action-gap: var(--space-lg, 24px); }
-/* A custom property INHERITS, so `--stack-gap` set on a page-level `.stack`
-   reaches every card inside it — including cards that are not stacks and
-   contribute no gap of their own. The landing card subtracted a 16px gap it
-   never had and the action row landed 8px from the paragraph, half of what it
-   started with. Reset it wherever the card is not itself a stack, so the
-   subtraction only ever cancels a gap that is really there. */
-.dmd .card:not(.stack):not(.stack-sm):not(.stack-lg) { --stack-gap: 0px; }
-.dmd .card-actions { margin-top: calc(var(--card-action-gap) - var(--stack-gap, 0px)); }
+/* Declared at the ROOT, not on `.card`. A modal footer is a card's action row
+   and a modal is not a `.card`, so the property was undefined there — the
+   `calc` became invalid and the whole margin resolved to nothing. The dialog
+   measured 3.7px where every card measured 24. A custom property used in a
+   calc has to exist everywhere the calc runs, or the rule fails silently and
+   nothing reports it. */
+.dmd { --card-action-gap: var(--space-lg, 24px); }
+/* The subtraction asks about the PARENT, so the rule is written on the parent.
+ *
+ * This first read the container's gap from an inherited custom property, and
+ * inheritance cannot answer "what is MY parent's gap". `--stack-gap` published
+ * by a page-level stack reached every descendant: a landing card that is not a
+ * stack subtracted 16px it never had and its action row landed at 8, and a
+ * modal footer did the same and measured 11.7 where every card measured 24.
+ * Two fixes chasing the same wrong mechanism.
+ *
+ * A child combinator names the real relationship. An element whose parent
+ * genuinely is a stack subtracts that stack's gap; everything else takes the
+ * whole distance. Nothing is inherited and nothing leaks. */
+.dmd .card-actions { margin-top: var(--card-action-gap); }
+.dmd .stack > .card-actions { margin-top: calc(var(--card-action-gap) - var(--space-md, 16px)); }
+.dmd .stack-sm > .card-actions { margin-top: calc(var(--card-action-gap) - var(--space-sm, 12px)); }
+.dmd .stack-lg > .card-actions { margin-top: calc(var(--card-action-gap) - var(--space-lg, 24px)); }
 
 /* A stat tile: a label, the number, and the change under it.
  *
@@ -771,7 +786,7 @@
 .dmd .page-head { row-gap: 0; }
 .dmd .page-head > .page-sub {
   flex: 1 0 100%; order: 9;
-  margin-top: var(--space-2xs, 4px);
+  margin-top: var(--space-3xs, 2px);
 }
 
 /* The gap between a heading and the actions beside it, as a floor rather than
@@ -1074,7 +1089,8 @@
    up from the space inside either. The subtraction is written because the
    surrounding stack already contributes its own gap, and two sources feeding
    one distance is how a stated value stops matching the screen. */
-.dmd .plans { margin-bottom: calc(var(--space-xl, 32px) - var(--stack-gap, 0px)); }
+.dmd .plans { margin-bottom: var(--space-2xl, 48px); }
+.dmd .stack > .plans { margin-bottom: calc(var(--space-2xl, 48px) - var(--space-md, 16px)); }
 .dmd .plan-wide {
   display: grid;
   grid-template-columns: max-content repeat(3, minmax(0, 1fr));

@@ -99,11 +99,17 @@ function Stat({ ins, txt, L, label, value, delta, rose, good }) {
        "Warnings" needs 73px and had 34, so all three read as cut words. A tile
        grows to share the row and never goes under its content. The row wraps
        instead, which is the answer everywhere else in this system. */
-    <div className="card stack-sm" {...ins('card')} style={{ flex: '1 1 max-content', minWidth: 'max-content' }}>
+    /* `.stat`, not `.stack-sm`. These are the tiles they pointed at: a label, a
+       number and the change under it, and a uniform 12px gap put the change as
+       far from its own value as the label was. The class states both distances
+       — 4 above the number, 2 below it — so the change reads as part of the
+       figure rather than as a third line. The same class does the same job on
+       every other surface that shows a tile. */
+    <div className="card stat" {...ins('card')} style={{ flex: '1 1 max-content', minWidth: 'max-content' }}>
       <div className="caption muted" {...txt('overline', 'text-muted')}
         style={{ textTransform: 'uppercase', letterSpacing: 'var(--font-overline-tracking)' }}>{L(label)}</div>
-      <div {...txt('h4')} style={{ fontSize: 'var(--font-h4-size)', fontWeight: 'var(--font-h4-weight)' }}>{value}</div>
-      <div className="caption" {...txt('caption', good ? 'success' : 'danger')}
+      <div className="stat-value" {...txt('h4')} style={{ fontSize: 'var(--font-h4-size)', fontWeight: 'var(--font-h4-weight)' }}>{value}</div>
+      <div className="caption stat-delta" {...txt('caption', good ? 'success' : 'danger')}
         style={{ color: good ? 'var(--c-success)' : 'var(--c-danger)' }}>{rose ? '+' : '−'}{delta}</div>
     </div>
   )

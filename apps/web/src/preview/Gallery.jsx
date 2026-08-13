@@ -278,8 +278,11 @@ export default function Gallery({ onInspect, layout }) {
               <Ico d={IconFolder} size="xl" />
             </div>
             <div style={{ fontWeight: 500 }} {...txt("body-md")}>No invoices yet</div>
-            <p className="muted small" style={{ marginTop: 2, marginBottom: 'var(--space-sm, 12px)' }} {...txt('body-sm', 'text-muted')}>Create one to get started.</p>
-            <button className="btn btn-primary btn-sm" {...ins("button-sm")}><Ico d={IconPlus} size="sm" />New invoice</button>
+            <p className="muted small" style={{ marginTop: 2 }} {...txt('body-sm', 'text-muted')}>Create one to get started.</p>
+            {/* The stated card action distance, not a typed 12px. */}
+            <div className="card-actions">
+              <button className="btn btn-primary btn-sm" {...ins("button-sm")}><Ico d={IconPlus} size="sm" />New invoice</button>
+            </div>
           </div>
           <div className="card stack-sm" {...ins("card")}>
             {['70%', '92%', '48%'].map(w => (

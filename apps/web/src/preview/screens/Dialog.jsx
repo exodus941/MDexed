@@ -80,14 +80,24 @@ function Modal({ ins, txt, layout, onInspect }) {
         Invoice NW-0421 will be removed permanently. This cannot be undone.
       </p>
 
+      {/* `flex`, not the class's own `inline-flex`. This label stands alone in
+          a block container, so an inline box puts it on a LINE box — and a
+          line box is taller than the element, carrying the strut's descender
+          space below it. The stated 24px gap under it measured 27.66. Same
+          fault the header's `details` wrapper had, at 3.66px instead of 3.5. */}
       <label className="with-icon" {...ins('checkbox')} style={{
-        marginBottom: 'var(--space-md, 16px)',
+        display: 'flex',
         justifyContent: centred ? 'center' : 'flex-start',
       }}>
         <Check /><span className="small" {...txt('body-sm')}>Also notify the customer</span>
       </label>
 
-      <div style={{
+      {/* A modal footer is a card's action row. They named modals alongside
+          cards, and it takes the same stated distance — the buttons that
+          destroy an invoice must not sit against the sentence explaining what
+          will be destroyed. The 16px margin that lived on the checkbox above
+          is gone: one writer for this gap, and it is the action row. */}
+      <div className="card-actions" style={{
         display: 'flex', gap: 'var(--space-xs, 8px)',
         ...(actionsStretch
           ? { flexDirection: 'column' }
