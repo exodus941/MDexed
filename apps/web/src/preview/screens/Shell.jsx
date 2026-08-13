@@ -93,12 +93,23 @@ function Stat({ ins, txt, label, value, delta, rose, good }) {
  * are the components. No value below is invented. */
 function TitleBar({ ins, txt }) {
   return (
-    <div className="row row-wrap" style={{ justifyContent: 'space-between' }}>
-      <div className="row">
+    <div className="row row-wrap title-bar" style={{ justifyContent: 'space-between' }}>
+      {/* The identity and its metadata are two things, not four items.
+       *
+       * At 296px "Saved 2m ago" wrapped to two lines — 39.9px against a
+       * 19.97px line height — and the whole bar grew around it. A title row
+       * keeps the title and whatever mark sits beside it. Everything that only
+       * describes the title drops to a line of its own underneath.
+       *
+       * `.title-meta` is `display: contents` at wide widths, so the four items
+       * stay one baseline-aligned row exactly as before. */}
+      <div className="row title-row">
         <div className="avatar" {...ins('avatar')}>MD</div>
         <strong {...txt('body-md', 'text')}>Northwind</strong>
-        <span className="badge badge-neutral" {...ins('badge-neutral')}>draft</span>
-        <span className="caption muted" {...txt('caption', 'text-muted')}>Saved 2m ago</span>
+        <span className="title-meta">
+          <span className="badge badge-neutral" {...ins('badge-neutral')}>draft</span>
+          <span className="caption muted" {...txt('caption', 'text-muted')}>Saved 2m ago</span>
+        </span>
       </div>
       <div className="row">
         <button className="btn btn-secondary btn-sm" {...ins('button-secondary')}>Import</button>

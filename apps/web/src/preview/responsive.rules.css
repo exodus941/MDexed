@@ -43,8 +43,56 @@
   .dmd:has(.nav-collapse:not([open])) .nav-fold {
     border-color: transparent; box-shadow: none; background: none;
   }
+  /* Horizontal padding on the box, vertical spacing inside it.
+   *
+   * The panel's own insets have to match: measured 13px at the top and 1px at
+   * the bottom, so the last item's fill ran into the border and the selected
+   * row looked cropped. The top 13 is this padding plus the 1px edge, and the
+   * bottom needs the same.
+   *
+   * It cannot be `padding` on this box. The box is what clips the fold, so
+   * vertical padding survives the collapse and leaves a stub hanging under the
+   * mark when the menu is shut. A margin on the last child sits inside the
+   * clipped area and goes with it. */
   .dmd .with-aside > .aside-rail > .nav-fold > .nav-list,
   .dmd .header-nav > .nav-fold > .nav-list { padding: 0 var(--space-sm, 12px); }
+  .dmd .nav-fold > .nav-list > :last-child { margin-bottom: var(--space-sm, 12px); }
+
+  /* ── Metadata drops below the title, so the title keeps its row ──
+   *
+   * A title row holds the title and whatever mark sits beside it. Everything
+   * that only describes the title — a status chip, a saved-at time — goes to a
+   * line of its own underneath, which is where the room for a burger comes
+   * from.
+   *
+   * Measured at 296px before this: "Saved 2m ago" wrapped to two lines, 39.9px
+   * against a 19.97px line height, and the bar grew around it.
+   *
+   * `flex: 1 0 100%` rather than a wrap that happens to land right: the meta
+   * takes the whole line because it is alone on it, which is the rule for any
+   * orphan. */
+  /* `.dmd .row > .row` keeps nested action groups on one line, and it has the
+     same specificity as `.dmd .row.title-row` — so which one applied depended
+     on the order of two rules 60 lines apart. Measured: nowrap won and the
+     metadata never left the row. Named through its parent instead, which wins
+     on specificity and cannot be reversed by an edit elsewhere. */
+  .dmd .row > .row.title-row { flex-wrap: wrap; }
+  .dmd .title-meta {
+    display: flex; align-items: baseline; flex: 1 0 100%;
+    gap: var(--space-xs, 8px);
+  }
+
+  /* State both gaps together, because one line moved and the ratio inverted.
+     Measured after the metadata dropped: 12px between the title line and its
+     own metadata, and 8px between that whole block and the actions. The groups
+     sat closer to each other than the lines inside one group, so the bar read
+     as three unrelated rows.
+     `2xs` inside the identity and `lg` between it and the actions. Declared 4
+     inside, measured 8 — the badge's box hangs 4px past the text line — so the
+     between-gap needs `lg` rather than `md` to clear three to one. Measure the
+     result, never the declaration. */
+  .dmd .row.title-bar { row-gap: var(--space-lg, 24px); }
+  .dmd .row > .row.title-row { row-gap: var(--space-2xs, 4px); }
 
   /* A bar does not wrap. Everything else here may.
      The general `.row { flex-wrap: wrap }` above reached the Landing header and
