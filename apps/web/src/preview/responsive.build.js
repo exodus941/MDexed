@@ -59,7 +59,14 @@ export const SM_SENTINEL = '@media (max-width: 999902px)'
 export const LADDER_LABEL_SENTINEL = '@media (max-width: 999903px)'   // 656
 export const LADDER_STACK_SENTINEL = '@media (max-width: 999904px)'   // 552
 export const LADDER_BARE_SENTINEL = '@media (max-width: 999905px)'    // 332
-export const LADDER = { label: 656, stack: 552, bare: 332 }
+
+/* A tab strip that does not fit becomes a dropdown, at the width where it
+   stops fitting. Measured by shrinking the real Shell until the left strip's
+   scrollWidth passed its clientWidth: 704px, where four tabs needed 264 in a
+   262px pane. Rounded up to 712 so the swap happens before the clip, not on
+   the pixel it starts. */
+export const TABS_SENTINEL = '@media (max-width: 999906px)'          // 712
+export const LADDER = { label: 656, stack: 552, bare: 332, tabs: 712 }
 
 export const CONTAINER_LINE = '.dmd-frame { container-type: inline-size; container-name: dmd; }'
 
@@ -106,4 +113,5 @@ export function buildResponsiveCss (css, breakpoints = [], mode = 'container') {
     .split(LADDER_LABEL_SENTINEL).join(query(LADDER.label))
     .split(LADDER_STACK_SENTINEL).join(query(LADDER.stack))
     .split(LADDER_BARE_SENTINEL).join(query(LADDER.bare))
+    .split(TABS_SENTINEL).join(query(LADDER.tabs))
 }

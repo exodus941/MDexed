@@ -49,7 +49,7 @@ export default function Settings({ onInspect }) {
           between the title row and the body. See the note on Dashboard. */}
       <>
         <div className="page-header">
-          <div className="row row-wrap page-head" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+          <div className="row row-wrap page-head">
             <div className="page-title">
               <h2 {...txt("h2")}>Notifications</h2>
             </div>

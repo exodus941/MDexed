@@ -34,10 +34,29 @@ import { stripStyle } from '../../state/components.js'
 function TabStrip({ ins, tabs, selected, style, label }) {
   const pill = stripStyle(style) === 'pill'
   return (
-    /* A `nav` landmark, because a tab strip is navigation. The suite asserts
-       this for any screen using `.nav-item`, and my first rewrite dropped it —
-       a screen reader would have had a row of unlabelled spans. */
-    <nav className="row" aria-label={label} style={{
+    <>
+    {/* ── Too many tabs to fit: the strip becomes a dropdown ──
+     *
+     * Their rule, and it replaces the strip rather than shrinking it. A run of
+     * destinations that does not fit is not a strip with a scrollbar bolted on;
+     * it is a list, and a list you pick from is a select.
+     *
+     * Both are always in the markup and CSS shows one. It cannot be script: the
+     * exported examples are static HTML, and a rule that only works in the
+     * editor is a rule the payload cannot demonstrate.
+     *
+     * The select carries the same type tokens as a tab, so its text lands on
+     * the strip's own baseline. That is the part they asked for by name. */}
+    <div className="tab-select" data-label={label}>
+      <select className="input" aria-label={label} defaultValue={selected}
+        {...ins('tab-selected')}>
+        {tabs.map(t => <option key={t} value={t}>{t}</option>)}
+      </select>
+    </div>
+    {/* A `nav` landmark, because a tab strip is navigation. The suite asserts
+        this for any screen using `.nav-item`, and my first rewrite dropped it —
+        a screen reader would have had a row of unlabelled spans. */}
+    <nav className="row tab-strip" aria-label={label} style={{
       gap: 'var(--space-2xs)',
       /* A pill needs room above and below; an underline needs the rule it
          sits on. Nothing else here is mine to choose. */
@@ -66,6 +85,7 @@ function TabStrip({ ins, tabs, selected, style, label }) {
         )
       })}
     </nav>
+    </>
   )
 }
 

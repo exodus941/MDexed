@@ -82,7 +82,7 @@ export default function Dashboard({ onInspect, layout }) {
             three of them must be siblings in one column. `page-head` becomes
             `display: contents` at that width and hands its children up. */}
         <div className="page-header">
-          <div className="row row-wrap page-head" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+          <div className="row row-wrap page-head">
             <div className="page-title">
               <h2 {...txt('h2')}>Overview</h2>
             </div>
