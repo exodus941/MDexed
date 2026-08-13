@@ -388,16 +388,13 @@
      display contents on the head promotes the heading and the action row into
      this column, so order can put the description between them. Without it the
      actions can only ever sit above a paragraph that is not their sibling. */
-  /* Nested, so this fires at the ladder's own threshold rather than at `sm`.
+  /* No longer nested in a threshold of its own.
    *
-   * "Do the actions still fit beside the title" is not the question `sm`
-   * answers, and the two numbers are 125px apart: `sm` is 640 by default and
-   * the actions stop fitting at 515. Between those the title, the mark and the
-   * buttons all share one line, which is the stage they asked for.
-   *
-   * A nested at-rule, because everything below belongs to this threshold and
-   * moving the block would separate it from the rules it depends on. */
-  @media (max-width: 999904px) {
+   * This block used to fire at a measured "do the actions still fit" width. It
+   * does not need one: the action group takes a line of its own at every folded
+   * width now, because the menu control has to keep the title's row. One less
+   * breakpoint, and the rules below read as one arrangement rather than as a
+   * stage in a ladder. */
   .dmd .page-header { gap: 0; }
   /* `display: contents` used to sit here, to promote the actions into the
      column so the description could come between them and the heading. It
@@ -517,7 +514,6 @@
   .dmd .stack-narrow-rev > .btn.icon-only {
     width: var(--cmp-button-lg-height, 44px); padding: 0;
   }
-  }   /* end of the ladder's stacking threshold */
 
   /* There was a second rule here promoting only the small size, and only as far
      as the medium step. It sat AFTER the rule above with equal specificity, so
@@ -589,31 +585,18 @@
  * each one only says what CHANGED at that step.
  */
 
-/* 606 — the label no longer fits beside the buttons. */
-@media (max-width: 999903px) {
-  .dmd .nav-label { display: none; }
-  .dmd .nav-title { display: block; }
-  /* No label means no words, and a control with a mark and no words is a
-     SQUARE. Stated in the same block that hides the label, because the two are
-     one decision — a rule that hid the label somewhere else would leave the
-     shape behind. Measured before: 46x28 and 70x44. */
-  .dmd .nav-summary { aspect-ratio: 1; padding: 0; }
-}
-
-/* 515 — the buttons take their own line, which gives the label its room back. */
-@media (max-width: 999904px) {
-  .dmd .nav-label { display: inline-block; }
-  .dmd .nav-title { display: none; }
-  /* The label is back, so the control takes its natural width again. */
-  .dmd .nav-summary { aspect-ratio: auto; padding: var(--cmp-button-sm-padding, 0 var(--space-sm, 12px)); }
-  /* The title does NOT claim the line. It did while the menu button lived
-     inside it, and the button became a sibling — so this rule went on pushing
-     the button onto a row of its own, measured at 500px with the title 466 wide
-     and the menu below it. The ACTIONS claim the line, which is what puts them
-     below; the title and the menu share the one above. */
-}
-
-/* 332 — the title and the label no longer share a line. */
+/* 356 — the labelled control squeezes the title, so the label goes.
+ *
+ * This was three thresholds and is now one. The other two dropped the label at
+ * 656 and restored it at 552, and measurement showed they were doing no work:
+ * with the label forced on at every width, the menu never left the title's line
+ * and the title never wrapped for it. Once the action group started taking a
+ * line of its own, nothing was competing for the row.
+ *
+ * What remains is real, and it is the one place all session where the sum and
+ * the ruler agree: 163 + 8 + 136 + 48 = 355, and the title starts overflowing
+ * at 354. A row with two things in it can be added up. A row with four cannot,
+ * which is why every earlier arithmetic threshold was 16 to 32px wrong. */
 @media (max-width: 999905px) {
   .dmd .nav-label { display: none; }
   .dmd .nav-title { display: block; }
