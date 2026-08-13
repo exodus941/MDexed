@@ -604,6 +604,12 @@
   min-width: 24px; min-height: 24px;
 }
 
+/* A title's metadata is one object, and it only becomes one at a narrow width.
+   `contents` here keeps the badge and the timestamp as direct children of the
+   title row, so they stay in its baseline set and every rule written against
+   that row still reaches them. */
+.dmd .title-meta { display: contents; }
+
 /* The menu's own title. It exists only while the menu exists.
    Shown at wide widths it would sit inline among the links on the Landing
    header, whose list is a row — a heading in the middle of a nav bar. The
