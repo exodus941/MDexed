@@ -522,7 +522,14 @@ export default function Canvas({ onInspect, surface, setSurface, onOpenContrast,
             <div className="dmd" style={{ ...varsToStyle(vars), borderRadius: 10, border: '1px solid var(--bdr)' }}
               {...(onInspect ? inspectProps(role('bg', 'Page background · bg'), handleInspect) : {})}>
               {/* Every surface is inspectable, not just the gallery. */}
-              <Component onInspect={onInspect ? handleInspect : undefined} layout={derived.componentLayout} tabStyle={state.components?.tabStyle} />
+              {/* `casing` reaches every surface the same way `tabStyle` does.
+                  The document has always stated how a UI label is capitalised
+                  and the surfaces have always ignored it, so the app
+                  demonstrated sentence case while its own file demanded Title
+                  Case. A sample that contradicts the specification it ships is
+                  worse than no sample. */}
+              <Component onInspect={onInspect ? handleInspect : undefined} layout={derived.componentLayout}
+                tabStyle={state.components?.tabStyle} casing={state.voice?.casing ?? 'title'} />
             </div>
           </div>
         </CrossFade>

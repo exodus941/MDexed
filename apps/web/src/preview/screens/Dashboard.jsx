@@ -6,9 +6,11 @@
    heading offers its text style and its colour; the card it sits in stays
    reachable underneath, because `inspectProps` collects ancestors too. */
 import { inspectProps, text } from '../inspect.js'
+import { labeller } from '../casing.js'
 import { Ico, IconPlus, IconDownload, IconChart, IconFolder, IconBell, IconAlert, IconMore, IconSend } from '../icons.jsx'
 
-export default function Dashboard({ onInspect, layout }) {
+export default function Dashboard({ onInspect, layout, casing }) {
+  const L = labeller(casing)
   const ins = entry => inspectProps(entry, onInspect)
   const txt = (typeName, roleName = 'text') => inspectProps(text(typeName, roleName), onInspect)
   const al = layout?.alert ?? {}
@@ -48,10 +50,10 @@ export default function Dashboard({ onInspect, layout }) {
         <div className="nav-fold">
         <nav className="stack-sm nav-list">
           <span className="caption nav-title" style={{ textTransform: 'uppercase', letterSpacing: '.08em' }}
-            {...txt('overline', 'text-muted')}>Workspace</span>
-          <div className="nav-item is-active with-icon" {...ins('nav-item-selected')}><Ico d={IconChart} />Overview</div>
+            {...txt('overline', 'text-muted')}>{L('Workspace')}</span>
+          <div className="nav-item is-active with-icon" {...ins('nav-item-selected')}><Ico d={IconChart} />{L('Overview')}</div>
           {[['Accounts', IconFolder], ['Invoices', IconSend], ['Reports', IconChart], ['Settings', IconMore]].map(([t, icon]) => (
-            <div key={t} className="nav-item with-icon" {...ins('nav-item')}><Ico d={icon} />{t}</div>
+            <div key={t} className="nav-item with-icon" {...ins('nav-item')}><Ico d={icon} />{L(t)}</div>
           ))}
         </nav>
         </div>
@@ -92,8 +94,8 @@ export default function Dashboard({ onInspect, layout }) {
                 They take the medium size from the same scale — a different step
                 of the system, not a number invented outside it. */}
             <div className="row page-actions">
-              <button className="btn btn-secondary btn-sm" {...ins('button-sm')}><Ico d={IconDownload} size="sm" />Export</button>
-              <button className="btn btn-primary btn-sm" {...ins('button-primary')}><Ico d={IconPlus} size="sm" />New invoice</button>
+              <button className="btn btn-secondary btn-sm" {...ins('button-sm')}><Ico d={IconDownload} size="sm" />{L('Export')}</button>
+              <button className="btn btn-primary btn-sm" {...ins('button-primary')}><Ico d={IconPlus} size="sm" />{L('New invoice')}</button>
               <button className="btn btn-secondary btn-sm icon-only" {...ins('button-secondary')}><Ico d={IconBell} /></button>
             </div>
             {/* The menu control is a BUTTON, and it belongs to the action group.
@@ -113,7 +115,7 @@ export default function Dashboard({ onInspect, layout }) {
               <summary className="nav-summary btn btn-secondary btn-sm" aria-label="Workspace menu"
                 {...inspectProps(['nav-burger', 'nav-item'], onInspect, { passthrough: true })}>
                 <span className="nav-burger" aria-hidden="true"><span /><span /><span /></span>
-                <span className="nav-label">Workspace</span>
+                <span className="nav-label">{L('Workspace')}</span>
               </summary>
             </details>
             {/* The description lives IN the row, at full width.
@@ -133,7 +135,7 @@ export default function Dashboard({ onInspect, layout }) {
         <div className="alert alert-warning" {...ins('alert-warning')}>
           {al.icon !== 'none' && <Ico d={IconAlert} />}
           <span className="alert-body" {...txt('body-sm', 'warning')}>
-            {al.title === 'bold' && <strong style={{ display: 'block' }}>Payment overdue</strong>}
+            {al.title === 'bold' && <strong style={{ display: 'block' }}>{L('Payment overdue')}</strong>}
             Two invoices are more than 30 days overdue.
             {al.action === 'below' && (
               <span style={{ display: 'block', marginTop: 'var(--space-xs, 8px)' }}>
@@ -148,13 +150,18 @@ export default function Dashboard({ onInspect, layout }) {
           )}
         </div>
 
+        {/* `.stat`, not three inline margins. The label, the number and the
+            change each carried a typed distance here, and the change ended up
+            6px from the number it describes against the label's 4 — so it read
+            as a third separate line rather than as part of the number. The
+            class states both distances once, for every tile that uses it. */}
         <div className="cols-3">
           {[['Revenue', '$45,645', '+12.4%'], ['Open invoices', '18', '-3'], ['Avg. days to pay', '21', '+2']].map(([label, value, delta]) => (
-            <div className="card" key={label} {...ins('card')}>
-              <div className="caption" {...txt('caption', 'text-muted')}>{label}</div>
-              <div style={{ fontSize: 'var(--font-h3-size, 24px)', fontWeight: 'var(--font-h3-weight, 600)', marginTop: 4 }}
+            <div className="card stat" key={label} {...ins('card')}>
+              <div className="caption" {...txt('caption', 'text-muted')}>{L(label)}</div>
+              <div className="stat-value" style={{ fontSize: 'var(--font-h3-size, 24px)', fontWeight: 'var(--font-h3-weight, 600)' }}
                 {...txt('h3')}>{value}</div>
-              <div className="caption" style={{ marginTop: 6 }} {...txt('caption', 'text-muted')}>{delta} from Q3</div>
+              <div className="caption stat-delta" {...txt('caption', 'text-muted')}>{delta} from Q3</div>
             </div>
           ))}
         </div>
@@ -175,7 +182,7 @@ export default function Dashboard({ onInspect, layout }) {
           <div className="table-scroll">
           <table className={`table table-rows-${tb.rows ?? 'lines'} table-head-${tb.header ?? 'overline'}`} {...ins('table')}>
             <thead><tr {...ins('table-header')}>
-              <th>Account</th><th>Status</th><th className={tb.numeric === 'left' ? '' : 'num-col'}>Balance</th>
+              <th>{L('Account')}</th><th>{L('Status')}</th><th className={tb.numeric === 'left' ? '' : 'num-col'}>{L('Balance')}</th>
             </tr></thead>
             <tbody>
               {rows.map(([name, status, amount, initials]) => (
@@ -186,7 +193,7 @@ export default function Dashboard({ onInspect, layout }) {
                       <span {...txt('body-sm')}>{name}</span>
                     </div>
                   </td>
-                  <td><span className={`badge ${badgeFor(status)}`} {...ins(`badge-${badgeFor(status).replace('badge-', '')}`)}>{status}</span></td>
+                  <td><span className={`badge ${badgeFor(status)}`} {...ins(`badge-${badgeFor(status).replace('badge-', '')}`)}>{L(status)}</span></td>
                   <td className={tb.numeric === 'left' ? '' : 'num-col'}><span {...txt('body-sm')}>{amount}</span></td>
                 </tr>
               ))}
@@ -197,16 +204,16 @@ export default function Dashboard({ onInspect, layout }) {
 
         <div className="cols-2">
           <div className="card" {...ins('card')}>
-            <h3 style={{ fontSize: 'var(--font-body-md-size, 16px)', marginBottom: 'var(--space-sm, 8px)' }} {...txt('h6')}>Collection rate</h3>
+            <h3 style={{ fontSize: 'var(--font-body-md-size, 16px)', marginBottom: 'var(--space-sm, 8px)' }} {...txt('h6')}>{L('Collection rate')}</h3>
             {/* No progress component in the library, so this stays part of the card. */}
             <div className="bar"><span style={{ width: '72%' }} /></div>
             <p className="caption" style={{ marginTop: 8 }} {...txt('caption', 'text-muted')}>72% of Q4 invoices settled</p>
           </div>
           <div className="card card-overlay" {...ins('card-overlay')}>
-            <h3 style={{ fontSize: 'var(--font-body-md-size, 16px)', marginBottom: 4 }} {...txt('h6')}>Renewal due</h3>
+            <h3 style={{ fontSize: 'var(--font-body-md-size, 16px)', marginBottom: 4 }} {...txt('h6')}>{L('Renewal due')}</h3>
             <p className="muted small" {...txt('body-sm', 'text-muted')}>Halcyon Group renews in 6 days and has an overdue balance.</p>
             <div className="row" style={{ marginTop: 'var(--space-md, 16px)' }}>
-              <button className="btn btn-primary btn-sm" {...ins('button-primary')}>Send reminder</button>
+              <button className="btn btn-primary btn-sm" {...ins('button-primary')}>{L('Send reminder')}</button>
               {/* Destructive, but not what the card is for — dismissing an
                   overdue renewal loses the reminder, so it should read as
                   destructive without competing with the primary action. That

@@ -30,6 +30,7 @@ const APP_CSS = fs.readFileSync(new URL('../src/ui/theme.css', import.meta.url),
    from disk. */
 import { readFileSync as readCssFile } from 'node:fs'
 import { buildResponsiveCss } from '../src/preview/responsive.build.js'
+import { titleCase, labeller } from '../src/preview/casing.js'
 const RESPONSIVE_RULES = readCssFile(
   new URL('../src/preview/responsive.rules.css', import.meta.url), 'utf8')
 const responsiveCss = (bps, mode) => buildResponsiveCss(RESPONSIVE_RULES, bps, mode)
@@ -1248,6 +1249,59 @@ line('\n- prompt construction -')
   assert(!/responsiveCss\([^)]*,\s*'media'\s*\)/.test(canvasSrc), 'the editor canvas does not')
 }
 
+/* ── The preview obeys the casing the document states ──
+ *
+ * `voice.casing` shipped in the schema from the first version and every preview
+ * surface ignored it, so the app demonstrated sentence case while its own file
+ * demanded Title Case. These pin the helper's behaviour and the wiring, because
+ * the failure was silent in both directions: nothing threw, and the screens
+ * looked deliberate. */
+{
+  line('\n- the preview obeys the document casing -')
+  assert(titleCase('Reconciliation notes') === 'Reconciliation Notes',
+    'a section title takes Title Case')
+  assert(titleCase('Invoices a month') === 'Invoices a Month',
+    'a short preposition stays lowercase inside a title')
+  assert(titleCase('Talk to us') === 'Talk to Us',
+    'the last word is capitalised even when it is a small word')
+  assert(titleCase('of mice and men') === 'Of Mice and Men',
+    'the first word is capitalised even when it is a small word')
+  /* "from" is a short preposition, so it stays lowercase mid-title. The first
+     draft of this assertion expected "Import From CSV" and the helper was
+     right. The initialism is the part under test. */
+  assert(titleCase('Import from CSV') === 'Import from CSV',
+    'an initialism keeps its own capitals')
+  assert(titleCase('Flagged duplicate INV-2287') === 'Flagged Duplicate INV-2287',
+    'a code with digits and capitals is left alone')
+  assert(titleCase('follow-up call') === 'Follow-up Call',
+    'a hyphenated pair takes one capital, not two')
+  assert(titleCase('(draft) notes') === '(Draft) Notes',
+    'a leading bracket does not eat the capital')
+  /* One direction only. Lowercasing a title back to sentence case would need
+     to know which words are proper nouns, and nothing here can. */
+  assert(labeller('sentence')('Ashford & Kline') === 'Ashford & Kline',
+    'sentence case returns the source text untouched')
+  assert(labeller('title')('save draft') === 'Save Draft',
+    'the labeller applies Title Case when the document asks for it')
+
+  /* The wiring. A helper nothing calls is the same defect as no helper. */
+  const SCREENS = ['Dashboard', 'Record', 'Shell', 'Landing', 'Pricing', 'Form',
+    'Settings', 'Empty', 'Dialog']
+  const unwired = SCREENS.filter(name => {
+    const src = fs.readFileSync(
+      new URL(`../src/preview/screens/${name}.jsx`, import.meta.url), 'utf8')
+    return !src.includes('labeller(casing)') || !src.includes('L(')
+  })
+  assert(unwired.length === 0,
+    `every preview screen recases its labels${unwired.length ? ' — missing: ' + unwired.join(', ') : ''}`)
+
+  /* Canvas has to hand the setting down, or every screen recases against
+     `undefined` and silently falls back to leaving the text alone. */
+  const canvas = fs.readFileSync(new URL('../src/preview/Canvas.jsx', import.meta.url), 'utf8')
+  assert(/casing=\{state\.voice\?\.casing/.test(canvas),
+    'Canvas passes the document casing to every surface')
+}
+
 /* ── The payload teaches what we learned ──
  *
  * Every design rule discovered while building this app has to reach the file
@@ -1387,6 +1441,15 @@ line('\n- prompt construction -')
     ['a collapsed row still costs its line gap', ['a collapsed row still costs its line gap']],
     ['no shorthand beside its own longhand', ['never mix a shorthand and a longhand']],
     ['alignment is stated on the element that holds it', ['never leave it to a neighbour']],
+    /* The six spacing and casing defects they found in one pass of screenshots.
+       Every one of them was a stated value that did not survive contact with a
+       second source, or a stated setting the demonstration ignored. */
+    ['a byline sits close to its heading', ['belongs to that heading']],
+    ['a card action stands clear of the body', ['the action row stands further from the body']],
+    ['a delta belongs to its number', ['not to the tile']],
+    ['an empty-state mark is drawn large', ['twice the largest icon step']],
+    ['an inherited custom property can cancel a gap that is not there', ['custom properties inherit']],
+    ['equalise a heading gap on ink, not on boxes', ['two different corrections, not one scaled']],
   ]
   const missing = RULES.filter(([, terms]) => !terms.every(t => doc.includes(t))).map(([n]) => n)
   assert(missing.length === 0,

@@ -2,9 +2,11 @@
    accent doing persuasive work rather than utility work — the conditions
    under which a system built for dashboards usually falls apart. */
 import { inspectProps, text } from '../inspect.js'
+import { labeller } from '../casing.js'
 import { Ico, IconArrow, IconPlus, IconCheck, IconStar } from '../icons.jsx'
 
-export default function Landing({ onInspect }) {
+export default function Landing({ onInspect, casing }) {
+  const L = labeller(casing)
   const ins = entry => inspectProps(entry, onInspect)
   /* Text has two owners — the text style and the colour role — so it offers
      both rather than picking one. */
@@ -44,7 +46,7 @@ export default function Landing({ onInspect }) {
               {...txt('overline', 'text-muted')}>Menu</span>
             <a className="nav-item" href="#pricing" {...ins('nav-item')}>Pricing</a>
             <a className="nav-item" href="#docs" {...ins('nav-item')}>Docs</a>
-            <button className="btn btn-primary btn-sm" {...ins('button-sm')}><Ico d={IconPlus} size="sm" />Start free</button>
+            <button className="btn btn-primary btn-sm" {...ins('button-sm')}><Ico d={IconPlus} size="sm" />{L('Start free')}</button>
           </nav>
           </div>
         </div>
@@ -63,8 +65,8 @@ export default function Landing({ onInspect }) {
             is asking for, and shrinking it to share a line with its own
             alternative is the opposite of that. */}
         <div className="row stack-narrow" style={{ marginTop: 'var(--space-sm, 8px)' }}>
-          <button className="btn btn-primary btn-lg" {...ins('button-lg')}>Start free<Ico d={IconArrow} size="lg" end /></button>
-          <button className="btn btn-secondary btn-lg" {...ins('button-secondary')}><Ico d={IconStar} size="lg" />Book a demo</button>
+          <button className="btn btn-primary btn-lg" {...ins('button-lg')}>{L('Start free')}<Ico d={IconArrow} size="lg" end /></button>
+          <button className="btn btn-secondary btn-lg" {...ins('button-secondary')}><Ico d={IconStar} size="lg" />{L('Book a demo')}</button>
         </div>
         <p className="caption" {...txt('caption', 'text-muted')}>No card required · Cancel any time</p>
       </div>
@@ -84,8 +86,13 @@ export default function Landing({ onInspect }) {
 
       <div className="card card-overlay" {...ins('card-overlay')} style={{ textAlign: 'center', padding: 'var(--space-xl, 32px)', cursor: onInspect ? 'pointer' : undefined }}>
         <h2 {...txt('h2', 'text')} style={{ marginBottom: 'var(--space-sm, 8px)', cursor: onInspect ? 'pointer' : undefined }}>Ready when you are</h2>
-        <p className="muted" {...txt('body-md', 'text-muted')} style={{ marginBottom: 'var(--space-md, 16px)', cursor: onInspect ? 'pointer' : undefined }}>Free for your first ten invoices a month.</p>
-        <button className="btn btn-primary btn-lg" {...ins('button-lg')}><Ico d={IconCheck} size="lg" />Create an account</button>
+        <p className="muted" {...txt('body-md', 'text-muted')} style={{ marginBottom: 0, cursor: onInspect ? 'pointer' : undefined }}>Free for your first ten invoices a month.</p>
+        {/* The action stands clear of the sentence that explains it. At 16px it
+            read as the last line of the paragraph rather than as the thing to
+            press. `.card-actions` states that distance for every card. */}
+        <div className="card-actions">
+          <button className="btn btn-primary btn-lg" {...ins('button-lg')}><Ico d={IconCheck} size="lg" />{L('Create an account')}</button>
+        </div>
       </div>
     </div>
   )

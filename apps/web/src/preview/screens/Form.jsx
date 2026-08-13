@@ -2,6 +2,7 @@
    field, error against surface, focus ring against page. Kept on screen so
    those pairings can't quietly break. */
 import { inspectProps, text } from '../inspect.js'
+import { labeller } from '../casing.js'
 import { Ico, Check, Switch, IconCheck, IconX, IconTrash, IconChevron, IconCalendar, IconAlert } from '../icons.jsx'
 /* One place that knows how a field is assembled, so the composition settings
    are demonstrated rather than described. Every field on this screen goes
@@ -48,7 +49,8 @@ function Field({ fl, ins, txt, entry, label, required, help, error, children }) 
   )
 }
 
-export default function Form({ onInspect, layout }) {
+export default function Form({ onInspect, layout, casing }) {
+  const L = labeller(casing)
   const ins = entry => inspectProps(entry, onInspect)
   const txt = (typeName, roleName = 'text') => inspectProps(text(typeName, roleName), onInspect)
   const fl = layout?.input ?? {}
@@ -56,7 +58,7 @@ export default function Form({ onInspect, layout }) {
   return (
     <div style={{ maxWidth: 620, margin: '0 auto' }} className="stack">
       <div>
-        <h2 {...txt('h2', 'text')}>Account settings</h2>
+        <h2 {...txt('h2', 'text')}>{L('Account settings')}</h2>
         <p className="muted small" {...txt('body-sm', 'text-muted')} style={{ marginTop: 4, cursor: onInspect ? 'pointer' : undefined }}>
           These details appear on invoices and receipts.
         </p>
@@ -117,7 +119,7 @@ export default function Form({ onInspect, layout }) {
         <div className="well">
           <div className="row" style={{ justifyContent: 'space-between' }}>
             <div>
-              <div style={{ fontWeight: 500 }} {...txt("body-md")}>Automatic reminders</div>
+              <div style={{ fontWeight: 500 }} {...txt("body-md")}>{L('Automatic reminders')}</div>
               <p className="muted small" style={{ marginTop: 2 }} {...txt("body-sm", "text-muted")}>Chase unpaid invoices after 7, 14 and 30 days.</p>
             </div>
             <span {...ins('switch-checked')}><Switch on /></span>
@@ -129,8 +131,8 @@ export default function Form({ onInspect, layout }) {
             which is correct on a desktop and backwards on a phone. */}
         <div className="row stack-narrow-rev" style={{ justifyContent: 'flex-end' }}>
           <button className="btn btn-ghost" {...ins('button-ghost')}><Ico d={IconX} />Cancel</button>
-          <button className="btn btn-secondary" {...ins('button-secondary')}>Save draft</button>
-          <button className="btn btn-primary" {...ins('button-primary')}><Ico d={IconCheck} />Save changes</button>
+          <button className="btn btn-secondary" {...ins('button-secondary')}>{L('Save draft')}</button>
+          <button className="btn btn-primary" {...ins('button-primary')}><Ico d={IconCheck} />{L('Save changes')}</button>
         </div>
       </div>
 
@@ -142,10 +144,10 @@ export default function Form({ onInspect, layout }) {
             been read. Read first, then act. */}
         <div className="row stack-narrow" style={{ justifyContent: 'space-between' }}>
           <div>
-            <div style={{ fontWeight: 500 }} {...txt("body-md")}>Close this account</div>
+            <div style={{ fontWeight: 500 }} {...txt("body-md")}>{L('Close this account')}</div>
             <p className="muted small" style={{ marginTop: 2 }} {...txt("body-sm", "text-muted")}>Permanently removes all invoices and history.</p>
           </div>
-          <button className="btn btn-danger btn-sm" {...ins('button-danger')}><Ico d={IconTrash} size="sm" />Close account</button>
+          <button className="btn btn-danger btn-sm" {...ins('button-danger')}><Ico d={IconTrash} size="sm" />{L('Close account')}</button>
         </div>
       </div>
     </div>
