@@ -9,9 +9,13 @@ export function MetaTab() {
   const { state, set, load } = useStore()
   const up = (k, v) => set(s => ({ ...s, meta: { ...s.meta, [k]: v } }), `meta:${k}`)
   /* Defaulted here as well as in the schema, so a document saved before this
-     section existed opens without throwing on `build.labelCase`. */
-  const build = state.build ?? { labelCase: 'sentence', themeToggle: false }
+     section existed opens without throwing. */
+  const build = state.build ?? { themeToggle: true }
   const upBuild = (k, v) => set(s => ({ ...s, build: { ...build, [k]: v } }), `build:${k}`)
+  /* Capitalisation is `voice.casing`, edited here and in Directives. One
+     value, two places to reach it — never two values. */
+  const casing = state.voice?.casing ?? 'title'
+  const upCasing = v => set(s => ({ ...s, voice: { ...s.voice, casing: v } }), 'voice:casing')
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -45,21 +49,22 @@ export function MetaTab() {
       {/* Build Preferences — decisions about the page an agent produces,
           rather than about the system it produces it from. Both settings exist
           because a generated build had to guess and said so in its notes. */}
-      <Collapsible title="Build Preferences" note={build.labelCase === 'title' ? 'Title Case' : 'Sentence case'} defaultOpen>
+      <Collapsible title="Build Preferences" note={casing === 'title' ? 'Title Case' : 'Sentence case'} defaultOpen>
         <div style={{ marginBottom: 14 }}>
           <label>Label capitalisation</label>
-          {/* A build kept the brief's capitalisation for labels it was handed
-              and used sentence case for the ones it invented, then reported
-              the inconsistency. Both readings were defensible, because the
-              document asked for sentence case in prose and showed Title Case
-              in its own examples. Stating it removes the guess. */}
-          <Segmented value={build.labelCase} onChange={val => upBuild('labelCase', val)} size="sm"
+          {/* This edits `voice.casing`, the same value the Directives panel
+              shows under Copy and Formatting. It had its own field for one
+              session, and the document then stated both rules — one section
+              demanding Title Case, another demanding sentence case, in one
+              file with no precedence between them. */}
+          <Segmented value={casing} onChange={upCasing} size="sm"
             options={[{ value: 'sentence', label: 'Sentence case' }, { value: 'title', label: 'Title Case' }]} />
           <div className="panel-note" style={{ marginTop: 5 }}>
             Applies to every button, tab, menu item and column heading an agent writes.
-            {build.labelCase === 'sentence'
+            {casing === 'sentence'
               ? ' “Export payload”, not “Export Payload”.'
               : ' “Export Payload”, not “Export payload”.'}
+            {' '}Also shown in Directives under Copy and Formatting — one setting, two ways in.
           </div>
         </div>
         <Toggle label="Build a theme toggle into the page" checked={build.themeToggle}

@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Quill — Editor Chrome</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap">
+<link rel="stylesheet" href="chrome.css">
+</head>
+<body>
+<div class="app">
+
+  <!-- ── Title bar ─────────────────────────────────────────────────────── -->
+  <header class="titlebar">
+    <div class="titlebar-left">
+      <span class="brand-mark" aria-hidden="true">QL</span>
+      <span class="wordmark">Quill</span>
+      <span class="badge badge-neutral">Draft</span>
+      <span class="badge badge-success">Autosaved</span>
+    </div>
+    <div class="titlebar-right">
+      <button class="btn btn-ghost btn-sm" type="button">Import</button>
+      <button class="btn btn-ghost btn-sm" type="button">Export</button>
+      <button class="btn btn-ghost btn-sm" type="button">Share</button>
+      <button class="btn btn-primary btn-sm" type="button">
+        <svg class="icon" aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+        Publish
+      </button>
+    </div>
+  </header>
+
+  <!-- ── Body: two panes ───────────────────────────────────────────────── -->
+  <div class="body-split">
+
+    <!-- ── Left pane ───────────────────────────────────────────────────── -->
+    <section class="pane pane-left" aria-label="Editing panel">
+      <nav class="tab-strip" aria-label="Editing panel sections">
+        <button class="tab is-selected" type="button">Content</button>
+        <button class="tab" type="button">Style</button>
+        <button class="tab" type="button">Layout</button>
+        <button class="tab" type="button">Components</button>
+        <button class="tab" type="button">Tokens</button>
+        <button class="tab" type="button">Assets</button>
+        <button class="tab" type="button">History</button>
+        <button class="tab" type="button">Settings</button>
+      </nav>
+
+      <div class="pane-content">
+
+        <!-- Card 1: three labelled text fields -->
+        <div class="card">
+          <div class="card-head">
+            <h3>Page Details</h3>
+            <span class="badge badge-neutral">3 Fields</span>
+          </div>
+          <div class="stack-sm">
+            <div class="field">
+              <label class="label" for="f-title">Title</label>
+              <input class="input" id="f-title" type="text" value="Quarterly Retrospective">
+            </div>
+            <div class="field">
+              <label class="label" for="f-slug">Slug</label>
+              <input class="input" id="f-slug" type="text" value="quarterly-retrospective">
+            </div>
+            <div class="field">
+              <label class="label" for="f-desc">Description</label>
+              <input class="input" id="f-desc" type="text" value="Summary of Q4 outcomes and next steps">
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 2: five colour swatches -->
+        <div class="card">
+          <div class="card-head">
+            <h3>Palette</h3>
+            <span class="badge badge-neutral">5 Colors</span>
+          </div>
+          <div class="swatch-row">
+            <div class="swatch-item">
+              <span class="swatch" style="background:#101214"></span>
+              <span class="swatch-hex">#101214</span>
+            </div>
+            <div class="swatch-item">
+              <span class="swatch" style="background:#dc9055"></span>
+              <span class="swatch-hex">#dc9055</span>
+            </div>
+            <div class="swatch-item">
+              <span class="swatch" style="background:#4f8eb4"></span>
+              <span class="swatch-hex">#4f8eb4</span>
+            </div>
+            <div class="swatch-item">
+              <span class="swatch" style="background:#b8860b"></span>
+              <span class="swatch-hex">#b8860b</span>
+            </div>
+            <div class="swatch-item">
+              <span class="swatch" style="background:#d3566d"></span>
+              <span class="swatch-hex">#d3566d</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 3: six-row label/value list -->
+        <div class="card">
+          <div class="card-head">
+            <h3>Recent Changes</h3>
+            <span class="badge badge-neutral">6 Items</span>
+          </div>
+          <ul class="list">
+            <li class="list-row"><span>Author</span><span class="list-value">J. Rivera</span></li>
+            <li class="list-row"><span>Modified</span><span class="list-value">2 hours ago</span></li>
+            <li class="list-row"><span>Version</span><span class="list-value">14</span></li>
+            <li class="list-row"><span>Status</span><span class="list-value">Draft</span></li>
+            <li class="list-row"><span>Size</span><span class="list-value">482 KB</span></li>
+            <li class="list-row"><span>Language</span><span class="list-value">English (US)</span></li>
+          </ul>
+        </div>
+
+        <!-- Card 4: helper text and two actions -->
+        <div class="card">
+          <div class="card-head">
+            <h3>Publishing</h3>
+            <span class="badge badge-neutral">2 Actions</span>
+          </div>
+          <p class="muted small helper-text">Publishing replaces the live version for every reader. Changes cannot be recalled once sent, so review the draft first.</p>
+          <div class="row card-actions">
+            <button class="btn btn-danger-ghost btn-sm" type="button">Discard Draft</button>
+            <button class="btn btn-primary btn-sm" type="button">Publish Changes</button>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ── Vertical divider ────────────────────────────────────────────── -->
+    <div class="pane-divider" role="separator" aria-orientation="vertical"></div>
+
+    <!-- ── Right pane ──────────────────────────────────────────────────── -->
+    <section class="pane pane-right" aria-label="Preview panel">
+      <nav class="tab-strip" aria-label="Preview panel sections">
+        <button class="tab is-selected" type="button">Overview</button>
+        <button class="tab" type="button">Data</button>
+        <button class="tab" type="button">Analytics</button>
+        <button class="tab" type="button">Code</button>
+        <button class="tab" type="button">Comments</button>
+        <button class="tab" type="button">Export</button>
+      </nav>
+
+      <div class="pane-content">
+
+        <div class="stat-row">
+          <div class="stat-tile">
+            <span class="stat-label">Total Views</span>
+            <span class="stat-number">24,510</span>
+            <span class="stat-delta is-positive">+8.2%</span>
+          </div>
+          <div class="stat-tile">
+            <span class="stat-label">Avg. Session</span>
+            <span class="stat-number">3m 42s</span>
+            <span class="stat-delta is-positive">+4.1%</span>
+          </div>
+          <div class="stat-tile">
+            <span class="stat-label">Bounce Rate</span>
+            <span class="stat-number">38.4%</span>
+            <span class="stat-delta is-negative">−2.6%</span>
+          </div>
+          <div class="stat-tile">
+            <span class="stat-label">Conversions</span>
+            <span class="stat-number">1,204</span>
+            <span class="stat-delta is-positive">+12.9%</span>
+          </div>
+        </div>
+
+        <div class="card card-wide">
+          <div class="card-head">
+            <h3>Recent Activity</h3>
+          </div>
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Event</th>
+                <th>User</th>
+                <th>Time</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>Draft edited</td><td>J. Rivera</td><td>2 hours ago</td></tr>
+              <tr><td>Comment added</td><td>A. Chen</td><td>5 hours ago</td></tr>
+              <tr><td>Version restored</td><td>J. Rivera</td><td>Yesterday</td></tr>
+              <tr><td>Asset uploaded</td><td>M. Souza</td><td>Yesterday</td></tr>
+              <tr><td>Draft edited</td><td>A. Chen</td><td>2 days ago</td></tr>
+              <tr><td>Page published</td><td>J. Rivera</td><td>3 days ago</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+    </section>
+
+  </div>
+
+  <!-- ── Status strip ─────────────────────────────────────────────────── -->
+  <footer class="statusbar">
+    <div class="statusbar-left">
+      <span>Autosaved 2m ago</span>
+      <span>482 Words</span>
+      <span>UTF-8</span>
+      <span>Ln 12, Col 4</span>
+    </div>
+    <div class="statusbar-right">
+      <span>v2.3.1</span>
+    </div>
+  </footer>
+
+</div>
+</body>
+</html>
