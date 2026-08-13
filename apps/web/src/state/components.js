@@ -187,12 +187,8 @@ export const COMPONENT_LIBRARY = [
   {
     name: 'tab', label: 'Tab', group: 'Navigation', on: true,
     base: { padding: '{spacing.xs} {spacing.sm}', typography: 'body-sm', textColor: '{colors.text-muted}', gap: '{spacing.2xs}', iconSize: '{icons.md}' },
-    states: {
-      hover:    { _: { textColor: '{colors.text}' } },
-      /* No backgroundColor, deliberately. The underline is the whole marker. */
-      selected: { _: { textColor: '{colors.text}', boxShadow: 'inset 0 -2px 0 {colors.accent}' } },
-      disabled: { _: { textColor: '{colors.text-subtle}' } },
-    },
+    /* States come from TAB_STYLES, chosen by `components.tabStyle`. */
+    states: {},
   },
   {
     name: 'avatar', label: 'Avatar', group: 'Data', on: true,
@@ -201,6 +197,46 @@ export const COMPONENT_LIBRARY = [
 ]
 
 export const COMPONENT_GROUPS = [...new Set(COMPONENT_LIBRARY.map(c => c.group))]
+
+/* ── Two ways to mark a selected tab ──
+ *
+ * One treatment was not enough. A strip that sits on a rule wants the
+ * underline; a strip floating in a toolbar with no rule under it wants the
+ * pill, and forcing the underline there draws a 2px mark against nothing.
+ *
+ * Two more were built and rejected on sight: a "raised" tab taking the surface
+ * fill and breaking the strip's rule, and a "boxed" tab with its bottom edge
+ * open. Both are the browser-chrome idiom and both read as dated. They are not
+ * offered, because an option nobody picks is a decision the reader still has to
+ * make.
+ *
+ * The pill is NOT the nav-item treatment renamed. A nav item marks the current
+ * place in a list; a pill tab marks the active view in a row. They resolve to
+ * similar CSS and they answer different questions, so both exist by name. */
+export const TAB_STYLES = {
+  underline: {
+    label: 'Underline',
+    desc: 'A 2px mark on the strip’s own rule. No fill.',
+    /* An inset shadow, never a border. A 2px border makes the tab 2px taller
+       and pushes it past the very rule the mark is meant to sit on. */
+    states: {
+      hover:    { _: { textColor: '{colors.text}' } },
+      selected: { _: { textColor: '{colors.text}', boxShadow: 'inset 0 -2px 0 {colors.accent}' } },
+      disabled: { _: { textColor: '{colors.text-subtle}' } },
+    },
+  },
+  pill: {
+    label: 'Pill',
+    desc: 'A tinted fill with a full radius, detached from any rule.',
+    states: {
+      hover:    { _: { textColor: '{colors.text}', backgroundColor: '{colors.bg-subtle}' } },
+      selected: { _: { textColor: '{colors.accent}', backgroundColor: '{colors.accent-subtle}', rounded: '{rounded.md}' } },
+      disabled: { _: { textColor: '{colors.text-subtle}' } },
+    },
+  },
+}
+
+export const DEFAULT_TAB_STYLE = 'underline'
 
 /** Merge an override map over a property set. */
 const applyOverrides = (props, overrides, prefix) => {
@@ -228,10 +264,16 @@ const toProps = obj =>
  * @returns [{ name, properties: [{key, value}], source }]
  */
 export function expandComponents(cfg = {}) {
-  const { enabled = {}, overrides = {}, emitStates = true, emitSizes = true } = cfg
+  const { enabled = {}, overrides = {}, emitStates = true, emitSizes = true,
+    tabStyle = DEFAULT_TAB_STYLE } = cfg
   const out = []
 
-  for (const def of COMPONENT_LIBRARY) {
+  for (const rawDef of COMPONENT_LIBRARY) {
+    /* The tab's states come from the chosen style rather than the library, so
+       one setting swaps the whole treatment and no entry states both. */
+    const def = rawDef.name === 'tab'
+      ? { ...rawDef, states: (TAB_STYLES[tabStyle] ?? TAB_STYLES[DEFAULT_TAB_STYLE]).states }
+      : rawDef
     const isOn = enabled[def.name] ?? def.on
     if (!isOn) continue
 

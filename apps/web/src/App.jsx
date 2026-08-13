@@ -1672,7 +1672,7 @@ function Shell() {
       const modes = HTML_EXAMPLES_MODES
       for (const s of SURFACES) {
         const markup = renderToStaticMarkup(
-          <div className="dmd-frame"><div className="dmd"><s.Component layout={derived.componentLayout} /></div></div>
+          <div className="dmd-frame"><div className="dmd"><s.Component layout={derived.componentLayout} tabStyle={stamped.components?.tabStyle} /></div></div>
         )
         for (const mode of modes) {
           files[exampleFilename(mode, s.id)] =

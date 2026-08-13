@@ -95,26 +95,38 @@ function TitleBar({ ins, txt }) {
    no fill — because a fill inside a strip competes with the strip's own rule.
    The underline is an inset shadow, so it adds no height and cannot push the
    tab past the rule it sits on. A border would do both. */
-function TabStrip({ ins, tabs, selected }) {
+function TabStrip({ ins, tabs, selected, style }) {
+  const pill = style === 'pill'
   return (
     <div style={{
       display: 'flex', gap: 'var(--space-2xs, 4px)',
-      padding: '0 var(--space-sm, 12px)',
-      /* Structural again: this rule separates the strip from the content. */
-      borderBottom: '1px solid var(--c-border, #ccc)',
+      /* A pill floats, so it needs vertical room and no rule to sit on. An
+         underline needs the rule, because the mark IS on that line. */
+      padding: pill ? 'var(--space-2xs, 4px) var(--space-sm, 12px)' : '0 var(--space-sm, 12px)',
+      borderBottom: pill ? 0 : '1px solid var(--c-border, #ccc)',
       overflowX: 'auto',
     }}>
       {tabs.map(t => {
         const on = t === selected
         return (
           <span key={t} {...ins(on ? 'tab-selected' : 'tab')} style={{
-            display: 'inline-block', lineHeight: '34px', whiteSpace: 'nowrap',
+            display: 'inline-block', lineHeight: pill ? '28px' : '34px', whiteSpace: 'nowrap',
             padding: 'var(--cmp-tab-padding, 0 12px)',
             fontFamily: 'var(--cmp-tab-font-family, inherit)',
             fontSize: 'var(--cmp-tab-font-size, 13px)',
             fontWeight: on ? 500 : 400,
-            color: on ? 'var(--c-text, #111)' : 'var(--c-text-muted, #666)',
-            boxShadow: on ? 'inset 0 -2px 0 var(--c-accent, #333)' : 'none',
+            ...(pill
+              ? {
+                borderRadius: 'var(--radius-md, 6px)',
+                color: on ? 'var(--c-accent, #333)' : 'var(--c-text-muted, #666)',
+                background: on ? 'var(--c-accent-subtle, #eee)' : 'transparent',
+              }
+              : {
+                color: on ? 'var(--c-text, #111)' : 'var(--c-text-muted, #666)',
+                /* An inset shadow, never a border: 2px of border would make the
+                   tab 2px taller and push it past the rule the mark sits on. */
+                boxShadow: on ? 'inset 0 -2px 0 var(--c-accent, #333)' : 'none',
+              }),
             cursor: 'pointer',
           }}>{t}</span>
         )
@@ -141,7 +153,7 @@ function Stat({ ins, txt, label, value, delta, up }) {
   )
 }
 
-export default function Shell({ onInspect, layout }) {
+export default function Shell({ onInspect, layout, tabStyle }) {
   const ins = entry => inspectProps(entry, onInspect)
   const txt = (typeName, roleName = 'text') => inspectProps(text(typeName, roleName), onInspect)
 
@@ -155,7 +167,7 @@ export default function Shell({ onInspect, layout }) {
           /* A divider between two panes is structure. */
           borderRight: '1px solid var(--c-border, #ccc)',
         }}>
-          <TabStrip ins={ins} selected="Colour"
+          <TabStrip ins={ins} style={tabStyle} selected="Colour"
             tabs={['Meta', 'Colour', 'Type', 'Layout', 'Shape']} />
           <div style={{ padding: 'var(--space-md, 16px)', background: 'var(--c-bg, #fafafa)', flex: 1 }}>
             <div className="card" {...ins('card')} style={{
@@ -193,7 +205,7 @@ export default function Shell({ onInspect, layout }) {
         </div>
 
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-          <TabStrip ins={ins} selected="Dashboard" tabs={['Dashboard', 'Form', 'Settings']} />
+          <TabStrip ins={ins} style={tabStyle} selected="Dashboard" tabs={['Dashboard', 'Form', 'Settings']} />
           <div style={{ padding: 'var(--space-md, 16px)', background: 'var(--c-bg, #fafafa)', flex: 1 }}>
             <div className="stat-row" style={{ display: 'flex', gap: 'var(--space-sm, 12px)' }}>
               <Stat ins={ins} txt={txt} label="Tokens" value="284" delta="12" up />
