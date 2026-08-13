@@ -1430,6 +1430,8 @@ line('\n- prompt construction -')
     ['a comparison puts every row on one grid', ['every row of a comparison on **one** grid']],
     ['a recommendation is marked by its edge', ['never by a fill']],
     ['a marked column is one unbroken edge', ['stop against it rather than crossing it']],
+    ['a painting table has no column gap', ['no column gap at all']],
+    ['moving what draws a seam can move the seam', ['the seam can simply move too']],
     ['a bordered cell is stretched, never centred', ['stretch any cell that carries a border']],
     ['a column marker cannot span auto-placed rows', ['names the end of the explicit grid']],
     ['content beside context is not navigation', ['beside **context** is not content beside **navigation**']],
