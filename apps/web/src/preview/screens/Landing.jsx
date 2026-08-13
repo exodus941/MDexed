@@ -24,14 +24,16 @@ export default function Landing({ onInspect }) {
             and a span cannot be tabbed to or announced as navigation. */}
         <div className="aside-rail header-nav">
           <details className="nav-collapse">
-            <summary className="nav-summary" {...inspectProps("nav-item", onInspect, { passthrough: true })}>
-              <span className="caption" style={{ textTransform: 'uppercase', letterSpacing: '.08em' }}
-                {...txt('overline', 'text-muted')}>Menu</span>
+            {/* The burger alone. Its label goes inside the menu, with the links
+                it names. See the same change on Dashboard and Settings. */}
+            <summary className="nav-summary" aria-label="Menu" {...inspectProps("nav-item", onInspect, { passthrough: true })}>
               <span className="nav-burger" aria-hidden="true"><span /><span /><span /></span>
             </summary>
           </details>
           <div className="nav-fold">
           <nav className="row nav-list" aria-label="Main">
+            <span className="caption nav-title" style={{ textTransform: 'uppercase', letterSpacing: '.08em' }}
+              {...txt('overline', 'text-muted')}>Menu</span>
             <a className="nav-item" href="#pricing" {...ins('nav-item')}>Pricing</a>
             <a className="nav-item" href="#docs" {...ins('nav-item')}>Docs</a>
             <button className="btn btn-primary btn-sm" {...ins('button-sm')}><Ico d={IconPlus} size="sm" />Start free</button>

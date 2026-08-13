@@ -20,23 +20,21 @@ export default function Settings({ onInspect }) {
       {/* Same fold as the dashboard rail. This one was left behind when that
           was fixed, so six links still stacked above the page title.
 
-          The summary names the section you are in rather than the region,
-          because on a phone this is the only thing telling you where you are.
-          That is how every settings screen on a phone behaves. */}
+          The label used to name the section you were in — `sections[3]`,
+          "Notifications" — because it sat outside the menu and was the only
+          thing on a phone telling you where you were. It sits inside the menu
+          now, so it names the region instead. A menu of six sections titled
+          after its fourth item is a menu named by accident, and the current
+          section is already marked inside it. */}
       {/* Sibling, not child. See the note in Dashboard: a closed `details`
           renders none of its non-summary children, whatever CSS says, so a
           list nested inside one is invisible at every width until it is
           opened. One wrapper keeps `.with-aside` at two children. */}
       <div className="aside-rail">
-        <details className="nav-collapse">
-          <summary className="nav-summary" {...inspectProps("nav-item", onInspect, { passthrough: true })}>
-            <span className="caption" style={{ textTransform: 'uppercase', letterSpacing: '.08em' }}
-              {...txt('overline', 'text-muted')}>{sections[3]}</span>
-            <span className="nav-burger" aria-hidden="true"><span /><span /><span /></span>
-          </summary>
-        </details>
         <div className="nav-fold">
         <nav className="stack-sm nav-list">
+          <span className="caption nav-title" style={{ textTransform: 'uppercase', letterSpacing: '.08em' }}
+            {...txt('overline', 'text-muted')}>Settings</span>
           {sections.map((s, i) => (
             <div key={s} className={`nav-item with-icon${i === 3 ? ' is-active' : ''}`}
               {...ins(i === 3 ? 'nav-item-selected' : 'nav-item')}>
@@ -47,12 +45,23 @@ export default function Settings({ onInspect }) {
         </div>
       </div>
 
-      <div className="stack">
-        <div>
-          <h2 {...txt("h2")}>Notifications</h2>
-          <p className="muted small" style={{ marginTop: 4 }} {...txt("body-sm", "text-muted")}>Choose what reaches you, and where.</p>
+      {/* The page header is a sibling of the rail, so the grid can put the menu
+          between the title row and the body. See the note on Dashboard. */}
+      <>
+        <div className="page-header">
+          {/* The heading and the burger are one row, as on Dashboard. */}
+          <div className="page-title">
+            <h2 {...txt("h2")}>Notifications</h2>
+            <details className="nav-collapse">
+              <summary className="nav-summary" aria-label="Settings menu" {...inspectProps("nav-item", onInspect, { passthrough: true })}>
+                <span className="nav-burger" aria-hidden="true"><span /><span /><span /></span>
+              </summary>
+            </details>
+          </div>
+          <p className="muted small page-sub" {...txt("body-sm", "text-muted")}>Choose what reaches you, and where.</p>
         </div>
 
+      <div className="stack">
         <div className="card" style={{ padding: 0, cursor: onInspect ? 'pointer' : undefined }} {...ins('card')}>
           {rows.map(([title, desc, on], i) => (
             <div key={title} style={{
@@ -126,6 +135,7 @@ export default function Settings({ onInspect }) {
           </div>
         </div>
       </div>
+      </>
     </div>
   )
 }
