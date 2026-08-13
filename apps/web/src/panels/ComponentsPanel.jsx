@@ -294,7 +294,7 @@ const matches = (query, entryName, key, value) => {
   return entryName.toLowerCase().includes(q) || key.toLowerCase().includes(q) || String(value).toLowerCase().includes(q)
 }
 
-function EntryBlock({ title, entryName, props, overrides, onSet, onReset, derived, mode, inspect, query, colorGroups, def, sampleVars }) {
+function EntryBlock({ title, entryName, props, overrides, onSet, onReset, derived, mode, inspect, query, colorGroups, def, sampleVars, tabStyle }) {
   /* The jump targets the exact entry — clicking a small button lands on
      `button-sm`, not merely somewhere inside Button. The scrolling is the
      owning ComponentBlock's job; this only marks itself. */
@@ -344,7 +344,7 @@ function EntryBlock({ title, entryName, props, overrides, onSet, onReset, derive
         </div>
         {!query && (
           <div className="entry-sample-slot">
-            <EntrySample def={def} entryName={entryName} tabStyle={cfg.tabStyle}
+            <EntrySample def={def} entryName={entryName} tabStyle={tabStyle}
               focus={derived.focus} roles={derived.roles[mode]} />
           </div>
         )}
@@ -395,7 +395,7 @@ function LayoutBlock({ def, values, onSet }) {
   )
 }
 
-function ComponentBlock({ def, cfg, layout, onSetLayout, onToggle, onSet, onReset, derived, mode, inspect, colorGroups, sampleVars }) {
+function ComponentBlock({ def, cfg, layout, onSetLayout, onToggle, onSet, onReset, derived, mode, inspect, colorGroups, sampleVars, onSetTabStyle }) {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const enabled = cfg.enabled[def.name] ?? def.on
@@ -484,21 +484,47 @@ function ComponentBlock({ def, cfg, layout, onSetLayout, onToggle, onSet, onRese
            * unreachable from the preview follows, because the only way to
            * reach it is to scroll here deliberately, and someone scrolling
            * deliberately can scroll one block further. */}
-          {def.base && <EntryBlock entryName={def.name} title="base" props={def.base} overrides={overrides} onSet={onSet} onReset={onReset} derived={derived} mode={mode} inspect={inspect} query={query} colorGroups={colorGroups} def={def} sampleVars={sampleVars} />}
+          {/* The Tab Style picker belongs to the Tab, not to the panel.
+              It writes tab-selected, tab-hover and tab-disabled, so it sits
+              above them rather than three cards away at the panel root.
+              One treatment was not enough: a strip on a rule wants the
+              underline, a strip floating in a toolbar wants the pill, and
+              forcing the underline there draws a 2px mark against nothing. */}
+          {def.name === 'tab' && !query && (
+            <div className="entry-block" style={{ marginBottom: PAD.gap }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 7 }}>
+                <span style={{ fontFamily: 'var(--mono)', fontSize: 11.5, color: 'var(--text-dim)' }}>tab</span>
+                <span style={{ fontSize: 11, color: 'var(--muted)' }}>style</span>
+                <span style={{ flex: 1 }} />
+                <span className="chip">{TAB_STYLES[cfg.tabStyle ?? DEFAULT_TAB_STYLE]?.label}</span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+                {Object.entries(TAB_STYLES).map(([key, spec]) => (
+                  <TabStyleChoice key={key} id={key} spec={spec} roles={derived.roles[mode]}
+                    selected={(cfg.tabStyle ?? DEFAULT_TAB_STYLE) === key}
+                    onPick={() => onSetTabStyle(key)} />
+                ))}
+              </div>
+              <div className="panel-note" style={{ marginTop: 7 }}>
+                Sets <code>tab-selected</code>, <code>tab-hover</code> and <code>tab-disabled</code> together.
+              </div>
+            </div>
+          )}
+          {def.base && <EntryBlock entryName={def.name} title="base" props={def.base} overrides={overrides} onSet={onSet} onReset={onReset} derived={derived} mode={mode} inspect={inspect} query={query} colorGroups={colorGroups} def={def} sampleVars={sampleVars} tabStyle={cfg.tabStyle} />}
           {!query && LAYOUT_BY_NAME[def.name] && (
             <LayoutBlock def={LAYOUT_BY_NAME[def.name]} values={layout[def.name]} onSet={onSetLayout} />
           )}
           {Object.entries(def.variants ?? {}).map(([v, props]) => (
-            <EntryBlock key={v} entryName={`${def.name}-${v}`} title="variant" props={props} overrides={overrides} onSet={onSet} onReset={onReset} derived={derived} mode={mode} inspect={inspect} query={query} colorGroups={colorGroups} def={def} sampleVars={sampleVars} />
+            <EntryBlock key={v} entryName={`${def.name}-${v}`} title="variant" props={props} overrides={overrides} onSet={onSet} onReset={onReset} derived={derived} mode={mode} inspect={inspect} query={query} colorGroups={colorGroups} def={def} sampleVars={sampleVars} tabStyle={cfg.tabStyle} />
           ))}
           {cfg.emitSizes && Object.entries(def.sizes ?? {}).map(([s, props]) => (
-            <EntryBlock key={s} entryName={`${def.name}-${s}`} title="size" props={props} overrides={overrides} onSet={onSet} onReset={onReset} derived={derived} mode={mode} inspect={inspect} query={query} colorGroups={colorGroups} def={def} sampleVars={sampleVars} />
+            <EntryBlock key={s} entryName={`${def.name}-${s}`} title="size" props={props} overrides={overrides} onSet={onSet} onReset={onReset} derived={derived} mode={mode} inspect={inspect} query={query} colorGroups={colorGroups} def={def} sampleVars={sampleVars} tabStyle={cfg.tabStyle} />
           ))}
           {cfg.emitStates && Object.entries(def.states ?? {}).flatMap(([stateName, byVariant]) =>
             Object.entries(byVariant).map(([variant, props]) => (
               <EntryBlock key={`${stateName}-${variant}`}
                 entryName={variant === '_' ? `${def.name}-${stateName}` : `${def.name}-${variant}-${stateName}`}
-                title="state" props={props} overrides={overrides} onSet={onSet} onReset={onReset} derived={derived} mode={mode} inspect={inspect} query={query} colorGroups={colorGroups} def={def} sampleVars={sampleVars} />
+                title="state" props={props} overrides={overrides} onSet={onSet} onReset={onReset} derived={derived} mode={mode} inspect={inspect} query={query} colorGroups={colorGroups} def={def} sampleVars={sampleVars} tabStyle={cfg.tabStyle} />
             ))
           )}
         </div>
@@ -692,27 +718,7 @@ export default function ComponentsPanel({ inspect }) {
         </div>
       </Collapsible>
 
-      {/* One treatment was not enough. A strip sitting on a rule wants the
-          underline; a strip floating in a toolbar wants the pill, and forcing
-          the underline there draws a 2px mark against nothing. Two further
-          styles were built and rejected — a raised tab and a boxed one, both
-          the old browser-chrome idiom. An option nobody picks is a decision
-          the reader still has to make. */}
-      <Collapsible title="Tab Style" note={TAB_STYLES[tabStyle]?.label ?? tabStyle} defaultOpen>
-        {/* The card used to carry a segmented control and the sentence "The
-            Shell preview shows it". A pointer to a preview is not a preview,
-            and every other picker in this panel shows what it does. You choose
-            a look, so the choice has to show the look. */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
-          {Object.entries(TAB_STYLES).map(([key, s]) => (
-            <TabStyleChoice key={key} id={key} spec={s} roles={roles}
-              selected={tabStyle === key} onPick={() => upd(c => ({ ...c, tabStyle: key }))} />
-          ))}
-        </div>
-        <div className="panel-note" style={{ marginTop: 7 }}>
-          Sets <code>tab-selected</code>, <code>tab-hover</code> and <code>tab-disabled</code> together.
-        </div>
-      </Collapsible>
+
 
       {COMPONENT_GROUPS.map(group => {
         const defs = COMPONENT_LIBRARY.filter(d => d.group === group).filter(d => hits.has(d.name))
@@ -737,7 +743,7 @@ export default function ComponentsPanel({ inspect }) {
             openSignal={targetGroup === group ? inspect.at : null}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: PAD.gap }}>
               {defs.map(def => (
-                <ComponentBlock key={def.name} def={def} cfg={cfg} onToggle={onToggle} onSet={onSet} onReset={onReset}
+                <ComponentBlock key={def.name} def={def} cfg={cfg} onSetTabStyle={v => upd(c => ({ ...c, tabStyle: v }))} onToggle={onToggle} onSet={onSet} onReset={onReset}
                   layout={derived.componentLayout} onSetLayout={onSetLayout}
                   derived={derived} mode={state.color.mode} inspect={inspect} colorGroups={colorGroups}
                   sampleVars={sampleVars} />

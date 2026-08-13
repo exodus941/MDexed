@@ -6,7 +6,7 @@
    agent how to build a card and `neutral-800` doesn't. */
 import { useState, useEffect } from 'react'
 import { useStore } from '../state/store.jsx'
-import { ROLE_GROUPS, CONTRAST_PAIRS } from '../state/schema.js'
+import { ROLE_GROUPS, CONTRAST_PAIRS, pairFails } from '../state/schema.js'
 import { RAMP_STEPS } from '../color/ramp.js'
 import { check } from '../color/contrast.js'
 import { generateCounterpart, clearOverridesFor } from '../color/modes.js'
@@ -192,7 +192,7 @@ function ContrastReport({ roles, mode }) {
      not cover text inside a disabled control, and a system that dims disabled
      text is doing the right thing — flagging it would report the intent as the
      fault, and someone would "fix" it by making disabled look enabled. */
-  const isFailing = ({ pair, res }) => (pair.exempt ? false : pair.ui ? res.ratio < 3 : !res.pass)
+  const isFailing = ({ pair, res }) => pairFails(pair, res)
   const failing = results.filter(isFailing)
 
   return (
@@ -272,9 +272,8 @@ export default function RolesPanel({ inspect }) {
   const targetGroup = inspect ? ROLE_GROUPS.find(g => g.roles.some(r => r.name === inspect.entry))?.id : null
   const overrideCount = Object.keys(color.roleOverrides ?? {}).length
   const failing = CONTRAST_PAIRS.filter(p => {
-    if (p.exempt) return false
     const r = check(roles[color.mode][p.fg], roles[color.mode][p.bg])
-    return p.ui ? r.ratio < 3 : !r.pass
+    return pairFails(p, r)
   }).length
 
   return (

@@ -162,6 +162,22 @@ export const CONTRAST_PAIRS = [
   { fg: 'ring',         bg: 'bg',             label: 'Focus ring',       ui: true },
 ]
 
+/** Does this pair fail? The one place that answers it.
+ *
+ * The rule was written out at five call sites — two panels, the header chip,
+ * the emitter and the suite — each spelling out `p.ui ? ratio < 3 : !pass`.
+ * When `exempt` arrived for disabled text, three of the five learned about it
+ * and two did not, so a clean document opened reporting "1 contrast" from a
+ * pair the document itself grades "Exempt (1.4.3)".
+ *
+ * A rule copied five times is a rule that will disagree with itself. Every
+ * caller asks this now.
+ */
+export function pairFails(pair, result) {
+  if (pair.exempt) return false
+  return pair.ui ? result.ratio < 3 : !result.pass
+}
+
 /* The curated list above is a guess about which combinations get built. The
    sweep below needs no guess: every role that carries words, against every
    role that sits behind them. It reports only what fails, so it costs nothing
