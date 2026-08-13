@@ -19,6 +19,7 @@
  * not looked for it.
  */
 import { inspectProps, text } from '../inspect.js'
+import { labeller } from '../casing.js'
 import { Ico, IconDownload } from '../icons.jsx'
 import { stripStyle } from '../../state/components.js'
 
@@ -31,7 +32,7 @@ import { stripStyle } from '../../state/components.js'
  * The strip renders the treatment the document names, wherever it sits. A
  * promotion to the pill under a major rule was built and then rescinded on
  * sight. Do not reinstate it. */
-function TabStrip({ ins, tabs, selected, style, label }) {
+function TabStrip({ ins, L, tabs, selected, style, label }) {
   const pill = stripStyle(style) === 'pill'
   return (
     <>
@@ -50,7 +51,7 @@ function TabStrip({ ins, tabs, selected, style, label }) {
     <div className="tab-select" data-label={label}>
       <select className="input" aria-label={label} defaultValue={selected}
         {...ins('tab-selected')}>
-        {tabs.map(t => <option key={t} value={t}>{t}</option>)}
+        {tabs.map(t => <option key={t} value={t}>{L(t)}</option>)}
       </select>
     </div>
     {/* A `nav` landmark, because a tab strip is navigation. The suite asserts
@@ -81,7 +82,7 @@ function TabStrip({ ins, tabs, selected, style, label }) {
                    selected tab taller and push it past the strip's own rule. */
                 boxShadow: on ? 'inset 0 -2px 0 var(--c-accent)' : 'none',
               }),
-          }}>{t}</span>
+          }}>{L(t)}</span>
         )
       })}
     </nav>
@@ -92,7 +93,7 @@ function TabStrip({ ins, tabs, selected, style, label }) {
 /* A statistic tile. Three lines, three type roles, so the hierarchy is real.
  * `rose` says which way the number moved. `good` says whether that is welcome.
  * Conflating them painted "Warnings −4" in the danger colour. */
-function Stat({ ins, txt, label, value, delta, rose, good }) {
+function Stat({ ins, txt, L, label, value, delta, rose, good }) {
   return (
     /* `flex: 1` with `min-width: 0` let a tile shrink under its own label:
        "Warnings" needs 73px and had 34, so all three read as cut words. A tile
@@ -100,7 +101,7 @@ function Stat({ ins, txt, label, value, delta, rose, good }) {
        instead, which is the answer everywhere else in this system. */
     <div className="card stack-sm" {...ins('card')} style={{ flex: '1 1 max-content', minWidth: 'max-content' }}>
       <div className="caption muted" {...txt('overline', 'text-muted')}
-        style={{ textTransform: 'uppercase', letterSpacing: 'var(--font-overline-tracking)' }}>{label}</div>
+        style={{ textTransform: 'uppercase', letterSpacing: 'var(--font-overline-tracking)' }}>{L(label)}</div>
       <div {...txt('h4')} style={{ fontSize: 'var(--font-h4-size)', fontWeight: 'var(--font-h4-weight)' }}>{value}</div>
       <div className="caption" {...txt('caption', good ? 'success' : 'danger')}
         style={{ color: good ? 'var(--c-success)' : 'var(--c-danger)' }}>{rose ? '+' : '−'}{delta}</div>
@@ -111,7 +112,7 @@ function Stat({ ins, txt, label, value, delta, rose, good }) {
 /* The title bar, on the same four classes the Landing header uses.
  * `.row` is baseline-aligned with an `xs` gap; `.avatar`, `.badge` and `.btn`
  * are the components. No value below is invented. */
-function TitleBar({ ins, txt }) {
+function TitleBar({ ins, txt, L }) {
   return (
     <div className="row row-wrap title-bar" style={{ justifyContent: 'space-between' }}>
       {/* The identity and its metadata are two things, not four items.
@@ -132,17 +133,18 @@ function TitleBar({ ins, txt }) {
         </span>
       </div>
       <div className="row">
-        <button className="btn btn-secondary btn-sm" {...ins('button-secondary')}>Import</button>
-        <button className="btn btn-secondary btn-sm" {...ins('button-secondary')}>Export</button>
+        <button className="btn btn-secondary btn-sm" {...ins('button-secondary')}>{L('Import')}</button>
+        <button className="btn btn-secondary btn-sm" {...ins('button-secondary')}>{L('Export')}</button>
         <button className="btn btn-primary btn-sm" {...ins('button-primary')}>
-          <Ico d={IconDownload} size="sm" />Publish
+          <Ico d={IconDownload} size="sm" />{L('Publish')}
         </button>
       </div>
     </div>
   )
 }
 
-export default function Shell({ onInspect, tabStyle }) {
+export default function Shell({ onInspect, tabStyle, casing }) {
+  const L = labeller(casing)
   const ins = entry => inspectProps(entry, onInspect)
   const txt = (typeName, roleName = 'text') => inspectProps(text(typeName, roleName), onInspect)
 
@@ -151,7 +153,7 @@ export default function Shell({ onInspect, tabStyle }) {
        carries no margin of its own, so the stack's gap sits it inside a
        symmetric space. Nothing here sets a number. */
     <div className="stack">
-      <TitleBar ins={ins} txt={txt} />
+      <TitleBar ins={ins} txt={txt} L={L} />
       <hr className="divider" />
 
       {/* Two panes, separated by space. A border between them read as one bar
@@ -171,12 +173,12 @@ export default function Shell({ onInspect, tabStyle }) {
             the three tiles need. */}
         <div className="stack" style={{ width: '40%', minWidth: 0 }}>
           {/* Four, not five. Five overflowed the pane by 24px and scrolled. */}
-          <TabStrip ins={ins} style={tabStyle} selected="Colour" label="Editor sections"
+          <TabStrip ins={ins} L={L} style={tabStyle} selected="Colour" label="Editor sections"
             tabs={['Meta', 'Colour', 'Type', 'Layout']} />
 
           <div className="card stack-sm" {...ins('card')}>
             <div className="row" style={{ justifyContent: 'space-between' }}>
-              <strong {...txt('h6')} style={{ fontSize: 'var(--font-h6-size)' }}>Seeds</strong>
+              <strong {...txt('h6')} style={{ fontSize: 'var(--font-h6-size)' }}>{L('Seeds')}</strong>
               <span className="badge badge-neutral" {...ins('badge-neutral')}>5</span>
             </div>
             {/* A separator goes above each row, never below, so the last row
@@ -202,15 +204,15 @@ export default function Shell({ onInspect, tabStyle }) {
         </div>
 
         <div className="stack" style={{ flex: 1, minWidth: 0 }}>
-          <TabStrip ins={ins} style={tabStyle} selected="Dashboard" label="Preview surfaces" tabs={['Dashboard', 'Form', 'Settings']} />
+          <TabStrip ins={ins} L={L} style={tabStyle} selected="Dashboard" label="Preview surfaces" tabs={['Dashboard', 'Form', 'Settings']} />
           {/* The tiles wrap rather than clip. `.row` only wraps once the FRAME
               is narrow, and this pane is narrow inside a wide frame — the
               container is the wrong size to ask. */}
           <div className="row row-wrap" style={{ alignItems: 'stretch', flexWrap: 'wrap' }}>
-            <Stat ins={ins} txt={txt} label="Tokens"   value="284"   delta="12"  rose good />
-            <Stat ins={ins} txt={txt} label="Contrast" value="4.9:1" delta="0.3" rose good />
+            <Stat ins={ins} txt={txt} L={L} label="Tokens"   value="284"   delta="12"  rose good />
+            <Stat ins={ins} txt={txt} L={L} label="Contrast" value="4.9:1" delta="0.3" rose good />
             {/* Fell by four, and that is the good direction. */}
-            <Stat ins={ins} txt={txt} label="Warnings" value="0"     delta="4"   rose={false} good />
+            <Stat ins={ins} txt={txt} L={L} label="Warnings" value="0"     delta="4"   rose={false} good />
           </div>
         </div>
       </div>

@@ -2,9 +2,11 @@
    Exercises the tokens that only appear in long-lived application chrome —
    sunken wells, selected nav, disabled controls, danger affordances. */
 import { inspectProps, text } from '../inspect.js'
+import { labeller } from '../casing.js'
 import { Ico, Switch, IconUser, IconFolder, IconBell, IconLock, IconChart, IconCheck, IconTrash, IconAlert } from '../icons.jsx'
 
-export default function Settings({ onInspect }) {
+export default function Settings({ onInspect, casing }) {
+  const L = labeller(casing)
   const ins = entry => inspectProps(entry, onInspect)
   const txt = (typeName, roleName = 'text') => inspectProps(text(typeName, roleName), onInspect)
   const sections = ['Profile', 'Team', 'Billing', 'Notifications', 'Integrations', 'Security']
@@ -91,7 +93,7 @@ export default function Settings({ onInspect }) {
             line under one field sat closer to the NEXT field's label than to
             its own input. */}
         <div className="well stack-lg">
-          <div style={{ fontWeight: 500 }} {...txt("body-md")}>Notification email</div>
+          <div style={{ fontWeight: 500 }} {...txt("body-md")}>{L('Notification email')}</div>
           {/* The row and the line under it are ONE field, so they sit at the
               field's own spacing and not at the group's. Before this the help
               was a sibling of the row, a full group gap below it, which left
@@ -135,10 +137,10 @@ export default function Settings({ onInspect }) {
           {/* Destructive — it throws away everything on the page — but a
               secondary action sitting beside Save, so it takes the ghost
               treatment in the danger colour rather than a filled red. */}
-          <button className="btn btn-danger-ghost" {...ins('button-danger-ghost')}><Ico d={IconTrash} />Reset to defaults</button>
+          <button className="btn btn-danger-ghost" {...ins('button-danger-ghost')}><Ico d={IconTrash} />{L('Reset to defaults')}</button>
           <div className="row">
             <button className="btn btn-secondary" disabled {...ins('button-primary-disabled')}>Discard</button>
-            <button className="btn btn-primary" {...ins('button-primary')}><Ico d={IconCheck} />Save changes</button>
+            <button className="btn btn-primary" {...ins('button-primary')}><Ico d={IconCheck} />{L('Save changes')}</button>
           </div>
         </div>
       </div>

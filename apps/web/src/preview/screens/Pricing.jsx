@@ -23,6 +23,7 @@
  *      as recommended, and nobody has chosen anything yet.
  */
 import { inspectProps, text } from '../inspect.js'
+import { labeller } from '../casing.js'
 import { Ico, IconCheck, IconArrow } from '../icons.jsx'
 
 const PLANS = [
@@ -45,7 +46,8 @@ const ROWS = [
   ['Audit trail', false, false, true],
 ]
 
-export default function Pricing({ onInspect }) {
+export default function Pricing({ onInspect, casing }) {
+  const L = labeller(casing)
   const ins = entry => inspectProps(entry, onInspect)
   const txt = (typeName, roleName = 'text') => inspectProps(text(typeName, roleName), onInspect)
 
@@ -66,12 +68,12 @@ export default function Pricing({ onInspect }) {
         <strong {...txt('h6')} style={{ fontSize: 'var(--font-h6-size)' }}>{p.name}</strong>
         {/* The chip carries the recommendation. A fill on the whole column
             would read as chosen; a mark says suggested. */}
-        {p.pick && <span className="badge badge-accent" {...ins('badge-accent')}>Popular</span>}
+        {p.pick && <span className="badge badge-accent" {...ins('badge-accent')}>{L('Popular')}</span>}
       </div>
       <div {...txt('h3')} style={{ fontSize: 'var(--font-h3-size)', fontWeight: 'var(--font-h3-weight)' }}>{p.price}</div>
       <p className="muted small" {...txt('body-sm', 'text-muted')}>{p.note}</p>
       <button className={`btn ${p.variant}`} {...ins(p.variant === 'btn-primary' ? 'button-primary' : 'button-secondary')}>
-        {p.cta}{p.variant === 'btn-primary' && <Ico d={IconArrow} end />}
+        {L(p.cta)}{p.variant === 'btn-primary' && <Ico d={IconArrow} end />}
       </button>
     </div>
   )
@@ -87,18 +89,38 @@ export default function Pricing({ onInspect }) {
         </div>
       </div>
 
-      {/* ── The wide form: one grid, four tracks, cards in the header row.
+      {/* ── The offer. Three cards, the full width of the block. ──
+       *
+       * These were once laid out by the table's track list below, so that each
+       * card sat over its own column. The alignment was real and the result
+       * was worse than the fault: a label column's worth of width sat empty on
+       * the left and the three cards huddled against the right edge of their
+       * own block.
+       *
+       * The cards are the offer. They take the whole width. The table under
+       * them is a separate object that describes them, and only its own rows
+       * need to agree with each other. */}
+      <div className="cols-3 plans">
+        {PLANS.map(p => <Card key={p.name} p={p} />)}
+      </div>
+
+      {/* ── The comparison: one grid, four tracks, every row a subgrid. ──
              No `stack` class here. This element IS the grid that owns the
-             tracks, and its rows are subgrids of it. */}
+             tracks. */}
       <div className="plan-wide">
         {/* The corner cell is not empty. It names what the column below it
             holds, which is what turns five unlabelled rows into a table. An
             empty corner is also the case the system warns about — a box that
             takes a share of the width and paints nothing. */}
-        <div className="plan-grid plan-head">
+        <div className="plan-grid plan-row plan-head">
           <span className="caption muted" {...txt('overline', 'text-muted')}
-            style={{ textTransform: 'uppercase', letterSpacing: 'var(--font-overline-tracking)' }}>Feature</span>
-          {PLANS.map(p => <Card key={p.name} p={p} />)}
+            style={{ textTransform: 'uppercase', letterSpacing: 'var(--font-overline-tracking)' }}>{L('Feature')}</span>
+          {PLANS.map(p => (
+            <span key={p.name} className={`plan-cell${p.pick ? ' is-picked' : ''}`}>
+              <span className="caption" {...txt('caption', 'text-muted')}
+                style={{ fontWeight: p.pick ? 500 : 400, color: p.pick ? 'var(--c-accent)' : undefined }}>{p.name}</span>
+            </span>
+          ))}
         </div>
 
         {/* A separator goes above each row and never below, so the first row
@@ -106,8 +128,10 @@ export default function Pricing({ onInspect }) {
         {ROWS.map(([label, ...cells]) => (
           <div key={label} className="plan-grid plan-row"
             style={{ borderTop: '1px solid var(--c-border-subtle)' }}>
-            <span className="small" {...txt('body-sm')} style={{ fontWeight: 500 }}>{label}</span>
-            {cells.map((cell, j) => <span key={j} className="plan-cell">{answer(cell)}</span>)}
+            <span className="small" {...txt('body-sm')} style={{ fontWeight: 500 }}>{L(label)}</span>
+            {cells.map((cell, j) => (
+              <span key={j} className={`plan-cell${PLANS[j].pick ? ' is-picked' : ''}`}>{answer(cell)}</span>
+            ))}
           </div>
         ))}
       </div>
@@ -125,7 +149,7 @@ export default function Pricing({ onInspect }) {
                 <div key={label} className="plan-fact" style={{
                   borderTop: i === 0 ? 0 : '1px solid var(--c-border-subtle)',
                 }}>
-                  <span className="small" {...txt('body-sm')}>{label}</span>
+                  <span className="small" {...txt('body-sm')}>{L(label)}</span>
                   {answer(cells[col])}
                 </div>
               ))}

@@ -167,7 +167,15 @@
   .dmd .page-head > .page-title { order: 1; flex: 1 1 0; }
   .dmd .page-head > .nav-collapse { order: 2; flex: 0 0 auto; margin-left: auto; }
   .dmd .page-head > .page-sub { order: 3; }
-  .dmd .page-head > .page-actions { order: 4; flex: 1 0 100%; margin-left: 0; }
+  /* On its own line the action row states its own top spacing. The header row
+     runs `row-gap: 0`, so that the byline can sit close to the title without a
+     second source adding to it — which means a wrapped row that says nothing
+     gets nothing. Left to the first-line alignment margin alone this measured
+     5.2px under the byline, against the 4px inside the title block. */
+  .dmd .page-head > .page-actions {
+    order: 4; flex: 1 0 100%; margin-left: 0;
+    margin-top: var(--space-sm, 12px);
+  }
 
   /* Stacking the rail is only half the job. Left alone it becomes five links
      stacked above the page title, which pushes the heading below the fold and
@@ -639,7 +647,11 @@
 @media (max-width: 999907px) {
   /* The whole wide form goes, not only its rows. Hiding the rows and leaving
      their container behind is the empty-box fault the system already names:
-     a grid with a 16px column gap and nothing in it. */
+     a grid with a 16px column gap and nothing in it.
+     The card row goes with it. The stacked form renders each plan's card at
+     the head of its own section, so leaving this one visible would show every
+     card twice. */
+  .dmd .plans,
   .dmd .plan-wide { display: none; }
   .dmd .plan-stack { display: flex; }
 }

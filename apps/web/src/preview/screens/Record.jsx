@@ -22,26 +22,32 @@
 import { inspectProps, text } from '../inspect.js'
 import { Ico, IconDownload, IconSend, IconMore, IconCheck, IconAlert } from '../icons.jsx'
 import { stripStyle } from '../../state/components.js'
+import { labeller } from '../casing.js'
 
 /* Label over value, and the pair is one object.
  *
  * The label takes the overline role and the value the body role, so the two
  * differ by size AND by colour rather than by size alone. A fact whose label
  * looks like its value makes the reader parse the grid twice. */
-function Fact({ ins, txt, label, value, tone }) {
+function Fact({ ins, txt, L, label, value, tone }) {
   return (
     <div className="stack-sm" style={{ flex: '1 1 max-content', minWidth: 'max-content' }}>
       <div className="caption muted" {...txt('overline', 'text-muted')}
-        style={{ textTransform: 'uppercase', letterSpacing: 'var(--font-overline-tracking)' }}>{label}</div>
+        style={{ textTransform: 'uppercase', letterSpacing: 'var(--font-overline-tracking)' }}>{L(label)}</div>
       <div {...txt('body-md', tone ?? 'text')}
         style={{ fontWeight: 500, color: tone ? `var(--c-${tone})` : undefined }}>{value}</div>
     </div>
   )
 }
 
-export default function Record({ onInspect, tabStyle }) {
+export default function Record({ onInspect, tabStyle, casing }) {
   const ins = entry => inspectProps(entry, onInspect)
   const txt = (typeName, roleName = 'text') => inspectProps(text(typeName, roleName), onInspect)
+  /* `L` recases a UI LABEL. The record's own name below is content, not a
+     label, so it never passes through here — "Ashford & Kline — Q4
+     reconciliation" is what the data says, and the interface does not get to
+     restyle it. */
+  const L = labeller(casing)
   const pill = stripStyle(tabStyle) === 'pill'
   const tabs = ['Overview', 'Invoices', 'Activity', 'Documents']
   const selected = 'Overview'
@@ -58,8 +64,8 @@ export default function Record({ onInspect, tabStyle }) {
             <h2 {...txt('h2')}>Ashford &amp; Kline — Q4 reconciliation</h2>
           </div>
           <div className="row page-actions">
-            <button className="btn btn-secondary btn-sm" {...ins('button-sm')}><Ico d={IconDownload} size="sm" />Export</button>
-            <button className="btn btn-primary btn-sm" {...ins('button-primary')}><Ico d={IconSend} size="sm" />Send</button>
+            <button className="btn btn-secondary btn-sm" {...ins('button-sm')}><Ico d={IconDownload} size="sm" />{L('Export')}</button>
+            <button className="btn btn-primary btn-sm" {...ins('button-primary')}><Ico d={IconSend} size="sm" />{L('Send')}</button>
             <button className="btn btn-secondary btn-sm icon-only" {...ins('button-secondary')}><Ico d={IconMore} /></button>
           </div>
           <p className="muted small page-sub" {...txt('body-sm', 'text-muted')}>Opened 12 days ago by A. Halloran</p>
@@ -70,10 +76,10 @@ export default function Record({ onInspect, tabStyle }) {
           `max-content` on each, so a pair never shrinks under its own label —
           the fault three stat tiles shipped with, 73px of word in a 34px box. */}
       <div className="card row row-wrap" {...ins('card')} style={{ gap: 'var(--space-lg)' }}>
-        <Fact ins={ins} txt={txt} label="Account" value="Ashford &amp; Kline" />
-        <Fact ins={ins} txt={txt} label="Balance" value="$21,050" />
-        <Fact ins={ins} txt={txt} label="Terms" value="Net 30" />
-        <Fact ins={ins} txt={txt} label="Status" value="Open" tone="warning" />
+        <Fact ins={ins} txt={txt} L={L} label="Account" value="Ashford &amp; Kline" />
+        <Fact ins={ins} txt={txt} L={L} label="Balance" value="$21,050" />
+        <Fact ins={ins} txt={txt} L={L} label="Terms" value="Net 30" />
+        <Fact ins={ins} txt={txt} L={L} label="Status" value="Open" tone="warning" />
       </div>
 
       {/* A tab strip over a body, which is where most readers meet one. The
@@ -96,13 +102,13 @@ export default function Record({ onInspect, tabStyle }) {
                     color: on ? 'var(--c-text)' : 'var(--c-text-muted)',
                     borderRadius: 0,
                     boxShadow: on ? 'inset 0 -2px 0 var(--c-accent)' : 'none' }),
-            }}>{t}</span>
+            }}>{L(t)}</span>
           )
         })}
       </nav>
       <div className="tab-select" data-label="Record sections">
         <select className="input" aria-label="Record sections" defaultValue={selected} {...ins('tab-selected')}>
-          {tabs.map(t => <option key={t} value={t}>{t}</option>)}
+          {tabs.map(t => <option key={t} value={t}>{L(t)}</option>)}
         </select>
       </div>
 
@@ -123,7 +129,7 @@ export default function Record({ onInspect, tabStyle }) {
       <div className="with-context" style={{ '--context': '200px' }}>
         <div className="stack">
           <div className="card stack-sm" {...ins('card')}>
-            <strong {...txt('h6')} style={{ fontSize: 'var(--font-h6-size)' }}>Reconciliation notes</strong>
+            <strong {...txt('h6')} style={{ fontSize: 'var(--font-h6-size)' }}>{L('Reconciliation notes')}</strong>
             <p className="muted small" {...txt('body-sm', 'text-muted')}>
               Three invoices from October remain unmatched against the bank feed. Two are
               duplicates raised during the migration and can be voided. The third needs a
@@ -135,7 +141,7 @@ export default function Record({ onInspect, tabStyle }) {
               Three type sizes on one baseline, which is the rule this project
               states most often and demonstrates least. */}
           <div className="card stack-sm" {...ins('card')}>
-            <strong {...txt('h6')} style={{ fontSize: 'var(--font-h6-size)' }}>Activity</strong>
+            <strong {...txt('h6')} style={{ fontSize: 'var(--font-h6-size)' }}>{L('Activity')}</strong>
             {[
               ['Matched 14 invoices', '2h ago', IconCheck, 'success'],
               ['Flagged duplicate INV-2287', '5h ago', IconAlert, 'warning'],
@@ -144,7 +150,12 @@ export default function Record({ onInspect, tabStyle }) {
               <div key={what} className="row" style={{
                 justifyContent: 'space-between',
                 borderTop: i === 0 ? 0 : '1px solid var(--c-border-subtle)',
-                paddingTop: i === 0 ? 0 : 'var(--space-xs)',
+                /* `undefined`, not 0, on the first row. An inline style beats a
+                   stylesheet whatever the selector, so a literal 0 here
+                   silently cancelled the optical compensation the sheet gives a
+                   card's first icon-led row — the rule matched, and computed
+                   0px. Leaving the property unset lets the sheet decide. */
+                paddingTop: i === 0 ? undefined : 'var(--space-xs)',
               }}>
                 <span className="row" style={{ minWidth: 0 }}>
                   <Ico d={icon} size="sm" />
@@ -159,7 +170,7 @@ export default function Record({ onInspect, tabStyle }) {
         <div className="stack">
           <div className="card stack-sm" {...ins('card')}>
             <div className="caption muted" {...txt('overline', 'text-muted')}
-              style={{ textTransform: 'uppercase', letterSpacing: 'var(--font-overline-tracking)' }}>Owner</div>
+              style={{ textTransform: 'uppercase', letterSpacing: 'var(--font-overline-tracking)' }}>{L('Owner')}</div>
             <div className="row">
               <div className="avatar" {...ins('avatar')}>AH</div>
               <span className="small" {...txt('body-sm')}>A. Halloran</span>
@@ -167,9 +178,9 @@ export default function Record({ onInspect, tabStyle }) {
           </div>
           <div className="well stack-sm">
             <div className="caption muted" {...txt('overline', 'text-muted')}
-              style={{ textTransform: 'uppercase', letterSpacing: 'var(--font-overline-tracking)' }}>Next step</div>
+              style={{ textTransform: 'uppercase', letterSpacing: 'var(--font-overline-tracking)' }}>{L('Next step')}</div>
             <p className="small" {...txt('body-sm')}>Raise a credit note for INV-2291.</p>
-            <button className="btn btn-secondary btn-sm" {...ins('button-secondary')}>Open invoice</button>
+            <button className="btn btn-secondary btn-sm" {...ins('button-secondary')}>{L('Open invoice')}</button>
           </div>
         </div>
       </div>

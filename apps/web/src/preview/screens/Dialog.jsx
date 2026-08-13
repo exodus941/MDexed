@@ -4,6 +4,7 @@
    surfaces — a modal shown inline isn't a modal. This is where the elevation
    strategy, scrim opacity and blend mode are actually visible. */
 import { inspectProps, text } from '../inspect.js'
+import { labeller } from '../casing.js'
 import { Ico, Check, IconAlert, IconCheck, IconX, IconTrash, IconInfo, IconMore, IconStar } from '../icons.jsx'
 
 /* The composition rules from the Components tab, rendered. This is the only
@@ -98,7 +99,8 @@ function Modal({ ins, txt, layout, onInspect }) {
   )
 }
 
-export default function Dialog({ onInspect, layout }) {
+export default function Dialog({ onInspect, layout, casing }) {
+  const L = labeller(casing)
   const ins = entry => inspectProps(entry, onInspect)
   const txt = (typeName, roleName = 'text') => inspectProps(text(typeName, roleName), onInspect)
   const modal = layout?.modal ?? {}
@@ -194,7 +196,7 @@ export default function Dialog({ onInspect, layout }) {
               padding: 'var(--cmp-tooltip-padding, 2px 8px)',
               fontSize: 'var(--cmp-tooltip-font-size, var(--font-caption-size, 12px))',
               cursor: onInspect ? 'pointer' : undefined,
-            }}>Mark as paid</span>
+            }}>{L('Mark as paid')}</span>
             <button className="btn btn-secondary btn-sm" {...ins('button-sm')}><Ico d={IconCheck} size="sm" />Paid</button>
           </div>
           <span className="caption" {...txt("caption", "text-muted")}>Tooltips sit above their trigger and never wrap.</span>

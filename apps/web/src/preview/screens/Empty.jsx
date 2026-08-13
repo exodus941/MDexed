@@ -26,6 +26,7 @@
  *   of a wide pane is unreadable however well it is centred.
  */
 import { inspectProps, text } from '../inspect.js'
+import { labeller } from '../casing.js'
 import { Ico, IconPlus, IconSend, IconAlert, IconFolder, IconMore } from '../icons.jsx'
 
 /* One state. The mark, the line, the explanation, the way out.
@@ -34,7 +35,7 @@ import { Ico, IconPlus, IconSend, IconAlert, IconFolder, IconMore } from '../ico
  * measure and a stretch container leaves a capped child at the start of its
  * span. `text-align: center` on the block, so the two lines agree with the
  * mark above them. */
-function State({ ins, txt, mark, tone, title, body, primary, secondary, primaryIcon }) {
+function State({ ins, txt, L, mark, tone, title, body, primary, secondary, primaryIcon }) {
   return (
     <div className="card stack" {...ins('card')} style={{ alignItems: 'center', textAlign: 'center' }}>
       {/* The mark reads as furniture rather than as a control, so it takes the
@@ -44,7 +45,7 @@ function State({ ins, txt, mark, tone, title, body, primary, secondary, primaryI
         <Ico d={mark} size="lg" />
       </span>
       <div className="stack-sm" style={{ alignItems: 'center', maxWidth: '38ch' }}>
-        <strong {...txt('h5')} style={{ fontSize: 'var(--font-h5-size)' }}>{title}</strong>
+        <strong {...txt('h5')} style={{ fontSize: 'var(--font-h5-size)' }}>{L(title)}</strong>
         <p className="muted small" {...txt('body-sm', 'text-muted')}>{body}</p>
       </div>
       {/* The way out. One primary, and a secondary only where there genuinely
@@ -56,19 +57,20 @@ function State({ ins, txt, mark, tone, title, body, primary, secondary, primaryI
           nothing around it, so the second action needs an edge to be a button
           at all. Five other surfaces demonstrate the ghost; none of them
           demonstrate this. */}
-      <div className="row stack-narrow" style={{ justifyContent: 'center' }}>
+      <div className="row stack-narrow card-actions" style={{ justifyContent: 'center' }}>
         <button className="btn btn-primary" {...ins('button-primary')}>
-          {primaryIcon && <Ico d={primaryIcon} />}{primary}
+          {primaryIcon && <Ico d={primaryIcon} />}{L(primary)}
         </button>
         {secondary && (
-          <button className="btn btn-secondary" {...ins('button-secondary')}>{secondary}</button>
+          <button className="btn btn-secondary" {...ins('button-secondary')}>{L(secondary)}</button>
         )}
       </div>
     </div>
   )
 }
 
-export default function Empty({ onInspect }) {
+export default function Empty({ onInspect, casing }) {
+  const L = labeller(casing)
   const ins = entry => inspectProps(entry, onInspect)
   const txt = (typeName, roleName = 'text') => inspectProps(text(typeName, roleName), onInspect)
 
@@ -76,7 +78,7 @@ export default function Empty({ onInspect }) {
     <div className="stack">
       <div className="page-header">
         <div className="row row-wrap page-head">
-          <div className="page-title"><h2 {...txt('h2')}>Empty states</h2></div>
+          <div className="page-title"><h2 {...txt('h2')}>{L('Empty states')}</h2></div>
           <p className="muted small page-sub" {...txt('body-sm', 'text-muted')}>
             Three situations that look alike and are not.
           </p>
@@ -85,12 +87,12 @@ export default function Empty({ onInspect }) {
 
       {/* One column, not a grid. Three empty states side by side would read as
           a comparison, and each of these is a whole screen in its own right. */}
-      <State ins={ins} txt={txt} mark={IconFolder} tone="text-subtle"
+      <State ins={ins} txt={txt} L={L} mark={IconFolder} tone="text-subtle"
         title="No invoices yet"
         body="Invoices you raise will appear here, with their status and what is owed. Nothing has been raised on this account."
         primary="New invoice" primaryIcon={IconPlus} secondary="Import from CSV" />
 
-      <State ins={ins} txt={txt} mark={IconMore} tone="text-muted"
+      <State ins={ins} txt={txt} L={L} mark={IconMore} tone="text-muted"
         title="No invoices match this filter"
         body="Four invoices exist on this account. None of them are overdue and unpaid at the same time."
         primary="Clear filters" />
@@ -98,7 +100,7 @@ export default function Empty({ onInspect }) {
       {/* The error state takes the danger role for its mark and NOT for its
           buttons. A failure is worth marking; a retry is an ordinary action and
           a red button here would read as destructive. */}
-      <State ins={ins} txt={txt} mark={IconAlert} tone="danger"
+      <State ins={ins} txt={txt} L={L} mark={IconAlert} tone="danger"
         title="Could not load invoices"
         body="The billing service did not answer. Nothing has been lost, and your last export is still available."
         primary="Try again" primaryIcon={IconSend} secondary="Download last export" />
