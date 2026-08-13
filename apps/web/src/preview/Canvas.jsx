@@ -20,6 +20,9 @@ import Landing from './screens/Landing.jsx'
 import Settings from './screens/Settings.jsx'
 import Dialog from './screens/Dialog.jsx'
 import Shell from './screens/Shell.jsx'
+import Record from './screens/Record.jsx'
+import Empty from './screens/Empty.jsx'
+import Pricing from './screens/Pricing.jsx'
 import Gallery from './Gallery.jsx'
 import { viewport } from '../ui/zoom.js'
 
@@ -30,11 +33,26 @@ export const SURFACES = [
      while a shell is chrome, and chrome is where a title bar, a tab strip and
      a stat tile live. Two agents building a tool shell from the exported
      package each reported that no sample showed any of the three. */
+  /* Three more, added because a RULE with no rendered instance is the one that
+     rots. The Gallery already shows every component; what the samples lacked
+     were SITUATIONS.
+
+     Record   the only surface with a long page title, so the header's wrap and
+              its first-line alignment finally have somewhere to be seen. Also
+              a tab strip over a body rather than in chrome, and a definition
+              list, which nothing else here had.
+     Empty    the most-invented screen in software. Three kinds, because first
+              run, no results and failure look alike and are not.
+     Pricing  the one shape that must not scroll sideways, and the one place a
+              highlighted option has to be marked without a fill. */
   { id: 'dashboard', label: 'Dashboard', Component: Dashboard },
+  { id: 'record',    label: 'Record',    Component: Record },
   { id: 'shell',     label: 'Shell',     Component: Shell },
   { id: 'landing',   label: 'Landing',   Component: Landing },
+  { id: 'pricing',   label: 'Pricing',   Component: Pricing },
   { id: 'form',      label: 'Form',      Component: Form },
   { id: 'settings',  label: 'Settings',  Component: Settings },
+  { id: 'empty',     label: 'Empty',     Component: Empty },
   { id: 'dialog',    label: 'Overlays',  Component: Dialog },
   { id: 'gallery',   label: 'Gallery',   Component: Gallery },
 ]

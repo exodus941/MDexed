@@ -935,3 +935,38 @@
   min-height: calc(var(--font-body-sm-size, 14px) * var(--font-body-sm-leading, 1.58)
                    + 2 * var(--space-xs, 8px));
 }
+
+/* ── The empty state's mark ──
+   Furniture, not a control. No fill and no border: an empty state that opens
+   with a filled circle looks like a button nobody can press. The size comes
+   from the icon scale rather than a number. */
+.dmd .empty-mark { display: inline-flex; align-items: center; justify-content: center; }
+
+/* ── A comparison ──
+   The rows have to line up across the columns, or the eye cannot read across
+   and the comparison stops being one. One grid with the rows dissolved into it
+   shares a track; three independent cards drift. Same mechanism, same reason,
+   as the component matrix in the Gallery. */
+.dmd .plan-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) repeat(3, minmax(0, 1fr));
+  align-items: center;
+  gap: var(--space-sm, 12px);
+  padding: var(--space-sm, 12px) var(--space-md, 16px);
+}
+.dmd .plan-cell { display: flex; align-items: center; justify-content: center; }
+/* The recommended column is marked by its EDGE, never by a fill. A filled
+   column beside two unfilled ones reads as chosen, and nobody has chosen
+   anything yet. */
+.dmd .card.is-picked { border-color: var(--c-accent, #333); }
+
+/* ── Content beside context ──
+   What you read, and what you consult. The same two-column shape as
+   `.with-aside` and a different meaning, so a different class: `.with-aside`
+   carries named grid areas for the folded navigation, and two plain columns
+   dropped into it land in one area and paint over each other. */
+.dmd .with-context {
+  display: grid; align-items: start;
+  column-gap: var(--space-lg, 32px); row-gap: var(--space-md, 16px);
+  grid-template-columns: minmax(0, 1fr) var(--context, 200px);
+}
