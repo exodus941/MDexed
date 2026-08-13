@@ -795,21 +795,28 @@ function componentContrast(state, derived, mode) {
  * what you predicted. This asks the whole question instead: it needs no guess,
  * and it is silent when the system is sound.
  *
- * Severity splits on whether a remedy exists, and never reaches FAIL, because
- * a pair nobody builds is not a defect.
+ * NOT WIRED INTO `audit()`, and that is the point of this note.
  *
- * The first version made every shortfall a WARN and put 14 of them on a
- * healthy default system — `text-subtle on bg` among them, when a placeholder
- * only ever sits inside a field on `surface`, a pair that passes at 6.93:1.
- * That is the same crying-wolf failure as a finger rule pointed at a desktop:
- * it spends attention on decisions that do not exist and teaches the reader to
- * skim real findings. A check that fires on correct things is a defect in the
- * check.
+ * It went in as a finding and I lowered its severity twice trying to make it
+ * quiet enough. First every shortfall was a WARN: 14 on a healthy default
+ * system. Splitting by remedy took it to 2 warnings and 12 notes. Fixing the
+ * `text-subtle` role took it to 0 warnings and 10 notes.
  *
- *   at or below 3:1  → WARN. No text size rescues it, so the pair is unusable.
- *   3:1 to 4.5:1     → NOTE. Legal at large-text size; reference, not a fault.
- */
-function roleSweep(derived, mode) {
+ * A fresh document still opened saying "10 warnings", because the chip counts
+ * every finding and calls them warnings. Ten rows, all between 3.38:1 and
+ * 4.48:1, every one legal at large-text size, most of them pairs nothing in
+ * the system builds.
+ *
+ * Three attempts to tune a check that should not have been a check. A finding
+ * is something to act on. This is a map of which combinations are safe, which
+ * is reference material — and the exported document already carries it as a
+ * table, under a heading that says what it is. There it informs. Here it
+ * accused a clean system ten times on load.
+ *
+ * Kept and exported so the payload emitter and the suite can measure the same
+ * thing. Do not add it back to `audit()` without a surface that reads as
+ * reference rather than as fault. */
+export function roleSweep(derived, mode) {
   const roles = derived.roles?.[mode] ?? {}
   const out = []
   for (const fg of TEXT_ROLES) {
@@ -885,7 +892,7 @@ export function audit(state, derived) {
       ...colourAlone(derived, mode),
       ...componentContrast(state, derived, mode),
       ...disabledCheck(state, derived, mode),
-      ...roleSweep(derived, mode),
+      /* roleSweep is deliberately NOT here. See the note on the function. */
       ...hairlineChecks(derived, mode),
     ]),
   ]
