@@ -394,6 +394,23 @@
      takes it. Measured before: 168px short of the edge at 548. */
   .dmd .page-head > .nav-collapse { margin-left: auto; }
   .dmd .page-head > .page-actions { margin-left: 0; }
+  /* The title SHARES the line here, so it grows into what is left rather than
+     taking its content width. A long title otherwise claimed the whole line and
+     pushed the menu button onto a row of its own: measured at 500px with the
+     title on two lines from 165 to 269 and the button at 290.
+     It grows and wraps INSIDE its share; the button never shrinks. This is safe
+     at this threshold and nowhere above it, because the action group already
+     owns a line of its own here. */
+  .dmd .page-head > .page-title { flex: 1 1 0; }
+  /* The control's own height, not always the small step. The offset below
+     centres a control on the title's first line, and it is
+     `(first line − control height) / 2`. With the small height hard-wired it
+     read 6.08px out at a width where the button is 44 tall. */
+  .dmd .page-head > .page-actions,
+  .dmd .page-head > .nav-collapse {
+    margin-top: calc((var(--font-h2-size, 32px) * var(--font-h2-leading, 1.2)
+                      - var(--cmp-button-lg-height, 44px)) / 2);
+  }
   /* How an action row breaks when it stops fitting.
    *
    * Three buttons need 342px and the column holds 309, so the row must break.

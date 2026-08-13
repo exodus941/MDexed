@@ -663,6 +663,39 @@
    That dissolves the row, which is fine until something has to STAY on the
    title's line — and the menu button does. */
 .dmd .page-head { flex-wrap: wrap; }
+
+/* ── A page title WRAPS, and the controls beside it hold its first line ──
+ *
+ * Their choice, made against a rendered comparison. Truncation was built and
+ * withdrawn: a page title is the one thing on screen that says where you are,
+ * so it keeps all of its words and takes the lines it needs.
+ *
+ * Every collapse threshold is therefore measured from a LONG title rather than
+ * from the sample's own short one. A short title then loses its one-line header
+ * a step earlier than it strictly must, which is a layout choice nobody
+ * notices. An overflow is a defect anybody notices.
+ *
+ * `min-width: 0` lets the heading shrink so it can wrap at all. No
+ * `overflow-wrap: anywhere` — that broke "Overview" into "Overvie" and "w". */
+.dmd .page-title > h2 { min-width: 0; }
+
+/* The controls centre on the title's FIRST LINE, never on the whole block.
+ *
+ * Their correction, and it overrides the general rule that an item beside a
+ * multi-line block centres on the block. A button belongs to the title, and the
+ * title starts on line one — centred on the block it drifts further down the
+ * page with every extra line, which reads as attached to the paragraph rather
+ * than to the heading.
+ *
+ * Both numbers come from tokens: the first line is `size × leading`, and the
+ * control's height is its own step. So a type-scale change carries and nothing
+ * here is typed. */
+.dmd .page-head > .page-actions,
+.dmd .page-head > .nav-collapse {
+  align-self: flex-start;
+  margin-top: calc((var(--font-h2-size, 32px) * var(--font-h2-leading, 1.2)
+                    - var(--cmp-button-sm-height, 28px)) / 2);
+}
 .dmd .page-head > .page-sub { flex: 1 0 100%; order: 9; margin-top: 4px; }
 
 /* The gap between a heading and the actions beside it, as a floor rather than
