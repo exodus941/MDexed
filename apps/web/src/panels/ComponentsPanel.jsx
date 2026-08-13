@@ -344,7 +344,7 @@ function EntryBlock({ title, entryName, props, overrides, onSet, onReset, derive
         </div>
         {!query && (
           <div className="entry-sample-slot">
-            <EntrySample def={def} entryName={entryName}
+            <EntrySample def={def} entryName={entryName} tabStyle={cfg.tabStyle}
               focus={derived.focus} roles={derived.roles[mode]} />
           </div>
         )}

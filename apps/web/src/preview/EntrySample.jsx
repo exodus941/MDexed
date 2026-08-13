@@ -56,7 +56,7 @@ const focusRing = (focus, roles) =>
 
 /* Markup per component. Each returns the element the stylesheet expects, with
    the classes that carry the entry's variant and size. */
-function markup({ base, variant, size, state, cls, style, label }) {
+function markup({ base, variant, size, state, cls, style, label, tabStyle }) {
   const sz = size ? ` btn-${size}` : ''
   switch (base) {
     case 'button':
@@ -130,6 +130,48 @@ function markup({ base, variant, size, state, cls, style, label }) {
       )
     case 'nav-item':
       return <span className={`nav-item ${state === 'selected' ? 'is-active' : ''} ${cls}`} style={style}>Navigation</span>
+    /* A tab is shown inside a strip, because half of what the entry does is
+       relate to the rule under it — an underline sits ON that rule, and a tab
+       drawn alone shows a floating mark against nothing.
+       This case was missing when the component was added, so the one entry a
+       builder most needed a picture of had property rows and no sample. */
+    case 'tab': {
+      const sel = state === 'selected'
+      const disabled = state === 'disabled'
+      const pill = tabStyle === 'pill'
+      return (
+        <span style={{
+          display: 'inline-flex', gap: 4,
+          padding: pill ? '4px 6px' : '0 6px',
+          background: 'var(--c-surface)', borderRadius: 6,
+          /* The strip's rule is structure, so it takes `border`. A pill floats
+             clear of it and needs none. */
+          borderBottom: pill ? '1px solid transparent' : '1px solid var(--c-border)',
+        }}>
+          <span className={cls} style={{
+            display: 'inline-block', lineHeight: pill ? '24px' : '30px',
+            padding: '0 10px', whiteSpace: 'nowrap',
+            fontFamily: 'var(--cmp-tab-font-family, inherit)',
+            fontSize: 'var(--cmp-tab-font-size, 13px)',
+            fontWeight: sel ? 500 : 400,
+            color: disabled ? 'var(--c-text-subtle)'
+              : sel ? (pill ? 'var(--c-accent)' : 'var(--c-text)') : 'var(--c-text-muted)',
+            ...(pill
+              ? { borderRadius: 'var(--radius-md, 6px)', background: sel ? 'var(--c-accent-subtle)' : 'transparent' }
+              /* An inset shadow, never a border: a border would make the
+                 selected tab taller and push it past the strip's own rule. */
+              : { boxShadow: sel ? 'inset 0 -2px 0 var(--c-accent)' : 'none' }),
+            ...style,
+          }}>Colour</span>
+          <span style={{
+            display: 'inline-block', lineHeight: pill ? '24px' : '30px', padding: '0 10px',
+            fontFamily: 'var(--cmp-tab-font-family, inherit)',
+            fontSize: 'var(--cmp-tab-font-size, 13px)',
+            color: 'var(--c-text-muted)', opacity: 0.55,
+          }}>Type</span>
+        </span>
+      )
+    }
     case 'avatar':
       return <span className={`avatar ${cls}`} style={style}>AK</span>
     default:
@@ -141,11 +183,11 @@ function markup({ base, variant, size, state, cls, style, label }) {
  * @param def       the component definition from the library
  * @param entryName the flattened name being edited, e.g. `button-lg`
  */
-export default function EntrySample({ def, entryName, focus, roles }) {
+export default function EntrySample({ def, entryName, focus, roles, tabStyle }) {
   const { variant, size, state } = parseEntry(entryName, def)
   const cls = STATE_CLASS[state] ?? ''
   const style = state === 'focus' ? focusRing(focus, roles) : undefined
-  const el = markup({ base: def.name, variant, size, state, cls, style })
+  const el = markup({ base: def.name, variant, size, state, cls, style, tabStyle })
   if (!el) return null
 
   /* Inert. These are pictures of a state, not controls.

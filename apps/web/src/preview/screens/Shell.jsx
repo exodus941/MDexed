@@ -56,8 +56,21 @@ const BAR_H = 44
 function Mark({ ins, children }) {
   return (
     <span {...ins('avatar')} style={{
-      display: 'inline-block', width: 30, minWidth: 30, height: 30,
-      lineHeight: '28px', textAlign: 'center', alignSelf: 'baseline',
+      /* 32, matching the buttons beside it. The sweep read the row as
+         30, 18, 32, 32, 32 — a mark two pixels under every control it sits
+         with, which is the same defect this project's own chrome shipped
+         three times. A mark in a control row takes the row's height.
+         `minWidth` with `width`, or a squeezed row takes it back and the
+         square becomes a rectangle wearing a square's radius. */
+      display: 'inline-block', width: 32, minWidth: 32, height: 32,
+      /* A transparent border, so the mark's content box matches the buttons'.
+         Both are 32px outer, but a button has 1px borders and this did not —
+         so `line-height: 30` sized the line against 30px of content there and
+         32px here, and the two boxes landed 1px apart in the same baseline row
+         at identical heights. Height, borders and line-height are one
+         decision. */
+      border: '1px solid transparent',
+      lineHeight: '30px', textAlign: 'center', alignSelf: 'baseline',
       background: 'var(--c-accent, #333)', color: 'var(--c-accent-fg, #fff)',
       borderRadius: 'var(--radius-md, 6px)',
       fontFamily: 'var(--font-caption-family, inherit)',
@@ -90,8 +103,25 @@ function BarButton({ ins, primary, children }) {
 function TitleBar({ ins, txt }) {
   return (
     <div {...ins('surface')} style={{
+      /* Padding, never a fixed height.
+       *
+       * This had `height: 44` with `align-items: baseline`, and baseline
+       * alignment packs to cross-start — so the whole group sat against the top
+       * edge and every pixel of slack fell underneath. Measured: 8px above the
+       * cap tops against 23px below the baseline, and every control at top 0
+       * with 12px beneath it.
+       *
+       * The payload states this rule and I broke it here. Symmetric padding
+       * round the tallest item gives the same 44px and puts it in the middle:
+       * a 32px button plus 6 above and 6 below. */
       display: 'flex', alignItems: 'baseline', gap: 'var(--space-sm, 12px)',
-      height: BAR_H, padding: '0 var(--space-md, 16px)',
+      /* Deliberately unequal, and judged by the result rather than the
+         symmetry. Equal padding left the ink 2px above the bar's centre,
+         because a line box reserves descender space the words never use.
+         Candidates measured in the page at 4/4, 5/3, 6/4, 6/2, 7/3 and 8/4:
+         6/2 is the first that reads 0.00 without changing the height. Do not
+         "tidy" this back to symmetric — that restores the fault. */
+      padding: 'calc(var(--space-2xs, 4px) + 2px) var(--space-md, 16px) calc(var(--space-2xs, 4px) - 2px)',
       background: 'var(--c-surface, #fff)',
       /* A title bar's lower edge defines the structure of the page, so it
          takes `border`, not `border-subtle`. */
@@ -132,9 +162,26 @@ function TabStrip({ ins, tabs, selected, style }) {
       display: 'flex', gap: 'var(--space-2xs, 4px)',
       /* A pill floats, so it needs vertical room and no rule to sit on. An
          underline needs the rule, because the mark IS on that line. */
-      padding: pill ? 'var(--space-2xs, 4px) var(--space-sm, 12px)' : '0 var(--space-sm, 12px)',
+      /* The left edge of the pane is one line, and the strip was the only
+         thing off it. Measured down the pane: mark 41, first tab 37, card 41,
+         and the tab's label at 49 — four things, three positions, nothing
+         agreeing with anything.
+         An inactive tab has no visible box, so what a reader sees is its
+         LABEL. Inset the container by the content step minus the tab's own
+         padding, and the label lands on the column. A pill does have a visible
+         box, so its fill takes the content step directly. */
+      padding: pill
+        ? 'var(--space-2xs, 4px) var(--space-md, 16px)'
+        : '0 calc(var(--space-md, 16px) - var(--space-sm, 12px))',
       borderBottom: pill ? 0 : '1px solid var(--c-border, #ccc)',
-      overflowX: 'auto',
+      /* No sideways scroller.
+         It had `overflowX: auto`, and the left strip overflowed its pane by
+         24px — so five tabs became four tabs and a scrollbar, with the fifth
+         clipped. This project's own payload says a run of items never scrolls
+         sideways as the lazy answer, and a scroller hides the failure instead
+         of showing it. A strip that does not fit is a strip with too many
+         tabs, and here that was mine to fix. */
+      minWidth: 0,
     }}>
       {tabs.map(t => {
         const on = t === selected
@@ -167,7 +214,12 @@ function TabStrip({ ins, tabs, selected, style }) {
 
 /* A statistic tile. The delta carries a sign as well as a colour, because
    meaning must never rest on colour alone. */
-function Stat({ ins, txt, label, value, delta, up }) {
+/* `good` and `rose` are two different questions, and conflating them painted
+   "Warnings −4" in the danger colour — fewer warnings reported as bad news.
+   The arrow says which way the number moved. The colour says whether that is
+   welcome. For most metrics they agree; for a count of problems they invert,
+   and that is exactly the tile a reader checks first. */
+function Stat({ ins, txt, label, value, delta, rose, good }) {
   return (
     <div className="card" {...ins('card')} style={{
       flex: 1, minWidth: 0,
@@ -188,12 +240,12 @@ function Stat({ ins, txt, label, value, delta, up }) {
         ...TYPE_TOKENS('h4'),
         color: 'var(--c-text, #111)', margin: 'var(--space-2xs, 6px) 0 2px',
       }}>{value}</div>
-      {/* The sign carries the meaning as well as the colour, so nothing rests
-          on colour alone. */}
-      <div {...txt('caption', up ? 'success' : 'danger')} style={{
+      {/* The sign carries the direction and the colour carries the judgement,
+          so nothing rests on colour alone and neither says the other's job. */}
+      <div {...txt('caption', good ? 'success' : 'danger')} style={{
         ...TYPE_TOKENS('caption'),
-        color: up ? 'var(--c-success, #2a7)' : 'var(--c-danger, #c33)',
-      }}>{up ? '+' : '−'}{delta}</div>
+        color: good ? 'var(--c-success, #2a7)' : 'var(--c-danger, #c33)',
+      }}>{rose ? '+' : '−'}{delta}</div>
     </div>
   )
 }
@@ -212,8 +264,9 @@ export default function Shell({ onInspect, layout, tabStyle }) {
           /* A divider between two panes is structure. */
           borderRight: '1px solid var(--c-border, #ccc)',
         }}>
+          {/* Four, not five. Five needed 358px in a 334px pane. */}
           <TabStrip ins={ins} style={tabStyle} selected="Colour"
-            tabs={['Meta', 'Colour', 'Type', 'Layout', 'Shape']} />
+            tabs={['Meta', 'Colour', 'Type', 'Layout']} />
           <div style={{ padding: 'var(--space-md, 16px)', background: 'var(--c-bg, #fafafa)', flex: 1 }}>
             <div className="card" {...ins('card')} style={{
               padding: 'var(--cmp-card-padding, var(--space-md, 16px))',
@@ -225,24 +278,55 @@ export default function Shell({ onInspect, layout, tabStyle }) {
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 'var(--space-sm, 12px)', marginBottom: 'var(--space-xs, 8px)' }}>
                 <span {...txt('h6')} style={{ ...TYPE_TOKENS('h6'), color: 'var(--c-text, #111)' }}>Seeds</span>
                 <span style={{ flex: 1 }} />
+                {/* `align-self: baseline` explicitly. The `.badge` class in the
+                    preview stylesheet sets `flex-start`, which pins the chip to
+                    the top of the row and takes it out of the baseline set —
+                    the sweep measured both tops at 309 and the baselines 6.00px
+                    apart. A chip beside a heading sits on the heading's line. */}
                 <span className="badge" {...ins('badge-neutral')} style={{
-                  display: 'inline-block', lineHeight: '18px', padding: '0 8px',
+                  ...TYPE_TOKENS('caption'),
+                  display: 'inline-block', alignSelf: 'baseline',
+                  height: 18, lineHeight: '18px', padding: '0 var(--space-2xs, 6px)',
                   borderRadius: 'var(--radius-sm, 4px)',
                   background: 'var(--c-bg-subtle, #eee)', color: 'var(--c-text-muted, #666)',
-                  fontFamily: 'var(--font-caption-family, inherit)',
-                  fontSize: 'var(--font-caption-size, 12px)',
                 }}>5</span>
               </div>
               {/* A separator sits ABOVE each row, never below, so the last row
                   ends clean against the card's own border. */}
-              {['accent', 'neutral', 'success'].map((n, i) => (
+              {/* Each row draws its own role, so the three differ and they
+                  track the document. They were three hard-coded `#dc9055`
+                  strings — a colour tool showing three seeds as one colour,
+                  which is a picture of a system nobody has. A swatch is also
+                  the honest control here: a hex typed into a sample is a
+                  value from nowhere. */}
+              {/* Three roles that exist. The middle row said `neutral` and drew
+                  `var(--c-neutral, #999)` — there is no `neutral` role, only a
+                  neutral ramp, so the swatch rendered the #999 fallback and
+                  looked like a considered grey. A fallback is how a missing
+                  token stays invisible: the rule does not fail, it just paints
+                  a value from nowhere. Measuring the FIX caught it; measuring
+                  only the fault would not have. */}
+              {['accent', 'success', 'danger'].map((n, i) => (
                 <div key={n} style={{
                   display: 'flex', alignItems: 'baseline', justifyContent: 'space-between',
+                  gap: 'var(--space-sm, 12px)',
                   padding: 'var(--space-xs, 8px) 0',
                   borderTop: i === 0 ? 0 : '1px solid var(--c-border-subtle, #eee)',
                 }}>
                   <span {...txt('body-sm')} style={{ ...TYPE_TOKENS('body-sm'), color: 'var(--c-text, #111)' }}>{n}</span>
-                  <span {...txt('code', 'text-muted')} style={{ ...TYPE_TOKENS('code'), color: 'var(--c-text-muted, #666)' }}>#dc9055</span>
+                  {/* A swatch has no text, so it has no baseline of its own and
+                      would sit on its bottom edge in a baseline row. `alignSelf`
+                      takes it out of the baseline set and centres it on the
+                      row's own line instead. */}
+                  {/* No colour fallback. If the role ever stops existing the
+                      swatch must render as nothing and be noticed, rather than
+                      quietly painting a grey nobody chose. */}
+                  <span {...ins(n)} style={{
+                    width: 44, height: 14, flexShrink: 0, alignSelf: 'center',
+                    borderRadius: 'var(--radius-sm, 3px)',
+                    background: `var(--c-${n})`,
+                    border: '1px solid var(--c-border-subtle, #eee)',
+                  }} />
                 </div>
               ))}
             </div>
@@ -253,9 +337,10 @@ export default function Shell({ onInspect, layout, tabStyle }) {
           <TabStrip ins={ins} style={tabStyle} selected="Dashboard" tabs={['Dashboard', 'Form', 'Settings']} />
           <div style={{ padding: 'var(--space-md, 16px)', background: 'var(--c-bg, #fafafa)', flex: 1 }}>
             <div className="stat-row" style={{ display: 'flex', gap: 'var(--space-sm, 12px)' }}>
-              <Stat ins={ins} txt={txt} label="Tokens" value="284" delta="12" up />
-              <Stat ins={ins} txt={txt} label="Contrast" value="4.9:1" delta="0.3" up />
-              <Stat ins={ins} txt={txt} label="Warnings" value="0" delta="4" up={false} />
+              <Stat ins={ins} txt={txt} label="Tokens"   value="284"   delta="12"  rose good />
+              <Stat ins={ins} txt={txt} label="Contrast" value="4.9:1" delta="0.3" rose good />
+              {/* Fell by four, and that is the good direction. */}
+              <Stat ins={ins} txt={txt} label="Warnings" value="0"     delta="4"   rose={false} good />
             </div>
           </div>
         </div>
