@@ -633,13 +633,24 @@ function componentsBody(state, derived) {
       tabStyle === 'pill'
         ? 'This system marks a selected **tab** with a **pill**: a tinted fill at `var(--c-accent-subtle)` with the accent as its text, full radius, and no underline. The strip carries no rule of its own, so give it vertical padding and let the pill float clear. Do not add an underline as well — a 2px mark against no line reads as a stray rule.'
         : 'This system marks a selected **tab** with an **underline**: a 2px inset shadow sitting on the strip\'s own rule, and no background fill. A fill inside a strip competes with that rule. Keep the rule under the strip, because the mark is on that line.',
+      /* Measured on this palette: the underline layout drew rules at y=67 and
+         y=114, twice over for two panes. The pill layout drew one. */
+      'A tab strip directly under a major rule takes the **pill**, whichever treatment the system names. An underlined strip carries a rule of its own, so under a page rule it draws a second line about 47px below the first, in the same colour and the same weight. Two panes make it three. The pill marks the active tab by fill, so the strip needs no line and nothing repeats. Promote the strip; do not move the page rule.',
       'A selected **nav item** is a different component and a different answer: a tinted fill, never an underline. It marks the current place in a list, where a fill is what reads as "you are here"; a tab marks the active view in a row. Both have their own entries in the component tables, so neither needs improvising.',
       /* The same agent measured `border-subtle` at 1.38:1 against the page in
          dark, judged that it did not read as a line, and substituted `border`
          for every structural rule while leaving card and row rules alone.
          That call was correct and unwritten, so it cost a paragraph of
          reasoning to reach. It is a rule now. */
-      'Two weights of line, and which one to use is decided by what the line does. A line that defines the **structure** of the page — a title bar\'s lower edge, a divider between panes, the rule under a tab strip — takes `var(--c-border)`. A line that separates **content of the same kind** — a card\'s edge, a rule between table rows or list items — takes `var(--c-border-subtle)`. The subtle token is deliberately faint, so it reads as grouping rather than as division; using it for a structural edge makes the page look unassembled.',
+      /* This said structural edges take `border`. That was written while
+         `border-subtle` was broken — it collided with `surface-raised` at
+         1.00:1, so a generated build reasonably substituted the heavier
+         weight. The collision is fixed, and the rule outlived its cause:
+         three `border` rules stacked in 43px of chrome read as harsh, and the
+         same layout with `border-subtle` reads as considered. */
+      '`var(--c-border-subtle)` draws every line that divides. A title bar\'s lower edge, the rule under a tab strip, a card\'s edge, a rule between rows: one weight across the whole interface, so a reader learns it once. Space, not weight, says how big a boundary is — a heavier line for a more important division reads as harshness rather than as hierarchy.',
+      '`var(--c-border)` is not a divider. It is the outline of a control — an input, a secondary button, anything whose edge tells you where you may click. It is heavier on purpose, and using it for a rule between sections is the most common way a calm layout turns noisy.',
+      'Never stack two rules of the same weight close together. Three of them inside 43px of chrome say one boundary three times, and repetition reads as noise. If two lines land near each other, one of them is doing a job that space should do.',
       'Unequal gaps in one row read as a mistake even when nothing is misaligned. Every gap comes from the spacing scale, and a different gap means a deliberate grouping rather than a typed number.',
       'Proximity is grouping, and it outranks alignment. Items closer together read as one unit, so a label nearer the field below it than the field above labels the wrong one — and no amount of correct alignment repairs that.',
       'Only one thing may animate a property at a time. Two loops writing the same scroll position or the same transform do not average out — they trade pixels, and the one with the larger step wins by a few a frame. The symptom is a jitter that works about half the time, which is whether the first animation had already finished. Whoever starts second takes sole ownership and cancels the first.',

@@ -291,7 +291,19 @@
      width of the card. It reads as a filled bar, not a badge.
      `align-self` covers the flex and grid cases, `width: fit-content` covers a
      block context. Between them there is no parent that can stretch it. */
-  align-self: flex-start; width: fit-content;
+  /* `baseline`, not `flex-start`.
+   *
+   * `flex-start` was chosen to stop a stretching parent running the badge the
+   * full width of a card, and it does that. It also removes the badge from the
+   * baseline set of any `.row`, which is `align-items: baseline` — so a `draft`
+   * chip beside a name sat 4px above every other word on the line. Measured:
+   * the chip at 190, the mark, the name and the timestamp all at 194.
+   *
+   * `baseline` solves both. It is not `stretch`, so no parent can stretch it,
+   * and in a column the cross axis is horizontal, where baseline behaves as
+   * start. In a row it puts the chip's label on the line with everything else,
+   * which is the whole job of a chip beside a heading. */
+  align-self: baseline; width: fit-content;
   padding: var(--cmp-badge-padding, 2px var(--space-xs, 8px));
   border-radius: var(--cmp-badge-rounded, var(--radius-full, 9999px));
   font-size: var(--cmp-badge-font-size, var(--font-caption-size, 12px));
@@ -347,7 +359,11 @@
   line-height: var(--cmp-tooltip-line-height, 1.4);
   white-space: nowrap;
 }
-.dmd .badge-neutral { background: var(--cmp-badge-neutral-background-color, var(--c-bg-subtle, #f0f0f0));      color: var(--cmp-badge-neutral-text-color, var(--c-text-muted, #666)); }
+/* Outlined, not filled. Every surface is a neutral step, so a neutral fill
+   collides with one of them: bg-subtle on surface measures 1.00:1 in dark, in
+   every preset. The edge does the work and the label keeps the surface own
+   contrast. */
+.dmd .badge-neutral { background: var(--cmp-badge-neutral-background-color, transparent); box-shadow: inset 0 0 0 1px var(--cmp-badge-neutral-border-color, var(--c-border-subtle, #ddd)); color: var(--cmp-badge-neutral-text-color, var(--c-text-muted, #666)); }
 
 /* ── Alerts ──
    Anything beside a block of text — the icon, a trailing action — is centred

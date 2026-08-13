@@ -306,7 +306,14 @@ const defaultComponentOverrides = () => ({
      that text owes. A ghost button's label is the accent. */
   'button-ghost.textColor': '{colors.accent}',
   'switch.height': '24px',
-  'badge-neutral.backgroundColor': '{colors.bg}',
+  /* `badge-neutral.backgroundColor: {colors.bg}` used to sit here, with no
+     comment saying why — and it painted the chip the page colour. On any
+     surface drawn in `bg` the chip vanished: measured `#d6ddde` on `#d6ddde`,
+     leaving a word with padding and no chip at all.
+     The library already says `{colors.bg-subtle}`, which is one step off the
+     page and reads as a chip. A fill has to differ from what is behind it,
+     which is the same rule that caught `border-subtle` sitting on
+     `surface-raised` at 1.00:1. Removed rather than replaced. */
 })
 
 /* Cap on the project name.

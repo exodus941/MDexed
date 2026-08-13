@@ -950,48 +950,55 @@ line('\n- prompt construction -')
     ['a statistic tile', /function Stat\b/],
   ]) assert(re.test(shell), `the shell demonstrates ${what}`)
 
-  /* ── A marker is not a style ──
+  /* ── The shell is built from the shared primitives ──
    *
-   * `inspectProps` returns click-to-inspect metadata and deliberately no
-   * `style`, because a style key in a spread replaces the element's own style
-   * object. So `{...txt('caption')}` marks a run for the inspector and applies
-   * not one typographic property.
+   * Every layout value in this file used to be one I picked: a height, then
+   * padding, then a 6/2 correction, then a gap, then a heavier line. Each was
+   * argued for and each was arbitrary, and the row shipped wrong four times.
+   * `.row`, `.stack`, `.divider`, `.card`, `.avatar`, `.badge` and `.btn`
+   * already carry the rhythm, which is why the Landing header — built from
+   * nothing else — was right the whole time.
    *
-   * I built this whole surface on that misreading. Every run inherited body
-   * size: a caption timestamp rendered at 16px beside a 12.8px chip, and a
-   * stat's label and value came out identical — the one thing a stat tile must
-   * never do. The baseline check I ran passed the whole time, because the runs
-   * genuinely shared a line. I measured the property I was thinking about and
-   * not the screen.
-   *
-   * Every `txt(...)` in this file must carry its tokens on the same element. */
-  /* Comments stripped first. The file's own note explains the trap by quoting
-     the broken pattern, so scanning raw source reported the documentation as
-     the defect. A check that fires on correct things is a defect in the
-     check — and this one would have fired forever, because the comment exists
-     precisely to stop the bug recurring. */
-  const shellCode = shell.replace(/\/\*[\s\S]*?\*\//g, '')
-  const runs = [...shellCode.matchAll(/\{\.\.\.txt\(([^)]*)\)\}([^>]*)>/g)]
-  assert(runs.length > 0, `the shell marks its text runs for the inspector (${runs.length})`)
-  const unstyled = runs
-    .filter(m => !/TYPE_TOKENS\(/.test(m[2]))
-    .map(m => m[1].replace(/['"]/g, ''))
-  assert(unstyled.length === 0, unstyled.length
-    ? `every marked run also applies its type — missing on ${unstyled.join(', ')}`
-    : `every marked run also applies its type (${runs.length})`)
-
-  /* And the tile must not render two of its three lines the same. */
-  for (const role of ['overline', 'h4', 'caption']) {
-    assert(shell.includes(`TYPE_TOKENS('${role}')`), `the stat tile styles its ${role} line`)
+   * These assertions replace a set that pinned the hand-rolled values in
+   * place. A test written around a defect keeps the defect. */
+  for (const cls of ['row', 'stack', 'divider', 'card', 'avatar', 'badge', 'btn']) {
+    assert(new RegExp('className="[^"]*\\b' + cls + '\\b').test(shell),
+      `the shell uses .${cls} rather than rebuilding it`)
   }
+  assert(!/alignItems: 'baseline'/.test(shell),
+    'no inline baseline row — .row is baseline-aligned already')
+  assert(!/TYPE_TOKENS/.test(shell),
+    'no hand-applied type tokens — the classes carry the type')
+  assert(!/borderBottom: '1px solid var\(--c-border,/.test(shell),
+    'no control-outline weight used as a rule — that is border-subtle or .divider')
 
   /* The three rules this surface exists to show, obeyed in the surface itself.
      A sample that renders a component wrongly is a specification that lies. */
-  assert(/alignItems: 'baseline'/.test(shell), 'the title bar is baseline-aligned, not centred')
+  assert(/className="row row-wrap"/.test(shell), 'the title bar is a .row, which is baseline-aligned')
   assert(/inset 0 -2px 0 var\(--c-accent/.test(shell), 'the selected tab is underlined by an inset shadow')
   assert(!/borderBottom: '2px/.test(shell), 'no underline is built from a border')
-  assert(/borderBottom: '1px solid var\(--c-border,/.test(shell), 'structural rules use the border role')
+  assert(/var\(--c-border-subtle\)/.test(shell), 'rules are drawn in border-subtle, not the control-outline weight')
   assert(/borderTop: i === 0 \? 0 :/.test(shell), 'row separators are drawn above, never below')
+
+  /* ── A strip under a major rule takes the pill ──
+   *
+   * An underlined strip carries a rule of its own. Under a page rule it draws a
+   * second line about 47px below the first, same colour, same weight; two panes
+   * make it three. Measured on the real palette: underline drew rules at y=67
+   * and y=114 twice over, the pill drew one, at y=67.
+   *
+   * Test the function, not the file. A regex on the source would pass on a
+   * `underRule` prop that nothing reads. */
+  const { stripStyle } = await import('../src/state/components.js')
+  assert(stripStyle('underline', true) === 'pill', 'an underlined strip under a rule is promoted to a pill')
+  assert(stripStyle('pill', true) === 'pill', 'a pill under a rule stays a pill')
+  assert(stripStyle('underline', false) === 'underline', 'away from a rule the chosen treatment stands')
+  assert(stripStyle('nonsense', false) === 'underline', 'an unknown treatment falls back rather than rendering nothing')
+  /* Both strips in the shell sit directly under the page divider. */
+  assert((shell.match(/<TabStrip[^>]*underRule/g) ?? []).length === 2,
+    'both shell strips declare that a rule sits above them')
+  assert(/stripStyle\(style, underRule\)/.test(shell),
+    'the shell asks stripStyle rather than restating the promotion')
 }
 
 /* ── The library covers what the payload tells an agent to build ──
@@ -1309,7 +1316,8 @@ line('\n- prompt construction -')
     ['a named family is a loaded family', ['load a family before you name it']],
     ['a tab and a nav item mark selection differently', ['a tinted fill, never an underline']],
     ['the document names which tab style is in force', ['marks a selected **tab** with an']],
-    ['structural and content lines take different tokens', ['a line that separates **content of the same kind**']],
+    ['one line weight divides everything', ['draws every line that divides']],
+    ['the control outline is not a divider', ['is not a divider']],
     ['label capitalisation is stated, never guessed', ['capitalise every ui label as']],
     ['the theme toggle is a stated decision', ['theme toggle']],
     ['the dark alias serves what reassignment cannot', ['reach for it only when you need the dark value']],
