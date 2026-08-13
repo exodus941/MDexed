@@ -111,9 +111,19 @@
   /* The heading and the burger, side by side.
      `min-width: 0` on the heading so a long title wraps to the next line
      instead of pushing the burger off the row; the burger never shrinks. */
+  /* Content width. Not the whole line, and not the free space either.
+   *
+   * Two versions of this were wrong in the same direction. `width: 100%` put
+   * the actions on a second row at EVERY width the mark showed at. `flex: 1 1
+   * auto` did the same thing more quietly: the title grew into the free space,
+   * so the row that was meant to hold the buttons had none left. Measured at
+   * 560px, 45px above the threshold that is supposed to drop them.
+   *
+   * `0 1 auto` takes what the content needs and shrinks under pressure. The
+   * full line is claimed at the stacking threshold and nowhere else. */
   .dmd .page-title {
     display: flex; align-items: center; justify-content: space-between;
-    gap: var(--space-md, 16px); width: 100%; min-width: 0;
+    gap: var(--space-md, 16px); flex: 0 1 auto; min-width: 0;
   }
   .dmd .page-title > h2 { min-width: 0; overflow-wrap: anywhere; }
   /* The mark aligns to the heading's CAP CENTRE, not to its box.
@@ -160,10 +170,35 @@
   .dmd .nav-fold { transition: grid-template-rows var(--duration-normal, 200ms) var(--ease-standard, ease); }
   .dmd .nav-burger { display: flex; }
   .dmd .nav-summary { cursor: pointer; }
-  /* The menu's title appears with the menu, above the links it names. It is
-     also the first thing inside the clipped box, so it carries the space that
-     used to sit outside it. */
-  .dmd .nav-title { display: block; margin-top: var(--space-sm, 12px); }
+
+  /* ── The label beside the mark ──
+   *
+   * A labelled control says what it opens. It shows here, at the top of the
+   * ladder, and the three thresholds below turn it off, on and off again as
+   * the row loses and regains room.
+   *
+   * The menu's own heading yields to it. Both at once puts the word on screen
+   * twice the moment the menu opens, which reads as a stutter. */
+  .dmd .nav-label {
+    display: inline-block;
+    font-size: var(--font-overline-size, 12.8px);
+    font-weight: var(--font-overline-weight, 500);
+    letter-spacing: var(--font-overline-tracking, .08em);
+    text-transform: uppercase;
+    color: var(--c-text-muted, #666);
+    white-space: nowrap;
+  }
+  .dmd .nav-summary { gap: var(--space-2xs, 6px); }
+
+  /* The menu's heading is the label's opposite, and BOTH are driven by the same
+     three thresholds rather than by asking about each other.
+     `:has(.nav-label)` cannot do it: the label is in the markup at every width
+     and only its `display` changes, so that selector matches always. A state
+     one rule sets and another infers is two writers for one decision.
+     Hidden here, because the mark carries the word at this width. It also
+     carries the space that used to sit outside the clipped box, so the margin
+     stays whether it shows or not. */
+  .dmd .nav-title { display: none; margin-top: var(--space-sm, 12px); }
 
   /* A gap to a closed fold is dead space.
      The fold collapses to a `0fr` row, but the rail's flex `gap` does not
@@ -332,9 +367,22 @@
      display contents on the head promotes the heading and the action row into
      this column, so order can put the description between them. Without it the
      actions can only ever sit above a paragraph that is not their sibling. */
+  /* Nested, so this fires at the ladder's own threshold rather than at `sm`.
+   *
+   * "Do the actions still fit beside the title" is not the question `sm`
+   * answers, and the two numbers are 125px apart: `sm` is 640 by default and
+   * the actions stop fitting at 515. Between those the title, the mark and the
+   * buttons all share one line, which is the stage they asked for.
+   *
+   * A nested at-rule, because everything below depends on `display: contents`
+   * above it and moving the block would separate the two. */
+  @media (max-width: 999904px) {
   .dmd .page-header { gap: 0; }
   .dmd .page-header > .page-head { display: contents; }
-  .dmd .page-header > .page-head > h2 { order: 1; }
+  /* `.page-title`, not `h2`. The heading moved inside the title row when the
+     mark joined it, so this selector had stopped matching anything — the order
+     held only because the default put it first. */
+  .dmd .page-header > .page-head > .page-title { order: 1; }
   .dmd .page-header > .page-sub { order: 2; margin-top: 4px; }
   /* How an action row breaks when it stops fitting.
    *
@@ -386,6 +434,7 @@
     flex: 0 0 var(--cmp-button-lg-height, 44px);
     width: var(--cmp-button-lg-height, 44px);
   }
+  }   /* end of the ladder's stacking threshold */
 
   .dmd .page-actions > .btn,
   .dmd .stack-narrow > .btn,
@@ -447,4 +496,43 @@
      "settings". Falls back to normal wrapping where unsupported. */
   .dmd h1, .dmd h2, .dmd h3 { text-wrap: balance; }
   .dmd { padding: var(--space-md, 16px); }
+}
+
+/* ══ The header ladder ══
+ *
+ * Five stages, and the order of sacrifice is the point: the title and the mark
+ * never go. The label goes first. Then the actions take a line of their own,
+ * which hands the label its room back. Then the label goes again.
+ *
+ *   ≥768   sidebar on the left, every button on the title's row
+ *   606    mark and label at the right, buttons still on the row
+ *   515    mark alone, buttons still on the row
+ *   332    mark and label, buttons on a line below
+ *   below  mark alone, buttons on a line below
+ *
+ * Every number is measured from what the row holds. See responsive.build.js
+ * for the arithmetic. The blocks read top to bottom as the width shrinks, so
+ * each one only says what CHANGED at that step.
+ */
+
+/* 606 — the label no longer fits beside the buttons. */
+@media (max-width: 999903px) {
+  .dmd .nav-label { display: none; }
+  .dmd .nav-title { display: block; }
+}
+
+/* 515 — the buttons take their own line, which gives the label its room back. */
+@media (max-width: 999904px) {
+  .dmd .nav-label { display: inline-block; }
+  .dmd .nav-title { display: none; }
+  /* The title claims the whole line HERE, and only here. That is what puts the
+     buttons below it, so the rule that moves them and the rule that widens the
+     title are one decision at one threshold. */
+  .dmd .page-title { flex: 1 0 100%; }
+}
+
+/* 332 — the title and the label no longer share a line. */
+@media (max-width: 999905px) {
+  .dmd .nav-label { display: none; }
+  .dmd .nav-title { display: block; }
 }

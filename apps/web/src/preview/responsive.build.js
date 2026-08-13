@@ -21,6 +21,43 @@
    silently never collapses reports nothing at all. */
 export const MD_SENTINEL = '@media (max-width: 999901px)'
 export const SM_SENTINEL = '@media (max-width: 999902px)'
+
+/* ── The header ladder ──
+ *
+ * Three more thresholds, and they are NOT breakpoints of the design system.
+ * They are measured from what the header row holds, which is the project's own
+ * rule: one breakpoint per question, measured from the thing it governs. A
+ * document's `sm` and `md` answer "can two panes coexist" and "does a grid
+ * halve". None of them answer "does the title still fit beside its actions".
+ *
+ * Measured on the Dashboard header, at its natural widths:
+ *
+ *   heading 162.8 · mark 24 · label 84.8 · actions 250.5
+ *
+ * The first two came from arithmetic and one was wrong. Adding the parts gave
+ * 606 for the label threshold; forcing the label on and shrinking the frame
+ * two pixels at a time showed the row wrapping at 638. Thirty-two pixels of
+ * margins and box edges the sum never counted. The number below is the
+ * measured one, and the lesson is the general one: derive a threshold by
+ * shrinking the real row until it breaks, never by adding up its parts.
+ *   group gap 24 · title-to-mark gap 6 · surface padding 24 each side
+ *
+ *   640  heading + label + mark + actions no longer fit  → drop the label
+ *   617  heading + mark + actions no longer fit          → actions take a line
+ *   332  heading + label + mark no longer fit            → drop the label again
+ *
+ * The label reappears at 515 because the actions have left the row and given
+ * the space back. That is the ladder they described, and the numbers say the
+ * same thing.
+ *
+ * `Workspace` is the widest label in the samples at 84.8; `Settings` is 68.1.
+ * One threshold serves both, sized by the wider, because a container query
+ * cannot measure text. */
+export const LADDER_LABEL_SENTINEL = '@media (max-width: 999903px)'   // 640
+export const LADDER_STACK_SENTINEL = '@media (max-width: 999904px)'   // 617
+export const LADDER_BARE_SENTINEL = '@media (max-width: 999905px)'    // 332
+export const LADDER = { label: 640, stack: 617, bare: 332 }
+
 export const CONTAINER_LINE = '.dmd-frame { container-type: inline-size; container-name: dmd; }'
 
 export function buildResponsiveCss (css, breakpoints = [], mode = 'container') {
@@ -60,4 +97,10 @@ export function buildResponsiveCss (css, breakpoints = [], mode = 'container') {
     .replace(CONTAINER_LINE, mode === 'media' ? '' : CONTAINER_LINE + '\n')
     .split(MD_SENTINEL).join(query(md))
     .split(SM_SENTINEL).join(query(sm))
+    /* Fixed, because they are measured from the header's content rather than
+       taken from the document. A document that renames its breakpoints does
+       not move these, and it should not. */
+    .split(LADDER_LABEL_SENTINEL).join(query(LADDER.label))
+    .split(LADDER_STACK_SENTINEL).join(query(LADDER.stack))
+    .split(LADDER_BARE_SENTINEL).join(query(LADDER.bare))
 }
