@@ -464,8 +464,19 @@
  * So the class stays the mechanism, and a test asserts every icon-only button
  * in the preview carries it. A check outside CSS, for a question CSS cannot
  * ask. */
+/* ── An icon-only control is SQUARE ──
+ *
+ * Their rule, and it is about shape rather than size: a control with a mark and
+ * no words is a square, never an oblong. A rectangle reads as a button whose
+ * label failed to load.
+ *
+ * `aspect-ratio: 1` states it once and follows every height the scale sets, so
+ * a size step can never leave the shape behind. The explicit widths below stay
+ * for browsers that need a used value, and they now agree with the ratio rather
+ * than being the only thing holding it. */
 .dmd .btn.icon-only {
   width: var(--cmp-button-md-height, 36px); padding: 0;
+  aspect-ratio: 1;
   position: relative;
 }
 .dmd .btn.icon-only .icon {

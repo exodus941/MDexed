@@ -556,12 +556,19 @@
 @media (max-width: 999903px) {
   .dmd .nav-label { display: none; }
   .dmd .nav-title { display: block; }
+  /* No label means no words, and a control with a mark and no words is a
+     SQUARE. Stated in the same block that hides the label, because the two are
+     one decision — a rule that hid the label somewhere else would leave the
+     shape behind. Measured before: 46x28 and 70x44. */
+  .dmd .nav-summary { aspect-ratio: 1; padding: 0; }
 }
 
 /* 515 — the buttons take their own line, which gives the label its room back. */
 @media (max-width: 999904px) {
   .dmd .nav-label { display: inline-block; }
   .dmd .nav-title { display: none; }
+  /* The label is back, so the control takes its natural width again. */
+  .dmd .nav-summary { aspect-ratio: auto; padding: var(--cmp-button-sm-padding, 0 var(--space-sm, 12px)); }
   /* The title does NOT claim the line. It did while the menu button lived
      inside it, and the button became a sibling — so this rule went on pushing
      the button onto a row of its own, measured at 500px with the title 466 wide
@@ -573,6 +580,11 @@
 @media (max-width: 999905px) {
   .dmd .nav-label { display: none; }
   .dmd .nav-title { display: block; }
+  /* No label means no words, and a control with a mark and no words is a
+     SQUARE. Stated in the same block that hides the label, because the two are
+     one decision — a rule that hid the label somewhere else would leave the
+     shape behind. Measured before: 46x28 and 70x44. */
+  .dmd .nav-summary { aspect-ratio: 1; padding: 0; }
 }
 
 /* 712 — a tab strip that does not fit becomes a dropdown.
