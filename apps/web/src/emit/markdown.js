@@ -43,7 +43,8 @@ const fenceGenerated = body => (body && body.trim() ? `${GEN_OPEN}\n${body}\n${G
    changes what it writes more than most token values do. */
 function overviewBody(state) {
   const { directives } = state
-  const build = state.build ?? { labelCase: 'sentence', themeToggle: false }
+  const build = state.build ?? { themeToggle: true }
+  const casing = state.voice?.casing ?? 'title'
   const dark = state.color?.emitDark
   const refs = (directives?.references ?? []).filter(Boolean)
   return joinBlocks(
@@ -67,8 +68,14 @@ function overviewBody(state) {
      * examples. Two defensible readings, so state the choice. */
     '**Build preferences**',
     bullets([
-      build.labelCase === 'title'
-        ? 'Capitalise every UI label as **Title Case**: "Export Payload", "Save Draft", "Row Count". This applies to buttons, tabs, menu items, column headings and section titles — the labels this file supplies and the labels you invent alike. Do not mix the two conventions in one build.'
+      /* Capitalisation is stated here and NOWHERE else. It had a second home
+         in Copy and formatting, and the file then carried both rules — one
+         section demanding Title Case, the other demanding sentence case, with
+         no precedence between them. Two agents found it independently and each
+         had to choose. Both now read the same field; only this line prints the
+         rule, and the other section points here. */
+      casing === 'title'
+        ? 'Capitalise every UI label as **Title Case**: "Export Payload", "Save Draft", "Row Count". This applies to buttons, tabs, menu items, column headings and section titles — the labels this file supplies and the labels you invent alike. Body copy stays sentence case. Do not mix the two conventions in one build.'
         : 'Capitalise every UI label as **sentence case**: "Export payload", "Save draft", "Row count". Only the first word and proper nouns take a capital. This applies to buttons, tabs, menu items, column headings and section titles — the labels this file supplies and the labels you invent alike. Where a label quoted in this document disagrees, this rule wins: recase it.',
       dark && build.themeToggle
         ? 'Build a **theme toggle** into the page. Set `data-theme="light"` or `data-theme="dark"` on the root element; every token reassigns itself and no variable name changes. Persist the choice, and default to the operating system setting via `prefers-color-scheme` on first load.'
@@ -577,6 +584,19 @@ function componentsBody(state, derived) {
          lines. */
       'Count what a row is made of before you choose its alignment. A row that is mostly TEXT takes `align-items: baseline`. A row that is mostly fixed-height CONTROLS takes `center`. A row of words with a square in it is not a row of squares.',
       'Choose the line, then make everything obey it. The baseline of a row is a decision, not something you read off whichever element happens to look right. Pick it, then put every run of text on that row onto it.',
+      /* Every rule above was in the file already, and a generated title bar
+         still shipped four baselines across seven runs, 2.48px apart. The
+         build had CHECKED — with `Range.getClientRects().bottom`, which is the
+         text box bottom. That grows with the descender, so at one font size it
+         looks like the baseline and across two sizes it is not, and the check
+         reported a pass on a broken row. Knowing the rule was never the
+         problem. Measuring the wrong line was. */
+      'Measure a baseline with font metrics, never with a rectangle. `getBoundingClientRect().bottom` and `Range.getClientRects()[0].bottom` both give the text **box** bottom, which grows with the descender and with the line height — so two runs at different sizes report different numbers while sitting on one line, and two runs on different lines can report the same number. A title bar shipped with four baselines 2.48px apart after passing exactly that check. The real number is the rect top plus the font\'s ascent:',
+      /* Concatenation, not a template literal. The spec validator reads a
+         `${...}` as an unresolved token reference and fails the whole file —
+         correctly, since it cannot tell a code sample from a real one. */
+      '```js\nconst ctx = document.createElement(\'canvas\').getContext(\'2d\')\nfunction baselineOf (el) {\n  const r = document.createRange(); r.selectNodeContents(el)\n  const rect = r.getClientRects()[0]\n  const cs = getComputedStyle(el)\n  ctx.font = cs.fontWeight + \' \' + cs.fontSize + \' \' + cs.fontFamily\n  return rect.top + ctx.measureText(el.textContent).fontBoundingBoxAscent\n}\n```',
+      'Then check the row, not one element. Collect the baseline of every text run in the row and count the distinct values: one value is correct, and anything else is the number of lines you actually shipped. Report the spread in pixels, because "they look aligned" is what the wrong measurement already told you.',
       'Every run of text on the row belongs on that line, with no exceptions for decoration. A logotype inside a square is still text — if a reader reads it as a word, it obeys the line. Measured on a title bar: the letters in a 36px square sat at 30 while every other word in the row sat at 29, because the square centred them with flexbox.',
       'Flexbox centring hides a label from the row it sits in. It positions the glyphs inside the box and tells the row nothing about where they landed, so the row cannot align to them. Use the line box instead — it centres the letters **and** makes them the element\'s baseline: `display: inline-block`, a stated `line-height`, `text-align: center`, and `align-self: baseline` in the row.',
       'Find that line-height by sweeping, not by arithmetic. On a 36px square the candidates 30, 32, 34, 36 and 38 put its box 2, 1, 0, −1 and −2 pixels from the buttons beside it — every 2px of line height moves the box 1px, and 34 is where it reaches zero. Write the winner against the size token so a touch step carries it.',
@@ -719,7 +739,10 @@ function dosDontsBody(state) {
     on.length && bullets(on.map(a => a.text)),
     '**Copy and formatting**',
     bullets([
-      v.casing === 'sentence' ? 'Sentence case for all UI text, including buttons and headings.' : 'Title Case for headings and buttons.',
+      /* Points at the rule rather than restating it. Two statements of one
+         decision drift the moment either is edited, and this pair drifted into
+         a direct contradiction inside a single file. */
+      'Label capitalisation is stated once, under **Overview → Build preferences**. Follow it there.',
       v.buttonStyle === 'verb-first' ? 'Buttons start with a verb — "Save changes", not "Changes".' : 'Buttons name the object rather than the action.',
       v.errorTone === 'plain' ? 'Error messages state what happened and what to do. No apologies, no blame.'
         : v.errorTone === 'terse' ? 'Error messages are as short as they can be while staying actionable.'

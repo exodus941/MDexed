@@ -468,7 +468,14 @@ export const createInitialState = () => ({
   components: { enabled: {}, overrides: defaultComponentOverrides(), custom: [], emitStates: true, emitSizes: true, layout: {} },
 
   voice: {
-    casing: 'sentence',        // sentence | title
+    /* The single source of truth for label capitalisation.
+       Build Preferences under Meta/Global edits this same value. A second
+       field lived there briefly and the document then carried both rules —
+       "Title Case for every UI label" in one section and "Sentence case for
+       all UI text" in another, in one file, with no precedence between them.
+       Two agents found it independently and each had to pick. Two controls
+       for one decision is the defect; rewording either one only hides it. */
+    casing: 'title',           // sentence | title
     buttonStyle: 'verb-first', // verb-first | noun
     errorTone: 'plain',        // plain | apologetic | terse
     emptyTone: 'helpful',
@@ -487,14 +494,11 @@ export const createInitialState = () => ({
 
   /* Build preferences — decisions about the page an agent produces, rather
      than about the system it produces it from.
-     `labelCase` exists because a generated build kept the brief's
-     capitalisation for labels it was handed and used sentence case for labels
-     it invented, then said so in its notes. Both readings were defensible,
-     because the document asked for sentence case in prose and demonstrated
-     Title Case in its own examples. A stated choice removes the guess. */
+     Capitalisation is deliberately NOT here. It lives in `voice.casing`,
+     because it is one decision and one decision gets one field. The Build
+     Preferences panel edits that value directly. */
   build: {
-    labelCase: 'sentence',   // sentence | title
-    themeToggle: false,
+    themeToggle: true,
   },
 
   prose: emptyProse(),

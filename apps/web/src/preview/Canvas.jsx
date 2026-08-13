@@ -19,10 +19,17 @@ import Form from './screens/Form.jsx'
 import Landing from './screens/Landing.jsx'
 import Settings from './screens/Settings.jsx'
 import Dialog from './screens/Dialog.jsx'
+import Shell from './screens/Shell.jsx'
 import Gallery from './Gallery.jsx'
 import { viewport } from '../ui/zoom.js'
 
 export const SURFACES = [
+  /* First, because it is the surface the others cannot stand in for. A
+     dashboard, a form and a settings list are documents; a shell is chrome,
+     and chrome is where a title bar, a tab strip and a stat tile live. Two
+     agents building a tool shell from the exported package each reported that
+     no sample page showed any of the three. */
+  { id: 'shell',     label: 'Shell',     Component: Shell },
   { id: 'dashboard', label: 'Dashboard', Component: Dashboard },
   { id: 'landing',   label: 'Landing',   Component: Landing },
   { id: 'form',      label: 'Form',      Component: Form },

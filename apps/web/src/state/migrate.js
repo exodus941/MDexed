@@ -111,9 +111,21 @@ function toV3(mid) {
     prose: { ...emptyProse(), ...(mid.prose ?? {}) },
     /* Build preferences arrived after this version shipped. A document without
        them takes the defaults rather than an undefined, which the emitter
-       would read as "no capitalisation stated" — the exact gap the section was
-       added to close. */
-    build: { ...base.build, ...(mid.build ?? {}) },
+       would read as "nothing stated" — the exact gap the section was added to
+       close.
+       `labelCase` briefly lived here and is now `voice.casing`, because one
+       decision gets one field. Carry an old value across rather than dropping
+       it, then drop the dead key so nothing reads it again. */
+    build: (() => {
+      const b = { ...base.build, ...(mid.build ?? {}) }
+      delete b.labelCase
+      return b
+    })(),
+    voice: {
+      ...base.voice,
+      ...(mid.voice ?? {}),
+      casing: mid.voice?.casing ?? mid.build?.labelCase ?? base.voice.casing,
+    },
     schemaVersion: SCHEMA_VERSION,
   }
 }

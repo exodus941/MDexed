@@ -714,14 +714,27 @@ line('\n- prompt construction -')
  * case for the ones it invented. A panel that stores a choice and emits the
  * same document either way would leave the next build guessing identically. */
 {
-  const doc = build => {
+  const doc = ({ casing, themeToggle }) => {
     const s = createInitialState()
-    s.build = { ...s.build, ...build }
+    if (casing) s.voice = { ...s.voice, casing }
+    s.build = { ...s.build, themeToggle }
     return generateFile(s, derive(s)).text
   }
-  const sentence = doc({ labelCase: 'sentence', themeToggle: false })
-  const title    = doc({ labelCase: 'title',    themeToggle: false })
-  const toggled  = doc({ labelCase: 'sentence', themeToggle: true  })
+  const sentence = doc({ casing: 'sentence', themeToggle: false })
+  const title    = doc({ casing: 'title',    themeToggle: false })
+  const toggled  = doc({ casing: 'sentence', themeToggle: true  })
+
+  /* Capitalisation must be stated in exactly one place. It had two fields —
+     `build.labelCase` and `voice.casing` — and the document then carried both
+     rules, one section demanding Title Case and another demanding sentence
+     case, inside one file with no precedence between them. Two agents found it
+     independently and each had to guess. */
+  for (const [label, text] of [['sentence', sentence], ['title', title]]) {
+    const stated = text.split('\n').filter(l => /^- Capitalise every UI label as/.test(l))
+    assert(stated.length === 1, `${label}: the capitalisation rule is stated once (${stated.length})`)
+    assert(!/Sentence case for all UI text/.test(text),
+      `${label}: no second casing rule contradicts it`)
+  }
 
   assert(sentence !== title, 'the capitalisation choice changes the document')
   assert(sentence !== toggled, 'the theme-toggle choice changes the document')
@@ -735,7 +748,7 @@ line('\n- prompt construction -')
      the control, which is the worst outcome of the three. */
   const s = createInitialState()
   s.color.emitDark = false
-  s.build = { labelCase: 'sentence', themeToggle: true }
+  s.build = { themeToggle: true }
   const lightOnly = generateFile(s, derive(s)).text
   assert(/ships one theme/.test(lightOnly) && !/Build a \*\*theme toggle\*\*/.test(lightOnly),
     'a light-only system forbids a toggle even when the preference asks for one')
@@ -879,6 +892,38 @@ line('\n- prompt construction -')
   assert(misuse.length === 0,
     misuse.length ? `text-subtle is used on an enabled control: ${misuse.join(', ')}`
       : `text-subtle appears only on disabled entries (${derived.components.filter(c => (c.properties ?? []).some(p => String(p.value).includes('text-subtle'))).length})`)
+}
+
+/* ── The samples demonstrate the chrome, not only documents ──
+ *
+ * The package defined `tab`, `tab-selected` and `tab-disabled`, and not one of
+ * the twelve sample pages contained a tab strip. Two agents building a tool
+ * shell each reported it, one saying the component the job most needed a
+ * reference for had no worked example. A title bar and a stat tile were
+ * missing the same way.
+ *
+ * A dashboard, a form and a settings list are documents. Chrome is where the
+ * hard rules live — one baseline across five text sizes, a structural rule
+ * against a subtle one, an underline that adds no height — and none of it is
+ * visible on a page of paragraphs. Canvas.jsx cannot be imported here, so
+ * assert against its source. */
+{
+  const canvas = fs.readFileSync(new URL('../src/preview/Canvas.jsx', import.meta.url), 'utf8')
+  assert(/id: 'shell'/.test(canvas), 'the surface list includes a shell')
+  const shell = fs.readFileSync(new URL('../src/preview/screens/Shell.jsx', import.meta.url), 'utf8')
+  for (const [what, re] of [
+    ['a title bar', /function TitleBar/],
+    ['a tab strip', /function TabStrip/],
+    ['a statistic tile', /function Stat\b/],
+  ]) assert(re.test(shell), `the shell demonstrates ${what}`)
+
+  /* The three rules this surface exists to show, obeyed in the surface itself.
+     A sample that renders a component wrongly is a specification that lies. */
+  assert(/alignItems: 'baseline'/.test(shell), 'the title bar is baseline-aligned, not centred')
+  assert(/inset 0 -2px 0 var\(--c-accent/.test(shell), 'the selected tab is underlined by an inset shadow')
+  assert(!/borderBottom: '2px/.test(shell), 'no underline is built from a border')
+  assert(/borderBottom: '1px solid var\(--c-border,/.test(shell), 'structural rules use the border role')
+  assert(/borderTop: i === 0 \? 0 :/.test(shell), 'row separators are drawn above, never below')
 }
 
 /* ── The library covers what the payload tells an agent to build ──
@@ -1168,6 +1213,8 @@ line('\n- prompt construction -')
     ['the dark alias serves what reassignment cannot', ['reach for it only when you need the dark value']],
     ['the sample pages are flat in the root', ['pages in the package root']],
     ['a placeholder and disabled text are different requirements', ['not the same colour, because they are not the same requirement']],
+    ['a baseline is measured with font metrics, not a rectangle', ['measure a baseline with font metrics, never with a rectangle', 'fontboundingboxascent']],
+    ['a row is checked by counting distinct baselines', ['count the distinct values']],
   ]
   const missing = RULES.filter(([, terms]) => !terms.every(t => doc.includes(t))).map(([n]) => n)
   assert(missing.length === 0,
