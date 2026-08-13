@@ -104,19 +104,24 @@ function colorsBody(state, derived) {
    * passed every pair and whose dark side failed four — and the file reported
    * nothing, because it never looked. The mode that is not measured is the mode
    * the failures live in. */
-  const grade = (r, ui) => (ui ? (r.ratio >= 3 ? 'Pass' : 'Fail') : r.label)
-  const cell = (fg, bg, ui) => {
+  /* An exempt pair reports its ratio and is graded "Exempt", never "Fail".
+     1.4.3 does not cover text inside a disabled control, and a system that dims
+     disabled text is doing the right thing. Printing the number anyway matters:
+     silence invites someone to invent a value, and "Fail" invites them to make
+     disabled look enabled. */
+  const grade = (r, p) => (p.exempt ? 'Exempt (1.4.3)' : p.ui ? (r.ratio >= 3 ? 'Pass' : 'Fail') : r.label)
+  const cell = (fg, bg, p) => {
     const r = check(fg, bg)
-    return { text: `${r.ratio}:1 ${grade(r, ui)} · Lc ${r.lc}`, fails: ui ? r.ratio < 3 : r.ratio < 4.5 }
+    return `${r.ratio}:1 ${grade(r, p)} · Lc ${r.lc}`
   }
 
   const contrastRows = CONTRAST_PAIRS.map(p => {
-    const l = roles.light[p.fg] && roles.light[p.bg] ? cell(roles.light[p.fg], roles.light[p.bg], p.ui) : null
+    const l = roles.light[p.fg] && roles.light[p.bg] ? cell(roles.light[p.fg], roles.light[p.bg], p) : null
     if (!l) return null
     const tokens = `\`${p.fg}\` on \`${p.bg}\``
-    if (!dark) return [p.label, tokens, l.text]
-    const d = roles.dark[p.fg] && roles.dark[p.bg] ? cell(roles.dark[p.fg], roles.dark[p.bg], p.ui) : null
-    return [p.label, tokens, l.text, d ? d.text : '—']
+    if (!dark) return [p.label, tokens, l]
+    const d = roles.dark[p.fg] && roles.dark[p.bg] ? cell(roles.dark[p.fg], roles.dark[p.bg], p) : null
+    return [p.label, tokens, l, d ?? '—']
   }).filter(Boolean)
 
   /* The sweep. Every text role against every surface role, in every mode
@@ -179,6 +184,12 @@ function colorsBody(state, derived) {
          dark column, and a system whose light side passed every pair shipped
          four dark failures with a clean report above them. */
       'Check a colour in every mode the system ships. A ratio measured in one mode says nothing about the other: the same pair can pass on paper and fail in the dark, and the mode nobody measured is the mode the failures live in.',
+      /* One role served placeholders and disabled text, and those two have
+         different contrast requirements — 1.4.3 exempts the second and not the
+         first. No single ramp step satisfies both, so the overload guaranteed
+         one of the two uses would be wrong. Split by requirement, not by
+         appearance. */
+      'A placeholder and disabled text are not the same colour, because they are not the same requirement. A placeholder is readable content and must clear 4.5:1 — use `var(--c-text-muted)`. Text inside a disabled control is exempt from 1.4.3 and should look inert — use `var(--c-text-subtle)`, which is deliberately fainter. Never use `text-subtle` for a placeholder: it fails AA on most surfaces in this system, and that is by design rather than by oversight.',
       /* The table above pairs each role against the page and against its own
          foreground. A component that combines two roles of its own makes a
          third pair, and that pair is in no row here. */

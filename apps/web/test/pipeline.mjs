@@ -18,7 +18,7 @@ import { payloadTextFiles, REQUIRED_FILES, EXAMPLE_PREFIX, HTML_EXAMPLES_MODES, 
 import { serializeProject, parseProject, projectFilename } from '../src/emit/project.js'
 import { diffWords, diffStats } from '../src/ai/diff.js'
 import { contextFor, refinePrompt, draftPrompt, systemPrompt } from '../src/ai/prompts.js'
-import { PROSE_SECTIONS, TEXT_ROLES, SURFACE_ROLES } from '../src/state/schema.js'
+import { PROSE_SECTIONS, TEXT_ROLES, SURFACE_ROLES, ALL_ROLES } from '../src/state/schema.js'
 /* theme.js re-exports a `?raw` import, which is a Vite feature Node cannot
    resolve, so the chrome stylesheet is read from disk instead. */
 const APP_CSS = fs.readFileSync(new URL('../src/ui/theme.css', import.meta.url), 'utf8')
@@ -222,6 +222,11 @@ line('\n- default palette passes its own checks -')
 for (const mode of ['light', 'dark']) {
   const fails = CONTRAST_PAIRS.map(p => {
     const r = check(derived.roles[mode][p.fg], derived.roles[mode][p.bg])
+    /* An exempt pair is measured and reported, never failed. 1.4.3 does not
+       cover text inside a disabled control, and dimming disabled text is the
+       correct behaviour — failing it here would report the intent as the fault,
+       and the obvious "fix" is to make disabled look enabled. */
+    if (p.exempt) return null
     return (p.ui ? r.ratio < 3 : !r.pass) ? `${p.label} ${r.ratio}:1` : null
   }).filter(Boolean)
   assert(fails.length === 0, `${mode} mode: ${fails.length ? fails.join(' | ') : 'all pairs pass'}`)
@@ -817,6 +822,65 @@ line('\n- prompt construction -')
     : `no line token is invisible on any surface, in any preset or mode (${checked} combinations)`)
 }
 
+/* ── A role serves one contrast requirement, not two ──
+ *
+ * `text-subtle` was described as "Placeholders, disabled". Those two uses have
+ * different requirements — 1.4.3 exempts text inside a disabled control and
+ * does not exempt a placeholder — so no ramp step could satisfy both, and the
+ * overload guaranteed one of the two would be wrong. At step 600 it failed AA
+ * on three of five light surfaces and on dark surface-raised, in all seven
+ * presets.
+ *
+ * The paint was never wrong. Nothing in the matrix ever used it as a
+ * placeholder, and the one curated pair that measured it picked `surface` —
+ * the single surface it clears — so the check reported the healthiest case in
+ * the set as though it covered the role. */
+{
+  const subtle = ALL_ROLES.find(r => r.name === 'text-subtle')
+  assert(!/placeholder/i.test(subtle.desc),
+    `text-subtle is described by one requirement, not two ("${subtle.desc}")`)
+  assert(!TEXT_ROLES.includes('text-subtle'),
+    'text-subtle is out of the body-text sweep, because 1.4.3 exempts disabled text')
+
+  /* Every component that shows placeholder text names its colour. Unspecified,
+     an agent reaches for whichever muted role it saw last — and the roles list
+     used to offer it the one that fails. */
+  const withPlaceholder = ['input', 'textarea']
+  for (const name of withPlaceholder) {
+    const props = Object.fromEntries((derived.components.find(c => c.name === name)?.properties ?? []).map(p => [p.key, p.value]))
+    assert(!!props.placeholderColor, `${name} states its placeholder colour`)
+    assert(!/text-subtle/.test(String(props.placeholderColor)),
+      `${name} does not use the disabled role for a placeholder (${props.placeholderColor})`)
+  }
+
+  /* And the colour it does use must clear AA on every surface, in every mode
+     and preset — a placeholder is readable content. */
+  const short = []
+  for (const preset of [null, ...PRESETS.map(p => p.id)]) {
+    const s = preset ? applyPreset(preset, createInitialState()) : createInitialState()
+    const d = derive(s)
+    for (const mode of ['light', 'dark']) {
+      for (const bg of SURFACE_ROLES) {
+        const r = check(d.roles[mode]['text-muted'], d.roles[mode][bg]).ratio
+        if (r < 4.5) short.push(`${preset ?? 'default'}/${mode}: on ${bg} ${r}:1`)
+      }
+    }
+  }
+  assert(short.length === 0, short.length
+    ? `the placeholder colour falls short — ${short.slice(0, 3).join('; ')}`
+    : 'the placeholder colour clears AA on every surface, mode and preset')
+
+  /* text-subtle is only ever used where the exemption applies. If it turns up
+     on an enabled control, the split has quietly come undone. */
+  const misuse = derived.components
+    .filter(c => (c.properties ?? []).some(p => String(p.value).includes('text-subtle')))
+    .map(c => c.name)
+    .filter(n => !/disabled/.test(n))
+  assert(misuse.length === 0,
+    misuse.length ? `text-subtle is used on an enabled control: ${misuse.join(', ')}`
+      : `text-subtle appears only on disabled entries (${derived.components.filter(c => (c.properties ?? []).some(p => String(p.value).includes('text-subtle'))).length})`)
+}
+
 /* ── The library covers what the payload tells an agent to build ──
  *
  * A tab strip reached a build with no `tab` entry in the matrix. The agent took
@@ -1103,6 +1167,7 @@ line('\n- prompt construction -')
     ['the theme toggle is a stated decision', ['theme toggle']],
     ['the dark alias serves what reassignment cannot', ['reach for it only when you need the dark value']],
     ['the sample pages are flat in the root', ['pages in the package root']],
+    ['a placeholder and disabled text are different requirements', ['not the same colour, because they are not the same requirement']],
   ]
   const missing = RULES.filter(([, terms]) => !terms.every(t => doc.includes(t))).map(([n]) => n)
   assert(missing.length === 0,
