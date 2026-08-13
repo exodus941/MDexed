@@ -210,9 +210,28 @@ function buildComponentVars(components = [], { roles, spacing, rounded, typograp
 }
 
 /** Flat `--token: value` map. The preview injects this; nothing else styles it. */
-export function buildCssVars(d, mode = 'light') {
+export function buildCssVars(d, mode = 'light', { darkAliases = false } = {}) {
   const vars = {}
   for (const [name, hex] of Object.entries(d.roles?.[mode] ?? {})) vars[`--c-${name}`] = hex
+  /* The dark set, by explicit name, alongside the reassignment mechanism.
+   *
+   * The exported document said "every token has a `dark-` prefixed
+   * counterpart" and no file defined one, because the dark theme reassigns the
+   * same names inside a media query. An agent built a theme toggle against
+   * `--c-dark-accent` and got variables that resolve to nothing.
+   *
+   * Deleting the sentence made the file true. Emitting the tokens makes the
+   * file true AND answers what the sentence was reaching for: a value you can
+   * name from anywhere, which the reassignment cannot give you. A panel that
+   * stays dark inside a light page, a diagram that shows both themes side by
+   * side, a screenshot frame — each needs the dark value while the light one
+   * is in force, and no media query can be in two states at once.
+   *
+   * Emitted only into the light block. Repeating them inside the dark block
+   * would define the same name twice with the same value, for nothing. */
+  if (darkAliases) {
+    for (const [name, hex] of Object.entries(d.roles?.dark ?? {})) vars[`--c-dark-${name}`] = hex
+  }
   for (const s of d.spacing ?? []) vars[`--space-${s.name}`] = s.value
   for (const r of d.rounded ?? []) vars[`--radius-${r.name}`] = r.value
   /* The Shapes section of the exported file documents these by name, so an

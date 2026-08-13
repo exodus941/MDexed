@@ -48,7 +48,7 @@ Treat every value in it as a decision that has already been made.
 1. This file.
 2. \`DESIGN.md\`, in full. It carries the reasoning, not only the values.
 3. \`tokens.css\`, to see the names you will actually write.
-4. \`html-examples/\`, only after the three above.
+4. The \`EXAMPLE-*.html\` pages, only after the three above.
 
 Do not skip step 2. The values alone will let you build something that
 validates and still looks wrong, because the constraints that matter most are
@@ -79,8 +79,8 @@ Never add a font family. The system names every family it uses.
 Never change a value to fix a contrast problem. The pairings were checked. If
 a pairing looks wrong to you, report it and continue.
 
-Never treat \`html-examples/\` as templates. They are style references. Copy the
-token usage. Do not copy the markup or the page structure.
+Never treat an \`EXAMPLE-*.html\` page as a template. They are style references.
+Copy the token usage. Do not copy the markup or the page structure.
 
 ## When the system is silent
 
@@ -110,7 +110,7 @@ Do not resolve silence by importing a convention from another design system.
 | \`tailwind.config.js\` | Tailwind v3 only. A preset to merge, never to replace. |
 | \`_tokens.scss\` | Sass variables and maps. |
 | \`tokens.json\` | W3C Design Tokens, for Style Dictionary and Figma. |
-| \`html-examples/\` | Style reference only. Never a template. |
+| \`EXAMPLE-<theme>-<surface>.html\` | Style reference only. Never a template. |
 
 Take \`tokens.css\` plus the one file matching the stack you were asked for.
 Ignore the rest. Shipping both Tailwind files is not an invitation to use both.
@@ -156,7 +156,7 @@ Check each of these against the code you wrote.
 - No literal colour appears anywhere.
 - No number appears where a scale token exists.
 - Every token name you used exists in \`tokens.css\`.
-- Nothing from \`html-examples/\` was copied as markup.
+- Nothing from an \`EXAMPLE-*.html\` page was copied as markup.
 - Every judgement call is listed under its own heading.
 - Every icon sits on its label's optical middle, not the button's centre.
 - Every control states its height and its line height together.

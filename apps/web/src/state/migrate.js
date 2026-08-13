@@ -109,6 +109,11 @@ function toV3(mid) {
     radius: { ...base.radius, ...radius },
     components: foldComponents(mid.components, base.components),
     prose: { ...emptyProse(), ...(mid.prose ?? {}) },
+    /* Build preferences arrived after this version shipped. A document without
+       them takes the defaults rather than an undefined, which the emitter
+       would read as "no capitalisation stated" — the exact gap the section was
+       added to close. */
+    build: { ...base.build, ...(mid.build ?? {}) },
     schemaVersion: SCHEMA_VERSION,
   }
 }

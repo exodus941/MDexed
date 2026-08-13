@@ -43,6 +43,8 @@ const fenceGenerated = body => (body && body.trim() ? `${GEN_OPEN}\n${body}\n${G
    changes what it writes more than most token values do. */
 function overviewBody(state) {
   const { directives } = state
+  const build = state.build ?? { labelCase: 'sentence', themeToggle: false }
+  const dark = state.color?.emitDark
   const refs = (directives?.references ?? []).filter(Boolean)
   return joinBlocks(
     refs.length && `**Reference points:** ${refs.join(' · ')}`,
@@ -54,7 +56,25 @@ function overviewBody(state) {
       /* Without this, an agent reads the sample pages as the answer rather than
          as a reference, and inherits whatever was true of the pane they were
          rendered in — the page width most of all. */
-      'The pages in `html-examples/` are style references, not templates. Take the arrangement from them: what sits beside what, which elevation a panel uses, how tight a heading is set. Do not take their page width, their section order or their content — those belong to the sample, not to this system.',
+      'The `EXAMPLE-*.html` pages in the package root are style references, not templates. Take the arrangement from them: what sits beside what, which elevation a panel uses, how tight a heading is set. Do not take their page width, their section order or their content — those belong to the sample, not to this system.',
+    ]),
+    /* Build preferences.
+     *
+     * A generated build kept the brief's capitalisation for labels it was
+     * handed and used sentence case for labels it invented, then reported the
+     * inconsistency in its notes. It had no way to be right: the document
+     * asked for sentence case in prose and demonstrated Title Case in its own
+     * examples. Two defensible readings, so state the choice. */
+    '**Build preferences**',
+    bullets([
+      build.labelCase === 'title'
+        ? 'Capitalise every UI label as **Title Case**: "Export Payload", "Save Draft", "Row Count". This applies to buttons, tabs, menu items, column headings and section titles — the labels this file supplies and the labels you invent alike. Do not mix the two conventions in one build.'
+        : 'Capitalise every UI label as **sentence case**: "Export payload", "Save draft", "Row count". Only the first word and proper nouns take a capital. This applies to buttons, tabs, menu items, column headings and section titles — the labels this file supplies and the labels you invent alike. Where a label quoted in this document disagrees, this rule wins: recase it.',
+      dark && build.themeToggle
+        ? 'Build a **theme toggle** into the page. Set `data-theme="light"` or `data-theme="dark"` on the root element; every token reassigns itself and no variable name changes. Persist the choice, and default to the operating system setting via `prefers-color-scheme` on first load.'
+        : dark
+          ? 'Do not build a theme toggle. The tokens support both themes and the page follows `prefers-color-scheme` on its own, which is what this system asks for.'
+          : 'This system ships one theme. Do not build a theme toggle, and do not invent a dark palette for it.',
     ]),
     directives?.notes?.trim()
   )
@@ -147,7 +167,8 @@ function colorsBody(state, derived) {
          not exist — the same failure as the `var(--color-accent)` one above,
          from the same cause, which is a sentence describing tokens the
          package never emitted. */
-      dark && 'There is no separate dark token. `tokens.css` reassigns the same custom properties under `@media (prefers-color-scheme: dark)` and under `:root[data-theme="dark"]`, so `var(--c-surface)` is correct in both themes. Build a toggle by setting `data-theme` on the root element and change no variable name.',
+      dark && 'Two ways to reach a dark value, and the first is the one you want. `tokens.css` reassigns the same custom properties under `@media (prefers-color-scheme: dark)` and under `:root[data-theme="dark"]`, so `var(--c-surface)` is already correct in both themes. Build a theme toggle by setting `data-theme` on the root element, and change no variable name anywhere.',
+      dark && 'The second way is for the case the first cannot serve. Every role also exists as `--c-dark-<role>` — `var(--c-dark-surface)` — holding the dark value regardless of the active theme. Reach for it only when you need the dark value *while the light theme is in force*: a panel that stays dark inside a light page, or a figure showing both themes at once. A media query cannot be in two states, and this is what covers that.',
       state.color.emitRamps && 'Numbered scales (`accent-50` … `accent-950`) exist for cases the semantic roles do not cover. Prefer the semantic role wherever one applies — it carries intent, the raw step does not.',
       'Never introduce a colour that is not listed here.',
       /* Learned twice, the second time by a simulation that read a sentence
@@ -571,6 +592,17 @@ function componentsBody(state, derived) {
       'Page actions belong to the heading, not to the heading-and-description block. Align them to the heading itself. Which alignment depends on the size difference: share a baseline while the heading is under one and a half times the control\'s font size, and centre the two once it is over that. Never pin the actions to the top of the band with `align-items: flex-start` — that leaves them floating above a title whose letters sit well below them.',
       'First and last cells in a table sit flush with the container\'s padding edge. Zero their outer horizontal padding rather than letting the column gutter add to the card\'s own, or the first column starts further in than every heading above it.',
       'Never build an underline from a border. A 2px border makes the element 2px taller and pushes it past its own container\'s rule, breaking that line exactly where the element sits. A *transparent* border costs the same height, so the inactive siblings sit wrong too. Paint it with `box-shadow: inset 0 -2px 0` instead, which lands in the same place and joins no box.',
+      /* An agent had to work this out and wrote a note explaining its choice.
+         It reached the right answer. Both halves of the conflict came from
+         this document — a selected nav item is filled, and a tab wants an
+         underline — and nothing said which applied to which. */
+      'A selected **tab** is marked by that underline and nothing else: no background fill. A selected **nav item** is marked by a tinted fill and carries no underline. Both are in the component tables with their own entries, so neither needs improvising. The reason they differ: a tab sits on a strip with a rule beneath it, and a fill inside the strip competes with that rule; a nav item sits in a list, where a fill is what reads as "you are here".',
+      /* The same agent measured `border-subtle` at 1.38:1 against the page in
+         dark, judged that it did not read as a line, and substituted `border`
+         for every structural rule while leaving card and row rules alone.
+         That call was correct and unwritten, so it cost a paragraph of
+         reasoning to reach. It is a rule now. */
+      'Two weights of line, and which one to use is decided by what the line does. A line that defines the **structure** of the page — a title bar\'s lower edge, a divider between panes, the rule under a tab strip — takes `var(--c-border)`. A line that separates **content of the same kind** — a card\'s edge, a rule between table rows or list items — takes `var(--c-border-subtle)`. The subtle token is deliberately faint, so it reads as grouping rather than as division; using it for a structural edge makes the page look unassembled.',
       'Unequal gaps in one row read as a mistake even when nothing is misaligned. Every gap comes from the spacing scale, and a different gap means a deliberate grouping rather than a typed number.',
       'Proximity is grouping, and it outranks alignment. Items closer together read as one unit, so a label nearer the field below it than the field above labels the wrong one — and no amount of correct alignment repairs that.',
       'Only one thing may animate a property at a time. Two loops writing the same scroll position or the same transform do not average out — they trade pixels, and the one with the larger step wins by a few a frame. The symptom is a jitter that works about half the time, which is whether the first animation had already finished. Whoever starts second takes sole ownership and cancels the first.',
