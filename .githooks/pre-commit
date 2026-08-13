@@ -28,6 +28,16 @@ if ! node tools/scope-guard.mjs; then
   exit 1
 fi
 
+# ── 1c. Primitives. Blocking. ──
+# A preview screen may not re-implement a class inline. One title bar was
+# hand-rolled four times — height, padding, an asymmetric correction, a gap, a
+# heavier line — and every value had a class that already answered it.
+if ! node tools/primitives-guard.mjs; then
+  echo
+  echo "pre-commit: primitives guard failed. Commit refused."
+  exit 1
+fi
+
 # ── 2. The build number. Not blocking. ──
 # Advanced once per batch of commits, so it counts deploys rather than commits:
 # it bumps only when there is nothing unpushed, which means the first commit

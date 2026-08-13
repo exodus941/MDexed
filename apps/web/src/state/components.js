@@ -126,7 +126,26 @@ export const COMPONENT_LIBRARY = [
     name: 'badge', label: 'Badge', group: 'Feedback', on: true,
     base: { rounded: '{rounded.full}', padding: '2px {spacing.xs}', typography: 'caption' },
     variants: {
-      neutral: { backgroundColor: '{colors.bg-subtle}',      textColor: '{colors.text-muted}' },
+      /* Outlined, not filled, and the palette leaves no choice.
+       *
+       * Every surface in a neutral-derived system is a step on the neutral
+       * ramp, so a neutral FILL always collides with one of them. Measured
+       * across all seven presets: `bg-subtle` on `surface` is 1.00:1 in dark —
+       * the chip disappears completely — and `bg-subtle` on `bg` is 1.28 in
+       * light. Moving the fill to `border-subtle` makes it visible and drops
+       * the label to 3.50:1, under AA. There is no step that does both.
+       *
+       * The coloured variants below have no such problem: they carry a hue, so
+       * their tint separates from a grey surface on hue as well as lightness.
+       * Neutral has only lightness to work with, and the surfaces have taken
+       * it.
+       *
+       * So a neutral chip is drawn by its edge. `border-subtle` reads on every
+       * surface (1.38 to 2.26), and the label keeps the surface's own contrast
+       * — `text-muted` on `bg` is 5.84, on `surface` 7.40. It also says the
+       * right thing: neutral is the chip with no status, and an outline is
+       * what "no status" looks like beside a filled success or danger chip. */
+      neutral: { backgroundColor: 'transparent', borderColor: '{colors.border-subtle}', textColor: '{colors.text-muted}' },
       accent:  { backgroundColor: '{colors.accent-subtle}',  textColor: '{colors.accent}' },
       success: { backgroundColor: '{colors.success-subtle}', textColor: '{colors.success}' },
       warning: { backgroundColor: '{colors.warning-subtle}', textColor: '{colors.warning}' },
@@ -237,6 +256,28 @@ export const TAB_STYLES = {
 }
 
 export const DEFAULT_TAB_STYLE = 'underline'
+
+/* ── A strip under a major rule takes the pill ──
+ *
+ * An underlined strip carries a rule of its own. Put one directly beneath a
+ * page rule and the screen shows two lines within about 47px, in the same
+ * colour, at the same weight. Two panes make it three. The eye reads the
+ * repetition before it reads the tabs.
+ *
+ * Measured on the real palette: the underline layout drew rules at y=67 and
+ * y=114 twice over; the pill layout drew one, at y=67. A pill marks the active
+ * tab by fill, so the strip needs no line and nothing repeats.
+ *
+ * One function, called wherever a strip renders. Written inline at each call
+ * site it would disagree with itself the first time one site changed.
+ *
+ * @param {string} tabStyle    the document's chosen treatment
+ * @param {boolean} underRule  true when a major rule sits directly above
+ */
+export function stripStyle(tabStyle, underRule = false) {
+  const style = TAB_STYLES[tabStyle] ? tabStyle : DEFAULT_TAB_STYLE
+  return underRule ? 'pill' : style
+}
 
 /** Merge an override map over a property set. */
 const applyOverrides = (props, overrides, prefix) => {

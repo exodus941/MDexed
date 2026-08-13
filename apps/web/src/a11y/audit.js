@@ -879,6 +879,50 @@ function hairlineChecks(derived, mode) {
   return out
 }
 
+/* ── Two meanings must not be one colour ──
+ *
+ * `accent` and `success` shipped 11.4° of hue apart and at the same lightness
+ * step: measured 1.01:1 in light, 1.00:1 in dark, both a teal. A reader cannot
+ * tell "primary action" from "confirmation", and no existing check looked —
+ * `colourAlone` compares success against danger for red-green vision, which is
+ * a different question with a different answer.
+ *
+ * Contrast is the wrong instrument. Two roles at one lightness step always
+ * measure about 1:1 whatever their hue, so the ratio says nothing. Hue does.
+ *
+ * The palette cannot fix this by moving `success`: every green collides with
+ * `danger` under deuteranopia, which is why the teal was chosen. So the finding
+ * names the conflict and points at the accent, which is the one free choice. */
+const MEANING_PAIRS = [
+  ['accent', 'success'], ['accent', 'warning'], ['accent', 'danger'],
+  ['success', 'warning'],
+]
+const HUE_MIN = 25   // below this two hues read as one colour at a glance
+
+function meaningCollision(derived, mode) {
+  const roles = derived.roles?.[mode] ?? {}
+  const out = []
+  for (const [a, b] of MEANING_PAIRS) {
+    if (!roles[a] || !roles[b]) continue
+    const x = toOklchObj(roles[a]), y = toOklchObj(roles[b])
+    if (!x || !y) continue
+    /* A near-grey has no hue worth comparing. */
+    if ((x.c ?? 0) < 0.03 || (y.c ?? 0) < 0.03) continue
+    const raw = Math.abs((x.h ?? 0) - (y.h ?? 0))
+    const gap = Math.min(raw, 360 - raw)
+    if (gap >= HUE_MIN) continue
+    out.push({
+      req: 'colour', id: `meaning:${mode}:${a}:${b}`, level: WARN, criterion: '1.4.1 Use of colour (A)',
+      tab: 'roles', entry: b, mode,
+      title: `${a} and ${b} are the same colour in ${mode}`,
+      detail: `Their hues are ${gap.toFixed(1)}° apart — ${roles[a]} against ${roles[b]}. These carry different meanings and a reader tells them apart by colour alone, so one of them is saying nothing.`,
+      fix: `Move the ${a} seed to a different part of the wheel. ${b} is usually the constrained one: a green success has to stay clear of danger for red-green vision, which leaves the accent as the free choice.`,
+      measured: `${gap.toFixed(1)}° hue`,
+    })
+  }
+  return out
+}
+
 export function audit(state, derived) {
   const all = [
     ...focusChecks(state),
@@ -894,6 +938,7 @@ export function audit(state, derived) {
       ...disabledCheck(state, derived, mode),
       /* roleSweep is deliberately NOT here. See the note on the function. */
       ...hairlineChecks(derived, mode),
+      ...meaningCollision(derived, mode),
     ]),
   ]
   const rank = { fail: 0, warn: 1, note: 2 }

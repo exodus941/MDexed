@@ -141,12 +141,14 @@ function markup({ base, variant, size, state, cls, style, label, tabStyle }) {
       const pill = tabStyle === 'pill'
       return (
         <span style={{
-          display: 'inline-flex', gap: 4,
-          padding: pill ? '4px 6px' : '0 6px',
-          background: 'var(--c-surface)', borderRadius: 6,
-          /* The strip's rule is structure, so it takes `border`. A pill floats
-             clear of it and needs none. */
-          borderBottom: pill ? '1px solid transparent' : '1px solid var(--c-border)',
+          display: 'inline-flex', gap: 'var(--space-2xs)',
+          padding: pill ? 'var(--space-2xs) var(--space-2xs)' : '0 var(--space-2xs)',
+          background: 'var(--c-surface)', borderRadius: 'var(--radius-sm)',
+          /* `border-subtle` draws every line that divides, and the rule under a
+             tab strip is one. This said `border` — the retired rule, written
+             while `border-subtle` was broken. A pill floats clear and needs no
+             rule at all. */
+          borderBottom: pill ? '1px solid transparent' : '1px solid var(--c-border-subtle)',
         }}>
           <span className={cls} style={{
             display: 'inline-block', lineHeight: pill ? '24px' : '30px',
