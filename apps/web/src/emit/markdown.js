@@ -439,6 +439,22 @@ function layoutBody(state, derived) {
       'A breakpoint moves a **row**, never one object in it. Promote a button to the touch size and every object sharing that row goes with it — the mark beside it, the field, the badge. Miss one and it is correct at one width and a size short at the other, which is the same defect twice rather than a fix and a regression.',
       'This is why a size belongs in a custom property rather than in a fixed value on the element. A media query can reach a property. It cannot reach an inline style at all, and it cannot reach a constant that was compiled in. Where a value has to change at a breakpoint, name it once and let the breakpoint move the name.',
       'Check a responsive rule at **both** widths before calling it done. A rule verified only at the width you were looking at is half tested, and the untested half is where the object you forgot is sitting. The test is cheap: measure the row at each width and confirm every member changed by the same amount, or that none of them did.',
+    ]),
+
+    /* Situations, not components.
+       Every rule above describes a part. These describe whole screens, and
+       they are the ones with no token to look up — so they are the ones an
+       agent invents. Each came from building the screen and finding the rule
+       had nowhere to be read. */
+    '**Situations this system has rules for**',
+    bullets([
+      'A **record page** shows one thing: a long title, a row of label-over-value facts, tabs over the body, and a column of context beside it. It is the only page shape whose title wraps, so build it before trusting any header rule measured from a short title.',
+      'An **empty state** is three states, never one, and they are not interchangeable. **First run** carries the feature\'s own primary action — this is where the product teaches itself. **No results** offers a way BACK, such as clearing the filter, and never a way forward; the reader already has data and asked the wrong question. **A failure** names what failed and offers a retry. One "nothing here" card serving all three tells a new user the product is broken.',
+      'Each empty state holds a mark, a title, one line of explanation and exactly one way out. Cap the prose at the stated measure and centre the block with `align-items: center`, not `stretch` — a stretched child of a centred column is full width and only looks centred while its text is short.',
+      'A **comparison** is read across, so it keeps its columns. This is the one exception to the rule that a run of items which does not fit has too many: a plan table holds every column while they fit, and stacks when they do not. It never scrolls sideways, because a column scrolled out of view is a column nobody compared.',
+      'Put every row of a comparison on one grid, so a cell in row four sits under the cell in row one. Rows sized independently line up only by accident, and the reader is scanning down a column.',
+      'Mark a **recommended** option by its edge, never by a fill. An accent border and a chip say "recommended". A fill says "selected", and a filled column beside two unfilled ones tells the reader a choice has been made when nobody has made one.',
+      'Content beside **context** is not content beside **navigation**. They are the same two columns and a different relationship, so give them different classes. The navigation split usually carries named grid areas, because the folded menu has to sit between the header and the body — drop two plain columns into it and they land in the same area and paint over each other.',
     ])
   )
 }

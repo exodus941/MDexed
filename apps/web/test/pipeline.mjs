@@ -1364,6 +1364,18 @@ line('\n- prompt construction -')
     ['a placeholder and disabled text are different requirements', ['not the same colour, because they are not the same requirement']],
     ['a baseline is measured with font metrics, not a rectangle', ['measure a baseline with font metrics, never with a rectangle', 'fontboundingboxascent']],
     ['a row is checked by counting distinct baselines', ['count the distinct values']],
+    /* Situations, not components. Each of these came from building the screen
+       and finding the rule had nowhere to be read. A component gets a gallery
+       entry; a page shape gets nothing unless the file says it. */
+    ['a record page is the shape whose title wraps', ['record page** shows one thing']],
+    ['an empty state is three states', ['three states, never one']],
+    ['no results offers a way back, never forward', ['a way back', 'never a way forward']],
+    ['an empty state is centred, not stretched', ['not `stretch`']],
+    ['a comparison keeps its columns and stacks', ['read across, so it keeps its columns']],
+    ['a comparison never scrolls sideways', ['never scrolls sideways']],
+    ['a comparison puts every row on one grid', ['every row of a comparison on one grid']],
+    ['a recommendation is marked by its edge', ['never by a fill']],
+    ['content beside context is not navigation', ['beside **context** is not content beside **navigation**']],
   ]
   const missing = RULES.filter(([, terms]) => !terms.every(t => doc.includes(t))).map(([n]) => n)
   assert(missing.length === 0,
