@@ -178,7 +178,7 @@ export const Strut = ({ size, family }) => (
  * with only a word space between them. A text plus is not an icon, and a word
  * space is not an icon gap. */
 export const Plus = () => (
-  <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+  <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor"
     strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <path d="M12 5v14M5 12h14" />
   </svg>
@@ -390,7 +390,7 @@ export function ResetButton({ onClick, disabled, title = 'Reset to default' }) {
         opacity: disabled ? 0.4 : 1,
         transition: 'color var(--t) var(--ease), opacity var(--t) var(--ease)',
       }}>
-      <svg width={11} height={11} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round">
+      <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round">
         <path d="M3 2v6h6" /><path d="M3.5 12a8.5 8.5 0 1 0 2.5-6L3 8.5" />
       </svg>
     </button>

@@ -280,7 +280,7 @@ function GradientRow({ grad, css, options, resolved, onChange, onDelete }) {
           style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', padding: 4, display: 'flex' }}
           onMouseEnter={e => { e.currentTarget.style.color = 'var(--accent)' }}
           onMouseLeave={e => { e.currentTarget.style.color = 'var(--muted)' }}>
-          <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+          <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
             <polyline points="17 2 21 6 17 10" /><path d="M21 6H9a4 4 0 00-4 4" />
             <polyline points="7 22 3 18 7 14" /><path d="M3 18h12a4 4 0 004-4" />
           </svg>
@@ -336,7 +336,7 @@ function GradientRow({ grad, css, options, resolved, onChange, onDelete }) {
                 <div style={{ display: 'grid', gridTemplateColumns: '14px 26px minmax(0,1fr) 78px 20px', gap: 8, alignItems: 'center' }}>
                   {/* Drag handle — stop order is the gradient's order. */}
                   <span title="Drag to reorder" style={{ cursor: 'grab', color: 'var(--dim)', display: 'flex' }}>
-                    <svg width={11} height={11} viewBox="0 0 24 24" fill="currentColor">
+                    <svg width={12} height={12} viewBox="0 0 24 24" fill="currentColor">
                       <circle cx="9" cy="6" r="1.6" /><circle cx="15" cy="6" r="1.6" />
                       <circle cx="9" cy="12" r="1.6" /><circle cx="15" cy="12" r="1.6" />
                       <circle cx="9" cy="18" r="1.6" /><circle cx="15" cy="18" r="1.6" />
@@ -453,14 +453,20 @@ export default function ColorPanel() {
               difference` was the clever answer and the wrong one — against a
               mid-grey it inverts to another mid-grey and vanishes, which is
               exactly where you most need to see it. */}
-          <div style={{ display: 'flex', gap: 4, height: 60, borderRadius: 6, overflow: 'hidden', marginBottom: 8 }}>
+          <div style={{ display: 'flex', gap: 4, height: 64, borderRadius: 6, overflow: 'hidden', marginBottom: 8 }}>
             {color.seeds.map(s => {
               const ink = bestOn(s.hex)
               return (
                 <button key={s.id} onClick={() => toggleLock(s.id)} className="seed-lock"
                   title={`${s.name} — ${s.locked ? 'locked, click to release' : 'click to lock'}`}
                   style={{
-                    flex: 1, background: s.hex, border: 'none', cursor: 'pointer', position: 'relative',
+                    /* 96 is the intended swatch, and the basis states it. The
+                       PAINTED width is the strip's width less its gaps, over
+                       five: the palette is one rounded bar cut into five, so
+                       it stays flush to both edges rather than holding a fixed
+                       96 and leaving a hole at the end. At a 496px strip the
+                       two agree exactly; at 511 the swatch renders 99. */
+                    flex: '1 1 96px', background: s.hex, border: 'none', cursor: 'pointer', position: 'relative',
                     display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0,
                     outline: s.locked ? '2px solid var(--accent)' : 'none', outlineOffset: -2,
                   }}>

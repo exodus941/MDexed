@@ -207,7 +207,7 @@ export default function ColorPicker({ value, onChange, alpha: allowAlpha = false
                 emitHex(sRGBHex)
               } catch { /* the user dismissed the picker */ }
             }}>
-            <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+            <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
               <path d="M2 22l1-4 9-9 3 3-9 9-4 1z" /><path d="M15 6l3 3" /><path d="M17.5 3.5a2.12 2.12 0 013 3L18 9l-3-3 2.5-2.5z" />
             </svg>
           </button>
