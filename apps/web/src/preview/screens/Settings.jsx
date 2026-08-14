@@ -82,7 +82,11 @@ export default function Settings({ onInspect, casing }) {
                 <div style={{ fontWeight: 500 }} {...txt("body-md")}>{title}</div>
                 <p className="muted small" style={{ marginTop: 2 }} {...txt("body-sm", "text-muted")}>{desc}</p>
               </div>
-              <span {...ins(on ? 'switch-checked' : 'switch')}><Switch on={on} /></span>
+              {/* The row's title is the switch's name. There is no visible label
+                  beside the control itself, and a switch is not one of the four
+                  positional cases — so it states its own name rather than
+                  borrowing one from a structure that does not name it. */}
+              <span {...ins(on ? 'switch-checked' : 'switch')}><Switch on={on} label={title} /></span>
             </div>
           ))}
         </div>

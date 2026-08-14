@@ -31,7 +31,7 @@ import { labeller } from '../casing.js'
  * looks like its value makes the reader parse the grid twice. */
 function Fact({ ins, txt, L, label, value, tone }) {
   return (
-    <div className="stack-sm" style={{ flex: '1 1 max-content', minWidth: 'max-content' }}>
+    <div className="fact" style={{ flex: '1 1 max-content', minWidth: 'max-content' }}>
       <div className="caption muted" {...txt('overline', 'text-muted')}
         style={{ textTransform: 'uppercase', letterSpacing: 'var(--font-overline-tracking)' }}>{L(label)}</div>
       <div {...txt('body-md', tone ?? 'text')}
@@ -168,7 +168,12 @@ export default function Record({ onInspect, tabStyle, casing }) {
         </div>
 
         <div className="stack">
-          <div className="card stack-sm" {...ins('card')}>
+          {/* `fact`, not `stack-sm`. This is a label over its value, the same
+              object as the four in the row above — and it was sitting on the
+              stack's 12px while they sit on 4, so one pattern read two ways on
+              one surface. The card supplies the padding; the fact supplies the
+              gap inside the pair. */}
+          <div className="card fact" {...ins('card')}>
             <div className="caption muted" {...txt('overline', 'text-muted')}
               style={{ textTransform: 'uppercase', letterSpacing: 'var(--font-overline-tracking)' }}>{L('Owner')}</div>
             <div className="row">
@@ -177,9 +182,14 @@ export default function Record({ onInspect, tabStyle, casing }) {
             </div>
           </div>
           <div className="well stack-sm">
-            <div className="caption muted" {...txt('overline', 'text-muted')}
-              style={{ textTransform: 'uppercase', letterSpacing: 'var(--font-overline-tracking)' }}>{L('Next step')}</div>
-            <p className="small" {...txt('body-sm')}>Raise a credit note for INV-2291.</p>
+            {/* The same pair, wrapped rather than the well itself, because a
+                third child follows it. The label belongs to the sentence at 4px;
+                the button belongs to neither and keeps the well's own step. */}
+            <div className="fact">
+              <div className="caption muted" {...txt('overline', 'text-muted')}
+                style={{ textTransform: 'uppercase', letterSpacing: 'var(--font-overline-tracking)' }}>{L('Next step')}</div>
+              <p className="small" {...txt('body-sm')}>Raise a credit note for INV-2291.</p>
+            </div>
             <button className="btn btn-secondary btn-sm" {...ins('button-secondary')}>{L('Open invoice')}</button>
           </div>
         </div>

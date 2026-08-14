@@ -71,32 +71,82 @@ export const IconChart = <><line x1="18" y1="20" x2="18" y2="10" /><line x1="12"
    separates the two — a reader who cannot tell the hues apart still sees two
    shapes. The state was missing from this component and from the schema, and
    it stayed missing because no sample had a selectable list. */
-export const Check = ({ on, mixed }) => {
+/* A REAL control, not a picture of one.
+ *
+ * Every instance of this was a bare `<span>`: no `input`, no `role`, no
+ * `aria-checked`, no `tabindex`, on any of eleven surfaces. Five sat inside a
+ * `<label>` that held no control and carried no `for`, so that label named
+ * nothing and clicking it did nothing.
+ *
+ * That is what made the target measurement meaningless rather than merely
+ * wrong. The document publishes a 44px minimum and the boxes measured 16, so
+ * the obvious repair is padding — and padding a span to 44px passes the check
+ * while demonstrating nothing.
+ *
+ * The input is TRANSPARENT and stretched over its host, so the host decides
+ * how big the target is. Three hosts do: a `<label>` around visible text, a
+ * `td.sel-col` in a table, and the batch bar's own label. Each declares
+ * `position: relative` and its own minimum. The drawn box keeps every
+ * correction it already had, because a fragment leaves it a direct child of
+ * whatever contained it — so `.row > .checkbox` still matches.
+ *
+ * `checked` with a no-op `onChange` rather than `defaultChecked`: this is a
+ * SPECIMEN of a stated state, so the state is pinned. React reconciles the box
+ * back to the prop, and the control stays focusable and announced.
+ *
+ * `indeterminate` is a DOM property with no attribute, so it can only be set
+ * through the node. Third state, same as the mark. */
+export const Check = ({ on, mixed, label }) => {
   const filled = on || mixed
   return (
-    <span className="checkbox" style={{
-      width: 'var(--cmp-checkbox-size, 16px)', height: 'var(--cmp-checkbox-size, 16px)',
-      borderRadius: 'var(--cmp-checkbox-rounded, var(--radius-sm, 4px))',
-      border: `1px solid ${filled ? 'var(--cmp-checkbox-checked-border-color, var(--c-accent, #333))' : 'var(--cmp-checkbox-border-color, var(--c-border, #ccc))'}`,
-      background: filled ? 'var(--cmp-checkbox-checked-background-color, var(--c-accent, #333))' : 'var(--cmp-checkbox-background-color, var(--c-surface, #fff))',
-      color: 'var(--cmp-checkbox-checked-text-color, var(--c-accent-fg, #fff))',
-      display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-    }}>
-      {on && <svg aria-hidden="true" focusable="false" width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3.4} strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>}
-      {mixed && !on && <svg aria-hidden="true" focusable="false" width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3.4} strokeLinecap="round"><line x1="5" y1="12" x2="19" y2="12" /></svg>}
-    </span>
+    <>
+      <input
+        type="checkbox" className="checkbox-input"
+        checked={!!on} onChange={() => {}}
+        ref={el => { if (el) el.indeterminate = !!mixed && !on }}
+        aria-label={label}
+      />
+      <span className="checkbox" aria-hidden="true" style={{
+        width: 'var(--cmp-checkbox-size, 16px)', height: 'var(--cmp-checkbox-size, 16px)',
+        borderRadius: 'var(--cmp-checkbox-rounded, var(--radius-sm, 4px))',
+        border: `1px solid ${filled ? 'var(--cmp-checkbox-checked-border-color, var(--c-accent, #333))' : 'var(--cmp-checkbox-border-color, var(--c-border, #ccc))'}`,
+        background: filled ? 'var(--cmp-checkbox-checked-background-color, var(--c-accent, #333))' : 'var(--cmp-checkbox-background-color, var(--c-surface, #fff))',
+        color: 'var(--cmp-checkbox-checked-text-color, var(--c-accent-fg, #fff))',
+        display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+      }}>
+        {on && <svg aria-hidden="true" focusable="false" width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3.4} strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>}
+        {mixed && !on && <svg aria-hidden="true" focusable="false" width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3.4} strokeLinecap="round"><line x1="5" y1="12" x2="19" y2="12" /></svg>}
+      </span>
+    </>
   )
 }
 
-export const Switch = ({ on }) => (
-  <span className="switch" style={{
-    width: 'var(--cmp-switch-width, 36px)', height: 'var(--cmp-switch-height, 20px)',
-    borderRadius: 'var(--cmp-switch-rounded, 9999px)',
-    background: on ? 'var(--cmp-switch-checked-background-color, var(--c-accent, #333))' : 'var(--cmp-switch-background-color, var(--c-border, #ccc))',
-    display: 'inline-flex', alignItems: 'center', padding: 2, flexShrink: 0,
-    justifyContent: on ? 'flex-end' : 'flex-start',
-    transition: 'background var(--duration-fast, 120ms) var(--ease-standard, ease)',
-  }}>
-    <span style={{ width: 16, height: 16, borderRadius: '50%', background: 'var(--c-surface, #fff)' }} />
-  </span>
+/* A REAL control, for the same reason `Check` is one.
+ *
+ * Seven of these were bare spans across three surfaces — no input, no role, no
+ * name — and they survived the checkbox fix because I repaired one component and
+ * left its sibling. That is the class-versus-instance failure exactly, and the
+ * operability check found all seven the first time it ran.
+ *
+ * `role="switch"` on a checkbox input is the standard pairing: the state is
+ * checked or not, and the role tells a reader it is a switch rather than a tick
+ * box. The track and knob stay decoration. */
+export const Switch = ({ on, label }) => (
+  <>
+    <input
+      type="checkbox" role="switch" className="switch-input"
+      checked={!!on} onChange={() => {}}
+      aria-label={label}
+    />
+    <span className="switch" aria-hidden="true" style={{
+      width: 'var(--cmp-switch-width, 36px)', height: 'var(--cmp-switch-height, 20px)',
+      borderRadius: 'var(--cmp-switch-rounded, 9999px)',
+      background: on ? 'var(--cmp-switch-checked-background-color, var(--c-accent, #333))' : 'var(--cmp-switch-background-color, var(--c-border, #ccc))',
+      display: 'inline-flex', alignItems: 'center', padding: 2, flexShrink: 0,
+      justifyContent: on ? 'flex-end' : 'flex-start',
+      transition: 'background var(--duration-fast, 120ms) var(--ease-standard, ease)',
+    }}>
+      <span style={{ width: 16, height: 16, borderRadius: '50%', background: 'var(--c-surface, #fff)' }} />
+    </span>
+  </>
 )

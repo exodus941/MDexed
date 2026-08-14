@@ -518,7 +518,15 @@ export default function Canvas({ onInspect, surface, setSurface, onOpenContrast,
           {/* The frame is what the container queries measure — see
               `responsiveCss`. It carries no padding of its own so the width
               the control asks for is the width the breakpoints see. */}
-          <div className="dmd-frame">
+          {/* `data-surface` is for the measuring tools, and it is not
+              decoration. A cross-fade keeps both trees mounted, so a sweep that
+              picks the first `.dmd` measures the surface on its way OUT and
+              labels the finding with the one coming in. Every finding then
+              lands one place from where it belongs, which is worse than a
+              missed finding: it sends you to a clean surface to look for a real
+              fault. With the name on the frame the tool can assert it measured
+              what it claims, instead of trusting a pause. */}
+          <div className="dmd-frame" data-surface={surface}>
             {/* The page itself is a token too. Clicking empty space lands on
                 the `bg` role — which is also how you discover that the
                 background is drawn from the neutral scale, since that is not

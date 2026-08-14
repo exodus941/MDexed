@@ -298,9 +298,18 @@
 
    The measured result of losing: two tab strips 8px apart, with 4px between
    the tabs inside each of them. At 2:1 the eye reads one strip of seven tabs
-   rather than two strips of four and three. 24 against 4 is 6:1, and nobody
-   has to think about it. */
-.dmd .row.shell-split { align-items: stretch; gap: var(--space-lg, 24px); }
+   rather than two strips of four and three.
+
+   THEN 24 FAILED A SECOND COMPARISON, and that is the interesting part. It was
+   chosen against the tab strips' 4px, where it reads 6:1. The panes themselves
+   are `.stack` at 16, and 24 against 16 is 1.5:1 — so one value was serving two
+   relationships with different bars, and clearing one told you nothing about the
+   other. A role with two requirements cannot satisfy both.
+
+   The split is the top-level division on the surface, so it takes the largest
+   step rather than the panes taking a smaller rhythm: `2xl` against `md` is
+   3.0:1, and against the strips' 4px it is 12:1. Both hold at one value. */
+.dmd .row.shell-split { align-items: stretch; gap: var(--space-2xl, 48px); }
 
 /* A row that is allowed to wrap.
  *
@@ -675,6 +684,123 @@
 }
 /* These sit beside single-line text, so the whole-row centre is right for them. */
 .dmd .row > .icon, .dmd .row > .bar, .dmd .row > .swatch { align-self: center; }
+
+/* ── THE BOX IS DRAWN AT 16 AND HIT AT ITS HOST ──
+ *
+ * `DESIGN.md` publishes a 44px minimum target. Every checkbox here measured
+ * 16×16, and eleven of the sixteen had no label at all — so there was nothing
+ * to pad and nothing to press. The repair is not a bigger box. Inflating the
+ * mark to satisfy a size check makes the control wrong to fix a number.
+ *
+ * So the input is transparent and stretches over whatever contains it, and the
+ * CONTAINER states the target. Three containers do it, and each states its own
+ * minimum below: a label around visible text, a selection cell, the batch bar.
+ *
+ * The drawn box is untouched by all of it. That is deliberate — it keeps the
+ * first-line correction above, which took three wrong answers to get right. */
+/* Whatever holds a transparent control has to be positioned, or `inset: 0`
+   resolves against a distant ancestor and the hit area lands somewhere else
+   entirely. Stated by `:has`, so a new host needs no second edit. */
+.dmd :has(> .checkbox-input), .dmd :has(> .switch-input) { position: relative; }
+.dmd .checkbox-input {
+  /* `inset` alone, with NO width or height. A stated `height: 100%` wins over
+     `top`/`bottom` and would pin the input to the label's own box, so every
+     overhang below would resolve to nothing — silently, because the box still
+     paints and the target still measures 28. */
+  position: absolute; inset: 0;
+  margin: 0; padding: 0; opacity: 0; cursor: pointer;
+  /* `appearance: none` as well as `opacity`, so a forced-colours mode that
+     ignores opacity does not paint a native box over the drawn one. */
+  appearance: none; -webkit-appearance: none;
+}
+/* A SWITCH IS DRAWN AT 24 AND HIT AT THE PUBLISHED MINIMUM.
+ *
+ * The 24px track is deliberate and the schema says why: it is exactly 2.5.8's
+ * minimum. But the document also publishes a 44px target, so one value was
+ * answering two requirements — the same split the Shell's gutter had. Measured
+ * before: 27px on Form and Settings, and 23.1px in the Gallery, which missed
+ * even the 24 the track was sized for.
+ *
+ * So the target is centred on the track and floored at the minimum in both axes.
+ * `max()` against `100%` means a host larger than the floor keeps its own size,
+ * and a smaller one grows around its centre. Raising the TRACK to 44 was the
+ * other option and it would tower over the 28px buttons beside it.
+ *
+ * Its own complete rule rather than three overrides after the shared one. Equal
+ * specificity decided by line order is not a fix — the next edit anywhere above
+ * reverses it. */
+.dmd .switch-input {
+  position: absolute;
+  top: 50%; left: 50%; right: auto; bottom: auto;
+  width: max(100%, var(--target-min, 44px));
+  height: max(100%, var(--target-min, 44px));
+  transform: translate(-50%, -50%);
+  margin: 0; padding: 0; opacity: 0; cursor: pointer;
+  appearance: none; -webkit-appearance: none;
+}
+/* The ring goes on the DRAWN box, because the input paints nothing. Without
+   this, a keyboard user tabbing through a table sees no focus at all. */
+.dmd .checkbox-input:focus-visible + .checkbox,
+.dmd .switch-input:focus-visible + .switch {
+  outline: var(--focus-width, 2px) var(--focus-style, solid) var(--c-ring, #4f6ef7);
+  outline-offset: var(--focus-offset, 2px);
+}
+
+/* A label with visible text: the label IS the target.
+ *
+ * A 44px FLOOR was the first answer and it was wrong on sight. A 22.3px line
+ * inside a 44px box carries 21.7px of padding, and two such rows 12px apart put
+ * a 33.7px void between two sentences that belong to the same choice. The
+ * target was legal and the group had stopped reading as a group.
+ *
+ * So the box takes a floor near its own content — 28px, which is a step the
+ * scale already publishes as the small button height — and the rest of the
+ * target comes from an OVERHANG below, which costs no layout at all.
+ *
+ * `min-height` and not `height`: a label that wraps to three lines is taller
+ * than any floor and must stay so. */
+.dmd label:has(> .checkbox-input) {
+  position: relative;
+  min-height: var(--cmp-button-sm-height, 28px);
+}
+/* THE REST OF THE TARGET COSTS NO LAYOUT.
+ *
+ * The input reaches out of the label on both sides, so it grows without moving
+ * anything. By default it reaches far enough to make the published minimum:
+ * half the difference between that minimum and the box's own floor. A lone
+ * checkbox has nothing above or below to collide with, so this is simply free.
+ *
+ * The first version scoped the overhang to two named stack classes, and a label
+ * standing in a bare `div` matched neither — so one instance sat at 28 while
+ * the other fifteen cleared 40, and the sweep had no opinion because nothing
+ * was misaligned. A rule narrower than its problem misses instances as quietly
+ * as a wide one fires on the innocent. Default first, then bound. */
+.dmd label:has(> .checkbox-input) > .checkbox-input {
+  top: calc((var(--target-min, 44px) - var(--cmp-button-sm-height, 28px)) / -2);
+  bottom: calc((var(--target-min, 44px) - var(--cmp-button-sm-height, 28px)) / -2);
+}
+/* A RUN OF CHECKBOX ROWS TAKES THE WIDER GAP, SO EVERY TARGET MAKES 44.
+ *
+ * The arithmetic is forced and worth stating. A 28px box needs 8px of overhang
+ * each side to reach 44. Two neighbours may overhang until they meet and no
+ * further, because an overlapping hit area is ambiguous about which row it
+ * selects — worse than a target that is merely small. So the gap must be at
+ * least twice the overhang: 16, not 12.
+ *
+ * At `.stack-sm`'s own 12px the bound was 6px and four targets came out at 40.
+ * They chose the gap over the compromise. It costs 4px per checkbox row and
+ * only inside a checkbox group — `:has` keeps every other `.stack-sm` at 12.
+ *
+ * Both rules read `--space-md`, so the gap and the overhang cannot drift apart
+ * and quietly start overlapping. */
+.dmd .stack-sm:has(> label > .checkbox-input) { row-gap: var(--space-md, 16px); }
+.dmd .stack-sm > label:has(> .checkbox-input) > .checkbox-input {
+  top: calc(var(--space-md, 16px) / -2);
+  bottom: calc(var(--space-md, 16px) / -2);
+}
+/* No `align-items` here. The rule above already matches, because the drawn box
+   is still a direct child — a fragment adds the input beside it rather than
+   wrapping it. One writer per property. */
 /* These published their gap as `--stack-gap` for a child to subtract. The
    property is gone: it inherited, so a descendant could not tell whether the
    value came from its own parent, and two separate defects came out of that.
@@ -758,6 +884,40 @@
    so the two groups read as one block. Proximity is decided by the ratio, never
    by the absolute value. */
 .dmd .stack-lg { display: flex; flex-direction: column; gap: var(--space-lg, 24px); }
+
+/* An action row that pairs up when it has to break.
+ *
+ * THE PAIR IS THE CONTAINER, and it has to be. Two per line and "a long label
+ * takes what it needs while its partner shrinks" cannot both come out of one
+ * flex row: with a zero basis every button fits one line and grows, so the count
+ * per line is emergent — five buttons came out one, three, one — and with a 50%
+ * basis a `min-content` floor wraps instead of shrinking the partner. Two
+ * children in their own container gives both, because growth then splits between
+ * exactly two and the count is stated rather than left to the labels.
+ *
+ * Wide, the pairs DISSOLVE: `display: contents` promotes every button into this
+ * one row, so a bar that fits sits on a single line at natural widths. Below the
+ * narrow branch `responsive.rules.css` gives each pair its own line back. The
+ * pairing is a responsive decision, so it lives beside every other collapse
+ * rule rather than in two places. */
+/* `flex: 1` so an auto margin INSIDE has slack to consume. Without it this box
+   shrink-wraps its buttons, there is no free space on the line, and an auto
+   margin resolves to zero — measured 0px while the bar still had 618.6px of
+   room. An auto margin does not create space; it takes what the line has. */
+.dmd .action-pairs { display: flex; flex-wrap: wrap; gap: var(--space-xs, 8px); flex: 1 1 auto; min-width: 0; }
+.dmd .action-pairs > .pair { display: contents; }
+
+/* A FACT: a label over its value, and the pair is ONE object.
+ *
+ * These were built from `.stack-sm`, so the label sat 12px above the value it
+ * names while the facts themselves sat 24px apart — 2.0:1, and four pairs read
+ * as eight loose lines. Proximity is a ratio, and at two to one the reader has
+ * to work out which value each label belongs to.
+ *
+ * `2xs` inside against `lg` between is 6:1. Its own class rather than a tighter
+ * shared stack, because a fact is a real thing with a name and `.stack-sm` is
+ * used by forty-six other places that want 12. */
+.dmd .fact { display: flex; flex-direction: column; gap: var(--space-2xs, 4px); }
 
 /* ── A sidebar that folds ──
    Wide: the summary is a plain section label and the list is always open, so
@@ -1112,10 +1272,43 @@
   border-color: color-mix(in srgb, var(--c-accent-fg) 55%, transparent);
 }
 .dmd .batch-bar .batch-end { margin-left: auto; }
+/* The select-all is a control in a control row, so the row is one height.
+ *
+ * Its box had no target at all: 16×16 inside a bar whose other five children
+ * were 28px buttons. Growing the whole row to 44 was tried and it was worse
+ * than the fault — the five buttons widened with the step, the bar overflowed
+ * its pane and wrapped, and it stood 108px tall at 824 and 156px at 393. Six
+ * actions on four lines is not a bar.
+ *
+ * So the row keeps its 28px height and the target comes from the bar's OWN
+ * PADDING. The input reaches 8px past the group on each side, which is exactly
+ * the bar's vertical padding, so the target fills the bar's height and nothing
+ * moves. Visible heights stay uniform; the hit area is simply larger than the
+ * ink, which is the whole point of a target. */
+.dmd .batch-bar label:has(> .checkbox-input) {
+  position: relative;
+  /* The group holds the box and its count, and they are ONE item in this row.
+     Centred, so the box sits on the middle of the single line beside it. */
+  align-items: center;
+}
+.dmd .batch-bar label:has(> .checkbox-input) > .checkbox-input {
+  top: calc(var(--space-xs, 8px) * -1);
+  bottom: calc(var(--space-xs, 8px) * -1);
+}
 
 /* The select column is a fixed gutter, so the first data column starts on the
    same left edge in every row whatever the box is doing. */
-.dmd .table .sel-col { width: 1%; padding-right: var(--space-xs, 8px); }
+/* It is also the TARGET. A row-selection box is the case with no visible label
+   — the column heading and the row name it between them — so there is no label
+   to carry the hit area and the cell carries it instead. Measured before: the
+   cell stood 40×57 around a 16×16 box that was the whole target.
+   `min-width` on the cell, because `width: 1%` means "your content and no
+   more" and a 16px box asks for less than the published minimum. */
+.dmd .table .sel-col {
+  width: 1%; min-width: var(--target-min, 44px);
+  padding-right: var(--space-xs, 8px);
+  position: relative;
+}
 
 /* THE SLACK NEEDS A STATED HOME.
  *

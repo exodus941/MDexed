@@ -77,6 +77,10 @@ return (async () => {
 
   const SURFACES = ['Dashboard', 'Record', 'Index', 'Shell', 'Landing', 'Pricing', 'Form', 'Settings', 'Empty', 'Overlays', 'Gallery']
   const rows = []
+  /* The surface id measured on the previous pass. A frame still drawing it is a
+     frame that has not finished cross-fading, and measuring it labels every
+     finding one surface out of place. */
+  let lastDrawn = null
 
   for (const name of SURFACES) {
     const tab = chrome().filter(e => e.textContent.trim() === name)[0]
@@ -84,12 +88,62 @@ return (async () => {
     tab.click()
     await pause(60)                     // let React commit before asking what is animating
 
-    const frame = [...document.querySelectorAll('.dmd')].filter(d => d.closest('.dmd-frame'))[0]
+    /* ── MEASURE THE INCOMING SURFACE, NEVER THE OUTGOING ONE ──
+     *
+     * A tab switch cross-dissolves, and a dissolve needs BOTH trees on screen
+     * at once. The outgoing layer is pushed into the DOM first, so
+     * `querySelectorAll('.dmd')[0]` is the surface that is leaving. The pause
+     * above is 60ms and the fade is `--t`, 125ms by default, so this run landed
+     * inside the fade every single time.
+     *
+     * The consequence was not a missed finding, which would at least look like
+     * a gap. It was every finding attributed to the WRONG SURFACE, one place
+     * out. A `shell-split` fault was reported against Landing; sweeping Landing
+     * by hand came back clean, correctly, because the fault is Shell's. Two
+     * investigations went into that, and it produced a confident report that
+     * the findings did not reproduce.
+     *
+     * The outgoing layer says what it is — `.xfade-out`, `aria-hidden`,
+     * `pointer-events: none` — so this reads the DECLARATION rather than
+     * guessing from geometry or waiting longer and hoping. */
+    const candidates = [...document.querySelectorAll('.dmd')]
+      .filter(d => d.closest('.dmd-frame'))
+      .filter(d => !d.closest('.xfade-out'))
+      .filter(d => !d.closest('[aria-hidden="true"]'))
+    /* A selector that matches more than one element is not a root. If two
+       survive the filter, say so rather than taking the first and reporting a
+       surface nobody was looking at. */
+    if (candidates.length > 1) {
+      rows.push({ surface: name, note: `AMBIGUOUS — ${candidates.length} live frames, nothing measured` })
+      continue
+    }
+    const frame = candidates[0]
     const box = frame?.getBoundingClientRect()
     if (!frame || !box.height || !box.width) {
       rows.push({ surface: name, note: 'NOT VISIBLE — 0x0, nothing measured' })
       continue
     }
+    /* ASSERT the attribution rather than trusting it, and assert the thing that
+       actually goes wrong.
+     *
+     * The first version compared the frame's id against this list's label,
+     * folding case, on the assumption that the two differ by nothing else. They
+     * do: the tab reads "Overlays" and the surface id is `dialog`. So a correct
+     * surface was reported `WRONG FRAME` and skipped — and a skipped surface
+     * reads exactly like a clean one, which is the failure this whole file was
+     * written to stop.
+     *
+     * The staleness is what matters, and staleness has a precise shape: the
+     * frame is still drawing the surface we measured LAST time. That needs no
+     * mapping between labels and ids, and it names the real fault. The drawn id
+     * is reported either way, so the attribution is visible rather than
+     * trusted. */
+    const drawn = frame.closest('.dmd-frame')?.dataset.surface
+    if (drawn && drawn === lastDrawn) {
+      rows.push({ surface: name, note: `STALE FRAME — still drawing "${drawn}", nothing measured` })
+      continue
+    }
+    if (drawn) lastDrawn = drawn
 
     /* Measure only once it has stopped moving. Report a surface that never
        settles rather than measuring it anyway — an unsettled reading looks
