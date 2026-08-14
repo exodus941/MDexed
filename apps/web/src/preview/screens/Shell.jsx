@@ -171,7 +171,7 @@ export default function Shell({ onInspect, tabStyle, casing }) {
           strips read as one long strip. Proximity is a ratio and it wants more
           than three to one. `lg` puts 24px between the columns against 4px
           inside them — six to one, and the columns separate. */}
-      <div className="shell-split row" style={{ alignItems: 'stretch', gap: 'var(--space-lg)' }}>
+      <div className="shell-split row">
         {/* 40, not 46. The right column carries three tiles and the left
             carries one card, so an even-handed split starves the side with
             more in it: the tiles came out 4.4px short of fitting and wrapped
@@ -199,7 +199,7 @@ export default function Shell({ onInspect, tabStyle, casing }) {
                 {/* No colour fallback. A missing role must paint nothing and be
                     noticed, rather than a grey nobody chose. */}
                 <span className="swatch" {...ins(n)} style={{
-                  width: 44, height: 14, alignSelf: 'center',
+                  width: 44, height: 16, alignSelf: 'center',
                   background: `var(--c-${n})`,
                   borderRadius: 'var(--radius-sm)',
                   border: '1px solid var(--c-border-subtle)',

@@ -510,7 +510,7 @@ export default function TabStrip({ tabs, active, onSelect, right, title, actions
     <>
       <nav style={{
         display: 'flex', alignItems: 'stretch', height: BAR_H, flexShrink: 0,
-        borderBottom: actions ? 'none' : '1px solid var(--bdr)', background: 'var(--surf)', paddingRight: 10,
+        borderBottom: actions ? 'none' : '1px solid var(--bdr)', background: 'var(--surf)', paddingRight: 12,
         position: 'relative',
       }}>
         {/* Names the pane. The editor and the preview are two halves of one
@@ -525,7 +525,7 @@ export default function TabStrip({ tabs, active, onSelect, right, title, actions
                not be paid for by its neighbour — the neighbour can leave.
                12 here plus the tab's own 12 makes 24 between the two words,
                which is what the pinned layout gave (14 + 10). */
-            alignSelf: 'center', paddingLeft: 14, paddingRight: 12, flexShrink: 0,
+            alignSelf: 'center', paddingLeft: 16, paddingRight: 12, flexShrink: 0,
             fontSize: 10, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase',
             color: 'var(--text-dim)', whiteSpace: 'nowrap', userSelect: 'none', cursor: 'default',
           }}>
@@ -540,10 +540,10 @@ export default function TabStrip({ tabs, active, onSelect, right, title, actions
             the underline spans the full hit area rather than just the label.
             Rendered only while pinned, which is only while the tabs overflow. */}
         {pinned && (
-        <div style={{ display: 'flex', alignItems: 'stretch', flexShrink: 0, paddingLeft: 14 }}>
+        <div style={{ display: 'flex', alignItems: 'stretch', flexShrink: 0, paddingLeft: 16 }}>
           <button ref={triggerRef} onClick={() => setMenuOpen(o => !o)} title="Switch tab"
             style={{
-              display: 'flex', alignItems: 'center', gap: 8, padding: '0 14px 0 10px',
+              display: 'flex', alignItems: 'center', gap: 8, padding: '0 16px 0 12px',
               background: 'none', border: 'none', cursor: 'pointer',
               fontFamily: 'var(--sans)', fontSize: TAB_FS, fontWeight: 500, whiteSpace: 'nowrap',
               color: menuOpen ? 'var(--accent)' : 'var(--text)',
@@ -561,22 +561,22 @@ export default function TabStrip({ tabs, active, onSelect, right, title, actions
               <polyline points="6 9 12 15 18 9" />
             </svg>
           </button>
-          <span style={{ alignSelf: 'center', width: 1, height: 18, background: 'var(--bdr)', margin: '0 2px' }} />
+          <span style={{ alignSelf: 'center', width: 1, height: 20, background: 'var(--bdr)', margin: '0 2px' }} />
         </div>
         )}
 
         {pinned && menuOpen && (
           <div ref={menuRef} className="anim-pop" style={{
-            position: 'absolute', top: BAR_H - 2, left: 10, zIndex: 71, minWidth: 176,
-            background: 'var(--surf2)', border: '1px solid var(--bdr2)', borderRadius: 9,
-            boxShadow: '0 12px 32px rgba(0,0,0,.55)', padding: 5,
+            position: 'absolute', top: BAR_H - 2, left: 12, zIndex: 71, minWidth: 176,
+            background: 'var(--surf2)', border: '1px solid var(--bdr2)', borderRadius: 8,
+            boxShadow: '0 12px 32px rgba(0,0,0,.55)', padding: 6,
           }}>
               {tabs.map(t => (
                 <button key={t.id} onClick={() => { onSelect(t.id); setMenuOpen(false) }}
                   style={{
                     display: 'block', width: '100%', textAlign: 'left', background: t.id === active ? 'var(--surf3)' : 'none',
-                    border: 'none', cursor: 'pointer', fontFamily: 'var(--sans)', fontSize: 12.5,
-                    color: t.id === active ? 'var(--accent)' : 'var(--text)', padding: '6px 9px', borderRadius: 6,
+                    border: 'none', cursor: 'pointer', fontFamily: 'var(--sans)', fontSize: 12,
+                    color: t.id === active ? 'var(--accent)' : 'var(--text)', padding: '6px 8px', borderRadius: 6,
                   }}
                   onMouseEnter={e => { if (t.id !== active) e.currentTarget.style.background = 'var(--surf3)' }}
                   onMouseLeave={e => { if (t.id !== active) e.currentTarget.style.background = 'none' }}>
@@ -623,7 +623,7 @@ export default function TabStrip({ tabs, active, onSelect, right, title, actions
         </div>
         {phase.right && <Chevron dir={1} state={phase.right} onEnter={() => startScroll(1)} onLeave={stopScroll} onClick={() => nudge(1)} />}
         {right && (
-          <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0, paddingLeft: 10, borderLeft: '1px solid var(--bdr)', marginLeft: 6 }}>
+          <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0, paddingLeft: 12, borderLeft: '1px solid var(--bdr)', marginLeft: 6 }}>
             {right}
           </div>
         )}
@@ -660,7 +660,7 @@ export default function TabStrip({ tabs, active, onSelect, right, title, actions
       {actions && (
         <div className="action-row" style={{
           display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, flexWrap: 'wrap',
-          padding: '5px 12px', minHeight: 38, background: 'var(--surf)',
+          padding: '6px 12px', minHeight: 40, background: 'var(--surf)',
           borderBottom: '1px solid var(--bdr)', borderTop: '1px solid var(--bdr)',
         }}>
           {actions}

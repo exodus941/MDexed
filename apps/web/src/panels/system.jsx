@@ -29,7 +29,7 @@ function RefSwatch({ value, hex, groups, onPick, label }) {
     <>
       <button ref={ref} className="swatch" onClick={() => setOpen(true)}
         title={`${label} — ${value}`}
-        style={{ width: 22, height: 22, background: hex, cursor: 'pointer', padding: 0, flexShrink: 0 }} />
+        style={{ width: 24, height: 24, background: hex, cursor: 'pointer', padding: 0, flexShrink: 0 }} />
       {open && (
         <TokenColorPicker value={value} resolved={hex} groups={groups} anchor={ref.current}
           onPick={next => { onPick(next); setOpen(false) }} onClose={() => setOpen(false)}
@@ -47,24 +47,24 @@ export const BLEND_MODES = [
 /* Shared: a generated scale with per-step overrides. */
 function ScaleRows({ items, overrides, onOverride, onReset, unit = 'px' }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
       {items.map(item => {
         const set = overrides?.[item.name] != null
         return (
           <div key={item.name} style={{ display: 'grid', gridTemplateColumns: '58px 1fr 92px 22px', gap: 8, alignItems: 'center' }}>
-            <code style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--text-dim)' }}>{item.name}</code>
-            <div style={{ height: 10, background: 'var(--surf3)', borderRadius: 3, overflow: 'hidden' }}>
+            <code style={{ fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--text-dim)' }}>{item.name}</code>
+            <div style={{ height: 12, background: 'var(--surf3)', borderRadius: 4, overflow: 'hidden' }}>
               <div style={{
                 height: '100%',
                 width: item.pill ? '100%' : `${Math.min(100, (parseFloat(item.value) || 0) / 0.96)}%`,
-                background: set ? 'var(--accent)' : 'var(--bdr2)', borderRadius: 3,
+                background: set ? 'var(--accent)' : 'var(--bdr2)', borderRadius: 4,
               }} />
             </div>
             <input value={overrides?.[item.name] ?? ''} placeholder={item.value}
               onChange={e => onOverride(item.name, e.target.value)}
               disabled={item.pill}
               style={{
-                fontFamily: 'var(--mono)', fontSize: 11, padding: '4px 7px', textAlign: 'right',
+                fontFamily: 'var(--mono)', fontSize: 12, padding: '4px 8px', textAlign: 'right',
                 color: set ? 'var(--accent)' : 'var(--muted)',
                 borderColor: set ? 'rgb(var(--accent-rgb) / .4)' : 'var(--bdr)',
                 opacity: item.pill ? 0.5 : 1,
@@ -93,7 +93,7 @@ export function LayoutPanel() {
   const setContainer = (name, px) => upd('layout', l => ({ ...l, containers: { ...l.containers, [name]: px } }), `ct:${name}`)
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       <PanelAlerts tab="layout" />
       <SectionHeader title="Layout" desc="One spacing scale, one grid. The Density macro moves the whole scale." />
 
@@ -102,9 +102,9 @@ export function LayoutPanel() {
             note can share a baseline with the value it describes. Inside the
             field, the first line is the label, and the note would align to
             that instead. The old fix was a 14px top margin on the note. */}
-        <div style={{ marginBottom: 11 }}>
+        <div style={{ marginBottom: 12 }}>
           <label>Base unit</label>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 12 }}>
             <NumField value={state.space.base} min={2} max={8} suffix="px" width={104}
               onChange={v => upd('space', c => ({ ...c, base: v }), 'space:base')} />
             <p className="panel-note" style={{ flex: 1 }}>Every step is a multiple of this.</p>
@@ -117,17 +117,17 @@ export function LayoutPanel() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           {state.layout.breakpoints.map((b, i) => (
             <div key={b.name} style={{ display: 'grid', gridTemplateColumns: '46px 1fr 1fr', gap: 8, alignItems: 'baseline' }}>
-              <code style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--text-dim)' }}>{b.name}</code>
+              <code style={{ fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--text-dim)' }}>{b.name}</code>
               <NumField value={b.px} min={320} max={2560} suffix="px" onChange={v => setBreakpoint(i, v)} />
               <NumField value={state.layout.containers?.[b.name] ?? 0} min={0} max={2560} suffix="max" onChange={v => setContainer(b.name, v)} />
             </div>
           ))}
         </div>
-        <p className="panel-note" style={{ marginTop: 9 }}>Left column is the breakpoint min-width, right is the container width inside it.</p>
+        <p className="panel-note" style={{ marginTop: 8 }}>Left column is the breakpoint min-width, right is the container width inside it.</p>
       </Collapsible>
 
       <Collapsible title="Grid" note={`${state.layout.columns} col`}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
           <NumField label="Columns" value={state.layout.columns} min={1} max={24} onChange={v => setLayout('columns', v)} />
           <div>
             <label>Gutter</label>
@@ -160,17 +160,17 @@ export function ShapePanel() {
   const setStates = (k, v) => upd('states', st => ({ ...st, [k]: v }), `states:${k}`)
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       <SectionHeader title="Shape" desc="Radii, borders, icons and focus — the details agents most often invent." />
 
       <Collapsible title="Corner Radius" note={`${state.radius.base}px base`} defaultOpen>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 11 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
           <NumField label="Base radius" value={state.radius.base} min={0} max={24} suffix="px" width={104}
             onChange={v => upd('radius', c => ({ ...c, base: v }), 'radius:base')} />
-          <div className="preview-box" style={{ display: 'flex', gap: 6, marginTop: 16, padding: '7px 9px' }}>
+          <div className="preview-box" style={{ display: 'flex', gap: 6, marginTop: 16, padding: '8px 8px' }}>
             {derived.rounded.slice(0, 5).map(r => (
               <div key={r.name} title={`${r.name} — ${r.value}`}
-                style={{ width: 26, height: 26, background: 'var(--surf3)', border: '1px solid var(--bdr2)', borderRadius: r.value }} />
+                style={{ width: 28, height: 28, background: 'var(--surf3)', border: '1px solid var(--bdr2)', borderRadius: r.value }} />
             ))}
           </div>
         </div>
@@ -183,7 +183,7 @@ export function ShapePanel() {
       </Collapsible>
 
       <Collapsible title="Border Widths">
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           {Object.entries(state.radius.borderWidths ?? {}).map(([k, v]) => (
             <NumField key={k} label={k} value={v} min={0} max={8} step={0.5} suffix="px" onChange={n => setBorder(k, n)} />
           ))}
@@ -191,24 +191,24 @@ export function ShapePanel() {
       </Collapsible>
 
       <Collapsible title="Iconography" note={state.icons.library} defaultOpen>
-        <div style={{ marginBottom: 11 }}>
+        <div style={{ marginBottom: 12 }}>
           <label>Library</label>
-          <select value={state.icons.library} onChange={e => setIcons('library', e.target.value)} style={{ fontSize: 12.5, padding: '6px 8px' }}>
+          <select value={state.icons.library} onChange={e => setIcons('library', e.target.value)} style={{ fontSize: 12, padding: '6px 8px' }}>
             {ICON_LIBRARIES.map(l => <option key={l} value={l}>{l}</option>)}
           </select>
         </div>
         <Slider label="Stroke width" value={state.icons.strokeWidth} onChange={v => setIcons('strokeWidth', v)}
           min={1} max={3} step={0.25} defaultValue={1.75} format={v => `${v}`} />
-        <div className="preview-box" style={{ display: 'flex', gap: 14, alignItems: 'center', margin: '4px 0 12px', padding: '12px 14px' }}>
+        <div className="preview-box" style={{ display: 'flex', gap: 16, alignItems: 'center', margin: '4px 0 12px', padding: '12px 16px' }}>
           {Object.entries(state.icons.sizes).map(([k, px]) => (
             <svg key={k} width={px} height={px} viewBox="0 0 24 24" fill="none" stroke="var(--accent)"
               strokeWidth={state.icons.strokeWidth} strokeLinecap={state.icons.joinStyle} strokeLinejoin={state.icons.joinStyle}>
               <circle cx="12" cy="12" r="9" /><path d="M9 12l2 2 4-4" />
             </svg>
           ))}
-          <span style={{ fontSize: 10.5, color: 'var(--dim)' }}>live at each size</span>
+          <span style={{ fontSize: 10, color: 'var(--dim)' }}>live at each size</span>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 10 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 12 }}>
           {Object.entries(state.icons.sizes).map(([k, v]) => (
             <NumField key={k} label={k} value={v} min={10} max={48} suffix="px" onChange={n => setIconSize(k, n)} />
           ))}
@@ -216,14 +216,14 @@ export function ShapePanel() {
         <Segmented value={state.icons.joinStyle} onChange={v => setIcons('joinStyle', v)} size="sm"
           options={[{ value: 'round', label: 'Round joins' }, { value: 'square', label: 'Square' }, { value: 'miter', label: 'Miter' }]} />
 
-        <div style={{ marginTop: 14 }}>
+        <div style={{ marginTop: 16 }}>
           <label>Icon-to-label gap</label>
-          <p className="panel-note" style={{ marginBottom: 7 }}>
+          <p className="panel-note" style={{ marginBottom: 8 }}>
             The space between an icon and its text — in buttons, menu items, list rows, labels, anywhere the two pair up.
           </p>
           <Segmented value={state.icons.gap ?? 'xs'} onChange={v => setIcons('gap', v)} size="sm"
             options={derived.spacing.slice(0, 6).map(s => ({ value: s.name, label: `${s.name} · ${s.value}` }))} />
-          <div className="preview-box" style={{ marginTop: 10, padding: '10px 12px', display: 'flex', gap: 14, alignItems: 'center' }}>
+          <div className="preview-box" style={{ marginTop: 12, padding: '12px 12px', display: 'flex', gap: 16, alignItems: 'center' }}>
             {['left', 'right', 'only'].map(pos => (
               <div key={pos} style={{
                 display: 'inline-flex', alignItems: 'center',
@@ -251,7 +251,7 @@ export function ShapePanel() {
 
       <Collapsible title="Focus and States" defaultOpen>
         <Banner tone="info">Focus rings are the single most consistently omitted detail in generated UI. Specifying one here means it appears.</Banner>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, margin: '11px 0' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, margin: '12px 0' }}>
           <NumField label="Ring width" value={state.focus.width} min={1} max={6} suffix="px" onChange={v => setFocus('width', v)} />
           <NumField label="Offset" value={state.focus.offset} min={0} max={8} suffix="px" onChange={v => setFocus('offset', v)} />
           <div>
@@ -263,13 +263,13 @@ export function ShapePanel() {
         </div>
         <div className="preview-box" style={{ padding: 16, marginBottom: 12, display: 'flex', justifyContent: 'center' }}>
           <div style={{
-            padding: '7px 15px', background: derived.roles[state.color.mode].accent, color: derived.roles[state.color.mode]['accent-fg'],
-            borderRadius: derived.rounded.find(r => r.name === 'md')?.value ?? '8px', fontSize: 13,
+            padding: '8px 16px', background: derived.roles[state.color.mode].accent, color: derived.roles[state.color.mode]['accent-fg'],
+            borderRadius: derived.rounded.find(r => r.name === 'md')?.value ?? '8px', fontSize: 14,
             outline: `${state.focus.width}px ${state.focus.style} ${derived.roles[state.color.mode][state.focus.role]}`,
             outlineOffset: `${state.focus.offset}px`,
           }}>Focused button</div>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           <NumField label="Disabled opacity" value={state.states.disabledOpacity} min={0.2} max={0.9} step={0.05} onChange={v => setStates('disabledOpacity', v)} />
           <NumField label="Min touch target" value={state.states.touchTarget} min={24} max={60} suffix="px" onChange={v => setStates('touchTarget', v)} />
         </div>
@@ -319,7 +319,7 @@ export function DepthPanel() {
   }).filter(g => g.items.length > 0)
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       <SectionHeader title="Depth" desc="How surfaces separate from one another." />
 
       <Collapsible title="Elevation" note={state.elevation.strategy} defaultOpen>
@@ -331,16 +331,16 @@ export function DepthPanel() {
           {state.elevation.strategy === 'tonal' && 'Surfaces separate by changing colour rather than casting shadows. No shadows are emitted.'}
         </p>
 
-        <div className="preview-box" style={{ display: 'flex', gap: 12, margin: '14px 0', padding: 16, background: roles.bg }}>
+        <div className="preview-box" style={{ display: 'flex', gap: 12, margin: '16px 0', padding: 16, background: roles.bg }}>
           {Object.entries(derived.elevation).map(([name, shadow]) => (
             <div key={name} style={{ flex: 1, textAlign: 'center' }}>
               <div style={{
-                height: 42, background: name === 'flat' ? roles.surface : roles['surface-raised'],
+                height: 44, background: name === 'flat' ? roles.surface : roles['surface-raised'],
                 borderRadius: 6, boxShadow: shadow === 'none' ? 'none' : shadow,
                 border: state.elevation.strategy === 'border' ? `1px solid ${roles.border}` : `1px solid ${roles['border-subtle']}`,
-                marginBottom: 5,
+                marginBottom: 6,
               }} />
-              <span style={{ fontSize: 9.5, color: 'var(--dim)', fontFamily: 'var(--mono)' }}>{name}</span>
+              <span style={{ fontSize: 10, color: 'var(--dim)', fontFamily: 'var(--mono)' }}>{name}</span>
             </div>
           ))}
         </div>
@@ -350,12 +350,12 @@ export function DepthPanel() {
             <Slider label="Tint strength" desc="How much of the neutral hue carries into the shadow"
               value={state.elevation.tintStrength} onChange={v => setElev('tintStrength', v)}
               min={0} max={2} step={0.05} defaultValue={1} format={v => `${v.toFixed(2)}×`} />
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, fontSize: 11.5, color: 'var(--muted)' }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, fontSize: 12, color: 'var(--muted)' }}>
               <span>Tinted with</span>
               <RefSwatch label="Shadow tint" value={state.elevation.tintRole ?? 'neutral.950'}
                 hex={derived.shadowHex} groups={swatchGroups}
                 onPick={ref => setElev('tintRole', ref)} />
-              <code style={{ fontFamily: 'var(--mono)', fontSize: 10.5 }}>{state.elevation.tintRole ?? 'neutral.950'}</code>
+              <code style={{ fontFamily: 'var(--mono)', fontSize: 10 }}>{state.elevation.tintRole ?? 'neutral.950'}</code>
               <span style={{ color: 'var(--dim)' }}>not black</span>
             </div>
           </>
@@ -375,66 +375,66 @@ export function DepthPanel() {
       <Collapsible title="Blending" note={state.elevation.blendMode === 'normal' && state.elevation.fillBlend === 'normal' ? 'normal' : 'set'}>
         <Banner tone="info">
           Blending is per-property in CSS, not global. <strong>Fills</strong> can blend with what's behind them
-          (<code style={{ fontFamily: 'var(--mono)', fontSize: 10.5 }}>mix-blend-mode</code>), and so can
+          (<code style={{ fontFamily: 'var(--mono)', fontSize: 10 }}>mix-blend-mode</code>), and so can
           <strong> overlays and scrims</strong>. <strong>Borders and shadows cannot</strong> — there is no
-          <code style={{ fontFamily: 'var(--mono)', fontSize: 10.5 }}> border-blend-mode</code>, and
-          <code style={{ fontFamily: 'var(--mono)', fontSize: 10.5 }}> box-shadow</code> renders unblended. So
+          <code style={{ fontFamily: 'var(--mono)', fontSize: 10 }}> border-blend-mode</code>, and
+          <code style={{ fontFamily: 'var(--mono)', fontSize: 10 }}> box-shadow</code> renders unblended. So
           there are two controls here rather than four.
         </Banner>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, margin: '12px 0' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, margin: '12px 0' }}>
           <div>
             <label>Overlays and scrims</label>
-            <select value={state.elevation.blendMode} onChange={e => setElev('blendMode', e.target.value)} style={{ fontSize: 12.5, padding: '6px 8px' }}>
+            <select value={state.elevation.blendMode} onChange={e => setElev('blendMode', e.target.value)} style={{ fontSize: 12, padding: '6px 8px' }}>
               {BLEND_MODES.map(m => <option key={m} value={m}>{m}</option>)}
             </select>
           </div>
           <div>
             <label>Filled surfaces</label>
-            <select value={state.elevation.fillBlend ?? 'normal'} onChange={e => setElev('fillBlend', e.target.value)} style={{ fontSize: 12.5, padding: '6px 8px' }}>
+            <select value={state.elevation.fillBlend ?? 'normal'} onChange={e => setElev('fillBlend', e.target.value)} style={{ fontSize: 12, padding: '6px 8px' }}>
               {BLEND_MODES.map(m => <option key={m} value={m}>{m}</option>)}
             </select>
           </div>
         </div>
         {state.elevation.fillBlend !== 'normal' && (
           <p className="panel-note" style={{ marginBottom: 12 }}>
-            A blended fill affects its own text too unless the element sets <code style={{ fontFamily: 'var(--mono)', fontSize: 10.5 }}>isolation: isolate</code>.
+            A blended fill affects its own text too unless the element sets <code style={{ fontFamily: 'var(--mono)', fontSize: 10 }}>isolation: isolate</code>.
             That caveat is written into the exported file alongside the value.
           </p>
         )}
 
         {/* Filled elements over a patterned ground, where a blend is visible. */}
-        <div className="preview-box" style={{ padding: 14, marginBottom: 12, background: roles.bg, position: 'relative', overflow: 'hidden' }}>
+        <div className="preview-box" style={{ padding: 16, marginBottom: 12, background: roles.bg, position: 'relative', overflow: 'hidden' }}>
           <div style={{
             position: 'absolute', inset: 0,
             background: `repeating-linear-gradient(45deg, ${roles['bg-subtle']} 0 12px, ${roles.bg} 12px 24px)`,
           }} />
-          <div style={{ position: 'relative', display: 'flex', gap: 10, alignItems: 'center' }}>
+          <div style={{ position: 'relative', display: 'flex', gap: 12, alignItems: 'center' }}>
             {[roles.accent, roles.success, roles.danger].map((bg, i) => (
               <div key={i} style={{
-                padding: '7px 14px', background: bg, color: roles['accent-fg'],
+                padding: '8px 16px', background: bg, color: roles['accent-fg'],
                 borderRadius: derived.rounded.find(r => r.name === 'md')?.value ?? '8px',
                 fontSize: 12, mixBlendMode: state.elevation.fillBlend ?? 'normal',
               }}>Filled</div>
             ))}
-            <span style={{ fontSize: 10.5, color: 'var(--dim)', marginLeft: 'auto' }}>
+            <span style={{ fontSize: 10, color: 'var(--dim)', marginLeft: 'auto' }}>
               {state.elevation.fillBlend === 'normal' ? 'no blend' : state.elevation.fillBlend}
             </span>
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 12 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 12 }}>
           <NumField label="Scrim opacity" value={state.elevation.scrim?.opacity ?? 0.55} min={0} max={1} step={0.05}
             onChange={v => setElev('scrim', { ...state.elevation.scrim, opacity: v })} />
           <NumField label="Scrim blur" value={state.elevation.scrim?.blur ?? 0} min={0} max={24} suffix="px"
             onChange={v => setElev('scrim', { ...state.elevation.scrim, blur: v })} />
           <div>
             <label>Scrim colour</label>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 7, height: 32 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, height: 32 }}>
               <RefSwatch label="Scrim colour" value={state.elevation.scrim?.color ?? 'neutral.950'}
                 hex={derived.scrimColor} groups={swatchGroups}
                 onPick={ref => setElev('scrim', { ...state.elevation.scrim, color: ref })} />
-              <code style={{ fontFamily: 'var(--mono)', fontSize: 10.5, color: 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <code style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {state.elevation.scrim?.color ?? 'neutral.950'}
               </code>
             </div>
@@ -444,12 +444,12 @@ export function DepthPanel() {
         {/* A modal over content — the case where the blend mode is visible. */}
         <div className="preview-box" style={{ position: 'relative', height: 116, overflow: 'hidden', background: roles.bg }}>
           <div style={{ padding: 12 }}>
-            <div style={{ height: 9, width: '62%', background: roles['border-strong'], borderRadius: 3, marginBottom: 7 }} />
-            <div style={{ height: 9, width: '84%', background: roles.border, borderRadius: 3, marginBottom: 7 }} />
-            <div style={{ height: 9, width: '45%', background: roles.border, borderRadius: 3 }} />
-            <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
-              <div style={{ width: 54, height: 22, background: roles.accent, borderRadius: 5 }} />
-              <div style={{ width: 54, height: 22, background: roles['accent-subtle'], borderRadius: 5 }} />
+            <div style={{ height: 8, width: '62%', background: roles['border-strong'], borderRadius: 4, marginBottom: 8 }} />
+            <div style={{ height: 8, width: '84%', background: roles.border, borderRadius: 4, marginBottom: 8 }} />
+            <div style={{ height: 8, width: '45%', background: roles.border, borderRadius: 4 }} />
+            <div style={{ display: 'flex', gap: 6, marginTop: 12 }}>
+              <div style={{ width: 56, height: 24, background: roles.accent, borderRadius: 6 }} />
+              <div style={{ width: 56, height: 24, background: roles['accent-subtle'], borderRadius: 6 }} />
             </div>
           </div>
           <div style={{
@@ -462,7 +462,7 @@ export function DepthPanel() {
           <div style={{
             position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)',
             background: roles['surface-raised'], color: roles.text,
-            padding: '10px 16px', borderRadius: 8, fontSize: 12,
+            padding: '12px 16px', borderRadius: 8, fontSize: 12,
             boxShadow: derived.elevation.modal === 'none' ? 'none' : derived.elevation.modal,
             border: `1px solid ${roles['border-subtle']}`,
           }}>Modal over a scrim</div>
@@ -483,22 +483,22 @@ export function MotionPanel() {
   const applyPreset = name => upd('motion', m => ({ ...m, personality: name, ...MOTION_PRESETS[name] }))
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       <PanelAlerts tab="motion" />
       <SectionHeader title="Motion" desc="How quickly anything moves, and along what curve." />
 
       <Collapsible title="Durations" note={state.motion.personality} defaultOpen>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 11 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
           <span style={{ fontSize: 12, color: 'var(--muted)', flex: 1 }}>Personality</span>
           <Segmented value={state.motion.personality} onChange={applyPreset} size="sm"
             options={['snappy', 'smooth', 'bouncy']} />
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 13 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 12 }}>
           {Object.entries(state.motion.durations).map(([k, v]) => (
             <NumField key={k} label={k} value={v} min={0} max={1200} step={10} suffix="ms" onChange={n => setDuration(k, n)} />
           ))}
         </div>
-        <p className="panel-note" style={{ marginBottom: 9 }}>
+        <p className="panel-note" style={{ marginBottom: 8 }}>
           Emitted values include the Motion macro (×{state.macros.speed.toFixed(2)}): {Object.entries(derived.motion.durations).map(([k, v]) => `${k} ${v}`).join(' · ')}
         </p>
         {Object.entries(state.motion.easings).map(([k, v]) => (

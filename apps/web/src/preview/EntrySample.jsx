@@ -64,7 +64,7 @@ function markup({ base, variant, size, state, cls, style, label, tabStyle }) {
     case 'input':
       return <input className={`input ${cls}`} style={style} defaultValue="Input value" readOnly />
     case 'textarea':
-      return <textarea className={`input ${cls}`} style={{ minHeight: 54, ...style }} defaultValue="Multiple lines of text" readOnly />
+      return <textarea className={`input ${cls}`} style={{ minHeight: 56, ...style }} defaultValue="Multiple lines of text" readOnly />
     /* The same markup the Form and the Gallery use, not a lookalike.
      *
      * This was a `.btn` with an inline `justify-content`, which does nothing on
@@ -107,7 +107,7 @@ function markup({ base, variant, size, state, cls, style, label, tabStyle }) {
       return (
         <div className={`card card-overlay ${cls}`} style={{ maxWidth: 260, ...style }}>
           <strong style={{ fontSize: 'var(--font-h5-size)' }}>Confirm</strong>
-          <p className="small muted" style={{ margin: '4px 0 10px' }}>This cannot be undone.</p>
+          <p className="small muted" style={{ margin: '4px 0 12px' }}>This cannot be undone.</p>
           <span className="row"><button className="btn btn-primary btn-sm">Confirm</button><button className="btn btn-ghost btn-sm">Cancel</button></span>
         </div>
       )
@@ -152,7 +152,7 @@ function markup({ base, variant, size, state, cls, style, label, tabStyle }) {
         }}>
           <span className={cls} style={{
             display: 'inline-block', lineHeight: pill ? '24px' : '30px',
-            padding: '0 10px', whiteSpace: 'nowrap',
+            padding: '0 12px', whiteSpace: 'nowrap',
             fontFamily: 'var(--cmp-tab-font-family, inherit)',
             fontSize: 'var(--cmp-tab-font-size, 13px)',
             fontWeight: sel ? 500 : 400,
@@ -166,7 +166,7 @@ function markup({ base, variant, size, state, cls, style, label, tabStyle }) {
             ...style,
           }}>Colour</span>
           <span style={{
-            display: 'inline-block', lineHeight: pill ? '24px' : '30px', padding: '0 10px',
+            display: 'inline-block', lineHeight: pill ? '24px' : '30px', padding: '0 12px',
             fontFamily: 'var(--cmp-tab-font-family, inherit)',
             fontSize: 'var(--cmp-tab-font-size, 13px)',
             color: 'var(--c-text-muted)', opacity: 0.55,

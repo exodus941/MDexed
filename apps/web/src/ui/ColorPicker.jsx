@@ -78,8 +78,8 @@ export default function ColorPicker({ value, onChange, alpha: allowAlpha = false
     <div>
       {/* Saturation / brightness */}
       <div {...svDrag} style={{
-        ...svDrag.style, position: 'relative', height: swatchSize, borderRadius: 7, cursor: 'crosshair',
-        border: '1px solid var(--bdr)', overflow: 'hidden', marginBottom: 9,
+        ...svDrag.style, position: 'relative', height: swatchSize, borderRadius: 8, cursor: 'crosshair',
+        border: '1px solid var(--bdr)', overflow: 'hidden', marginBottom: 8,
         background: `linear-gradient(to top, #000, transparent), linear-gradient(to right, #fff, hsl(${hsb.h},100%,50%))`,
       }}>
         <div style={{
@@ -92,13 +92,13 @@ export default function ColorPicker({ value, onChange, alpha: allowAlpha = false
 
       {/* Hue */}
       <div {...hueDrag} style={{
-        ...hueDrag.style, position: 'relative', height: 11, borderRadius: 6, cursor: 'pointer', marginBottom: 8,
+        ...hueDrag.style, position: 'relative', height: 12, borderRadius: 6, cursor: 'pointer', marginBottom: 8,
         background: 'linear-gradient(to right,#f00,#ff0,#0f0,#0ff,#00f,#f0f,#f00)',
         border: '1px solid var(--bdr)',
       }}>
         <div style={{
           position: 'absolute', left: `${(hsb.h / 360) * 100}%`, top: '50%',
-          width: 13, height: 13, marginLeft: -6.5, marginTop: -6.5, borderRadius: '50%',
+          width: 12, height: 12, marginLeft: -6.5, marginTop: -6.5, borderRadius: '50%',
           border: '2px solid #fff', boxShadow: '0 0 0 1px rgba(0,0,0,.4)',
           background: `hsl(${hsb.h},100%,50%)`, pointerEvents: 'none',
         }} />
@@ -107,7 +107,7 @@ export default function ColorPicker({ value, onChange, alpha: allowAlpha = false
       {/* Alpha */}
       {allowAlpha && (
         <div {...alphaDrag} style={{
-          ...alphaDrag.style, position: 'relative', height: 11, borderRadius: 6, cursor: 'pointer', marginBottom: 8,
+          ...alphaDrag.style, position: 'relative', height: 12, borderRadius: 6, cursor: 'pointer', marginBottom: 8,
           border: '1px solid var(--bdr)',
           backgroundImage: `linear-gradient(to right, transparent, ${valid ? toHex({ ...parsed, alpha: 1 }) : '#000'}), linear-gradient(45deg,#3a3a44 25%,transparent 25%,transparent 75%,#3a3a44 75%),linear-gradient(45deg,#3a3a44 25%,#22222a 25%,#22222a 75%,#3a3a44 75%)`,
           backgroundSize: '100% 100%, 8px 8px, 8px 8px',
@@ -115,7 +115,7 @@ export default function ColorPicker({ value, onChange, alpha: allowAlpha = false
         }}>
           <div style={{
             position: 'absolute', left: `${(hsb.a ?? 1) * 100}%`, top: '50%',
-            width: 13, height: 13, marginLeft: -6.5, marginTop: -6.5, borderRadius: '50%',
+            width: 12, height: 12, marginLeft: -6.5, marginTop: -6.5, borderRadius: '50%',
             border: '2px solid #fff', boxShadow: '0 0 0 1px rgba(0,0,0,.4)', pointerEvents: 'none',
           }} />
         </div>
@@ -148,7 +148,7 @@ export default function ColorPicker({ value, onChange, alpha: allowAlpha = false
           onBlur={() => setHexDraft(value)}
           placeholder="#000000"
           style={{
-            fontFamily: 'var(--mono)', fontSize: 13,
+            fontFamily: 'var(--mono)', fontSize: 14,
             borderColor: isValidColor(hexDraft) ? 'var(--bdr)' : 'var(--danger)',
           }} />
       )}
@@ -186,7 +186,7 @@ export default function ColorPicker({ value, onChange, alpha: allowAlpha = false
             <NumField label="H" suffix="°" value={okl.h} min={0} max={360} onChange={v => emitHex(hexFrom(fromOklch({ ...okl, h: v })))} />
           </div>
           {outOfGamut && (
-            <div style={{ fontSize: 10.5, color: 'var(--warn)', marginTop: 5, lineHeight: 1.4 }}>
+            <div style={{ fontSize: 10, color: 'var(--warn)', marginTop: 6, lineHeight: 1.4 }}>
               Outside the sRGB gamut — chroma was reduced to fit.
             </div>
           )}

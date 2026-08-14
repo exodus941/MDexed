@@ -55,7 +55,7 @@ export default function BezierEditor({ value, onChange, duration = '300ms' }) {
   const [ex, ey] = toPx(1, 1)
 
   return (
-    <div style={{ display: 'flex', gap: 13, alignItems: 'flex-start' }}>
+    <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
       <svg ref={svgRef} width={SIZE} height={SIZE}
         onPointerMove={move}
         onPointerUp={e => { setDragging(null); e.currentTarget.releasePointerCapture?.(e.pointerId) }}
@@ -76,19 +76,19 @@ export default function BezierEditor({ value, onChange, duration = '300ms' }) {
       </svg>
 
       <div style={{ flex: 1, minWidth: 0 }}>
-        <code style={{ fontFamily: 'var(--mono)', fontSize: 10.5, color: 'var(--muted)', display: 'block', marginBottom: 9, wordBreak: 'break-all' }}>
+        <code style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)', display: 'block', marginBottom: 8, wordBreak: 'break-all' }}>
           {fmt(p)}
         </code>
-        <button className="btn-ghost" style={{ padding: '4px 10px', fontSize: 11, marginBottom: 9 }}
+        <button className="btn-ghost" style={{ padding: '4px 12px', fontSize: 12, marginBottom: 8 }}
           onClick={() => { setPlaying(false); requestAnimationFrame(() => setPlaying(true)) }}>
           Preview
         </button>
-        <div className="preview-box" style={{ height: 22, position: 'relative', overflow: 'hidden' }}>
+        <div className="preview-box" style={{ height: 24, position: 'relative', overflow: 'hidden' }}>
           <div
             key={playing ? 'run' : 'idle'}
             onAnimationEnd={() => setPlaying(false)}
             style={{
-              position: 'absolute', top: 4, left: 3, width: 14, height: 14, borderRadius: 3, background: 'var(--accent)',
+              position: 'absolute', top: 4, left: 4, width: 16, height: 16, borderRadius: 4, background: 'var(--accent)',
               animation: playing ? `dmd-bez ${duration} ${fmt(p)} both` : 'none',
             }} />
         </div>

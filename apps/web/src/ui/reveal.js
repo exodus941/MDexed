@@ -165,6 +165,6 @@ export const revealStyle = active => ({
   ...(active && {
     background: 'rgb(var(--accent-rgb) / .07)',
     boxShadow: '0 0 0 1px rgb(var(--accent-rgb) / .45)',
-    borderRadius: 7,
+    borderRadius: 8,
   }),
 })

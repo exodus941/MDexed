@@ -40,16 +40,16 @@ const looksLikeDocument = (text, name = '') =>
 const Swatch = ({ hex, count, picked, role, onClick }) => (
   <button onClick={onClick} title={`${hex} — seen ${count}×`}
     style={{
-      position: 'relative', height: 46, borderRadius: 6, cursor: 'pointer', padding: 0,
-      background: hex, flex: '1 1 62px', minWidth: 62,
+      position: 'relative', height: 48, borderRadius: 6, cursor: 'pointer', padding: 0,
+      background: hex, flex: '1 1 62px', minWidth: 64,
       border: picked ? '2px solid var(--accent)' : '1px solid rgba(255,255,255,.1)',
     }}>
     <span style={{
       position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
       alignItems: 'center', justifyContent: 'center', gap: 1,
-      color: bestOn(hex), fontFamily: 'var(--mono)', fontSize: 8.5, lineHeight: 1.2,
+      color: bestOn(hex), fontFamily: 'var(--mono)', fontSize: 8, lineHeight: 1.2,
     }}>
-      {picked && <strong style={{ fontSize: 9 }}>{role}</strong>}
+      {picked && <strong style={{ fontSize: 10 }}>{role}</strong>}
       <span style={{ opacity: picked ? .75 : .9 }}>{count}×</span>
     </span>
   </button>
@@ -204,7 +204,7 @@ const CARD = {
   gridTemplateColumns: 'subgrid',
   background: 'var(--surf2)',
   border: '1px solid var(--bdr)',
-  borderRadius: 10,
+  borderRadius: 8,
 }
 
 /* Text that has to clip needs a block inside the flex cell — `text-overflow`
@@ -230,7 +230,7 @@ const clip = { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap
 const CONTROL = {
   width: '100%',
   fontFamily: 'var(--mono)',
-  fontSize: 11.5,
+  fontSize: 12,
   /* No padding, no height. Both come from the global `input, textarea, select`
      rule in theme.css, which is where the 12px barrier is defined — including
      the room a select needs on the right for its chevron. Overriding either
@@ -251,7 +251,7 @@ const headCell = ({ last, lead, ...extra } = {}) => ({
   paddingLeft: lead ? CARD_PAD : 0,
   paddingRight: last ? CARD_PAD : COL_GAP,
   boxShadow: RULE,
-  fontSize: 9.5, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase',
+  fontSize: 10, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase',
   color: 'var(--dim)', ...extra,
 })
 
@@ -275,14 +275,14 @@ function SelectAll({ ids, off, onSet, label, compact }) {
     <input ref={ref} type="checkbox" checked={all} onChange={() => onSet(!all)}
       title={`${on} of ${ids.length} selected — click to select ${all ? 'none' : 'all'}`}
       aria-label={`Select all (${on} of ${ids.length})`}
-      style={{ width: 14, height: 14, accentColor: 'var(--accent)', cursor: 'pointer', justifySelf: 'start' }} />
+      style={{ width: 16, height: 16, accentColor: 'var(--accent)', cursor: 'pointer', justifySelf: 'start' }} />
   )
   if (compact) return box
 
   return (
     <label style={{
       display: 'inline-flex', alignItems: 'center', gap: 6, cursor: 'pointer',
-      fontSize: 10.5, color: on ? 'var(--muted)' : 'var(--dim)', userSelect: 'none',
+      fontSize: 10, color: on ? 'var(--muted)' : 'var(--dim)', userSelect: 'none',
     }}>
       {box}
       {label} <span style={{ fontFamily: 'var(--mono)' }}>{on}/{ids.length}</span>
@@ -328,15 +328,15 @@ function MapRow({ slot, proposal, on, onToggle, onChange, palette, families, fir
     <>
       <div style={cell(dim, { first, lead: true, display: 'flex' })}>
         <input type="checkbox" checked={on} onChange={e => onToggle(e.target.checked)}
-          style={{ width: 14, height: 14, accentColor: 'var(--accent)' }}
+          style={{ width: 16, height: 16, accentColor: 'var(--accent)' }}
           aria-label={`Apply ${slot.label}`} />
       </div>
 
-      <div style={cell(dim, { first, fontSize: 12.5, color: 'var(--text)' })}>{slot.label}</div>
+      <div style={cell(dim, { first, fontSize: 12, color: 'var(--text)' })}>{slot.label}</div>
 
-      <div style={cell(dim, { first, fontSize: 11, color: 'var(--muted)' })}>{slot.desc}</div>
+      <div style={cell(dim, { first, fontSize: 12, color: 'var(--muted)' })}>{slot.desc}</div>
 
-      <code style={cell(dim, { first, fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--muted)' })}>
+      <code style={cell(dim, { first, fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--muted)' })}>
         {proposal.source}
       </code>
 
@@ -344,7 +344,7 @@ function MapRow({ slot, proposal, on, onToggle, onChange, palette, families, fir
           takes the slack column and clips; the full sentence is the tooltip.
           It is what makes an inferred row judgeable without going and reading
           the stylesheet, which is why it is worth a column at all. */}
-      <div style={cell(dim, { first, fontSize: 11, color: 'var(--dim)' })} title={proposal.why}>
+      <div style={cell(dim, { first, fontSize: 12, color: 'var(--dim)' })} title={proposal.why}>
         <span style={clip}>{proposal.why}</span>
       </div>
 
@@ -366,7 +366,7 @@ function MapRow({ slot, proposal, on, onToggle, onChange, palette, families, fir
           {palette.map(hex => (
             <button key={hex} title={hex} onClick={() => { onChange(hex); setPicking(false) }}
               style={{
-                width: 30, height: 24, borderRadius: 4, cursor: 'pointer', padding: 0, background: hex,
+                width: 32, height: 24, borderRadius: 4, cursor: 'pointer', padding: 0, background: hex,
                 border: hex === proposal.value ? '2px solid var(--accent)' : '1px solid rgba(255,255,255,.12)',
               }} />
           ))}
@@ -470,7 +470,7 @@ export default function ImportModal({ onClose, onApply, onOpenDocument }) {
         width: `min(1240px, ${vw(94)})`, maxHeight: vh(88),
         display: 'flex', flexDirection: 'column', overflow: 'hidden',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: PAD.gap, padding: `${PANEL_Y}px ${PANEL_X}px`, borderBottom: '1px solid var(--bdr)', fontSize: 15, lineHeight: 1.5 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: PAD.gap, padding: `${PANEL_Y}px ${PANEL_X}px`, borderBottom: '1px solid var(--bdr)', fontSize: 16, lineHeight: 1.5 }}>
           <span style={{ fontFamily: 'var(--display)', fontWeight: 700, flex: 1 }}>Import a reference</span>
           <CloseButton onClick={onClose} label="Close" size={11} />
         </div>
@@ -498,13 +498,13 @@ export default function ImportModal({ onClose, onApply, onOpenDocument }) {
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                   <path d="M7 10l5-5 5 5" /><path d="M12 5v13" />
                 </svg>
-                <span style={{ fontSize: 13, color: 'var(--text)' }}>Drop a file, or click to browse</span>
-                <span style={{ fontSize: 11, color: 'var(--dim)', fontFamily: 'var(--mono)' }}>.css · .md</span>
+                <span style={{ fontSize: 14, color: 'var(--text)' }}>Drop a file, or click to browse</span>
+                <span style={{ fontSize: 12, color: 'var(--dim)', fontFamily: 'var(--mono)' }}>.css · .md</span>
                 <input type="file" accept=".css,.md,.markdown,.txt,text/css,text/markdown"
                   onChange={onFile} style={{ display: 'none' }} />
               </label>
 
-              <p className="panel-note" style={{ marginTop: PAD.gap, fontSize: 10.5 }}>
+              <p className="panel-note" style={{ marginTop: PAD.gap, fontSize: 10 }}>
                 You can also paste — ⌘V / Ctrl+V anywhere in this window — for the case where the CSS
                 came out of devtools and was never a file.
               </p>
@@ -520,8 +520,8 @@ export default function ImportModal({ onClose, onApply, onOpenDocument }) {
                   selective merge.
                 </p>
                 <pre style={{
-                  background: 'var(--surf2)', border: '1px solid var(--bdr)', borderRadius: 7,
-                  padding: PAD.sub, fontSize: 11, fontFamily: 'var(--mono)', color: 'var(--muted)',
+                  background: 'var(--surf2)', border: '1px solid var(--bdr)', borderRadius: 8,
+                  padding: PAD.sub, fontSize: 12, fontFamily: 'var(--mono)', color: 'var(--muted)',
                   maxHeight: 220, overflow: 'auto', margin: 0, whiteSpace: 'pre-wrap',
                 }}>
                   {text.slice(0, 1400)}{text.length > 1400 ? '\n…' : ''}
@@ -544,7 +544,7 @@ export default function ImportModal({ onClose, onApply, onOpenDocument }) {
                   large thing. Start over has moved to the footer with the
                   other actions — up here it was a button adrift in a line of
                   statistics. */}
-              <div style={{ display: 'flex', gap: 10, marginBottom: 18 }}>
+              <div style={{ display: 'flex', gap: 12, marginBottom: 20 }}>
                 <Stat label="Colours" value={found.counts.colours} />
                 <Stat label="Families" value={found.counts.families} />
                 <Stat label="Custom properties" value={found.counts.vars} />
@@ -581,7 +581,7 @@ export default function ImportModal({ onClose, onApply, onOpenDocument }) {
                             rather than as the name of the table. */}
                         <div style={{
                           gridColumn: '1 / -1',
-                          fontFamily: 'var(--display)', fontSize: 15.5, fontWeight: 600,
+                          fontFamily: 'var(--display)', fontSize: 16, fontWeight: 600,
                           letterSpacing: '-0.01em', color: 'var(--text)',
                           /* Every heading the same, the first included — the
                              select-all row above it is spaced like a table
@@ -636,7 +636,7 @@ export default function ImportModal({ onClose, onApply, onOpenDocument }) {
               genuinely does replace the whole document. */}
           {kind === 'css'
             ? <button className="btn-ghost" style={footBtn} onClick={reset}>Start over</button>
-            : <span style={{ fontSize: 11, color: 'var(--dim)' }}>Replaces every panel. Undo works.</span>}
+            : <span style={{ fontSize: 12, color: 'var(--dim)' }}>Replaces every panel. Undo works.</span>}
           <div style={{ flex: 1 }} />
           <button className="btn-ghost" style={footBtn} onClick={onClose}>Cancel</button>
           {kind === 'document' ? (
@@ -664,7 +664,7 @@ const Section = ({ title, note, right, children }) => (
   <div style={{ marginBottom: PAD.card + 4 }}>
     <div style={{ display: 'flex', alignItems: 'center', gap: PAD.gap, marginBottom: PAD.label }}>
       <span style={{ fontSize: 12, fontWeight: 500 }}>{title}</span>
-      {note && <span style={{ fontSize: 10.5, color: 'var(--dim)' }}>{note}</span>}
+      {note && <span style={{ fontSize: 10, color: 'var(--dim)' }}>{note}</span>}
       <div style={{ flex: 1 }} />
       {right}
     </div>
@@ -682,15 +682,15 @@ const Section = ({ title, note, right, children }) => (
 const Stat = ({ label, value }) => (
   <div style={{
     background: 'var(--surf2)', border: '1px solid var(--bdr)', borderRadius: 8,
-    padding: '11px 16px 12px', minWidth: 116,
+    padding: '12px 16px 12px', minWidth: 116,
   }}>
     <div style={{
-      fontFamily: 'var(--mono)', fontSize: 19, lineHeight: 1.15,
+      fontFamily: 'var(--mono)', fontSize: 20, lineHeight: 1.15,
       color: value ? 'var(--text)' : 'var(--dim)',
     }}>{value}</div>
     <div style={{
-      fontSize: 9.5, textTransform: 'uppercase', letterSpacing: '.07em',
-      color: 'var(--muted)', marginTop: 5,
+      fontSize: 10, textTransform: 'uppercase', letterSpacing: '.07em',
+      color: 'var(--muted)', marginTop: 6,
     }}>{label}</div>
   </div>
 )

@@ -9,6 +9,7 @@ import { stackFor } from '../type/fonts.js'
 import { expandComponents } from './components.js'
 import { resolveAllLayouts } from './componentLayout.js'
 import { ALL_ROLES } from './schema.js'
+import { snapSpace } from './grid.js'
 
 const UNIT_RE = /^(-?\d*\.?\d+)\s*([a-z%]*)$/i
 const round = (v, p = 1) => Math.round(v * 10 ** p) / 10 ** p
@@ -96,11 +97,15 @@ export function derive(state) {
     ...(state.type.custom ?? []),
   ]
 
-  /* ── Spacing ── */
+  /* ── Spacing ──
+     The density macro is continuous, so the product is fractional at almost
+     every position: 0.93 turns a 12px step into 11.16px. Snap the DERIVED
+     pixel, never the macro — snapping the macro and then multiplying by the
+     step just moves the fraction downstream. See state/grid.js. */
   const spacing = state.space.steps.map(s => ({
     id: `sp-${s.name}`,
     name: s.name,
-    value: state.space.overrides?.[s.name] ?? `${round(state.space.base * s.mult * m.density, 1)}px`,
+    value: state.space.overrides?.[s.name] ?? `${snapSpace(state.space.base * s.mult * m.density)}px`,
     overridden: state.space.overrides?.[s.name] != null,
   }))
 
@@ -109,7 +114,7 @@ export function derive(state) {
     id: `rd-${r.name}`,
     name: r.name,
     value: state.radius.overrides?.[r.name]
-      ?? (r.pill ? '9999px' : `${round(state.radius.base * r.mult * m.roundness, 1)}px`),
+      ?? (r.pill ? '9999px' : `${snapSpace(state.radius.base * r.mult * m.roundness)}px`),
     overridden: state.radius.overrides?.[r.name] != null,
     pill: !!r.pill,
   }))

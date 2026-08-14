@@ -45,7 +45,7 @@ export const ROLE_GROUPS = [
          `buildRamp` places each one by index, so inserting one slides every
          existing colour — so the ref names the midpoint instead. It still
          follows the seed, which a typed hex would not. */
-      { name: 'row-stripe',      desc: 'Every other row in a list',  light: 'neutral.50~100', dark: 'neutral.900~950' },
+      { name: 'row-stripe',      desc: 'Every other row in a list',  light: 'neutral.50~100@0.25', dark: 'neutral.900~950@0.25' },
     ],
   },
   {

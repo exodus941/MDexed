@@ -6,6 +6,7 @@ import { load as yamlLoad } from 'js-yaml'
 import { createInitialState, CONTRAST_PAIRS, ANTI_PATTERNS, pairFails } from '../src/state/schema.js'
 import { derive, buildCssVars } from '../src/state/derive.js'
 import { migrate } from '../src/state/migrate.js'
+import { isOnTypeGrid, isOnSpaceGrid } from '../src/state/grid.js'
 import { applyPreset, PRESETS } from '../src/state/presets.js'
 import { TAB_STYLES } from '../src/state/components.js'
 import { audit } from '../src/a11y/audit.js'
@@ -60,7 +61,15 @@ assert(derived.roles.light.bg !== derived.roles.dark.bg, 'light and dark bg diff
 
 line('\n- generated scales -')
 assert(derived.typography.length === TYPE_ROLES.length, `${TYPE_ROLES.length} type tokens generated`)
-assert(ty(derived.typography, 'h1').fontSize === '48.8px', `h1 from the modular scale (${ty(derived.typography, 'h1').fontSize})`)
+/* Assert the RULE, never the pixel. A test that pins 48.8px pins the fraction
+   in place, and the next person to fix it has seven red assertions telling
+   them the fix is the bug. */
+assert(ty(derived.typography, 'h1').fontSize === '48px', `h1 from the modular scale (${ty(derived.typography, 'h1').fontSize})`)
+const offGridType = derived.typography.filter(t => !isOnTypeGrid(parseFloat(t.fontSize))).map(t => `${t.name}=${t.fontSize}`)
+assert(offGridType.length === 0, `every type size is on the grid (${offGridType.join(' ') || 'all clean'})`)
+const offGridSpace = [...derived.spacing, ...derived.rounded]
+  .filter(s => !s.pill && !isOnSpaceGrid(parseFloat(s.value))).map(s => `${s.name}=${s.value}`)
+assert(offGridSpace.length === 0, `every space and radius step is on the grid (${offGridSpace.join(' ') || 'all clean'})`)
 assert(parseFloat(ty(derived.typography, 'h1').lineHeight) < parseFloat(ty(derived.typography, 'caption').lineHeight),
   'leading tightens as type grows')
 assert(parseFloat(ty(derived.typography, 'h1').letterSpacing) < 0, 'display tracking is negative')
@@ -74,8 +83,15 @@ assert(px(derive({ ...state, macros: { ...state.macros, density: 2 } }).spacing,
 const round2 = derive({ ...state, macros: { ...state.macros, roundness: 2 } })
 assert(px(round2.rounded, 'full') === '9999px', 'pill radius is not scaled')
 assert(px(round2.rounded, 'md') === '16px', 'md radius doubles')
-assert(ty(derive({ ...state, macros: { ...state.macros, scale: 1.5 } }).typography, 'h1').fontSize === '73.2px',
-  `scale 1.5 lifts h1 (${ty(derive({ ...state, macros: { ...state.macros, scale: 1.5 } }).typography, 'h1').fontSize})`)
+const scaled = derive({ ...state, macros: { ...state.macros, scale: 1.5 } })
+assert(ty(scaled.typography, 'h1').fontSize === '72px', `scale 1.5 lifts h1 (${ty(scaled.typography, 'h1').fontSize})`)
+/* A macro moves every step and lands every one of them on the grid. The macro
+   is continuous, so this is the case that used to produce 11.16px. */
+const scaledOff = scaled.typography.filter(t => !isOnTypeGrid(parseFloat(t.fontSize))).map(t => `${t.name}=${t.fontSize}`)
+assert(scaledOff.length === 0, `a scaled type set stays on the grid (${scaledOff.join(' ') || 'all clean'})`)
+const dense = derive({ ...state, macros: { ...state.macros, density: 0.93 } })
+const denseOff = dense.spacing.filter(s => !isOnSpaceGrid(parseFloat(s.value))).map(s => `${s.name}=${s.value}`)
+assert(denseOff.length === 0, `density 0.93 stays on the grid (${denseOff.join(' ') || 'all clean'})`)
 const overridden = derive({ ...state, macros: { ...state.macros, density: 2 }, space: { ...state.space, overrides: { md: '16px' } } })
 assert(px(overridden.spacing, 'md') === '16px', 'an overridden step ignores its macro')
 assert(px(overridden.spacing, 'lg') === '48px', 'its neighbours still follow the macro')
@@ -1438,6 +1454,16 @@ line('\n- prompt construction -')
     ['figures take the mono family', ['set figures in the mono family']],
     ['an amount takes a right edge, an identifier does not', ['reads as a total']],
     ['a checkbox has three states', ['a checkbox has **three** states']],
+    ['no fractional pixel ships', ['hold it in their head']],
+    ['space sits on a 4px grid', ['a hairline is ink, not space']],
+    ['type takes 4 above 24 and 2 below', ['leaves no room for the 14px']],
+    ['snapping happens at the last step', ['just moves the fraction downstream']],
+    ['a clamp slope and a px line-height are exempt', ['breaks the centring it exists to do']],
+    ['a fallback equals what the token ships', ['a second design nobody chose']],
+    ['a table cell has a horizontal gutter', ['commonest omission in a table']],
+    ['ornament columns shrink, content columns do not grow', ['shrink the ornament columns']],
+    ['a table keeps its two outer edges equal', ['always reads as a lean']],
+    ['one mechanism centres a label', ['is centring twice']],
     ['stripe and selection are one step apart', ['one step further']],
     ['a control is checked on every ground it sits on', ['not only the card']],
     ['moving what draws a seam can move the seam', ['the seam can simply move too']],

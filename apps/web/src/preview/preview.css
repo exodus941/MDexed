@@ -5,7 +5,7 @@
   font-size: var(--font-body-md-size, 16px);
   line-height: var(--font-body-md-leading, 1.6);
   min-height: 100%;
-  padding: var(--space-lg, 32px);
+  padding: var(--space-lg, 24px);
   transition: background var(--duration-normal, 200ms) var(--ease-standard, ease);
 }
 .dmd *, .dmd *::before, .dmd *::after { box-sizing: border-box; }
@@ -24,8 +24,8 @@
 .dmd [data-cmp] [disabled], .dmd [data-cmp] .is-disabled { pointer-events: none; }
 .dmd h1, .dmd h2, .dmd h3 { margin: 0; }
 .dmd h1 { font-family: var(--font-h1-family, inherit); font-size: var(--font-h1-size, 48px); font-weight: var(--font-h1-weight, 700); line-height: var(--font-h1-leading, 1.1); letter-spacing: var(--font-h1-tracking, normal); }
-.dmd h2 { font-family: var(--font-h2-family, inherit); font-size: var(--font-h2-size, 32px); font-weight: var(--font-h2-weight, 700); line-height: var(--font-h2-leading, 1.2); letter-spacing: var(--font-h2-tracking, normal); }
-.dmd h3 { font-family: var(--font-h3-family, inherit); font-size: var(--font-h3-size, 24px); font-weight: var(--font-h3-weight, 600); line-height: var(--font-h3-leading, 1.3); letter-spacing: var(--font-h3-tracking, normal); }
+.dmd h2 { font-family: var(--font-h2-family, inherit); font-size: var(--font-h2-size, 40px); font-weight: var(--font-h2-weight, 700); line-height: var(--font-h2-leading, 1.2); letter-spacing: var(--font-h2-tracking, normal); }
+.dmd h3 { font-family: var(--font-h3-family, inherit); font-size: var(--font-h3-size, 32px); font-weight: var(--font-h3-weight, 600); line-height: var(--font-h3-leading, 1.3); letter-spacing: var(--font-h3-tracking, normal); }
 .dmd p { margin: 0; }
 .dmd .muted { color: var(--c-text-muted, #666); }
 .dmd .subtle { color: var(--c-text-subtle, #999); }
@@ -177,7 +177,7 @@
   font-size: var(--cmp-button-lg-font-size, var(--font-body-md-size, 16px));}
 
 /* ── Form controls ── */
-.dmd .field { display: flex; flex-direction: column; gap: var(--space-xs, 4px); }
+.dmd .field { display: flex; flex-direction: column; gap: var(--space-xs, 8px); }
 /* A field's label names the field, so it carries full text weight. The help
    under it is secondary and stays muted. Both were muted before, which made
    the line above the field and the line below it read as equals — and once
@@ -281,6 +281,32 @@
   flex-shrink: 0; background: currentColor;
 }
 
+/* Two more classes that named nothing. Both carried their whole appearance in
+   an inline style, so the class was a label on a box rather than a rule — and
+   a label nothing reads is how a stylesheet loses track of what it contains.
+   The values move here unchanged. */
+.dmd .modal-stage {
+  position: absolute; inset: 0; display: flex;
+  align-items: center; justify-content: center;
+  padding: var(--space-md, 16px); overflow: auto;
+}
+.dmd .shell-split { align-items: stretch; gap: var(--space-lg, 24px); }
+
+/* A row that is allowed to wrap.
+ *
+ * Thirteen places in the preview used this class and NOTHING in this
+ * stylesheet defined it. It worked because `theme.css` — the EDITOR's chrome
+ * sheet — happens to define `.row-wrap` and happens to be on the same page.
+ * So every one of those rows was styled by something the payload does not
+ * ship: a sample that renders correctly for a reason the reader cannot have.
+ * That is worse than a sample that renders wrongly, because nothing reports
+ * it.
+ *
+ * `row-gap` only. The column gap belongs to `.row`, and setting both here
+ * would silently overwrite it — a shorthand beside a longhand, the same trap
+ * the title bar hit. */
+.dmd .row.row-wrap { flex-wrap: wrap; row-gap: var(--space-2xs, 4px); }
+
 /* A row of fixed-height CONTROLS takes centre, never baseline.
  *
  * `.row` is baseline-aligned, which is right for a row that is mostly text. A
@@ -292,7 +318,7 @@
 .dmd .row.row-controls { align-items: center; }
 
 .dmd label.input.with-icon {
-  display: inline-flex; align-items: center; gap: var(--space-2xs, 6px);
+  display: inline-flex; align-items: center; gap: var(--space-2xs, 4px);
   height: var(--cmp-input-height, 36px);
   padding-block: 0;
   /* The placeholder holds one line. `min-content` on the field lets the text
@@ -375,7 +401,7 @@
    middle. The gap is a margin because there is no flex gap to do it. */
 .dmd .badge > svg, .dmd .badge > .icon, .dmd .badge > .dot {
   vertical-align: middle; transform: translateY(-0.12em);
-  margin-right: var(--cmp-badge-gap, var(--icon-gap, 6px));
+  margin-right: var(--cmp-badge-gap, var(--icon-gap, 8px));
 }
 .dmd .badge > .dot {
   display: inline-block; width: 6px; height: 6px; border-radius: 50%;
@@ -553,6 +579,14 @@
 .dmd .select-trigger {
   display: flex; align-items: center; justify-content: space-between;
   text-align: left; gap: var(--icon-gap, 8px);
+  /* ONE mechanism centres the label. `.btn` sets `line-height` to its own
+     height, which is how an inline-block centres a word — and this class turns
+     it into a flex box, which centres by `align-items`. Both at once put the
+     label 2px high inside the control, dragged the chevron 1px off its optical
+     middle, and left the whole trigger 1px above the buttons beside it. Three
+     findings, one cause. Flex does the centring here, so the line-height must
+     stand down. */
+  line-height: normal;
 }
 /* Width stays the caller's decision. One of these fills a field, another sits
    in a toolbar at its own minimum, and a class that dictated 100% would have
@@ -621,7 +655,7 @@
 }
 .dmd .row > .switch {
   margin-top: calc((var(--font-body-sm-size, 14px) * var(--font-body-sm-leading, 1.55)
-                    - var(--cmp-switch-height, 20px)) / 2);
+                    - var(--cmp-switch-height, 24px)) / 2);
 }
 /* These sit beside single-line text, so the whole-row centre is right for them. */
 .dmd .row > .icon, .dmd .row > .bar, .dmd .row > .swatch { align-self: center; }
@@ -631,7 +665,7 @@
    The subtraction now lives on the parent as a child-combinator rule, where
    the relationship is real. Nothing reads a gap it cannot see. */
 .dmd .stack { display: flex; flex-direction: column; gap: var(--space-md, 16px); }
-.dmd .stack-sm { display: flex; flex-direction: column; gap: var(--space-sm, 8px); }
+.dmd .stack-sm { display: flex; flex-direction: column; gap: var(--space-sm, 12px); }
 
 /* ── Inside a card ──
  *
@@ -734,7 +768,7 @@
 .dmd .nav-collapse { display: flex; }
 .dmd .nav-summary {
   display: flex; align-items: center; justify-content: center;
-  gap: var(--space-2xs, 6px);
+  gap: var(--space-2xs, 4px);
   list-style: none; cursor: pointer;
 }
 
@@ -756,7 +790,7 @@
    nothing, so the wide sidebar was empty while measuring 180 by 239. As a
    sibling it is a normal element, and responsive.js hides it below `md` with
    `details:not([open]) ~ .nav-list`. */
-.dmd .aside-rail { display: flex; flex-direction: column; gap: var(--space-sm, 8px); }
+.dmd .aside-rail { display: flex; flex-direction: column; gap: var(--space-sm, 12px); }
 .dmd .nav-list { display: flex; }
 
 /* The disclosure belongs to the folded layout only.
@@ -812,7 +846,7 @@
 .dmd .page-head > .page-actions,
 .dmd .page-head > .nav-collapse {
   align-self: flex-start;
-  margin-top: calc((var(--font-h2-size, 32px) * var(--font-h2-leading, 1.2)
+  margin-top: calc((var(--font-h2-size, 40px) * var(--font-h2-leading, 1.2)
                     - var(--cmp-button-sm-height, 28px)) / 2);
 }
 /* The byline belongs to the title, so it sits close enough to read as one
@@ -882,7 +916,7 @@
   height: var(--cmp-button-md-height, 36px);
   line-height: calc(var(--cmp-button-md-height, 36px) - 2px);
   padding: 0 var(--cmp-button-md-padding-x, var(--space-md, 16px));
-  font-size: var(--cmp-button-md-font-size, var(--font-button-size, 14px));
+  font-size: var(--cmp-button-md-font-size, var(--font-button-size, 16px));
 }
 
 /* The fold runs on the document's own motion tokens.
@@ -911,14 +945,14 @@
    and this reads them. */
 .dmd .nav-burger {
   display: none; flex-direction: column; cursor: pointer;
-  gap: var(--cmp-nav-burger-gap, var(--space-3xs, 3px));
-  padding: var(--cmp-nav-burger-padding, var(--space-3xs, 3px));
+  gap: var(--cmp-nav-burger-gap, var(--space-3xs, 2px));
+  padding: var(--cmp-nav-burger-padding, var(--space-3xs, 2px));
 }
 .dmd .nav-burger > span {
   display: block;
   width: var(--cmp-nav-burger-size, 16px);
   height: var(--cmp-nav-burger-height, 2px);
-  border-radius: var(--cmp-nav-burger-rounded, var(--radius-sm, 1px));
+  border-radius: var(--cmp-nav-burger-rounded, var(--radius-sm, 4px));
   background: var(--cmp-nav-burger-background-color, var(--c-text-muted, #666));
 }
 .dmd .grid { display: grid; gap: var(--space-md, 16px); }
@@ -948,7 +982,7 @@
  * would have moved them 24px apart where they had been 16. */
 .dmd .with-aside {
   display: grid; align-items: start;
-  column-gap: var(--space-lg, 32px); row-gap: var(--space-md, 16px);
+  column-gap: var(--space-lg, 24px); row-gap: var(--space-md, 16px);
   grid-template-columns: var(--aside, 180px) minmax(0, 1fr);
   grid-template-areas: "rail head" "rail body";
 }
@@ -970,9 +1004,23 @@
   text-align: left; font-size: var(--font-caption-size, 12px);
   text-transform: uppercase; letter-spacing: .06em;
   color: var(--c-text-muted, #666); font-weight: 500;
-  padding: var(--space-sm, 8px) 0; border-bottom: 1px solid var(--c-border, #ccc);
+  /* Same gutter as the cell below it, or the heading sits on a different left
+     edge from its own column. */
+  padding: var(--cmp-table-cell-padding, var(--space-sm, 12px) var(--space-md, 16px));
+  border-bottom: 1px solid var(--c-border, #ccc);
 }
-.dmd .table td { padding: var(--space-sm, 8px) 0; border-bottom: 1px solid var(--c-border-subtle, #eee); }
+/* THE CELL HAS A HORIZONTAL GUTTER, and this rule denied it for as long as it
+   existed. It read `padding: sm 0`, while the declared `table` component says
+   `cell: { padding: sm md }` — and that entry carries a comment saying a cell
+   with no horizontal value claims the system has no column gutter, "which is
+   never true". The component was right and the stylesheet rendering it was
+   wrong, so every table in the preview ran its columns together: headings
+   touching, an invoice number breaking mid-word, a two-word date folding onto
+   two lines. Three complaints, one missing value. */
+.dmd .table td {
+  padding: var(--cmp-table-cell-padding, var(--space-sm, 12px) var(--space-md, 16px));
+  border-bottom: 1px solid var(--c-border-subtle, #eee);
+}
 
 /* ── Table composition ──
    Driven by the settings in the Components tab rather than hard-coded, so the
@@ -989,6 +1037,16 @@
  * Measured, `bg-subtle` bands at 1.62:1, which divides the table into blocks
  * instead of striping it. `row-stripe` lands at 1.27. */
 .dmd .table-rows-zebra tbody tr:nth-child(even) { background: var(--c-row-stripe); }
+/* Zebra AND rules, which is what a long table wants and what the setting had
+   no way to say. `table-rows-both` keeps the rule that `table-rows-zebra`
+   removes. */
+.dmd .table-rows-both tbody tr:nth-child(even) { background: var(--c-row-stripe); }
+
+/* Row height, named. It used to come out of the cell padding and nothing said
+   so, which made a dimension every data table needs reachable only by knowing
+   which property secretly produced it. */
+.dmd .table-dense td, .dmd .table-dense th { padding-block: var(--space-2xs, 4px); }
+.dmd .table-roomy td, .dmd .table-roomy th { padding-block: var(--space-md, 16px); }
 .dmd .table-rows-zebra td:first-child { padding-left: var(--space-xs, 8px); }
 .dmd .table-rows-zebra td:last-child { padding-right: var(--space-xs, 8px); }
 .dmd .table-rows-none td { border-bottom: 0; }
@@ -1028,7 +1086,7 @@
    actions is the one row that must never lose a member. */
 .dmd .batch-bar {
   display: flex; align-items: center; flex-wrap: wrap;
-  row-gap: var(--space-2xs, 6px); column-gap: var(--space-sm, 12px);
+  row-gap: var(--space-2xs, 4px); column-gap: var(--space-sm, 12px);
   background: var(--c-accent); color: var(--c-accent-fg);
   padding: var(--space-xs, 8px) var(--space-md, 16px);
   border-radius: var(--radius-md, 8px) var(--radius-md, 8px) 0 0;
@@ -1042,6 +1100,36 @@
 /* The select column is a fixed gutter, so the first data column starts on the
    same left edge in every row whatever the box is doing. */
 .dmd .table .sel-col { width: 1%; padding-right: var(--space-xs, 8px); }
+
+/* THE SLACK NEEDS A STATED HOME.
+ *
+ * A table at `width: 100%` shares its spare width across every column in
+ * proportion, and that includes the ones holding a 28px icon. Measured: the
+ * row-action column stood 89.6px wide around 28px of button, so the table
+ * ended in 62px of nothing and the buttons floated far off the last figure.
+ *
+ * `width: 1%` on a table cell means "take your content and no more" — the
+ * browser grows it to the content and gives the remainder elsewhere. Naming
+ * the column that SHOULD grow is the other half: without it the remainder is
+ * still shared, just among fewer columns. */
+.dmd .table .act-col { width: 1%; padding-left: var(--space-xs, 8px); }
+
+/* NO `width: 100%` on a content column.
+ *
+ * That was the second try and it was worse than the fault. `width: 100%` does
+ * not mean "take the slack", it means "take everything", so the account column
+ * swallowed 905px and starved every other column to its minimum: the date cell
+ * stood 27.5px wide around 26px of text and "12 Aug" broke onto two lines,
+ * with the DUE and AMOUNT headings touching.
+ *
+ * Shrinking the two ORNAMENT columns is the whole fix. With the checkbox and
+ * the row action pinned to their content, the remaining width spreads across
+ * the columns that actually hold data, which is what a table does on its own.
+ * Naming a winner was never needed.
+ *
+ * A cell that holds a short value keeps it on one line. A date is two words
+ * and breaking it costs a row of height for nothing. */
+.dmd .table .num-col, .dmd .table .nowrap-col { white-space: nowrap; }
 
 /* An inline-block centring its monogram with line-height, not a flex box
    centring it with align-items. The two look identical, but only this one has
@@ -1292,7 +1380,7 @@
   align-items: baseline;
   justify-content: space-between;
   gap: var(--space-md, 16px);
-  padding: var(--space-2xs, 6px) 0;
+  padding: var(--space-2xs, 4px) 0;
 }
 /* The recommended column is marked by its EDGE, never by a fill. A filled
    column beside two unfilled ones reads as chosen, and nobody has chosen
@@ -1306,6 +1394,6 @@
    dropped into it land in one area and paint over each other. */
 .dmd .with-context {
   display: grid; align-items: start;
-  column-gap: var(--space-lg, 32px); row-gap: var(--space-md, 16px);
+  column-gap: var(--space-lg, 24px); row-gap: var(--space-md, 16px);
   grid-template-columns: minmax(0, 1fr) var(--context, 200px);
 }

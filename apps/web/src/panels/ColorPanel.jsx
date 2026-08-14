@@ -46,17 +46,17 @@ const Lock = ({ locked, size = 12 }) => (
 function SeedRow({ seed, ramps, onChange, onRename, onDelete, onLock, open, onToggle }) {
   const anchor = ramps[seed.name]?.anchor
   return (
-    <div style={{ background: 'var(--surf2)', border: `1px solid ${open ? 'rgb(var(--accent-rgb) / .35)' : 'var(--bdr)'}`, borderRadius: 9, overflow: 'hidden', transition: 'border-color var(--t) var(--ease)' }}>
+    <div style={{ background: 'var(--surf2)', border: `1px solid ${open ? 'rgb(var(--accent-rgb) / .35)' : 'var(--bdr)'}`, borderRadius: 8, overflow: 'hidden', transition: 'border-color var(--t) var(--ease)' }}>
       {/* A named seed carries a description under it, which makes the left side
           a block rather than a line — the hex then belongs centred on the pair,
           not pinned to the name's baseline. Seeds with no description are a
           single line, and there baseline is right: centring a 13.5px name
           against a 10.5px hex puts their baselines 6.5px apart. */}
-      <div onClick={onToggle} style={{ display: 'grid', gridTemplateColumns: '30px 1fr auto auto auto', gap: 10, alignItems: seed.desc ? 'center' : 'baseline', padding: `${PAD.sub}px ${PAD.card}px`, cursor: 'pointer' }}>
-        <div className="swatch" style={{ width: 26, height: 26, background: seed.hex, alignSelf: 'center' }} />
+      <div onClick={onToggle} style={{ display: 'grid', gridTemplateColumns: '30px 1fr auto auto auto', gap: 12, alignItems: seed.desc ? 'center' : 'baseline', padding: `${PAD.sub}px ${PAD.card}px`, cursor: 'pointer' }}>
+        <div className="swatch" style={{ width: 28, height: 28, background: seed.hex, alignSelf: 'center' }} />
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontWeight: 500, fontSize: 13.5 }}>{seed.name}</div>
-          {seed.desc && <div style={{ fontSize: 11, color: 'var(--dim)' }}>{seed.desc}</div>}
+          <div style={{ fontWeight: 500, fontSize: 14 }}>{seed.name}</div>
+          {seed.desc && <div style={{ fontSize: 12, color: 'var(--dim)' }}>{seed.desc}</div>}
         </div>
         <code className="chip">{seed.hex}</code>
         <button onClick={e => { e.stopPropagation(); onLock() }}
@@ -78,12 +78,12 @@ function SeedRow({ seed, ramps, onChange, onRename, onDelete, onLock, open, onTo
         <span style={{ alignSelf: 'center', display: 'flex' }}>
           {!PROTECTED_SEEDS.includes(seed.name)
             ? <ConfirmDelete onConfirm={onDelete} title="Remove seed" />
-            : <span style={{ width: 23 }} />}
+            : <span style={{ width: 24 }} />}
         </span>
       </div>
       <Expand open={open}>
         <div style={{ padding: PAD.card, borderTop: '1px solid var(--bdr)', background: 'var(--surf)' }}>
-          <div style={{ marginBottom: 10 }}>
+          <div style={{ marginBottom: 12 }}>
             <label>Seed name</label>
             <input value={seed.name} onChange={e => onRename(e.target.value)}
               list="dmd-seed-names"
@@ -91,12 +91,12 @@ function SeedRow({ seed, ramps, onChange, onRename, onDelete, onLock, open, onTo
               placeholder="secondary, info, chart-1…"
               style={PROTECTED_SEEDS.includes(seed.name) ? { opacity: .6, cursor: 'not-allowed' } : undefined} />
             {PROTECTED_SEEDS.includes(seed.name) && (
-              <div style={{ fontSize: 10.5, color: 'var(--dim)', marginTop: 4 }}>Semantic roles reference this scale by name, so it can't be renamed.</div>
+              <div style={{ fontSize: 10, color: 'var(--dim)', marginTop: 4 }}>Semantic roles reference this scale by name, so it can't be renamed.</div>
             )}
           </div>
           <ColorPicker value={seed.hex} onChange={onChange} />
           {anchor && (
-            <div style={{ fontSize: 10.5, color: 'var(--dim)', marginTop: 8, lineHeight: 1.5 }}>
+            <div style={{ fontSize: 10, color: 'var(--dim)', marginTop: 8, lineHeight: 1.5 }}>
               This exact colour is pinned at step <strong style={{ color: 'var(--muted)' }}>{anchor}</strong> — the rest of the scale is generated around it.
             </div>
           )}
@@ -113,10 +113,10 @@ function RampRow({ name, ramp, overrides, onOverride, onResetStep }) {
   const isOverridden = step => overrides[`${name}.${step}`] != null
 
   return (
-    <div style={{ marginBottom: 14 }}>
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 5 }}>
-        <code style={{ fontFamily: 'var(--mono)', fontSize: 11.5, color: 'var(--text)' }}>{name}</code>
-        <span style={{ fontSize: 10.5, color: 'var(--dim)' }}>{RAMP_STEPS.length} steps</span>
+    <div style={{ marginBottom: 16 }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 6 }}>
+        <code style={{ fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--text)' }}>{name}</code>
+        <span style={{ fontSize: 10, color: 'var(--dim)' }}>{RAMP_STEPS.length} steps</span>
       </div>
       <div style={{ display: 'flex', gap: 2 }}>
         {RAMP_STEPS.map(step => {
@@ -130,7 +130,7 @@ function RampRow({ name, ramp, overrides, onOverride, onResetStep }) {
                 outline: ramp.anchor === step ? '1px dashed rgba(255,255,255,.45)' : 'none', outlineOffset: -4,
               }}>
               {isOverridden(step) && (
-                <span style={{ position: 'absolute', top: 2, right: 2, width: 5, height: 5, borderRadius: '50%', background: 'var(--accent)', boxShadow: '0 0 0 1px rgba(0,0,0,.4)' }} />
+                <span style={{ position: 'absolute', top: 2, right: 2, width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', boxShadow: '0 0 0 1px rgba(0,0,0,.4)' }} />
               )}
             </button>
           )
@@ -138,16 +138,16 @@ function RampRow({ name, ramp, overrides, onOverride, onResetStep }) {
       </div>
       <div style={{ display: 'flex', gap: 2, marginTop: 2 }}>
         {RAMP_STEPS.map(step => (
-          <div key={step} style={{ flex: 1, textAlign: 'center', fontSize: 8.5, color: 'var(--dim)', fontFamily: 'var(--mono)' }}>{step}</div>
+          <div key={step} style={{ flex: 1, textAlign: 'center', fontSize: 8, color: 'var(--dim)', fontFamily: 'var(--mono)' }}>{step}</div>
         ))}
       </div>
 
       <Expand open={selected != null}>
         <div style={{ marginTop: PAD.gap, padding: PAD.card, background: 'var(--surf2)', border: '1px solid var(--bdr)', borderRadius: 8 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 9 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
             <code style={{ fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--text)', flex: 1 }}>{name}-{selected}</code>
             {overrides[selectedKey] != null && <OverrideBadge onReset={() => onResetStep(selectedKey)} title="Reset to the generated value" />}
-            <button className="btn-ghost" style={{ padding: '2px 6px', fontSize: 11 }} onClick={() => setSelected(null)}>Close</button>
+            <button className="btn-ghost" style={{ padding: '2px 6px', fontSize: 12 }} onClick={() => setSelected(null)}>Close</button>
           </div>
           {selected != null && <ColorPicker value={ramp.steps[selected]} onChange={hex => onOverride(selectedKey, hex)} compact />}
         </div>
@@ -194,8 +194,8 @@ function GradientPurpose({ grad, css, onChange }) {
   }
 
   return (
-    <div style={{ marginBottom: 11 }}>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 8 }}>
+    <div style={{ marginBottom: 12 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 8 }}>
         <div>
           <label>Purpose</label>
           <select value={grad.purpose ?? ''} onChange={e => onChange({ ...grad, purpose: e.target.value || undefined })}
@@ -204,7 +204,7 @@ function GradientPurpose({ grad, css, onChange }) {
             {GRADIENT_PURPOSES.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
           </select>
         </div>
-        <div style={{ alignSelf: 'end', paddingBottom: 7, fontSize: 10.5, color: 'var(--dim)', lineHeight: 1.45 }}>
+        <div style={{ alignSelf: 'end', paddingBottom: 8, fontSize: 10, color: 'var(--dim)', lineHeight: 1.45 }}>
           {purpose
             ? <>{purpose.desc}{purpose.selector && <> · <code style={{ fontFamily: 'var(--mono)' }}>{purpose.selector}</code></>}</>
             : 'Without one, the file lists this gradient but cannot tell an agent where to use it.'}
@@ -215,7 +215,7 @@ function GradientPurpose({ grad, css, onChange }) {
         <label style={{ marginBottom: 0, flex: 1 }}>Notes for the implementer</label>
         {configured && (
           <button className="btn-ghost" onClick={refine} disabled={busy}
-            style={{ padding: BTN.xs, fontSize: 10.5 }}
+            style={{ padding: BTN.xs, fontSize: 10 }}
             title="Draft or tighten this note with the model chosen in the Rationale tab">
             {busy ? 'Writing…' : grad.note?.trim() ? 'Refine' : 'Draft'}
           </button>
@@ -223,12 +223,12 @@ function GradientPurpose({ grad, css, onChange }) {
       </div>
       <textarea value={grad.note ?? ''} onChange={e => onChange({ ...grad, note: e.target.value })}
         placeholder="When to reach for this one, and when not to. Goes into the file verbatim."
-        style={{ minHeight: 54, fontSize: 12, lineHeight: 1.5 }} />
+        style={{ minHeight: 56, fontSize: 12, lineHeight: 1.5 }} />
 
       {/* Never overwritten in place — the same rule the Rationale tab follows. */}
       {draft != null && (
         <div style={{
-          marginTop: PAD.row, padding: PAD.sub, borderRadius: 7,
+          marginTop: PAD.row, padding: PAD.sub, borderRadius: 8,
           background: 'rgb(var(--accent-rgb) / .07)', border: '1px solid rgb(var(--accent-rgb) / .3)',
         }}>
           <div style={{ fontSize: 12, lineHeight: 1.5, color: 'var(--text)', marginBottom: PAD.row }}>
@@ -236,9 +236,9 @@ function GradientPurpose({ grad, css, onChange }) {
           </div>
           {!busy && (
             <div style={{ display: 'flex', gap: PAD.row }}>
-              <button className="btn-primary" style={{ padding: BTN.xs, fontSize: 11 }}
+              <button className="btn-primary" style={{ padding: BTN.xs, fontSize: 12 }}
                 onClick={() => { onChange({ ...grad, note: draft }); setDraft(null) }}>Use it</button>
-              <button className="btn-ghost" style={{ padding: BTN.xs, fontSize: 11 }}
+              <button className="btn-ghost" style={{ padding: BTN.xs, fontSize: 12 }}
                 onClick={() => setDraft(null)}>Discard</button>
             </div>
           )}
@@ -272,12 +272,12 @@ function GradientRow({ grad, css, options, resolved, onChange, onDelete }) {
   })
 
   return (
-    <div style={{ background: 'var(--surf2)', border: `1px solid ${open ? 'rgb(var(--accent-rgb) / .35)' : 'var(--bdr)'}`, borderRadius: 9, overflow: 'hidden' }}>
-      <div onClick={() => setOpen(o => !o)} style={{ display: 'grid', gridTemplateColumns: '84px 1fr auto auto auto', gap: 10, alignItems: 'center', padding: `${PAD.sub}px ${PAD.card}px`, cursor: 'pointer' }}>
-        <div style={{ height: 26, borderRadius: 5, background: css, border: '1px solid rgba(255,255,255,.08)' }} />
+    <div style={{ background: 'var(--surf2)', border: `1px solid ${open ? 'rgb(var(--accent-rgb) / .35)' : 'var(--bdr)'}`, borderRadius: 8, overflow: 'hidden' }}>
+      <div onClick={() => setOpen(o => !o)} style={{ display: 'grid', gridTemplateColumns: '84px 1fr auto auto auto', gap: 12, alignItems: 'center', padding: `${PAD.sub}px ${PAD.card}px`, cursor: 'pointer' }}>
+        <div style={{ height: 28, borderRadius: 6, background: css, border: '1px solid rgba(255,255,255,.08)' }} />
         <code style={{ fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--text)' }}>{grad.name}</code>
         <button onClick={e => { e.stopPropagation(); reverse() }} title="Reverse the gradient"
-          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', padding: 3, display: 'flex' }}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', padding: 4, display: 'flex' }}
           onMouseEnter={e => { e.currentTarget.style.color = 'var(--accent)' }}
           onMouseLeave={e => { e.currentTarget.style.color = 'var(--muted)' }}>
           <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
@@ -290,7 +290,7 @@ function GradientRow({ grad, css, options, resolved, onChange, onDelete }) {
       </div>
       <Expand open={open}>
         <div style={{ padding: PAD.card, borderTop: '1px solid var(--bdr)', background: 'var(--surf)' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 11 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
             <div>
               <label>Name</label>
               <input value={grad.name} onChange={e => onChange({ ...grad, name: e.target.value.replace(/\s+/g, '-') })}
@@ -311,13 +311,13 @@ function GradientRow({ grad, css, options, resolved, onChange, onDelete }) {
               min={0} max={360} step={1} defaultValue={90} format={v => `${Math.round(v)}°`} />
           )}
           {grad.type === 'radial' && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
               <NumField label="Centre X" value={grad.cx ?? 50} min={0} max={100} suffix="%" onChange={v => onChange({ ...grad, cx: v })} />
               <NumField label="Centre Y" value={grad.cy ?? 50} min={0} max={100} suffix="%" onChange={v => onChange({ ...grad, cy: v })} />
             </div>
           )}
 
-          <div style={{ fontSize: 11, color: 'var(--muted)', margin: '4px 0 6px' }}>Stops</div>
+          <div style={{ fontSize: 12, color: 'var(--muted)', margin: '4px 0 6px' }}>Stops</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {grad.stops.map((s, i) => (
               <div key={i}
@@ -328,7 +328,7 @@ function GradientRow({ grad, css, options, resolved, onChange, onDelete }) {
                 onDrop={e => { e.preventDefault(); reorder(dragging, i); setDragging(null); setDragOver(null) }}
                 onDragEnd={() => { setDragging(null); setDragOver(null) }}
                 style={{
-                  background: 'var(--surf2)', borderRadius: 7, padding: 8, position: 'relative',
+                  background: 'var(--surf2)', borderRadius: 8, padding: 8, position: 'relative',
                   border: `1px solid ${dragOver === i ? 'var(--accent)' : 'var(--bdr)'}`,
                   opacity: dragging === i ? 0.45 : 1,
                   transition: 'border-color var(--t) var(--ease), opacity var(--t) var(--ease)',
@@ -346,7 +346,7 @@ function GradientRow({ grad, css, options, resolved, onChange, onDelete }) {
                     onClick={() => setOpenStop(openStop === i ? null : i)}
                     title="Choose a colour"
                     style={{ width: 24, height: 24, background: resolved[i], padding: 0, border: openStop === i ? '2px solid var(--accent)' : '1px solid rgba(255,255,255,.1)' }} />
-                  <code style={{ fontFamily: 'var(--mono)', fontSize: 11, color: /^#/.test(s.color) ? 'var(--muted)' : 'var(--text-dim)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <code style={{ fontFamily: 'var(--mono)', fontSize: 12, color: /^#/.test(s.color) ? 'var(--muted)' : 'var(--text-dim)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {s.color}
                     {!/^#/.test(s.color) && <span style={{ color: 'var(--dim)' }}> · {resolved[i]}</span>}
                   </code>
@@ -366,7 +366,7 @@ function GradientRow({ grad, css, options, resolved, onChange, onDelete }) {
             onClick={() => onChange({ ...grad, stops: [...grad.stops, { color: 'accent', position: 100 }] })}>
             <Plus />Add stop
           </button>
-          <code style={{ display: 'block', marginTop: 10, fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--dim)', wordBreak: 'break-all' }}>{css}</code>
+          <code style={{ display: 'block', marginTop: 12, fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--dim)', wordBreak: 'break-all' }}>{css}</code>
         </div>
       </Expand>
     </div>
@@ -426,14 +426,14 @@ export default function ColorPanel() {
   }))
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       <SectionHeader title="Colour" desc="Pick a few seeds; the scales generate from them. Roles are on the next tab." />
 
       <Collapsible title="Seeds" note={`${color.seeds.length}${lockedCount ? ` · ${lockedCount} locked` : ''}`} defaultOpen>
         {/* Generator, inline rather than on its own screen — locking a colour
             and re-rolling the rest is a loop you want to stay inside. */}
-        <div style={{ background: 'var(--surf2)', border: '1px solid var(--bdr)', borderRadius: 9, padding: PAD.card, marginBottom: 10 }}>
-          <div className="dense form-stack" style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 9 }}>
+        <div style={{ background: 'var(--surf2)', border: '1px solid var(--bdr)', borderRadius: 8, padding: PAD.card, marginBottom: 12 }}>
+          <div className="dense form-stack" style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 8 }}>
             <span style={{ fontSize: 12, color: 'var(--text)', flex: 1 }}>Generate a palette</span>
             <select value={intensity} onChange={e => setIntensity(e.target.value)}
               title="How saturated the run is — and how much colour the neutral carries, which is what tints the page"
@@ -453,7 +453,7 @@ export default function ColorPanel() {
               difference` was the clever answer and the wrong one — against a
               mid-grey it inverts to another mid-grey and vanishes, which is
               exactly where you most need to see it. */}
-          <div style={{ display: 'flex', gap: 3, height: 58, borderRadius: 6, overflow: 'hidden', marginBottom: 8 }}>
+          <div style={{ display: 'flex', gap: 4, height: 60, borderRadius: 6, overflow: 'hidden', marginBottom: 8 }}>
             {color.seeds.map(s => {
               const ink = bestOn(s.hex)
               return (
@@ -482,7 +482,7 @@ export default function ColorPanel() {
             Lock the ones you like, then generate again — locked colours anchor the hue and weight of everything else.
             Status seeds stay inside the hue bands that still read as success, warning and danger.
             {' '}<strong style={{ color: 'var(--text-dim)', fontWeight: 500 }}>The page background comes from the neutral seed</strong>,
-            not the accent — so a deep blue or oxblood interface starts by giving <code style={{ fontFamily: 'var(--mono)', fontSize: 10.5 }}>neutral</code> that
+            not the accent — so a deep blue or oxblood interface starts by giving <code style={{ fontFamily: 'var(--mono)', fontSize: 10 }}>neutral</code> that
             colour, or by running the generator on <strong style={{ color: 'var(--text-dim)', fontWeight: 500 }}>Vivid</strong>, which lets the neutral carry real chroma.
           </p>
         </div>
@@ -523,7 +523,7 @@ export default function ColorPanel() {
         <Slider label="Hue shift" desc="Rotates hue from light to dark — warm shadows, cool highlights"
           value={color.shape.hueShift} onChange={v => setShape('hueShift', v)} min={-40} max={40} step={1}
           defaultValue={DEFAULT_SHAPE.hueShift} format={v => `${v}°`} />
-        <div style={{ marginTop: 10 }}>
+        <div style={{ marginTop: 12 }}>
           <Toggle label="Pin seed colours into their scale" checked={color.shape.anchorSeed}
             onChange={v => setShape('anchorSeed', v)}
             desc="Keeps your exact brand hex present rather than approximated" />
@@ -531,7 +531,7 @@ export default function ColorPanel() {
       </Collapsible>
 
       <Collapsible title="Generated Scales" note={stepOverrides ? `${stepOverrides} overridden` : `${Object.keys(ramps).length}`} defaultOpen>
-        <p className="panel-note" style={{ marginBottom: 10 }}>Click any step to override it.</p>
+        <p className="panel-note" style={{ marginBottom: 12 }}>Click any step to override it.</p>
         {Object.entries(ramps).map(([name, ramp]) => (
           <RampRow key={name} name={name} ramp={ramp} overrides={color.stepOverrides ?? {}}
             onOverride={setStepOverride} onResetStep={resetStep} />
@@ -540,16 +540,16 @@ export default function ColorPanel() {
 
       <Collapsible title="Gradients" note={String(color.gradients?.length ?? 0)}>
         <Banner tone="info">
-          A gradient is a CSS <em>image</em>, not a colour, so it can't be a <code style={{ fontFamily: 'var(--mono)', fontSize: 10.5 }}>colors</code> token —
+          A gradient is a CSS <em>image</em>, not a colour, so it can't be a <code style={{ fontFamily: 'var(--mono)', fontSize: 10 }}>colors</code> token —
           the spec's map takes colour values. Gradients are written into the Colors section as a table instead, and reach the preview as CSS variables.
         </Banner>
-        <p className="panel-note" style={{ margin: '10px 0' }}>
-          Stops take a role name (<code style={{ fontFamily: 'var(--mono)', fontSize: 10.5 }}>accent</code>), a scale step
-          (<code style={{ fontFamily: 'var(--mono)', fontSize: 10.5 }}>accent.400</code>) or a literal hex — so a gradient tracks the palette rather than freezing it.
+        <p className="panel-note" style={{ margin: '12px 0' }}>
+          Stops take a role name (<code style={{ fontFamily: 'var(--mono)', fontSize: 10 }}>accent</code>), a scale step
+          (<code style={{ fontFamily: 'var(--mono)', fontSize: 10 }}>accent.400</code>) or a literal hex — so a gradient tracks the palette rather than freezing it.
         </p>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           {!color.gradients?.length && (
-            <div style={{ textAlign: 'center', padding: '18px 12px', color: 'var(--dim)', fontSize: 12.5, border: '1px dashed var(--bdr)', borderRadius: 9 }}>
+            <div style={{ textAlign: 'center', padding: '20px 12px', color: 'var(--dim)', fontSize: 12, border: '1px dashed var(--bdr)', borderRadius: 8 }}>
               No gradients yet.
             </div>
           )}
@@ -561,15 +561,15 @@ export default function ColorPanel() {
           ))}
         </div>
         <button className="btn-add" onClick={addGradient}><Plus />Add gradient</button>
-        <p className="panel-note" style={{ marginTop: 10 }}>
+        <p className="panel-note" style={{ marginTop: 12 }}>
           Gradient <strong>strokes</strong> have no direct CSS property. They need
-          <code style={{ fontFamily: 'var(--mono)', fontSize: 10.5 }}> border-image</code>, or a two-layer background with
-          <code style={{ fontFamily: 'var(--mono)', fontSize: 10.5 }}> background-clip</code>. That technique note is written into the file so an agent doesn't invent one.
+          <code style={{ fontFamily: 'var(--mono)', fontSize: 10 }}> border-image</code>, or a two-layer background with
+          <code style={{ fontFamily: 'var(--mono)', fontSize: 10 }}> background-clip</code>. That technique note is written into the file so an agent doesn't invent one.
         </p>
       </Collapsible>
 
       <Collapsible title="What Gets Exported">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <Toggle label="Include the numbered scales" checked={color.emitRamps}
             onChange={v => upd(c => ({ ...c, emitRamps: v }))}
             desc="Adds accent-50 … neutral-950 alongside the semantic roles" />
@@ -585,9 +585,9 @@ export default function ColorPanel() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             {color.custom.map(c => (
               <div key={c.id} style={{ display: 'grid', gridTemplateColumns: '20px 1fr auto auto', gap: 8, alignItems: 'center' }}>
-                <div className="swatch" style={{ width: 18, height: 18, background: isValidColor(c.value) ? c.value : '#555' }} />
-                <code style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--text-dim)' }}>{c.name}</code>
-                <code style={{ fontFamily: 'var(--mono)', fontSize: 10.5, color: 'var(--dim)' }}>{c.value}</code>
+                <div className="swatch" style={{ width: 20, height: 20, background: isValidColor(c.value) ? c.value : '#555' }} />
+                <code style={{ fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--text-dim)' }}>{c.name}</code>
+                <code style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--dim)' }}>{c.value}</code>
                 <ConfirmDelete onConfirm={() => upd(x => ({ ...x, custom: x.custom.filter(k => k.id !== c.id) }))} title="Remove token" />
               </div>
             ))}

@@ -193,7 +193,7 @@ function PropRow({ entryName, propKey, defaultValue, override, onSet, onReset, d
           collapsed to nothing and the slider and its unit ran off the edge and
           were clipped, not scrolled. A container query asks the pane. */}
       <div className="prop-row">
-        <code className="prop-key" style={{ fontFamily: 'var(--mono)', fontSize: 10.5, color: legal ? 'var(--text-dim)' : 'var(--warn)' }}>{propKey}</code>
+        <code className="prop-key" style={{ fontFamily: 'var(--mono)', fontSize: 10, color: legal ? 'var(--text-dim)' : 'var(--warn)' }}>{propKey}</code>
 
         <input list={options.length ? listId : undefined}
           value={override ?? ''} placeholder={defaultValue}
@@ -216,8 +216,8 @@ function PropRow({ entryName, propKey, defaultValue, override, onSet, onReset, d
             <>
               <button ref={swatchRef} className="swatch" onClick={() => setPicking(true)}
                 title="Pick a colour"
-                style={{ width: 13, height: 13, background: resolved.value, cursor: 'pointer', padding: 0, flexShrink: 0 }} />
-              <code style={{ fontFamily: 'var(--mono)', fontSize: 8.5, color: 'var(--dim)', overflow: 'hidden', textOverflow: 'ellipsis' }}>{resolved.value}</code>
+                style={{ width: 12, height: 12, background: resolved.value, cursor: 'pointer', padding: 0, flexShrink: 0 }} />
+              <code style={{ fontFamily: 'var(--mono)', fontSize: 8, color: 'var(--dim)', overflow: 'hidden', textOverflow: 'ellipsis' }}>{resolved.value}</code>
               {picking && (
                 <TokenColorPicker
                   value={current} resolved={resolved.value}
@@ -230,10 +230,10 @@ function PropRow({ entryName, propKey, defaultValue, override, onSet, onReset, d
             </>
           )}
           {resolved?.kind === 'gradient' && (
-            <span style={{ width: 34, height: 13, borderRadius: 3, background: resolved.value, border: '1px solid rgba(255,255,255,.1)', flexShrink: 0 }} />
+            <span style={{ width: 36, height: 12, borderRadius: 4, background: resolved.value, border: '1px solid rgba(255,255,255,.1)', flexShrink: 0 }} />
           )}
           {resolved?.kind === 'text' && (
-            <code style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'var(--dim)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{resolved.value}</code>
+            <code style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--dim)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{resolved.value}</code>
           )}
         </div>
 
@@ -241,9 +241,9 @@ function PropRow({ entryName, propKey, defaultValue, override, onSet, onReset, d
             the panel banner, so this only has to be a flag, not a paragraph. */}
         <span style={{
           visibility: legal ? 'hidden' : 'visible',
-          width: 13, height: 13, borderRadius: '50%', flexShrink: 0,
+          width: 12, height: 12, borderRadius: '50%', flexShrink: 0,
           border: '1px solid rgb(var(--warn-rgb) / .5)', color: 'var(--warn)',
-          fontSize: 9, lineHeight: '11px', textAlign: 'center', fontWeight: 700,
+          fontSize: 10, lineHeight: '11px', textAlign: 'center', fontWeight: 700,
         }}>!</span>
 
         {/* The orange border already says "overridden", so this is just the
@@ -266,7 +266,7 @@ function PropRow({ entryName, propKey, defaultValue, override, onSet, onReset, d
       {/* The slider belongs to the row above it, so it sits closer to that row
           than the next property does — 3px here against the list's own gap. */}
       {(spaceTarget || snapScale || hasSizeSlider) && (
-        <div style={{ display: 'grid', gridTemplateColumns: '128px minmax(0,1fr)', gap: 8, alignItems: 'center', marginTop: 3 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '128px minmax(0,1fr)', gap: 8, alignItems: 'center', marginTop: 4 }}>
           <span />
           {spaceTarget ? (
             <SnapSlider steps={derived.spacing} value={`{spacing.${derived.spacing[spaceTarget.idx]?.name}}`}
@@ -279,7 +279,7 @@ function PropRow({ entryName, propKey, defaultValue, override, onSet, onReset, d
           ) : (
             <input type="range" min={0} max={80} step={1} value={sizePx}
               onChange={e => onSet(key, `${e.target.value}px`)}
-              title="Size in pixels" style={{ height: 13 }} />
+              title="Size in pixels" style={{ height: 12 }} />
           )}
         </div>
       )}
@@ -317,7 +317,7 @@ function EntryBlock({ title, entryName, props, overrides, onSet, onReset, derive
       ...revealStyle(targeted),
     }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: PAD.label }}>
-        <code style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--accent)' }}>{entryName}</code>
+        <code style={{ fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--accent)' }}>{entryName}</code>
         {title && <span style={{ fontSize: 10, color: 'var(--dim)' }}>{title}</span>}
         {targeted && <span className="chip" style={{ color: 'var(--accent)', borderColor: 'rgb(var(--accent-rgb) / .4)' }}>from preview</span>}
       </div>
@@ -383,8 +383,8 @@ function LayoutBlock({ def, values, onSet }) {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {def.fields.map(field => (
           <Expand key={field.k} open={fieldActive(field, values)}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingBottom: 2 }}>
-              <span style={{ fontSize: 11.5, color: 'var(--muted)', minWidth: 104 }}>{field.label}</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingBottom: 2 }}>
+              <span style={{ fontSize: 12, color: 'var(--muted)', minWidth: 104 }}>{field.label}</span>
               <Segmented size="sm" value={values[field.k]} onChange={v => onSet(def.name, field.k, v)}
                 options={field.options.map(o => ({ value: o.value, label: o.label }))} />
             </div>
@@ -437,15 +437,15 @@ function ComponentBlock({ def, cfg, layout, onSetLayout, onToggle, onSet, onRese
       scrollMarginTop: 12,
       background: 'var(--surf2)',
       border: `1px solid ${targeted ? 'var(--accent)' : open ? 'rgb(var(--accent-rgb) / .35)' : 'var(--bdr)'}`,
-      borderRadius: 9, overflow: 'hidden', opacity: enabled ? 1 : 0.55,
+      borderRadius: 8, overflow: 'hidden', opacity: enabled ? 1 : 0.55,
       transition: 'border-color var(--t) var(--ease)',
     }}>
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 9, padding: '8px 12px' }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, padding: '8px 12px' }}>
         <input type="checkbox" checked={enabled} onChange={e => onToggle(def.name, e.target.checked)}
-          style={{ width: 14, height: 14, accentColor: 'var(--accent)', padding: 0, flexShrink: 0, alignSelf: 'center' }} />
+          style={{ width: 16, height: 16, accentColor: 'var(--accent)', padding: 0, flexShrink: 0, alignSelf: 'center' }} />
         <button onClick={() => setOpen(o => !o)} disabled={!enabled}
           style={{ flex: 1, display: 'flex', alignItems: 'baseline', gap: 8, background: 'none', border: 'none', cursor: enabled ? 'pointer' : 'default', color: 'var(--text)', textAlign: 'left', padding: 0, fontFamily: 'var(--sans)', minWidth: 0 }}>
-          <span style={{ fontSize: 13, flex: 1 }}>{def.label}</span>
+          <span style={{ fontSize: 14, flex: 1 }}>{def.label}</span>
           {/* Findings live inside the entry cards, which a collapsed component
               never renders — so the count comes up to the header, where it is
               the reason to open the card. It disappears once you have, because
@@ -466,7 +466,7 @@ function ComponentBlock({ def, cfg, layout, onSetLayout, onToggle, onSet, onRese
       <Expand open={open && enabled}>
         <div style={{ padding: PAD.card, borderTop: '1px solid var(--bdr)', background: 'var(--surf2)', display: 'flex', flexDirection: 'column', gap: PAD.gap }}>
           {query && (
-            <div style={{ fontSize: 10.5, color: 'var(--muted)', marginBottom: 8 }}>
+            <div style={{ fontSize: 10, color: 'var(--muted)', marginBottom: 8 }}>
               Showing properties matching <code style={{ fontFamily: 'var(--mono)', color: 'var(--accent)' }}>{query}</code>
             </div>
           )}
@@ -492,20 +492,20 @@ function ComponentBlock({ def, cfg, layout, onSetLayout, onToggle, onSet, onRese
               forcing the underline there draws a 2px mark against nothing. */}
           {def.name === 'tab' && !query && (
             <div className="entry-block" style={{ marginBottom: PAD.gap }}>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 7 }}>
-                <span style={{ fontFamily: 'var(--mono)', fontSize: 11.5, color: 'var(--text-dim)' }}>tab</span>
-                <span style={{ fontSize: 11, color: 'var(--muted)' }}>style</span>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 8 }}>
+                <span style={{ fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--text-dim)' }}>tab</span>
+                <span style={{ fontSize: 12, color: 'var(--muted)' }}>style</span>
                 <span style={{ flex: 1 }} />
                 <span className="chip">{TAB_STYLES[cfg.tabStyle ?? DEFAULT_TAB_STYLE]?.label}</span>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {Object.entries(TAB_STYLES).map(([key, spec]) => (
                   <TabStyleChoice key={key} id={key} spec={spec} roles={derived.roles[mode]}
                     selected={(cfg.tabStyle ?? DEFAULT_TAB_STYLE) === key}
                     onPick={() => onSetTabStyle(key)} />
                 ))}
               </div>
-              <div className="panel-note" style={{ marginTop: 7 }}>
+              <div className="panel-note" style={{ marginTop: 8 }}>
                 Sets <code>tab-selected</code>, <code>tab-hover</code> and <code>tab-disabled</code> together.
               </div>
             </div>
@@ -546,12 +546,12 @@ function TabStyleChoice({ id, spec, roles, selected, onPick }) {
     return (
       <span key={label} style={{
         display: 'inline-block', lineHeight: pill ? '22px' : '26px',
-        padding: pill ? '0 9px' : '0 8px', fontSize: 11.5,
+        padding: pill ? '0 9px' : '0 8px', fontSize: 12,
         whiteSpace: 'nowrap',
         fontWeight: on ? 500 : 400,
         color: off ? roles['text-subtle'] : on ? (pill ? roles.accent : roles.text) : roles['text-muted'],
         ...(pill
-          ? { borderRadius: 5, background: on ? roles['accent-subtle'] : 'transparent' }
+          ? { borderRadius: 6, background: on ? roles['accent-subtle'] : 'transparent' }
           /* An inset shadow, never a border: a border would make the selected
              tab taller than its neighbours and push it past the strip's rule. */
           : { boxShadow: on ? `inset 0 -2px 0 ${roles.accent}` : 'none' }),
@@ -563,8 +563,8 @@ function TabStyleChoice({ id, spec, roles, selected, onPick }) {
     <button type="button" onClick={onPick} aria-pressed={selected}
       title={spec.desc}
       style={{
-        display: 'flex', alignItems: 'center', gap: 11, width: '100%', textAlign: 'left',
-        padding: 7, cursor: 'pointer', borderRadius: 8,
+        display: 'flex', alignItems: 'center', gap: 12, width: '100%', textAlign: 'left',
+        padding: 8, cursor: 'pointer', borderRadius: 8,
         background: selected ? 'rgb(var(--accent-rgb) / .10)' : 'var(--surf)',
         border: '1px solid ' + (selected ? 'rgb(var(--accent-rgb) / .45)' : 'var(--bdr)'),
         color: 'var(--text)', fontFamily: 'var(--sans)',
@@ -572,15 +572,15 @@ function TabStyleChoice({ id, spec, roles, selected, onPick }) {
       {/* The sample sits on the document's surface, not the editor's, or the
           strip's own rule is measured against the wrong background. */}
       <span style={{
-        display: 'flex', gap: 3, flexShrink: 0, padding: pill ? '4px 6px' : '0 6px',
-        background: roles.surface, borderRadius: 5,
+        display: 'flex', gap: 4, flexShrink: 0, padding: pill ? '4px 6px' : '0 6px',
+        background: roles.surface, borderRadius: 6,
         borderBottom: pill ? '1px solid transparent' : `1px solid ${roles.border}`,
       }}>
         {tab('Meta', 'idle')}{tab('Colour', 'on')}{tab('Type', 'off')}
       </span>
       <span style={{ minWidth: 0 }}>
-        <span style={{ display: 'block', fontSize: 12.5, fontWeight: 500 }}>{spec.label}</span>
-        <span style={{ display: 'block', fontSize: 11, color: 'var(--muted)', marginTop: 1 }}>{spec.desc}</span>
+        <span style={{ display: 'block', fontSize: 12, fontWeight: 500 }}>{spec.label}</span>
+        <span style={{ display: 'block', fontSize: 12, color: 'var(--muted)', marginTop: 1 }}>{spec.desc}</span>
       </span>
     </button>
   )
@@ -664,7 +664,7 @@ export default function ComponentsPanel({ inspect }) {
   return (
     /* The preview's custom properties, set once for the whole panel. Every
        .dmd sample below inherits them. */
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 10, ...sampleVars }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12, ...sampleVars }}>
       {/* Every rule in here is scoped to .dmd, so a second copy in this pane
           styles the entry samples and reaches nothing else. */}
       <style>{PREVIEW_CSS}</style>
@@ -673,12 +673,12 @@ export default function ComponentsPanel({ inspect }) {
 
       <Banner tone="info">
         <span style={{
-          display: 'inline-block', width: 13, height: 13, borderRadius: '50%', marginRight: 5,
-          border: '1px solid rgb(var(--warn-rgb) / .5)', color: 'var(--warn)', fontSize: 9,
+          display: 'inline-block', width: 12, height: 12, borderRadius: '50%', marginRight: 6,
+          border: '1px solid rgb(var(--warn-rgb) / .5)', color: 'var(--warn)', fontSize: 10,
           lineHeight: '11px', textAlign: 'center', fontWeight: 700, verticalAlign: 'middle',
         }}>!</span>
         A property marked with this isn't one of the eight the DESIGN.md schema allows
-        (<code style={{ fontFamily: 'var(--mono)', fontSize: 10.5 }}>{SPEC_COMPONENT_PROPS.join(', ')}</code>),
+        (<code style={{ fontFamily: 'var(--mono)', fontSize: 10 }}>{SPEC_COMPONENT_PROPS.join(', ')}</code>),
         so it can't sit in the YAML frontmatter. It's written into the Components section of the file as a table
         instead — it still reaches the agent and is applied the same way, it just travels in a different part of
         the file. {proseOnly} propert{proseOnly === 1 ? 'y is' : 'ies are'} taking that route right now.
@@ -694,7 +694,7 @@ export default function ComponentsPanel({ inspect }) {
           aria-label="Search components"
           style={{ width: '100%' }} />
         {q && (
-          <div className="panel-note" style={{ marginTop: 5, display: 'flex', alignItems: 'baseline', gap: 8 }}>
+          <div className="panel-note" style={{ marginTop: 6, display: 'flex', alignItems: 'baseline', gap: 8 }}>
             <span>
               {hits.size === 0
                 ? <>Nothing matches <strong>{search.trim()}</strong>.</>
@@ -705,14 +705,14 @@ export default function ComponentsPanel({ inspect }) {
             <button type="button" onClick={() => setSearch('')}
               style={{
                 background: 'none', border: 0, padding: 0, cursor: 'pointer',
-                color: 'var(--accent)', fontFamily: 'var(--sans)', fontSize: 11.5,
+                color: 'var(--accent)', fontFamily: 'var(--sans)', fontSize: 12,
               }}>Clear</button>
           </div>
         )}
       </div>
 
       <Collapsible title="What Gets Emitted">
-        <div style={{ display: 'flex', gap: 14 }}>
+        <div style={{ display: 'flex', gap: 16 }}>
           <Toggle label="Emit sizes" checked={cfg.emitSizes} onChange={v => upd(c => ({ ...c, emitSizes: v }))} />
           <Toggle label="Emit states" checked={cfg.emitStates} onChange={v => upd(c => ({ ...c, emitStates: v }))} />
         </div>
@@ -758,13 +758,13 @@ export default function ComponentsPanel({ inspect }) {
           <p className="panel-note" style={{ marginBottom: 8 }}>Carried over from an imported file. Emitted verbatim.</p>
           {cfg.custom.map(c => (
             <div key={c.name} style={{ marginBottom: 8 }}>
-              <code style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--text-dim)' }}>{c.name}</code>
-              <div style={{ fontSize: 10.5, color: 'var(--dim)', fontFamily: 'var(--mono)', marginTop: 2 }}>
+              <code style={{ fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--text-dim)' }}>{c.name}</code>
+              <div style={{ fontSize: 10, color: 'var(--dim)', fontFamily: 'var(--mono)', marginTop: 2 }}>
                 {c.properties.map(p => `${p.key}: ${p.value}`).join(' · ')}
               </div>
             </div>
           ))}
-          <button className="btn-ghost" style={{ padding: '4px 10px', fontSize: 11, marginTop: 6 }}
+          <button className="btn-ghost" style={{ padding: '4px 12px', fontSize: 12, marginTop: 6 }}
             onClick={() => upd(c => ({ ...c, custom: [] }))}>Remove all</button>
         </Collapsible>
       )}

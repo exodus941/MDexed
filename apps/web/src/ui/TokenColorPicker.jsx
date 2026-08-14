@@ -72,7 +72,7 @@ export default function TokenColorPicker({
         position: 'fixed', left,
         ...(openUp ? { bottom: vp.h - rect.top + 8 } : { top: rect ? rect.bottom + 8 : 80 }),
         zIndex: 2001, width: WIDTH,
-        background: 'var(--surf2)', border: '1px solid var(--bdr2)', borderRadius: 10,
+        background: 'var(--surf2)', border: '1px solid var(--bdr2)', borderRadius: 12,
         boxShadow: '0 18px 44px rgba(0,0,0,.6)', padding: 12,
         display: 'grid', gridTemplateColumns: '208px 1fr', gap: 12,
       }}>
@@ -82,7 +82,7 @@ export default function TokenColorPicker({
           </div>
           {/* Always available — editing it detaches the value from the palette. */}
           <ColorPicker value={following ? resolved : value} onChange={onPick} compact />
-          <p className="panel-note" style={{ fontSize: 10.5, marginTop: 7 }}>
+          <p className="panel-note" style={{ fontSize: 10, marginTop: 8 }}>
             {note ?? (following
               ? <>Following <code style={{ fontFamily: 'var(--mono)', fontSize: 10 }}>{value}</code>. Adjusting this pins it to a literal colour.</>
               : 'This is a literal colour and ignores the palette.')}
@@ -90,10 +90,10 @@ export default function TokenColorPicker({
         </div>
 
         {/* paddingRight keeps the swatches off the scrollbar. */}
-        <div style={{ borderLeft: '1px solid var(--bdr)', paddingLeft: 12, paddingRight: 10, maxHeight: 300, overflowY: 'auto' }}>
+        <div style={{ borderLeft: '1px solid var(--bdr)', paddingLeft: 12, paddingRight: 12, maxHeight: 300, overflowY: 'auto' }}>
           {groups.map(group => (
-            <div key={group.label} style={{ marginBottom: 10 }}>
-              <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--muted)', marginBottom: 5 }}>
+            <div key={group.label} style={{ marginBottom: 12 }}>
+              <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--muted)', marginBottom: 6 }}>
                 {group.label}
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(11, 1fr)', gap: 4 }}>

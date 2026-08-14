@@ -34,7 +34,7 @@ function Section({ title, note, children, txt }) {
    different layouts decided by an ancestor two levels up. The class puts the
    rule on the label itself, so every specimen row reads the same way. */
 const Label = ({ children, txt }) => (
-  <div className="caption row-label" style={{ minWidth: 74, textTransform: 'uppercase', letterSpacing: '.06em' }}
+  <div className="caption row-label" style={{ minWidth: 76, textTransform: 'uppercase', letterSpacing: '.06em' }}
     {...txt('overline', 'text-muted')}>{children}</div>
 )
 
@@ -165,7 +165,7 @@ export default function Gallery({ onInspect, layout }) {
 
       <Section txt={txt} title="Tooltip and menu">
         <div className="row" style={{ alignItems: 'flex-start', gap: 'var(--space-lg, 24px)' }}>
-          <div style={{ position: 'relative', paddingTop: 30 }}>
+          <div style={{ position: 'relative', paddingTop: 32 }}>
             <span {...ins('tooltip')} style={{
               position: 'absolute', top: 0, left: 0, whiteSpace: 'nowrap',
               background: 'var(--cmp-tooltip-background-color, var(--c-text, #111))',
@@ -194,13 +194,13 @@ export default function Gallery({ onInspect, layout }) {
             <input className="input" placeholder="Search invoices" />
           </div>
           <div className="row">
-            <button className="btn btn-secondary select-trigger" style={{ minWidth: 150 }} {...ins('select')}>
+            <button className="btn btn-secondary select-trigger" style={{ minWidth: 152 }} {...ins('select')}>
               <span>All accounts</span><Ico d={IconChevron} />
             </button>
-            <div className="row" style={{ gap: 2, background: 'var(--c-bg-subtle, #eee)', padding: 3, borderRadius: 'var(--radius-md, 8px)' }}>
+            <div className="row" style={{ gap: 2, background: 'var(--c-bg-subtle, #eee)', padding: 4, borderRadius: 'var(--radius-md, 8px)' }}>
               {['Day', 'Week', 'Month'].map((t, i) => (
                 <span key={t} className="nav-item" {...ins(i === 1 ? 'nav-item-selected' : 'nav-item')} style={{
-                  padding: '4px 10px',
+                  padding: '4px 12px',
                   background: i === 1 ? 'var(--c-surface, #fff)' : 'transparent',
                   color: i === 1 ? 'var(--c-text, #111)' : undefined,
                   boxShadow: i === 1 ? 'var(--shadow-raised, none)' : 'none',
@@ -286,7 +286,7 @@ export default function Gallery({ onInspect, layout }) {
           </div>
           <div className="card stack-sm" {...ins("card")}>
             {['70%', '92%', '48%'].map(w => (
-              <div key={w} style={{ height: 10, width: w, borderRadius: 'var(--radius-sm, 4px)', background: 'var(--c-bg-subtle, #eee)' }} />
+              <div key={w} style={{ height: 12, width: w, borderRadius: 'var(--radius-sm, 4px)', background: 'var(--c-bg-subtle, #eee)' }} />
             ))}
             <div className="bar" style={{ marginTop: 4 }}><span style={{ width: '38%' }} /></div>
             <span className="caption" {...txt("caption", "text-muted")}>Loading skeleton and progress</span>

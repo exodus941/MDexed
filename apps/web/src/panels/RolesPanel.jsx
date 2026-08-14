@@ -49,8 +49,8 @@ function RoleRow({ role, roles, refs, ramps, overrides, onSetRef, onOverride, on
       <div onClick={() => setOpen(o => !o)}
         style={{ display: 'grid', gridTemplateColumns: `1fr ${modes.map(() => '22px').join(' ')}`, gap: 8, alignItems: 'center', padding: PAD.sub, cursor: 'pointer' }}>
         <div style={{ minWidth: 0 }}>
-          <code style={{ fontFamily: 'var(--mono)', fontSize: 11.5, color: 'var(--text)' }}>{role.name}</code>
-          <div style={{ fontSize: 10.5, color: 'var(--dim)', marginTop: 1 }}>{role.desc}</div>
+          <code style={{ fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--text)' }}>{role.name}</code>
+          <div style={{ fontSize: 10, color: 'var(--dim)', marginTop: 1 }}>{role.desc}</div>
         </div>
         {modes.map(mode => (
           /* Centred in its track: a 20px swatch left-aligned in a 22px column
@@ -58,7 +58,7 @@ function RoleRow({ role, roles, refs, ramps, overrides, onSetRef, onOverride, on
           <div key={mode} className="swatch" title={`${mode}: ${roles[mode][role.name]}`}
             style={{ width: 20, height: 20, background: roles[mode][role.name], position: 'relative', justifySelf: 'center' }}>
             {overrides[`${role.name}:${mode}`] != null && (
-              <span style={{ position: 'absolute', top: -2, right: -2, width: 5, height: 5, borderRadius: '50%', background: 'var(--accent)' }} />
+              <span style={{ position: 'absolute', top: -2, right: -2, width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)' }} />
             )}
           </div>
         ))}
@@ -86,14 +86,14 @@ function RoleRow({ role, roles, refs, ramps, overrides, onSetRef, onOverride, on
             const key = `${role.name}:${mode}`
             const overridden = overrides[key] != null
             return (
-              <div key={mode} style={{ background: 'var(--surf2)', border: '1px solid var(--bdr)', borderRadius: 7, padding: PAD.sub }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 7 }}>
-                  <span style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--muted)', flex: 1 }}>{mode}</span>
+              <div key={mode} style={{ background: 'var(--surf2)', border: '1px solid var(--bdr)', borderRadius: 8, padding: PAD.sub }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                  <span style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--muted)', flex: 1 }}>{mode}</span>
                   {overridden && <OverrideBadge onReset={() => onResetOverride(key)} title="Relink to the scale" />}
                 </div>
                 <select value={refs[role.name]?.[mode] ?? ''} disabled={overridden}
                   onChange={e => onSetRef(role.name, mode, e.target.value)}
-                  style={{ fontFamily: 'var(--mono)', fontSize: 11, padding: '5px 7px', marginBottom: 7, opacity: overridden ? .5 : 1 }}>
+                  style={{ fontFamily: 'var(--mono)', fontSize: 12, padding: '6px 8px', marginBottom: 8, opacity: overridden ? .5 : 1 }}>
                   {options.map(o => <option key={o} value={o}>{o}</option>)}
                 </select>
                 <ColorPicker value={roles[mode][role.name]} onChange={hex => onOverride(key, hex)} compact />
@@ -129,14 +129,14 @@ function PairChecker({ roles, mode }) {
   const specFs = size === 'large' ? 20 : 14
 
   const Select = ({ value, onChange }) => (
-    <select value={value} onChange={e => onChange(e.target.value)} style={{ fontFamily: 'var(--mono)', fontSize: 11, padding: '5px 6px' }}>
+    <select value={value} onChange={e => onChange(e.target.value)} style={{ fontFamily: 'var(--mono)', fontSize: 12, padding: '6px 6px' }}>
       {names.map(n => <option key={n} value={n}>{n}</option>)}
     </select>
   )
 
   return (
     <div style={{ marginBottom: 12 }}>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: 7, alignItems: 'end', marginBottom: 9 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: 8, alignItems: 'end', marginBottom: 8 }}>
         <div><label>Foreground</label><Select value={fg} onChange={setFg} /></div>
         <div><label>Background</label><Select value={bg} onChange={setBg} /></div>
         {/* An SVG, not the ⇄ character. Plus Jakarta Sans has no glyph for it,
@@ -155,22 +155,22 @@ function PairChecker({ roles, mode }) {
       {/* Two blocks, not two items on a line: a two-line swatch beside a
           four-line readout. Neither one's first line is the line the other
           belongs on, so they centre against each other. */}
-      <div style={{ display: 'flex', gap: 10, alignItems: 'stretch' }}>
+      <div style={{ display: 'flex', gap: 12, alignItems: 'stretch' }}>
         <div className="preview-box" style={{ flex: 1, background: bgHex, padding: `${SPEC_PAD}px 12px`, minWidth: 0 }}>
           <div style={{ color: fgHex, fontSize: specFs, fontWeight: size === 'large' ? 600 : 400, lineHeight: SPEC_LH }}>
             The quick brown fox
           </div>
-          <div style={{ color: fgHex, fontSize: 11, opacity: .85, marginTop: 2 }}>{fgHex} on {bgHex}</div>
+          <div style={{ color: fgHex, fontSize: 12, opacity: .85, marginTop: 2 }}>{fgHex} on {bgHex}</div>
         </div>
-        <div style={{ width: 104, flexShrink: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 3, textAlign: 'right' }}>
+        <div style={{ width: 104, flexShrink: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 4, textAlign: 'right' }}>
           <div style={{ fontFamily: 'var(--mono)', fontSize: RATIO_FS, color: bad ? 'var(--danger)' : 'var(--success)' }}>{r.ratio}:1</div>
-          <div className={bad ? 'fail' : 'pass'} style={{ fontSize: 11, fontFamily: 'var(--mono)' }}>{r.label}</div>
+          <div className={bad ? 'fail' : 'pass'} style={{ fontSize: 12, fontFamily: 'var(--mono)' }}>{r.label}</div>
           <div style={{ fontSize: 10, color: 'var(--dim)', fontFamily: 'var(--mono)' }}>Lc {r.lc}</div>
-          <div style={{ fontSize: 9.5, color: 'var(--dim)' }}>{r.use}</div>
+          <div style={{ fontSize: 10, color: 'var(--dim)' }}>{r.use}</div>
         </div>
       </div>
 
-      <div style={{ marginTop: 9 }}>
+      <div style={{ marginTop: 8 }}>
         <Segmented value={size} onChange={setSize} size="sm"
           options={[{ value: 'body', label: 'Body Text' }, { value: 'large', label: 'Large / Bold' }]} />
       </div>
@@ -198,7 +198,7 @@ function ContrastReport({ roles, mode }) {
   return (
     <div>
       {failing.length > 0 && (
-        <div style={{ marginBottom: 10 }}>
+        <div style={{ marginBottom: 12 }}>
           <Banner tone="warn">
             {failing.length} pair{failing.length === 1 ? '' : 's'} below the accessible minimum in {mode} mode. Agents will reproduce these faithfully — fix them here rather than downstream.
           </Banner>
@@ -213,25 +213,25 @@ function ContrastReport({ roles, mode }) {
               /* Above each row, so the list ends on a row rather than on a
                  rule. Same reason as the role rows: a separator is a thing
                  BETWEEN two items, and drawn below it outlives the last one. */
-              style={{ display: 'grid', gridTemplateColumns: '1fr auto auto auto', gap: 9, alignItems: 'baseline', padding: '5px 0', borderTop: '1px solid var(--bdr)' }}>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 7, minWidth: 0 }}>
+              style={{ display: 'grid', gridTemplateColumns: '1fr auto auto auto', gap: 8, alignItems: 'baseline', padding: '6px 0', borderTop: '1px solid var(--bdr)' }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, minWidth: 0 }}>
                 {/* The "A" is a specimen inside a swatch, not part of the row's
                     line of text — it stays centred in its own chip. */}
-                <div style={{ width: 22, height: 18, borderRadius: 4, background: bgHex, border: '1px solid var(--bdr)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, alignSelf: 'center' }}>
-                  <span style={{ color: fgHex, fontSize: 11, fontWeight: 700, lineHeight: 1 }}>A</span>
+                <div style={{ width: 24, height: 20, borderRadius: 4, background: bgHex, border: '1px solid var(--bdr)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, alignSelf: 'center' }}>
+                  <span style={{ color: fgHex, fontSize: 12, fontWeight: 700, lineHeight: 1 }}>A</span>
                 </div>
                 <span style={{ fontSize: 12, color: 'var(--text-dim)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{pair.label}</span>
               </div>
-              <span style={{ fontFamily: 'var(--mono)', fontSize: 10.5, color: 'var(--dim)' }}>Lc {res.lc}</span>
-              <span style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--muted)' }}>{res.ratio}:1</span>
-              <span className={bad ? 'fail' : 'pass'} style={{ fontFamily: 'var(--mono)', fontSize: 10.5, minWidth: 46, textAlign: 'right' }}>
+              <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--dim)' }}>Lc {res.lc}</span>
+              <span style={{ fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--muted)' }}>{res.ratio}:1</span>
+              <span className={bad ? 'fail' : 'pass'} style={{ fontFamily: 'var(--mono)', fontSize: 10, minWidth: 48, textAlign: 'right' }}>
                 {pair.ui ? (res.ratio >= 3 ? 'Pass' : 'Fail') : res.label}
               </span>
             </div>
           )
         })}
       </div>
-      <p className="panel-note" style={{ marginTop: 9 }}>
+      <p className="panel-note" style={{ marginTop: 8 }}>
         Ratios are WCAG 2.1; Lc is APCA, which models real legibility better — especially for light text on dark backgrounds, where WCAG is known to be over-permissive.
       </p>
     </div>
@@ -277,18 +277,18 @@ export default function RolesPanel({ inspect }) {
   }).length
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       <PanelAlerts tab="roles" />
       <SectionHeader title="Semantic Roles" desc="What each colour is for. This is what the exported file leads with."
         right={overrideCount > 0 ? <span className="chip">{overrideCount} overridden</span> : null} />
 
       <Collapsible title="Modes" defaultOpen>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 12 }}>
-          <span style={{ fontSize: 11.5, color: 'var(--muted)' }}>Editing</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+          <span style={{ fontSize: 12, color: 'var(--muted)' }}>Editing</span>
           <Segmented value={scope} onChange={setScope} size="sm"
             options={[{ value: 'light', label: 'Light only' }, { value: 'dark', label: 'Dark only' }, { value: 'both', label: 'Both' }]} />
           {scope !== 'both' && scope !== color.mode && (
-            <button className="btn-ghost" style={{ padding: '2px 6px', fontSize: 10.5 }}
+            <button className="btn-ghost" style={{ padding: '2px 6px', fontSize: 10 }}
               onClick={() => upd(c => ({ ...c, mode: scope }))}>
               Preview {scope}
             </button>
@@ -297,7 +297,7 @@ export default function RolesPanel({ inspect }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: PAD.sub, background: 'var(--surf2)', border: '1px solid var(--bdr)', borderRadius: 8 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 12, color: 'var(--text)' }}>Generate the opposite mode</div>
-            <div style={{ fontSize: 10.5, color: 'var(--dim)', marginTop: 1 }}>Mirrors each role's scale position. A starting point, not a finished theme.</div>
+            <div style={{ fontSize: 10, color: 'var(--dim)', marginTop: 1 }}>Mirrors each role's scale position. A starting point, not a finished theme.</div>
           </div>
           {/* Full-size, not chip-size. These rewrite every role in a mode,
               which is one of the larger actions in the app. */}
@@ -310,7 +310,7 @@ export default function RolesPanel({ inspect }) {
           of change as a tab, so it dissolves like one. Open state lives above
           this in the panel, so nothing collapses on the way through. */}
       <CrossFade id={scope}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       {ROLE_GROUPS.map(group => (
         <Collapsible key={group.id} title={group.label} note={String(group.roles.length)}
           open={openGroups.has(group.id)} onOpenChange={v => toggleGroup(group.id, v)}
@@ -335,7 +335,7 @@ export default function RolesPanel({ inspect }) {
           }}>
             <p className="panel-note" style={{ margin: 0 }}>{group.desc}</p>
             {(scope === 'both' ? ['L', 'D'] : [scope === 'light' ? 'L' : 'D']).map(l => (
-              <span key={l} style={{ fontSize: 8.5, color: 'var(--dim)', textAlign: 'center' }}>{l}</span>
+              <span key={l} style={{ fontSize: 8, color: 'var(--dim)', textAlign: 'center' }}>{l}</span>
             ))}
           </div>
           {group.roles.map(role => (

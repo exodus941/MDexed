@@ -23,7 +23,7 @@ const ROLE_DESC = {
    the typeface actually supports rather than a fixed guess. */
 function AxisControls({ familyMeta, values, onChange }) {
   const axes = (familyMeta?.axes ?? []).filter(a => a.tag !== 'ital')
-  if (!axes.length) return <div style={{ fontSize: 11, color: 'var(--dim)' }}>Not a variable font — no axes to adjust.</div>
+  if (!axes.length) return <div style={{ fontSize: 12, color: 'var(--dim)' }}>Not a variable font — no axes to adjust.</div>
   return (
     <div>
       {axes.map(axis => (
@@ -69,18 +69,18 @@ function TokenRow({ token, overrides, onOverride, onReset, families, inspect }) 
       borderBottom: '1px solid var(--bdr)', padding: PAD.sub,
       ...revealStyle(targeted),
     }}>
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 9, marginBottom: 6 }}>
-        <code style={{ fontFamily: 'var(--mono)', fontSize: 11.5, color: 'var(--text)', minWidth: 64 }}>{token.name}</code>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 6 }}>
+        <code style={{ fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--text)', minWidth: 64 }}>{token.name}</code>
         <span className="preview-box"
           style={{
             flex: 1, fontFamily: stack, fontSize: Math.min(24, token.computedPx),
             fontWeight: token.fontWeight, letterSpacing: token.letterSpacing,
             color: 'var(--text-dim)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-            padding: '3px 8px', lineHeight: 1.35,
+            padding: '4px 8px', lineHeight: 1.35,
           }}>
           Ag — the quick brown fox
         </span>
-        <span style={{ fontFamily: 'var(--mono)', fontSize: 10.5, color: 'var(--dim)' }}>{token.computedPx}px</span>
+        <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--dim)' }}>{token.computedPx}px</span>
         {anyOverride && <OverrideBadge onReset={() => onReset(token.name)} title="Reset this token to the scale" />}
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
@@ -92,7 +92,7 @@ function TokenRow({ token, overrides, onOverride, onReset, families, inspect }) 
               onChange={e => onOverride(key, e.target.value)}
               title={set ? 'Overridden' : 'Generated — type to override'}
               style={{
-                fontFamily: 'var(--mono)', fontSize: 11, padding: '4px 6px',
+                fontFamily: 'var(--mono)', fontSize: 12, padding: '4px 6px',
                 color: set ? 'var(--accent)' : 'var(--muted)',
                 borderColor: set ? 'rgb(var(--accent-rgb) / .4)' : 'var(--bdr)',
               }} />
@@ -138,7 +138,7 @@ export default function TypographyPanel({ inspect }) {
   const generated = derived.typography.filter(x => !x.custom)
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       <PanelAlerts tab="type" />
       <SectionHeader title="Typography" desc="Three families and one modular scale generate every text style."
         right={overrideCount > 0 ? <span className="chip">{overrideCount} overridden</span> : null} />
@@ -148,14 +148,14 @@ export default function TypographyPanel({ inspect }) {
         {['display', 'body', 'mono'].map(role => {
           const meta = catalog.find(f => f.family === t.families[role]?.family)
           return (
-            <div key={role} style={{ background: 'var(--surf2)', border: '1px solid var(--bdr)', borderRadius: 9, padding: PAD.card }}>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 7 }}>
-                <span style={{ fontSize: 12.5, color: 'var(--text)', fontWeight: 500 }}>{ROLE_LABELS[role]}</span>
-                <span style={{ fontSize: 11, color: 'var(--dim)' }}>{ROLE_DESC[role]}</span>
+            <div key={role} style={{ background: 'var(--surf2)', border: '1px solid var(--bdr)', borderRadius: 8, padding: PAD.card }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 8 }}>
+                <span style={{ fontSize: 12, color: 'var(--text)', fontWeight: 500 }}>{ROLE_LABELS[role]}</span>
+                <span style={{ fontSize: 12, color: 'var(--dim)' }}>{ROLE_DESC[role]}</span>
               </div>
               <FontPicker value={t.families[role]?.family} onChange={fam => setFamily(role, fam)} role={role} />
               <div className="preview-box" style={{
-                marginTop: 9, padding: PAD.card,
+                marginTop: 8, padding: PAD.card,
                 fontFamily: stackFor(t.families[role]?.family, t.families[role]?.category),
                 fontSize: role === 'display' ? 22 : 15, color: 'var(--text)',
                 fontVariationSettings: Object.entries(t.axes?.[role] ?? {}).map(([k, v]) => `"${k}" ${v}`).join(', ') || undefined,
@@ -164,7 +164,7 @@ export default function TypographyPanel({ inspect }) {
               }}>
                 {role === 'mono' ? 'const total = 1,234.56;' : 'Handgloves 0123'}
               </div>
-              <div style={{ marginTop: 9 }}>
+              <div style={{ marginTop: 8 }}>
                 <Collapsible title="Axes and Features" note={meta?.axes?.length ? `${meta.axes.length} axes` : 'static'}>
                   <div style={{ marginBottom: 12 }}>
                     <AxisControls familyMeta={meta} values={t.axes?.[role]} onChange={(tag, v) => setAxis(role, tag, v)} />
@@ -179,11 +179,11 @@ export default function TypographyPanel({ inspect }) {
       </Collapsible>
 
       <Collapsible title="Scale" note={`${t.base}px · ${t.ratio}`} defaultOpen>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 11, marginBottom: 12, alignItems: 'end' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12, alignItems: 'end' }}>
           <NumField label="Base size" value={t.base} min={10} max={24} step={1} suffix="px" onChange={v => setField('base', v)} />
           <div>
             <label>Ratio</label>
-            <select value={t.ratio} onChange={e => setField('ratio', parseFloat(e.target.value))} style={{ fontSize: 12.5, padding: '6px 8px' }}>
+            <select value={t.ratio} onChange={e => setField('ratio', parseFloat(e.target.value))} style={{ fontSize: 12, padding: '6px 8px' }}>
               {RATIOS.map(r => <option key={r.value} value={r.value}>{r.name} — {r.value}</option>)}
             </select>
           </div>
@@ -196,13 +196,13 @@ export default function TypographyPanel({ inspect }) {
       </Collapsible>
 
       <Collapsible title="Fluid Sizing" note={t.fluid.enabled ? 'on' : 'off'}>
-        <p className="panel-note" style={{ marginBottom: 10 }}>
+        <p className="panel-note" style={{ marginBottom: 12 }}>
           Emits <code>clamp()</code> so type interpolates with the viewport instead of stepping at breakpoints.
         </p>
         <Toggle label="Generate fluid sizes" checked={t.fluid.enabled} onChange={v => setFluid('enabled', v)} />
         {t.fluid.enabled && (
           <div style={{ marginTop: 12 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
               <NumField label="Min viewport" value={t.fluid.minVw} min={280} max={768} suffix="px" onChange={v => setFluid('minVw', v)} />
               <NumField label="Max viewport" value={t.fluid.maxVw} min={768} max={2000} suffix="px" onChange={v => setFluid('maxVw', v)} />
             </div>
