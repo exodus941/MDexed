@@ -64,18 +64,29 @@ export const IconChart = <><line x1="18" y1="20" x2="18" y2="10" /><line x1="12"
    bottom edge and it rides high beside its label. The rule was written and this
    component never carried the class, so the rule matched nothing for as long as
    both existed. A selector is only as good as the class actually on the node. */
-export const Check = ({ on }) => (
-  <span className="checkbox" style={{
-    width: 'var(--cmp-checkbox-size, 16px)', height: 'var(--cmp-checkbox-size, 16px)',
-    borderRadius: 'var(--cmp-checkbox-rounded, var(--radius-sm, 4px))',
-    border: `1px solid ${on ? 'var(--cmp-checkbox-checked-border-color, var(--c-accent, #333))' : 'var(--cmp-checkbox-border-color, var(--c-border, #ccc))'}`,
-    background: on ? 'var(--cmp-checkbox-checked-background-color, var(--c-accent, #333))' : 'var(--cmp-checkbox-background-color, var(--c-surface, #fff))',
-    color: 'var(--cmp-checkbox-checked-text-color, var(--c-accent-fg, #fff))',
-    display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-  }}>
-    {on && <svg aria-hidden="true" focusable="false" width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3.4} strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>}
-  </span>
-)
+/* THREE states, not two. `mixed` is the honest answer for a select-all box
+   when some of the rows below it are chosen and some are not: unchecked claims
+   nothing is selected while rows plainly are, and checked claims everything
+   is. It takes the checked colours and a DASH, because the mark is what
+   separates the two — a reader who cannot tell the hues apart still sees two
+   shapes. The state was missing from this component and from the schema, and
+   it stayed missing because no sample had a selectable list. */
+export const Check = ({ on, mixed }) => {
+  const filled = on || mixed
+  return (
+    <span className="checkbox" style={{
+      width: 'var(--cmp-checkbox-size, 16px)', height: 'var(--cmp-checkbox-size, 16px)',
+      borderRadius: 'var(--cmp-checkbox-rounded, var(--radius-sm, 4px))',
+      border: `1px solid ${filled ? 'var(--cmp-checkbox-checked-border-color, var(--c-accent, #333))' : 'var(--cmp-checkbox-border-color, var(--c-border, #ccc))'}`,
+      background: filled ? 'var(--cmp-checkbox-checked-background-color, var(--c-accent, #333))' : 'var(--cmp-checkbox-background-color, var(--c-surface, #fff))',
+      color: 'var(--cmp-checkbox-checked-text-color, var(--c-accent-fg, #fff))',
+      display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+    }}>
+      {on && <svg aria-hidden="true" focusable="false" width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3.4} strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>}
+      {mixed && !on && <svg aria-hidden="true" focusable="false" width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3.4} strokeLinecap="round"><line x1="5" y1="12" x2="19" y2="12" /></svg>}
+    </span>
+  )
+}
 
 export const Switch = ({ on }) => (
   <span className="switch" style={{

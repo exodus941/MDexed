@@ -23,7 +23,7 @@
  */
 import { inspectProps, text } from '../inspect.js'
 import { labeller } from '../casing.js'
-import { Ico, IconPlus, IconDownload, IconSearch, IconMore, IconCheck, IconAlert } from '../icons.jsx'
+import { Ico, Check, IconPlus, IconDownload, IconSearch, IconMore, IconCheck, IconAlert, IconChevron } from '../icons.jsx'
 
 const ROWS = [
   { id: 'INV-2291', ini: 'AK', account: 'Ashford & Kline',   status: 'Overdue', due: '12 Aug', amount: '$21,050', on: true },
@@ -44,37 +44,10 @@ const BADGE = { Overdue: 'badge-danger', Paid: 'badge-success', Sent: 'badge-war
    badge with no mark is how the set says so. */
 const MARK = { Overdue: IconAlert, Paid: IconCheck, Sent: IconDownload }
 
-/* Three states, not two. Indeterminate is the only honest answer for a
-   select-all box over a part-selected set, and the DASH is what distinguishes
-   it — never the fill, so a reader who cannot separate two hues still sees two
-   shapes. */
-function Box ({ state, ins }) {
-  const on = state === 'checked' || state === 'indeterminate'
-  return (
-    <span className="checkbox" aria-hidden="true"
-      {...ins(state === 'indeterminate' ? 'checkbox-indeterminate' : on ? 'checkbox-checked' : 'checkbox')}
-      style={{
-        display: 'inline-block', width: 16, height: 16, flexShrink: 0,
-        borderRadius: 'var(--radius-sm)',
-        border: '1px solid ' + (on ? 'var(--c-accent)' : 'var(--c-border)'),
-        background: on ? 'var(--c-accent)' : 'var(--c-surface)',
-        position: 'relative',
-      }}>
-      {state === 'indeterminate' && (
-        <span style={{
-          position: 'absolute', left: 3, right: 3, top: 6.5, height: 2,
-          background: 'var(--c-accent-fg)', borderRadius: 1,
-        }} />
-      )}
-      {state === 'checked' && (
-        <svg viewBox="0 0 16 16" width="14" height="14" style={{ position: 'absolute', left: 0, top: 0 }}>
-          <path d="M4 8.5 L6.5 11 L12 5" fill="none" stroke="var(--c-accent-fg)" strokeWidth="2"
-            strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      )}
-    </span>
-  )
-}
+/* No local checkbox. This file had one, hand-rolled with eight inline values,
+   beside the shared `Check` that Form, Dialog and the Gallery already use — a
+   fourth implementation of a component the system declares. It now uses the
+   shared one, which gained the third state instead. */
 
 export default function Index ({ onInspect, casing, layout }) {
   const L = labeller(casing)
@@ -130,7 +103,7 @@ export default function Index ({ onInspect, casing, layout }) {
             while the other read "Overdue" — two controls for one decision. */}
         <button className="btn btn-secondary" {...ins('button-secondary')}
           style={{ borderColor: 'var(--c-accent)', color: 'var(--c-accent)', flexShrink: 0 }}>
-          <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--c-danger)' }} />
+          <span className="dot" style={{ color: 'var(--c-danger)' }} />
           {L('Status')}: {L('Overdue')}
         </button>
         <button className="btn btn-secondary" {...ins('button-secondary')} style={{ flexShrink: 0 }}>{L('Due')}: {L('Any')}</button>
@@ -148,7 +121,7 @@ export default function Index ({ onInspect, casing, layout }) {
               — and a control row is one height. Grouped, the bar's children
               are uniform and the box centres inside its own group. */}
           <span className="row" style={{ gap: 'var(--space-2xs)', flexShrink: 0 }}>
-            <Box state="indeterminate" ins={ins} />
+            <Check mixed {...ins('checkbox-indeterminate')} />
             <strong className="small" style={{ fontWeight: 600 }}>{selected} {L('Selected')}</strong>
           </span>
           <button className="btn btn-sm" {...ins('button-sm')}>{L('Send reminder')}</button>
@@ -179,7 +152,7 @@ export default function Index ({ onInspect, casing, layout }) {
               {ROWS.map(r => (
                 <tr key={r.id} className={r.on ? 'is-selected' : undefined}>
                   <td className="sel-col" style={{ paddingLeft: 'var(--space-md)' }}>
-                    <Box state={r.on ? 'checked' : 'unchecked'} ins={ins} />
+                    <Check on={r.on} {...ins(r.on ? 'checkbox-checked' : 'checkbox')} />
                   </td>
                   {/* An identifier: the mono face, and NO right edge. Nobody
                       compares its magnitude, and a right-aligned reference
@@ -219,12 +192,12 @@ export default function Index ({ onInspect, casing, layout }) {
         <span className="row" style={{ marginLeft: 'auto' }}>
           <span className="input" style={{ flex: '0 0 auto' }}><span className="small">{L('Rows')}: <span className="figure">10</span></span></span>
           <span className="row" style={{ gap: 'var(--space-3xs)' }}>
-            <button className="btn btn-secondary btn-sm icon-only" disabled {...ins('button-primary-disabled')}>‹</button>
-            <button className="btn btn-primary btn-sm icon-only" {...ins('button-primary')}>1</button>
-            <button className="btn btn-secondary btn-sm icon-only" {...ins('button-secondary')}>2</button>
-            <button className="btn btn-secondary btn-sm icon-only" {...ins('button-secondary')}>3</button>
+            <button className="btn btn-secondary btn-sm icon-only" disabled aria-label="Previous page" {...ins('button-primary-disabled')}><Ico d={IconChevron} className="icon-left" /></button>
+            <button className="btn btn-primary btn-sm" {...ins('button-primary')}><span className="figure">1</span></button>
+            <button className="btn btn-secondary btn-sm" {...ins('button-secondary')}><span className="figure">2</span></button>
+            <button className="btn btn-secondary btn-sm" {...ins('button-secondary')}><span className="figure">3</span></button>
             <span className="caption subtle" {...txt('caption', 'text-subtle')}>…</span>
-            <button className="btn btn-secondary btn-sm icon-only" {...ins('button-secondary')}>›</button>
+            <button className="btn btn-secondary btn-sm icon-only" aria-label="Next page" {...ins('button-secondary')}><Ico d={IconChevron} className="icon-right" /></button>
           </span>
         </span>
       </div>

@@ -39,9 +39,13 @@ export const ROLE_GROUPS = [
          falls to 2.68, and the selected row has nowhere left to go, landing at
          exactly 1.00 against it. Stepping down instead gives the control 4.37
          and the selection 1.63.
-         Light reads 1.27:1 and dark 1.23:1. Those are the softest steps the
-         ramp holds; there is nothing between 50 and 100. */
-      { name: 'row-stripe',      desc: 'Every other row in a list',  light: 'neutral.100', dark: 'neutral.950' },
+         BETWEEN two steps, because neither is right. `neutral.100` reads
+         1.27:1, which is a band that divides the table into blocks rather than
+         a rhythm that groups its rows. The ramp cannot gain a twelfth step —
+         `buildRamp` places each one by index, so inserting one slides every
+         existing colour — so the ref names the midpoint instead. It still
+         follows the seed, which a typed hex would not. */
+      { name: 'row-stripe',      desc: 'Every other row in a list',  light: 'neutral.50~100', dark: 'neutral.900~950' },
     ],
   },
   {
@@ -137,10 +141,15 @@ export const ROLE_GROUPS = [
        * runs 900 surface, 950 stripe, 800 selected, diverging from the
        * surface. Diverging is what buys the separation: 1.63 between stripe
        * and selection, against 1.00 for the first arrangement I tried.
-       * Measured dark: band 1.32, body 10.23, muted 4.83. Choosing
-       * `neutral.700` instead reads as a stronger band and drops muted text to
-       * 3.50, which the suite catches. */
-      { name: 'selected',        desc: 'Selected row or item',       light: 'neutral.200', dark: 'neutral.800' },
+       * ONE STEP, not two. It sat at `neutral.200` and read heavy across ten
+       * rows — their words, "not sure if i prefer the selected rows to be
+       * darkened". It now takes the step the stripe used to hold, and the
+       * stripe drops to the midpoint below it. So the two are one ramp step
+       * apart instead of two, and the whole table lightens without losing the
+       * separation: the selection still reads 1.27:1 against the surface and
+       * about 1.14 against the stripe, with the edge and the box carrying the
+       * rest. */
+      { name: 'selected',        desc: 'Selected row or item',       light: 'neutral.100', dark: 'neutral.950' },
     ],
   },
   {

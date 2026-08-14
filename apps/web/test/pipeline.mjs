@@ -1438,6 +1438,8 @@ line('\n- prompt construction -')
     ['figures take the mono family', ['set figures in the mono family']],
     ['an amount takes a right edge, an identifier does not', ['reads as a total']],
     ['a checkbox has three states', ['a checkbox has **three** states']],
+    ['stripe and selection are one step apart', ['one step further']],
+    ['a control is checked on every ground it sits on', ['not only the card']],
     ['moving what draws a seam can move the seam', ['the seam can simply move too']],
     ['a bordered cell is stretched, never centred', ['stretch any cell that carries a border']],
     ['a column marker cannot span auto-placed rows', ['names the end of the explicit grid']],
@@ -1467,6 +1469,26 @@ line('\n- prompt construction -')
   const missing = RULES.filter(([, terms]) => !terms.every(t => doc.includes(t))).map(([n]) => n)
   assert(missing.length === 0,
     `every learned design rule reaches the payload${missing.length ? ` — missing: ${missing.join('; ')}` : ` (${RULES.length})`}`)
+
+  /* The payload is a BUILD GUIDE, never a method.
+   *
+   * Their boundary, 14 August 2026: the receiving agent builds from the
+   * artefact and is never told how we arrived at it. We draw before we build;
+   * that agent does not, because it is handed the finished decision. A process
+   * instruction changes nothing in its output and spends its attention, which
+   * makes it worse than silent.
+   *
+   * This guard exists because the rule that produced it is one I had just
+   * written into four other stores, and the fifth is the one place it must not
+   * go. A boundary nothing enforces is a boundary until somebody is tired. */
+  const METHOD = [
+    'draw the target', 'draw it first', 'visualise the end', 'visualize the end',
+    'before you build it', 'sketch it', 'show it and wait', 'run it by',
+    'mock it up first', 'wireframe',
+  ]
+  const leaked = METHOD.filter(t => doc.includes(t))
+  assert(leaked.length === 0,
+    `the payload carries no instruction about our own method${leaked.length ? ` — leaked: ${leaked.join(', ')}` : ''}`)
 
   /* The payload must not contradict what this app itself does. It told agents
      to use the fast step for hover, which is the value proved imperceptible

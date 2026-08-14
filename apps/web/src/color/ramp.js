@@ -74,6 +74,34 @@ export function buildRamps(seeds, shape) {
 }
 
 /** Resolve a `name.step` reference (e.g. "accent.600") against built ramps. */
+/* A ref may name a point BETWEEN two steps: `neutral.50~100`.
+ *
+ * The ramp cannot gain a step. `buildRamp` places each one by its INDEX —
+ * `t = i / (n - 1)` — so inserting a twelfth would slide every existing colour
+ * along the curve and repaint the whole palette. That is far too much to pay
+ * for one tint.
+ *
+ * But a row stripe genuinely needs to sit between 50 and 100, and there is
+ * nothing there: the two lightest steps are 1.27:1 apart, which is a band
+ * rather than a rhythm. Mixing them in OKLCH gives the missing value without
+ * moving anything, and it still follows the seed — change the neutral and the
+ * stripe changes with it, which a typed hex would not.
+ *
+ * Midpoint only. A ref language with a weight in it invites values chosen by
+ * nudging rather than by measuring. */
+function mixSteps (ramp, a, b) {
+  const A = parseColor(ramp?.steps?.[a]), B = parseColor(ramp?.steps?.[b])
+  if (!A || !B) return null
+  const oa = toOklchObj(A), ob = toOklchObj(B)
+  const mid = (x, y) => (x + y) / 2
+  return toHex(toGamut(fromOklch({
+    l: mid(oa.l, ob.l), c: mid(oa.c, ob.c),
+    /* Hue is an angle: mix it the short way round, or a pair either side of
+       0 degrees averages to the colour opposite both of them. */
+    h: mid(oa.h ?? 0, (ob.h ?? 0) + (Math.abs((ob.h ?? 0) - (oa.h ?? 0)) > 180 ? ((ob.h ?? 0) > (oa.h ?? 0) ? -360 : 360) : 0)),
+  })))
+}
+
 export function resolveRef(ref, ramps) {
   if (typeof ref !== 'string') return null
   if (ref === 'white') return '#ffffff'
@@ -81,5 +109,10 @@ export function resolveRef(ref, ramps) {
   const dot = ref.lastIndexOf('.')
   if (dot < 0) return null
   const ramp = ramps[ref.slice(0, dot)]
-  return ramp?.steps?.[ref.slice(dot + 1)] ?? null
+  const step = ref.slice(dot + 1)
+  if (step.includes('~')) {
+    const [a, b] = step.split('~')
+    return mixSteps(ramp, a, b)
+  }
+  return ramp?.steps?.[step] ?? null
 }
