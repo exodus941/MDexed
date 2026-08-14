@@ -314,8 +314,14 @@
  *
  * `row-gap` only. The column gap belongs to `.row`, and setting both here
  * would silently overwrite it — a shorthand beside a longhand, the same trap
- * the title bar hit. */
-.dmd .row.row-wrap { flex-wrap: wrap; row-gap: var(--space-2xs, 4px); }
+ * the title bar hit.
+ *
+ * The row gap is the COLUMN gap, not half of it. A wrapped line is a new line
+ * of controls, and 4px under an 8px column gap read as a control that had
+ * fallen off the row rather than one that had moved to the next: measured
+ * 363.4 to 367.4 on a filter row at a 736px pane. Two lines of one group want
+ * the same distance in both directions. */
+.dmd .row.row-wrap { flex-wrap: wrap; row-gap: var(--space-xs, 8px); }
 
 /* A row of fixed-height CONTROLS takes centre, never baseline.
  *

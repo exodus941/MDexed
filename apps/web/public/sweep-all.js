@@ -44,9 +44,14 @@ return (async () => {
     const anims = (root.ownerDocument.getAnimations?.() ?? [])
       .filter(a => a.effect?.target && root.contains(a.effect.target))
       .filter(a => (a.effect.getComputedTiming?.().iterations ?? 1) !== Infinity)
-    const stop = Date.now() + 1500
     const wait = ms => new Promise(r => setTimeout(r, ms))
     await Promise.race([Promise.all(anims.map(a => a.finished.catch(() => {}))), wait(1200)])
+
+    /* Start the stability clock AFTER the animation wait, never before. Set
+       first, a 1200ms animation race left the poll about 300ms, so five
+       surfaces reported STILL MOVING while an idle page settles in 32ms. A
+       deadline that includes the wait it follows is not a deadline. */
+    const stop = Date.now() + 1500
 
     /* Poll on a TIMER, never on `requestAnimationFrame`. A background tab does
        not run animation frames at all, so an rAF loop simply never resolves —

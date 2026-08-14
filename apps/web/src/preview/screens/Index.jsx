@@ -121,7 +121,13 @@ export default function Index ({ onInspect, casing, layout }) {
           {L('Due')}: {L('Any')}<Ico d={IconChevron} size="sm" />
         </button>
         <button className="btn btn-ghost" {...ins('button-ghost')} style={{ flexShrink: 0 }}>{L('Clear')}</button>
-        <button className="btn btn-secondary select-trigger" {...ins('select')} style={{ flexShrink: 0, marginLeft: 'auto' }}>
+        {/* No `margin-left: auto`. An auto margin applies to the line the item
+            lands on, not to the row, so the moment this row wraps the margin
+            pushes Sort to the right end of its OWN line and leaves the slack
+            beside it — measured 495.3px of empty space at a 736px pane, with
+            Sort starting at 1199 while every other control starts at 703.
+            Sort packs left with the rest, and the row reads as one group. */}
+        <button className="btn btn-secondary select-trigger" {...ins('select')} style={{ flexShrink: 0 }}>
           {L('Sort')}: {L('Newest first')}<Ico d={IconChevron} size="sm" />
         </button>
       </div>
@@ -223,13 +229,25 @@ export default function Index ({ onInspect, casing, layout }) {
        * "Showing 1–10 of 48" is PROSE, so it is not recased. It read "Showing
        * 1–10 Of 48" because the label helper had been pointed at a sentence.
        * `Rows` is a label and keeps its capital. */}
-      <div className="row row-wrap">
+      {/* `space-between`, not an auto margin on the group.
+       *
+       * An auto margin applies to the LINE an item lands on. On one line it
+       * put the group right, which is correct; the moment this row wrapped it
+       * put the group at the right end of its own line and left the slack
+       * beside it — measured 109px at a 320px pane and 85px at 296.
+       *
+       * `space-between` normally spreads slack across EVERY gap, which is why
+       * it is the wrong tool on a row of three or more. This row holds exactly
+       * TWO children, so there is one gap and nothing to spread, and a lone
+       * item on a wrapped line packs to the start. Both widths come out
+       * right. */}
+      <div className="row row-wrap" style={{ justifyContent: 'space-between' }}>
         <span className="small muted" {...txt('body-sm', 'text-muted')}>
           Showing <span className="figure">1–10</span> of <span className="figure">48</span>
         </span>
         {/* One group, so the label, the dropdown and the arrows travel
             together and the whole thing sits on the sentence's baseline. */}
-        <span className="row" style={{ marginLeft: 'auto' }}>
+        <span className="row">
           <span className="small muted" {...txt('body-sm', 'text-muted')}>{L('Rows')}</span>
           <button className="btn btn-secondary btn-sm select-trigger" {...ins('select')}>
             <span className="figure">10</span><Ico d={IconChevron} size="sm" />
