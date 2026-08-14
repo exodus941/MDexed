@@ -33,12 +33,30 @@ return (async () => {
      settles when the element has come to rest. The rect check afterwards
      catches anything driven by script rather than by CSS. */
   const settle = async (root, tries = 40) => {
+    /* An INFINITE animation never finishes, so its `finished` promise never
+       settles and a bare `Promise.all` waits for ever. A spinner is enough to
+       hang the whole eleven-surface run — measured, it stopped completing
+       inside thirty seconds while a single `sweep()` took 168ms.
+
+       So drop the looping ones, which have no rest position to wait for, and
+       race what is left against a deadline. Asking the browser is right;
+       trusting it to answer is not. */
     const anims = (root.ownerDocument.getAnimations?.() ?? [])
       .filter(a => a.effect?.target && root.contains(a.effect.target))
-    await Promise.all(anims.map(a => a.finished.catch(() => {})))
+      .filter(a => (a.effect.getComputedTiming?.().iterations ?? 1) !== Infinity)
+    const stop = Date.now() + 1500
+    const wait = ms => new Promise(r => setTimeout(r, ms))
+    await Promise.race([Promise.all(anims.map(a => a.finished.catch(() => {}))), wait(1200)])
+
+    /* Poll on a TIMER, never on `requestAnimationFrame`. A background tab does
+       not run animation frames at all, so an rAF loop simply never resolves —
+       and this run hung for thirty seconds against a `sweep()` that takes 168
+       milliseconds. A timer is throttled in the background; it still fires.
+       Every wait is bounded by one wall-clock deadline, so no arrangement of
+       animations can stall the run. */
     let last = ''
-    for (let i = 0; i < tries; i++) {
-      await new Promise(r => requestAnimationFrame(() => r()))
+    while (Date.now() < stop) {
+      await wait(32)
       const now = [...root.querySelectorAll('*')].slice(0, 60)
         .map(e => { const r = e.getBoundingClientRect(); return `${r.top.toFixed(1)},${r.left.toFixed(1)}` }).join('|')
       if (now === last) return true
