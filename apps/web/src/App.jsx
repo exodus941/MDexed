@@ -234,7 +234,14 @@ const VersionChip = ({ version }) => {
         : v ? `Version "${v}" was typed by hand. Exporting replaces it with a build number.`
         : 'Not exported yet. The first export stamps a build number.'
     } style={{
-      fontSize: 10, fontFamily: 'var(--mono)', color: built ? 'var(--muted)' : 'var(--dim)',
+      /* The chip holds one of two different things, and they take different
+         faces. A build number is a FIGURE, so it takes the mono face like
+         every other figure in the system. The word "unbuilt" is a word, and
+         it belongs in the body face beside the badge it sits next to — one
+         size, one family, so the pair reads as a single status line rather
+         than as two unrelated readouts. */
+      fontSize: 12, fontFamily: v ? 'var(--mono)' : 'var(--sans)',
+      color: built ? 'var(--muted)' : 'var(--dim)',
       whiteSpace: 'nowrap', cursor: 'default',
     }}>
       {built ? v : v || 'unbuilt'}
@@ -941,7 +948,7 @@ function TitleField({ name, onCommit, full = false }) {
         placeholder="Untitled"
         title="Project name"
         style={{
-          ...(full ? { flex: 1, width: '100%', height: 36, fontSize: 14 } : { width: dirty ? 180 : 150, fontSize: 12 }),
+          ...(full ? { flex: 1, width: '100%', height: 36, fontSize: 14 } : { width: dirty ? 180 : 152, fontSize: 12 }),
           padding: '4px 12px',
           fontFamily: 'var(--mono)', background: 'var(--surf2)',
           borderColor: dirty ? 'rgb(var(--accent-rgb) / .45)' : 'var(--bdr)',
@@ -1832,7 +1839,12 @@ function Shell() {
            * line gap is charged whether or not anything is in it. Measured:
            * the bar stood 65px tall to hold 40px of button, and 9 of those
            * pixels were a gap under a row nobody had opened. */
-          columnGap: isMobile ? 8 : 13, rowGap: 0,
+          /* 8 is the base gap between header children, and it IS the gap
+             between Project and Export Payload — they are one action group.
+             The two 16s are group separators, carried as margins on the two
+             children that need them: the readouts before Project, and Export
+             Payload before UI. Stated by them, 14 August 2026. */
+          columnGap: 8, rowGap: 0,
           /* Symmetric. 7 over 5 shifted the whole row 1px off centre inside its
              own band, which is invisible until something in it is measured. */
           padding: isMobile ? '8px 12px' : '6px 20px',
@@ -1950,15 +1962,35 @@ function Shell() {
            * group does render, its `flex: 1` takes the free space first and the
            * margin resolves to zero, so one rule covers both widths. */}
           <div className="no-bar" style={{
-            display: 'flex', gap: 6, alignItems: 'baseline',
+            /* 8, the same step as the header's own gap. One number covers
+               every gap in this bar: button to button in here, and header
+               child to header child out there. */
+            display: 'flex', gap: 8, alignItems: 'baseline',
             minWidth: 0, marginLeft: 'auto', overflowX: 'auto', overflowY: 'hidden',
             scrollbarWidth: 'none',
           }}>
             {/* Two readouts, then the controls. Tighter gap between them than
                 to the buttons, so they group as one unit rather than reading
-                as two more things to click. */}
+                as two more things to click.
+
+                State both gaps together, because proximity is a ratio. The
+                buttons sit 6px apart and the two readouts 8px, so a 2px margin
+                left the whole thing one undifferentiated run — the readouts
+                read as two more things to click, which is the exact opposite
+                of what this group is for. 24px to the first button is 4:1
+                against the button gap and clears the 3:1 bar.
+
+                A margin on a flex child ADDS to its container's gap, so the
+                margin is 16 less that gap — written as the subtraction to keep
+                the 16 visible. One value covers both widths, because the row
+                and the header now share an 8px gap: wide, the next thing is
+                the first button inside this row; compact, the buttons are gone
+                and it is the Project menu out in the header. */}
             {!barTrim && (
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginRight: 2 }}>
+              <div style={{
+                display: 'flex', alignItems: 'baseline', gap: 8,
+                marginRight: 'calc(var(--space-md, 16px) - 8px)',
+              }}>
                 <VersionChip version={state.meta.version} />
                 <SyncBadge status={syncStatus} />
               </div>
@@ -1998,11 +2030,6 @@ function Shell() {
                 <Eye /><span className="lbl">Preview DESIGN.md</span>
               </button>
             )}
-            <button className="btn-primary" onClick={exportPackage} disabled={packaging}
-              title="AGENTS.md, DESIGN.md, tokens.css, a Tailwind preset, tokens.json and every surface as HTML — one zip"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-              <Download /><span className="lbl keep-lbl">{packaging ? "Packaging…" : "Export Payload"}</span>
-            </button>
             {/* Off-screen rather than hidden: a `display:none` input cannot be
                 opened by `.click()` in every browser. */}
             <input ref={fileInput} type="file" accept={`${PROJECT_EXT},.json,.md,.markdown,.txt,application/json,text/markdown`} onChange={loadProject}
@@ -2022,6 +2049,27 @@ function Shell() {
               <ProjectMenu projectId={projectId} onAction={runProjectAction}
                 items={[...PROJECT_ACTIONS, { id: 'previewFile', label: 'Preview DESIGN.md', Icon: Eye, hint: 'Read the generated file' }]} />
             )}
+            {/* Sits AFTER the Project menu, and outside the scrolling row.
+             *
+             * Inside the row it came before Project, because Project renders
+             * out here to keep its popover clear of the row's overflow — an
+             * absolutely positioned menu is clipped by any scrolling ancestor.
+             * So the one action the whole app exists to produce was landing to
+             * the LEFT of the menu that collapses everything else.
+             *
+             * Out here it keeps the order at both widths: the run of project
+             * buttons, then Project where they collapse into it, then Export.
+             * It also stops scrolling out of reach, which is right for a
+             * primary action — the same reason the settings stay put. */}
+            <button className="btn-primary" onClick={exportPackage} disabled={packaging}
+              title="AGENTS.md, DESIGN.md, tokens.css, a Tailwind preset, tokens.json and every surface as HTML — one zip"
+              /* 16 to the UI menu beside it: Export closes the document group,
+                 and UI is settings, a different thing. 16 less the header's
+                 own 8px gap. */
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, flexShrink: 0,
+                marginRight: 'calc(var(--space-md, 16px) - 8px)' }}>
+              <Download /><span className="lbl keep-lbl">{packaging ? "Packaging…" : "Export Payload"}</span>
+            </button>
             {/* The name folds away, and the pencil unfolds it.
                 A permanent second line for a field you touch once a session is
                 a poor trade on a 375px screen. Open it, type, leave it, and it

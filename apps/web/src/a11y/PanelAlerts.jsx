@@ -94,8 +94,8 @@ export function Finding({ f, compact, action }) {
          it by a rule on the severity side alone, which is enough to group the
          lines without boxing them in. */
       borderLeft: `2px solid ${t.fg}`,
-      padding: compact ? '2px 0 2px 9px' : '3px 0 3px 10px',
-      fontSize: compact ? 12 : 12.5, lineHeight: LINE,
+      padding: compact ? '2px 0 2px 8px' : '4px 0 4px 12px',
+      fontSize: compact ? 12 : 14, lineHeight: LINE,
     }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
         <Icon level={f.level} fg={t.fg} />

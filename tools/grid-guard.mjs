@@ -177,12 +177,20 @@ for (const path of jsxFiles) {
      The lookbehind is what stops `max-width` in a media-query string being
      read as a `width` declaration: a breakpoint answers to a device, and
      three of them were reported as off-grid layout. */
-  for (const m of text.matchAll(/(?<![-\w])([a-z][A-Za-z]*)\s*:\s*(\d+(?:\.\d+)?|'[^']*'|"[^"]*")/g)) {
-    const [, prop, rawVal] = m
+  for (const m of text.matchAll(/(?<![-\w])([a-z][A-Za-z]*)\s*:\s*([^,}\n]+)/g)) {
+    const prop = m[1]
     if (!LENGTH_PROPS.has(prop)) continue
-    const val = /^['"]/.test(rawVal) ? rawVal.slice(1, -1) : `${rawVal}px`
-    if (!/px|^\d/.test(val) || /var\(|%|em|rem|vh|vw|calc|auto|\bfr\b/.test(val)) continue
-    scanValue(rel, `line ${lineAt(m.index)}`, kebab(prop), /px/.test(val) ? val : `${val}px`)
+    /* Read EVERY branch of a ternary. `columnGap: isMobile ? 8 : 13` ships a
+       13px gap on every desktop, and a scanner that only accepts a literal
+       straight after the colon sees no value at all and reports the file
+       clean. A conditional value is still a value. */
+    for (const lit of m[2].matchAll(/(?:^|[?:\s(])(\d+(?:\.\d+)?)(?=\s*[:)\s]|$)|'([^']*)'|"([^"]*)"/g)) {
+      const rawVal = lit[1] ?? lit[2] ?? lit[3]
+      if (rawVal == null) continue
+      const val = lit[1] != null ? `${rawVal}px` : rawVal
+      if (!/px|^\d/.test(val) || /var\(|%|em|rem|vh|vw|calc|auto|\bfr\b/.test(val)) continue
+      scanValue(rel, `line ${lineAt(m.index)}`, kebab(prop), /px/.test(val) ? val : `${val}px`)
+    }
   }
 
   /* An SVG sizes itself by ATTRIBUTE, not by style: `<svg width={13} …>`. That
