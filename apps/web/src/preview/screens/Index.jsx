@@ -113,23 +113,35 @@ export default function Index ({ onInspect, casing, layout }) {
             value already reads "Overdue". A mark that carries no meaning still
             looks like it carries one. One control, one signal, and here the
             signal is the edge. */}
-        <button className="btn btn-secondary select-trigger" {...ins('select')}
-          style={{ borderColor: 'var(--c-accent)', color: 'var(--c-accent)', flexShrink: 0 }}>
-          {L('Status')}: {L('Overdue')}<Ico d={IconChevron} size="sm" />
-        </button>
-        <button className="btn btn-secondary select-trigger" {...ins('select')} style={{ flexShrink: 0 }}>
-          {L('Due')}: {L('Any')}<Ico d={IconChevron} size="sm" />
-        </button>
-        <button className="btn btn-ghost" {...ins('button-ghost')} style={{ flexShrink: 0 }}>{L('Clear')}</button>
-        {/* No `margin-left: auto`. An auto margin applies to the line the item
-            lands on, not to the row, so the moment this row wraps the margin
-            pushes Sort to the right end of its OWN line and leaves the slack
-            beside it — measured 495.3px of empty space at a 736px pane, with
-            Sort starting at 1199 while every other control starts at 703.
-            Sort packs left with the rest, and the row reads as one group. */}
-        <button className="btn btn-secondary select-trigger" {...ins('select')} style={{ flexShrink: 0 }}>
-          {L('Sort')}: {L('Newest first')}<Ico d={IconChevron} size="sm" />
-        </button>
+        {/* PAIRED. Four controls beside a search field came out 1+2+1 at 296px
+            and stranded Sort on a line of its own. The stranding is the same
+            fault whether the control is an action or a filter, so the same rule
+            applies: two per line, equal, flush both edges.
+            Even count, so no lead line — a lead is what an ODD count does with
+            its most important control. */}
+        <div className="action-pairs">
+          <div className="pair">
+            <button className="btn btn-secondary select-trigger" {...ins('select')}
+              style={{ borderColor: 'var(--c-accent)', color: 'var(--c-accent)' }}>
+              {L('Status')}: {L('Overdue')}<Ico d={IconChevron} size="sm" />
+            </button>
+            <button className="btn btn-secondary select-trigger" {...ins('select')}>
+              {L('Due')}: {L('Any')}<Ico d={IconChevron} size="sm" />
+            </button>
+          </div>
+          {/* No `margin-left: auto` on Sort. An auto margin applies to the line
+              the item lands on, not to the row, so the moment this row wrapped
+              the margin pushed Sort to the right end of its OWN line and left
+              the slack beside it — measured 495.3px of empty space at a 736px
+              pane, with Sort starting at 1199 while every other control started
+              at 703. */}
+          <div className="pair">
+            <button className="btn btn-ghost" {...ins('button-ghost')}>{L('Clear')}</button>
+            <button className="btn btn-secondary select-trigger" {...ins('select')}>
+              {L('Sort')}: {L('Newest first')}<Ico d={IconChevron} size="sm" />
+            </button>
+          </div>
+        </div>
       </div>
 
       <div className="card" {...ins('card')} style={{ padding: 0, overflow: 'hidden' }}>
@@ -139,17 +151,56 @@ export default function Index ({ onInspect, casing, layout }) {
               the 16px box sat among 28px buttons and the row held two heights
               — and a control row is one height. Grouped, the bar's children
               are uniform and the box centres inside its own group. */}
-          <span className="row" style={{ gap: 'var(--space-2xs)', flexShrink: 0 }}>
+          {/* A LABEL, not a span. The box and its count were already adjacent,
+              so the text was there and reached nothing: the box was a bare
+              span with no control in it. As a label the visible text becomes
+              the control's name, which is the rule for any box that has text
+              beside it. Only four structures may go without. */}
+          <label className="row" style={{ gap: 'var(--space-2xs)', flexShrink: 0, cursor: 'pointer' }}>
             <Check mixed {...ins('checkbox-indeterminate')} />
             <strong className="small" style={{ fontWeight: 600 }}>{selected} {L('Selected')}</strong>
-          </span>
-          <button className="btn btn-sm" {...ins('button-sm')}>{L('Send reminder')}</button>
-          <button className="btn btn-sm" {...ins('button-sm')}>{L('Mark as paid')}</button>
-          <button className="btn btn-sm" {...ins('button-sm')}>{L('Export')}</button>
-          {/* Destructive stands apart from the three constructive ones. Fourth
-              in a matched run it reads as equally likely. */}
-          <button className="btn btn-ghost btn-sm" style={{ color: 'var(--c-accent-fg)', opacity: .9 }}>{L('Delete')}</button>
-          <button className="btn btn-ghost btn-sm batch-end" style={{ color: 'var(--c-accent-fg)' }}>{L('Clear selection')}</button>
+          </label>
+          {/* `btn-sm` STAYS. Promoting these five to the large step was an
+              attempt to give the select-all beside them a 44px target while
+              keeping the row one height, and it cost far more than it bought:
+              the wider labels pushed the bar past its pane and it wrapped, so
+              the bar went from 44px to 108 at 824px and to 156 at 393. Six
+              actions on four lines is not a bar.
+              The target comes from an overhang in the stylesheet instead, which
+              reaches into the bar's own padding and moves nothing. The scale is
+              not rewritten, and the promotion to the large step belongs to a
+              coarse pointer, which this app does not yet ask about. */}
+          {/* PAIRED, so breaking this bar strands nothing.
+              Wide, the pairs are `display: contents` and all five buttons sit in
+              one row at natural widths. Narrow, each pair takes a line: two per
+              line, equal, flush on both edges, and a long label takes what it
+              needs while its partner shrinks.
+              Five is odd, so the most important action is a pair of ONE and goes
+              first — a column is pressed from the top. Left to the arithmetic it
+              would land last and alone, which is the stranded item the pairing
+              removes. */}
+          <div className="action-pairs">
+            <div className="pair">
+              <button className="btn btn-sm" {...ins('button-sm')}>{L('Send reminder')}</button>
+            </div>
+            <div className="pair">
+              <button className="btn btn-sm" {...ins('button-sm')}>{L('Mark as paid')}</button>
+              <button className="btn btn-sm" {...ins('button-sm')}>{L('Export')}</button>
+            </div>
+            {/* Destructive stands apart from the three constructive ones. Fourth
+                in a matched run it reads as equally likely. */}
+            <div className="pair">
+              <button className="btn btn-ghost btn-sm" style={{ color: 'var(--c-accent-fg)', opacity: .9 }}>{L('Delete')}</button>
+              {/* `batch-end` KEEPS its auto margin, and it still earns it. Wide,
+                  the pairs dissolve and this is the last button in one flat row,
+                  where the margin holds it against the bar's right edge —
+                  dropping it left 618.6px of empty bar at 1280. Narrow, the
+                  stylesheet zeroes it by specificity rather than by line order,
+                  because inside a pair that margin is slack and slack would eat
+                  the half this button is entitled to. */}
+              <button className="btn btn-ghost btn-sm batch-end" style={{ color: 'var(--c-accent-fg)' }}>{L('Clear selection')}</button>
+            </div>
+          </div>
         </div>
 
         {/* A table of real columns cannot fold, so it scrolls — the one shape
@@ -185,8 +236,15 @@ export default function Index ({ onInspect, casing, layout }) {
             <tbody>
               {ROWS.map(r => (
                 <tr key={r.id} className={r.on ? 'is-selected' : undefined}>
+                  {/* No visible label, and that is correct here — the column
+                      heading and this row name the box between them. It is one
+                      of the four positional cases. It still owes an accessible
+                      NAME, so the name says which record it selects rather
+                      than "Select row", which would be eleven identical
+                      announcements. The CELL carries the target. */}
                   <td className="sel-col">
-                    <Check on={r.on} {...ins(r.on ? 'checkbox-checked' : 'checkbox')} />
+                    <Check on={r.on} label={`${L('Select invoice')} ${r.id}`}
+                      {...ins(r.on ? 'checkbox-checked' : 'checkbox')} />
                   </td>
                   {/* An identifier: the mono face, and NO right edge. Nobody
                       compares its magnitude, and a right-aligned reference

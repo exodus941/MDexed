@@ -303,7 +303,50 @@
      Cancel, Save draft, Save changes is right on a desktop, where the eye ends
      at the right. Stacked on a phone it buries the main action at the bottom,
      furthest from the thumb. */
+  /* AN ACTION ROW THAT BREAKS, BREAKS INTO PAIRS.
+   *
+   * Wrapping at natural widths strands whichever button falls past the edge, on
+   * a line of its own, at its own width — the emptiest line on the surface.
+   * Their arrangement instead: two per line, equal, covering the whole width.
+   *
+   * `flex: 1 1 0`, and the zero basis is the whole trick. With a 50% basis the
+   * two bases already fill the line, so a `min-content` floor on one pushes the
+   * sum past it and the row wraps — which makes a long label and two long labels
+   * render identically. With a zero basis both always fit, grow splits the line
+   * equally, and a long label takes what it needs while its partner shrinks into
+   * the remainder. Wrapping is then left to say one thing only: these two
+   * cannot share a line.
+   *
+   * Measured on a 370px row: 49/49 both short, 58/40 with one long label, and
+   * 100/100 on two lines with both long. Flush on both edges in all three.
+   *
+   * The pairs stop dissolving here and take a line each. Above this width they
+   * are `display: contents` and every button sits in one row at its natural
+   * width, which is what a bar that fits should do.
+   *
+   * AN ODD COUNT GIVES THE MOST IMPORTANT BUTTON ITS OWN ROW. It is a pair of
+   * one, stated in the markup and placed FIRST, because in a column the top line
+   * is the one that gets pressed — in a row the primary reads last only because
+   * the eye ends on the right. Left to fall out of the arithmetic, the odd
+   * button lands last and alone, which is the stranded item the pairing exists
+   * to remove. CSS cannot count importance, so the markup says which. */
+  .dmd .action-pairs { flex-direction: column; }
+  .dmd .action-pairs > .pair { display: flex; flex-wrap: wrap; gap: var(--space-xs, 8px); }
+  .dmd .action-pairs > .pair > .btn { flex: 1 1 0; min-width: min-content; }
+  /* An auto margin inside a pair is SLACK, and slack would eat the half this
+     button is entitled to. Zeroed at (0,4,0) so it beats the auto margin on
+     specificity rather than on line order — a rule that wins by position
+     reverses itself the next time either file is edited. The margin still does
+     its job wide, where the pairs dissolve and it holds the last button against
+     the bar's right edge. */
+  .dmd .action-pairs > .pair > .btn.batch-end { margin-left: 0; }
+
   .dmd .stack-narrow, .dmd .stack-narrow-rev { flex-direction: column; align-items: stretch; }
+  /* A stacked pane is alone on its line, so it takes the whole line.
+     The width is published as a custom property because this rule cannot reach
+     an inline style — with a bare `width: 40%` the left pane stayed 104.8px in
+     a 262px column, which is the orphan fault the system already names. */
+  .dmd .shell-split.stack-narrow { --split-left: 100%; }
   .dmd .stack-narrow-rev { flex-direction: column-reverse; }
   .dmd .stack-narrow > .btn, .dmd .stack-narrow-rev > .btn { width: 100%; }
   /* A nested action group stacks with its parent rather than staying a row

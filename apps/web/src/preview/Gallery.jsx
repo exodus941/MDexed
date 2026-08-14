@@ -145,11 +145,23 @@ export default function Gallery({ onInspect, layout }) {
           <label className="with-icon" style={{ cursor: 'pointer' }} {...ins('checkbox')}>
             <Check />Attach a payment link
           </label>
+          {/* The text sits at the other end of a `space-between` row rather than
+              beside the control, so it cannot label it by position. Each switch
+              states its own name. */}
+          {/* Each Switch sits in its OWN span, as it does on Form and Settings.
+              Without one, the transparent input covers the nearest positioned
+              box — here the whole `space-between` row — so the hit area measured
+              212px wide and 23.1 tall, spanning the label at the far end and
+              missing the published minimum in the axis that matters. The wrapper
+              makes the host the switch itself, so one overhang rule serves every
+              instance. */}
           <div className="row" style={{ justifyContent: 'space-between' }} {...ins('switch-checked')}>
-            <span className="small" {...txt("body-sm")}>Automatic reminders</span><Switch on />
+            <span className="small" {...txt("body-sm")}>Automatic reminders</span>
+            <span><Switch on label="Automatic reminders" /></span>
           </div>
           <div className="row" style={{ justifyContent: 'space-between' }} {...ins('switch')}>
-            <span className="small" {...txt("body-sm")}>Weekly digest</span><Switch />
+            <span className="small" {...txt("body-sm")}>Weekly digest</span>
+            <span><Switch label="Weekly digest" /></span>
           </div>
           <div className="field" {...ins('select')}>
             <label className="label" {...txt("caption", "text-muted")}>Payment terms</label>

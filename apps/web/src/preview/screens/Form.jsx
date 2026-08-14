@@ -122,7 +122,9 @@ export default function Form({ onInspect, layout, casing }) {
               <div style={{ fontWeight: 500 }} {...txt("body-md")}>{L('Automatic reminders')}</div>
               <p className="muted small" style={{ marginTop: 2 }} {...txt("body-sm", "text-muted")}>Chase unpaid invoices after 7, 14 and 30 days.</p>
             </div>
-            <span {...ins('switch-checked')}><Switch on /></span>
+            {/* Named from the row's own heading. A switch sits apart from its
+                text, so nothing announces it without this. */}
+            <span {...ins('switch-checked')}><Switch on label={L('Automatic reminders')} /></span>
           </div>
         </div>
 

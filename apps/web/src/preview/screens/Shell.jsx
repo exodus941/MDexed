@@ -169,15 +169,33 @@ export default function Shell({ onInspect, tabStyle, casing }) {
           The gutter is a step of its own, not the row's. `.row` gives 8px, and
           the tabs inside each strip sit 4px apart: two to one, so the two
           strips read as one long strip. Proximity is a ratio and it wants more
-          than three to one. `lg` puts 24px between the columns against 4px
-          inside them — six to one, and the columns separate. */}
-      <div className="shell-split row">
+          than three to one.
+
+          The gutter is now `2xl`, not `lg`, because 24 was chosen against the
+          strips' 4px and never checked against the PANES. Those are `.stack` at
+          16, where 24 reads 1.5:1 — one value answering two relationships with
+          different bars. 48 clears both: 3.0:1 against the panes, 12:1 against
+          the strips.
+
+          `stack-narrow` because raising the gutter took its 24px out of the
+          content pane, and this split never stopped being a row. It squeezed
+          instead: measured 104.8 and 109.2 at a 296px frame, a rail and a
+          content column of the same width. Squeezing is not responding. Below
+          `sm` it becomes one column and the content pane gets the full 262. */}
+      <div className="shell-split row stack-narrow">
         {/* 40, not 46. The right column carries three tiles and the left
             carries one card, so an even-handed split starves the side with
             more in it: the tiles came out 4.4px short of fitting and wrapped
             two-and-one at every width. Measured after: 390px against the 356px
-            the three tiles need. */}
-        <div className="stack" style={{ width: '40%', minWidth: 0 }}>
+            the three tiles need.
+
+            A CUSTOM PROPERTY, not a bare 40%. Once the split stacks, this pane
+            is alone on its line and an orphan takes the whole line — and a
+            container query cannot reach an inline style at all, so a plain
+            `width: 40%` left it 104.8px wide in a 262px column. The property is
+            reachable, so the narrow branch sets it to 100% in the stylesheet
+            beside every other collapse rule. */}
+        <div className="stack" style={{ width: 'var(--split-left, 40%)', minWidth: 0 }}>
           {/* Four, not five. Five overflowed the pane by 24px and scrolled. */}
           <TabStrip ins={ins} L={L} style={tabStyle} selected="Colour" label="Editor sections"
             tabs={['Meta', 'Colour', 'Type', 'Layout']} />

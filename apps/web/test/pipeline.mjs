@@ -1376,7 +1376,34 @@ line('\n- prompt construction -')
     ['centring the control alone is worse', ['centring the control alone is worse']],
     ['equal gaps do not read equal around text', ['do not read equal']],
     ['proximity is a ratio', ['decided by the ratio']],
-    ['a checkbox draws at 16 and is hit at its label', ['hit at its label']],
+    /* Was `hit at its label`, and that term had a hole in it: eleven of the
+       sixteen checkboxes this app renders have no visible label, because a
+       row-selection box is named by its column and its row. The rule was not
+       wrong, it was incomplete, so the term tracks the stronger version rather
+       than being loosened until it passes. */
+    /* Terms are LOWERCASE — `doc` is lowercased before matching, so a term
+       carrying the payload's emphasis capitals can never match. Three
+       assertions were written with them and all three reported the rule
+       missing while it sat in the file. */
+    ['a checkbox draws at 16 and is hit at its wrapper', ['hit at its wrapper', 'the cell carries the target']],
+    /* A visible label is the default and there are four exceptions. Asserted
+       with the count in it, so adding a fifth exception has to be a decision
+       rather than a sentence somebody appended. */
+    ['a checkbox carries a visible label, four positional exceptions', ['exactly four exceptions', 'label is positional', 'toggle button']],
+    ['a positional label still owes an accessible name', ['still owes an accessible name', 'names nothing']],
+    /* The pairing rule, and the three things a builder gets wrong without it.
+       Terms lowercase, because `doc` is lowercased before matching. */
+    ['a broken action row pairs up', ['two per line, equal, covering the whole width', 'its partner shrinks into what is left']],
+    ['an odd count leads with the most important', ['odd number of actions gives the most important one a full-width line']],
+    ['the pair is its own container', ['build the pair as its own container', 'growth splits between exactly two']],
+    ['the pairs dissolve when the row fits', ['dissolve the pairs at any width where the row fits']],
+    ['an auto margin takes space rather than making it', ['does not create space', 'resolves to zero while the bar still has room']],
+    /* The gap the self-portrait found. The payload discussed segmented controls
+       and equal-height baselines and never said the thing underneath them: one
+       height per row, stated rather than inherited. An agent then sized a
+       segmented control from its content, and the 1px that fell out of centring
+       two heights read as a misalignment. */
+    ['a control row is one stated height', ['same height, and that height is stated rather than inherited', 'the row was holding two heights']],
     ['an optical correction belongs to its mechanism', ['belongs to the mechanism it corrects']],
     ['a selector needs the class to be on the node', ['actually on the node']],
     ['a demonstration is a real instance', ['demonstration and the thing demonstrated']],
@@ -1398,7 +1425,13 @@ line('\n- prompt construction -')
     ['a rail never becomes a horizontal strip', ['exactly two states']],
     ['the nav list is told not to wrap', ['never let a nav list wrap']],
     ['the most important action takes its own line', ['full-width line to itself']],
-    ['the rest pack in priority order', ['packs onto the lines below']],
+    /* Was `packs onto the lines below` — "as many per line as fit at their
+       natural widths". Superseded 14 August 2026 by the pairing rule: two per
+       line, equal, covering the width. The old term is not deleted quietly,
+       because a rule that leaves the document with nothing asserting the
+       replacement is how two versions of one decision end up shipping. The
+       pairing terms are asserted above. */
+    ['the rest go two per line', ['two per line']],
     ['an icon-only button is never left alone on a line', ['alone on a line at its natural width']],
     ['the gap beside a heading has a floor', ['floor under the gap']],
     ['that floor is what triggers the collapse', ['fit with that gap intact']],
@@ -1542,6 +1575,23 @@ line('\n- project file -')
   assert(after.components.every(c => c.source !== 'custom'),
     'components stay editable rather than becoming custom rows')
   assert(JSON.stringify(after.cssVars) === JSON.stringify(before.cssVars), 'every derived token is identical after a load')
+
+  /* THE MINIMUM TARGET REACHES THE PREVIEW.
+   *
+   * The stylesheet reads `var(--target-min, 44px)` and the default setting is
+   * also 44, so measuring the rendered box cannot tell a wired token from a
+   * missing one — the fallback paints either way and the reading is identical.
+   * That is the trap a fallback sets, so the wiring is asserted here instead of
+   * eyeballed there.
+   *
+   * It was genuinely broken when written: `buildCssVars` was called without
+   * `states`, so the var was never emitted at all and the preview showed the
+   * fallback. A non-default value is the only test that fails on that. */
+  assert(before.cssVars['--target-min'] === `${state.states.touchTarget}px`,
+    `the minimum target reaches the preview as a token (${before.cssVars['--target-min']})`)
+  const roomier = derive({ ...state, states: { ...state.states, touchTarget: 60 } })
+  assert(roomier.cssVars['--target-min'] === '60px',
+    `the target token follows the setting rather than the fallback (${roomier.cssVars['--target-min']})`)
 
   /* The same document through DESIGN.md must still lose things, or the
      assertions above are proving nothing. */

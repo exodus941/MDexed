@@ -163,7 +163,12 @@ export function derive(state) {
     focus: state.focus,
     states: state.states,
     borderWidths: state.radius?.borderWidths ?? {},
-    cssVars: buildCssVars({ roles, typography, spacing, rounded, elevation, motion, components, gradients, focus: state.focus, icons: state.icons, layout: state.layout, elevationCfg: state.elevation, borderWidths: state.radius?.borderWidths ?? {} }, color.mode),
+    /* `states` has to be passed IN, not read off the return value. It is in the
+       object above and was missing from this call, so a `--target-min` written
+       from `d.states` resolved against `undefined` and the variable was never
+       emitted. Nothing reports that: the stylesheet's fallback paints, so the
+       preview shows a plausible 44 whatever the document says. */
+    cssVars: buildCssVars({ roles, typography, spacing, rounded, elevation, motion, components, gradients, focus: state.focus, icons: state.icons, layout: state.layout, elevationCfg: state.elevation, states: state.states, borderWidths: state.radius?.borderWidths ?? {} }, color.mode),
   }
 }
 
@@ -261,6 +266,12 @@ export function buildCssVars(d, mode = 'light', { darkAliases = false } = {}) {
     vars['--focus-offset'] = `${d.focus.offset}px`
     vars['--focus-style'] = d.focus.style
   }
+  /* The minimum target is a SETTING, editable from 24 to 60, and the preview
+     has to obey it rather than paint a 44 nobody chose. Without this var the
+     checkbox hosts hardcode a number, and a document set to 60 demonstrates
+     44 — the demonstration contradicting its own document, in the one place a
+     reader checks first. */
+  if (d.states?.touchTarget != null) vars['--target-min'] = `${d.states.touchTarget}px`
   for (const [name, px] of Object.entries(d.icons?.sizes ?? {})) vars[`--icon-${name}`] = `${px}px`
   if (d.icons?.strokeWidth != null) vars['--icon-stroke'] = String(d.icons.strokeWidth)
   if (d.icons?.gap) vars['--icon-gap'] = d.spacing?.find(s => s.name === d.icons.gap)?.value ?? '8px'
