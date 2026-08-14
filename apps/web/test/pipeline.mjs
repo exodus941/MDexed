@@ -1454,6 +1454,8 @@ line('\n- prompt construction -')
     ['figures take the mono family', ['set figures in the mono family']],
     ['an amount takes a right edge, an identifier does not', ['reads as a total']],
     ['a checkbox has three states', ['a checkbox has **three** states']],
+    ['recase a label, never content', ['not a label on a box']],
+    ['recasing runs one direction only', ['which words are proper nouns']],
     ['no fractional pixel ships', ['hold it in their head']],
     ['space sits on a 4px grid', ['a hairline is ink, not space']],
     ['type takes 4 above 24 and 2 below', ['leaves no room for the 14px']],

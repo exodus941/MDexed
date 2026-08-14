@@ -77,6 +77,13 @@ function overviewBody(state) {
       casing === 'title'
         ? 'Capitalise every UI label as **Title Case**: "Export Payload", "Save Draft", "Row Count". This applies to buttons, tabs, menu items, column headings and section titles — the labels this file supplies and the labels you invent alike. Body copy stays sentence case. Do not mix the two conventions in one build.'
         : 'Capitalise every UI label as **sentence case**: "Export payload", "Save draft", "Row count". Only the first word and proper nouns take a capital. This applies to buttons, tabs, menu items, column headings and section titles — the labels this file supplies and the labels you invent alike. Where a label quoted in this document disagrees, this rule wins: recase it.',
+      /* The casing rule listed what Title Case applies TO and stopped. A build
+         read that list as illustrative and recased everything: the search
+         field said "Search By Invoice, Customer Or Amount" and the footer said
+         "Showing 1–6 Of 48 Invoices". Both are sentences. Naming the label set
+         is not the same as naming the boundary, so state the boundary too. */
+      'Recase a LABEL, never CONTENT. A label names a control or a region: a button, a tab, a menu item, a column heading, a field name, a section title. Everything else is content and keeps its natural capitalisation — a placeholder, a status line like "Showing 1–6 of 48 invoices", a record\'s name, a person\'s name, an address, body copy, a timestamp. A placeholder is a sentence addressed to the reader, not a label on a box.',
+      'Convert in ONE direction only. Sentence case to Title Case is mechanical and safe. Title Case back to sentence case needs to know which words are proper nouns, and no rule can tell you that — so where this file supplies a label already in Title Case and the system asks for sentence case, recase it by hand rather than by algorithm.',
       dark && build.themeToggle
         ? 'Build a **theme toggle** into the page. Set `data-theme="light"` or `data-theme="dark"` on the root element; every token reassigns itself and no variable name changes. Persist the choice, and default to the operating system setting via `prefers-color-scheme` on first load.'
         : dark
