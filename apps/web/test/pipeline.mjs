@@ -1482,7 +1482,15 @@ line('\n- prompt construction -')
     ['a comparison never scrolls sideways', ['never scrolls sideways']],
     ['a comparison puts every row on one grid', ['every row of a comparison on **one** grid']],
     ['a recommendation is marked by its edge', ['never by a fill']],
-    ['a marked column is one unbroken edge', ['stop against it rather than crossing it']],
+    /* Was `stop against it rather than crossing it`. Reversed 15 August 2026 on
+       their instruction, having seen it rendered: the marked column must carry
+       the dividers, because a comparison is read across and a column with no
+       rules in it reads as a panel laid over the table. The mechanism reason was
+       still right, so the term now pins BOTH halves — the edge stays unbroken,
+       and a border is not how you get there. */
+    ['a marked column keeps its edge and carries the dividers', ['keeps one unbroken edge and still carries the row dividers', 'chips that edge once per row']],
+    ['a card action row sits on the bottom edge in a row of cards', ['every action sits on the bottom edge', 'resolves to zero and nothing moves']],
+    ['the action distance moves to padding, not the auto margin', ['cannot also hold a minimum', 'the margin pushes the action down, the padding holds it clear']],
     ['a painting table has no column gap', ['no column gap at all']],
     ['figures take the mono family', ['set figures in the mono family']],
     ['an amount takes a right edge, an identifier does not', ['reads as a total']],
