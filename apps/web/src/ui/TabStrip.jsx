@@ -112,7 +112,7 @@ function Chevron({ dir, state, onEnter, onLeave, onClick }) {
         width: CHEVRON_W, height: '100%', border: 'none',
         cursor: spent ? 'default' : 'pointer',
         opacity: state === 'leaving' ? 0 : spent ? 0.3 : 1,
-        color: 'var(--muted)', padding: dir < 0 ? '0 0 0 10px' : '0 10px 0 0',
+        color: 'var(--muted)', padding: dir < 0 ? '0 0 0 12px' : '0 12px 0 0',
         /* Wide hit area, with a fade so tabs slide under it rather than
            colliding with a hard edge. */
         background: `linear-gradient(to ${dir < 0 ? 'right' : 'left'}, var(--surf) 55%, transparent)`,

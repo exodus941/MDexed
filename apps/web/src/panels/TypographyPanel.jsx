@@ -157,7 +157,7 @@ export default function TypographyPanel({ inspect }) {
               <div className="preview-box" style={{
                 marginTop: 8, padding: PAD.card,
                 fontFamily: stackFor(t.families[role]?.family, t.families[role]?.category),
-                fontSize: role === 'display' ? 22 : 15, color: 'var(--text)',
+                fontSize: role === 'display' ? 24 : 16, color: 'var(--text)',
                 fontVariationSettings: Object.entries(t.axes?.[role] ?? {}).map(([k, v]) => `"${k}" ${v}`).join(', ') || undefined,
                 fontFeatureSettings: (t.features?.[role] ?? []).map(f => `"${f}" 1`).join(', ') || undefined,
                 overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',

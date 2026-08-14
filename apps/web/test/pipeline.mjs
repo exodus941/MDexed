@@ -1459,6 +1459,7 @@ line('\n- prompt construction -')
     ['type takes 4 above 24 and 2 below', ['leaves no room for the 14px']],
     ['snapping happens at the last step', ['just moves the fraction downstream']],
     ['a clamp slope and a px line-height are exempt', ['breaks the centring it exists to do']],
+    ['every branch of a conditional value is real', ['as real as the first']],
     ['a fallback equals what the token ships', ['a second design nobody chose']],
     ['a table cell has a horizontal gutter', ['commonest omission in a table']],
     ['ornament columns shrink, content columns do not grow', ['shrink the ornament columns']],

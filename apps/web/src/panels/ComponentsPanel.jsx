@@ -546,7 +546,7 @@ function TabStyleChoice({ id, spec, roles, selected, onPick }) {
     return (
       <span key={label} style={{
         display: 'inline-block', lineHeight: pill ? '22px' : '26px',
-        padding: pill ? '0 9px' : '0 8px', fontSize: 12,
+        padding: pill ? '0 8px' : '0 8px', fontSize: 12,
         whiteSpace: 'nowrap',
         fontWeight: on ? 500 : 400,
         color: off ? roles['text-subtle'] : on ? (pill ? roles.accent : roles.text) : roles['text-muted'],
