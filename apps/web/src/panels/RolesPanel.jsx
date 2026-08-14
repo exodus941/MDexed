@@ -144,7 +144,7 @@ function PairChecker({ roles, mode }) {
             baseline of the selects beside it. */}
         <button className="btn-ghost btn-field btn-field-icon" title="Swap foreground and background"
           onClick={() => { setFg(bg); setBg(fg) }}>
-          <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor"
             strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
             <polyline points="17 2 21 6 17 10" /><line x1="3" y1="6" x2="21" y2="6" />
             <polyline points="7 14 3 18 7 22" /><line x1="21" y1="18" x2="3" y2="18" />

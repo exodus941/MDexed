@@ -184,6 +184,14 @@ for (const path of jsxFiles) {
     if (!/px|^\d/.test(val) || /var\(|%|em|rem|vh|vw|calc|auto|\bfr\b/.test(val)) continue
     scanValue(rel, `line ${lineAt(m.index)}`, kebab(prop), /px/.test(val) ? val : `${val}px`)
   }
+
+  /* An SVG sizes itself by ATTRIBUTE, not by style: `<svg width={13} …>`. That
+     is still a painted 13px box, and it hid a whole class of them — every icon
+     in the chrome — from a scan that only read style objects. An icon takes the
+     type grid, because it is sized to the label beside it. */
+  for (const m of text.matchAll(/<svg\b[^>]*?\bwidth=\{?(\d+(?:\.\d+)?)\}?[^>]*?\bheight=\{?(\d+(?:\.\d+)?)\}?/g)) {
+    scanValue(rel, `line ${lineAt(m.index)}`, 'icon-size', `${m[1]}px ${m[2]}px`)
+  }
 }
 
 /* ── The derived token set ── */

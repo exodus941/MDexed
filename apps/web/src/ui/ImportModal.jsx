@@ -493,7 +493,7 @@ export default function ImportModal({ onClose, onApply, onOpenDocument }) {
                   const f = e.dataTransfer.files?.[0]
                   if (f) f.text().then(t => read(t, f.name))
                 }}>
-                <svg width={26} height={26} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                <svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke="currentColor"
                   strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" style={{ opacity: .55 }}>
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                   <path d="M7 10l5-5 5 5" /><path d="M12 5v13" />

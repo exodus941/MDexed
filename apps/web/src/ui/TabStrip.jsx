@@ -16,7 +16,7 @@ import { Strut } from './controls.jsx'
    Same height as the preview pane's surface bar so the two line up across the
    split. The strip scrolls without a visible scrollbar — chevrons appear only
    when there's actually something off-screen in that direction. */
-const BAR_H = 42
+const BAR_H = 44
 
 /* Every tab label in the strip, so the pane title's strut can't drift out of
    step with the thing it is aligning to. Matches `.seg`, which sizes the
@@ -556,7 +556,7 @@ export default function TabStrip({ tabs, active, onSelect, right, title, actions
               transition: 'color var(--t) var(--ease), box-shadow var(--t) var(--ease)',
             }}>
             {activeTab.label}
-            <svg width={11} height={11} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"
+            <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"
               style={{ transform: menuOpen ? 'rotate(180deg)' : 'none', transition: 'transform var(--t) var(--ease)', opacity: .8 }}>
               <polyline points="6 9 12 15 18 9" />
             </svg>
