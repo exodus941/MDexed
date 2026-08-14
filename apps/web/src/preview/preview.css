@@ -266,6 +266,21 @@
  * 22.6px line — measured, it spilled 6px below its own border and stood 34
  * tall in a row of 36s. Centre it instead, and drop the vertical padding that
  * is now doing the opposite of its job. */
+/* One chevron, turned. A previous/next control is the SAME mark at two
+   rotations, and typing "‹" and "›" instead is the fault the system already
+   names: a glyph is not an icon, it comes from the text font rather than the
+   icon set, and it carries none of the stroke, size or join the set states. */
+.dmd .icon-left  { transform: rotate(90deg); }
+.dmd .icon-right { transform: rotate(-90deg); }
+
+/* A status dot outside a badge. The badge already owns one; this is the same
+   mark used beside a filter label, so it takes the same size and shape and
+   only its colour changes at the point of use. */
+.dmd .dot {
+  display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+  flex-shrink: 0; background: currentColor;
+}
+
 /* A row of fixed-height CONTROLS takes centre, never baseline.
  *
  * `.row` is baseline-aligned, which is right for a row that is mostly text. A
