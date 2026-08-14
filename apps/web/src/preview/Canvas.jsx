@@ -21,6 +21,7 @@ import Settings from './screens/Settings.jsx'
 import Dialog from './screens/Dialog.jsx'
 import Shell from './screens/Shell.jsx'
 import Record from './screens/Record.jsx'
+import Index from './screens/Index.jsx'
 import Empty from './screens/Empty.jsx'
 import Pricing from './screens/Pricing.jsx'
 import Gallery from './Gallery.jsx'
@@ -47,6 +48,10 @@ export const SURFACES = [
               highlighted option has to be marked without a fill. */
   { id: 'dashboard', label: 'Dashboard', Component: Dashboard },
   { id: 'record',    label: 'Record',    Component: Record },
+  /* A list you work in: search, narrow, select, act, page. Six components
+     nothing else here demonstrates, on the commonest screen shape after a
+     dashboard. */
+  { id: 'index',     label: 'Index',     Component: Index },
   { id: 'shell',     label: 'Shell',     Component: Shell },
   { id: 'landing',   label: 'Landing',   Component: Landing },
   { id: 'pricing',   label: 'Pricing',   Component: Pricing },

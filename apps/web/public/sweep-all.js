@@ -25,7 +25,7 @@ return (async () => {
   chrome().filter(e => /^PREVIEW/.test(e.textContent.trim()))[0]?.click()
   await pause(250)
 
-  const SURFACES = ['Dashboard', 'Record', 'Shell', 'Landing', 'Pricing', 'Form', 'Settings', 'Empty', 'Overlays', 'Gallery']
+  const SURFACES = ['Dashboard', 'Record', 'Index', 'Shell', 'Landing', 'Pricing', 'Form', 'Settings', 'Empty', 'Overlays', 'Gallery']
   const rows = []
 
   for (const name of SURFACES) {
