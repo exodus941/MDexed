@@ -87,13 +87,17 @@ export function buildRamps(seeds, shape) {
  * moving anything, and it still follows the seed — change the neutral and the
  * stripe changes with it, which a typed hex would not.
  *
- * Midpoint only. A ref language with a weight in it invites values chosen by
- * nudging rather than by measuring. */
-function mixSteps (ramp, a, b) {
+ * A WEIGHT is allowed — `neutral.50~100@0.25` — and the default is the
+ * midpoint. This began as midpoint-only, on the argument that a weight invites
+ * values picked by nudging. The argument lasted one turn: the stripe had to
+ * halve again, which is a quarter step, and no pair of ramp steps brackets it.
+ * A constraint that blocks a value somebody can justify is not discipline.
+ * What guards against nudging is the measurement, not the syntax. */
+function mixSteps (ramp, a, b, t = 0.5) {
   const A = parseColor(ramp?.steps?.[a]), B = parseColor(ramp?.steps?.[b])
   if (!A || !B) return null
   const oa = toOklchObj(A), ob = toOklchObj(B)
-  const mid = (x, y) => (x + y) / 2
+  const mid = (x, y) => x + (y - x) * t
   return toHex(toGamut(fromOklch({
     l: mid(oa.l, ob.l), c: mid(oa.c, ob.c),
     /* Hue is an angle: mix it the short way round, or a pair either side of
@@ -106,13 +110,21 @@ export function resolveRef(ref, ramps) {
   if (typeof ref !== 'string') return null
   if (ref === 'white') return '#ffffff'
   if (ref === 'black') return '#000000'
-  const dot = ref.lastIndexOf('.')
+  /* Take the weight off FIRST. `lastIndexOf('.')` was splitting the ramp from
+     the step, and a weight of `0.25` puts a dot after the step — so
+     `neutral.50~100@0.25` split into ramp "neutral.50~100@0" and step "25",
+     resolved to nothing, and the stripe painted BLACK. A separator chosen when
+     the grammar had one shape stops working the moment it gains another. */
+  const [body, weight] = ref.split('@')
+  const dot = body.lastIndexOf('.')
   if (dot < 0) return null
-  const ramp = ramps[ref.slice(0, dot)]
-  const step = ref.slice(dot + 1)
+  const ramp = ramps[body.slice(0, dot)]
+  const step = body.slice(dot + 1)
   if (step.includes('~')) {
     const [a, b] = step.split('~')
-    return mixSteps(ramp, a, b)
+    const t = weight === undefined ? 0.5 : Number(weight)
+    if (!Number.isFinite(t) || t < 0 || t > 1) return null
+    return mixSteps(ramp, a, b, t)
   }
   return ramp?.steps?.[step] ?? null
 }

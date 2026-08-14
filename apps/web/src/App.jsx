@@ -182,7 +182,7 @@ const SyncBadge = ({ status }) => {
   return (
     <span title={help} style={{
       display: 'inline-flex', alignItems: 'baseline', gap: 6, whiteSpace: 'nowrap',
-      fontSize: 11, color: cfg.fg, cursor: 'default',
+      fontSize: 12, color: cfg.fg, cursor: 'default',
     }}>
       {/* Centred, and out of the baseline set — an item with no text would
           otherwise donate its bottom edge as this badge's baseline, which is
@@ -212,7 +212,7 @@ const AppBuild = () => {
       ? 'Running from the dev server — no build was produced'
       : `MDexed build ${version}${sha ? ` · ${sha}` : ''}`}
       style={{
-        fontFamily: 'var(--mono)', fontSize: 9.5, color: 'var(--dim)',
+        fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--dim)',
         letterSpacing: '.02em', whiteSpace: 'nowrap', cursor: 'default',
       }}>
       {version}
@@ -234,7 +234,7 @@ const VersionChip = ({ version }) => {
         : v ? `Version "${v}" was typed by hand. Exporting replaces it with a build number.`
         : 'Not exported yet. The first export stamps a build number.'
     } style={{
-      fontSize: 10.5, fontFamily: 'var(--mono)', color: built ? 'var(--muted)' : 'var(--dim)',
+      fontSize: 10, fontFamily: 'var(--mono)', color: built ? 'var(--muted)' : 'var(--dim)',
       whiteSpace: 'nowrap', cursor: 'default',
     }}>
       {built ? v : v || 'unbuilt'}
@@ -268,15 +268,15 @@ function MacroControl({ macro, value, resolved, onChange }) {
 
   return (
     <div style={{ width: '100%', minWidth: 0 }} title={macro.desc}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 3 }}>
-        <span style={{ fontSize: 10.5, color: changed ? 'var(--text)' : 'var(--muted)', flex: 1, whiteSpace: 'nowrap' }}>{macro.label}</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 4 }}>
+        <span style={{ fontSize: 10, color: changed ? 'var(--text)' : 'var(--muted)', flex: 1, whiteSpace: 'nowrap' }}>{macro.label}</span>
         <ResetButton onClick={() => onChange(base)} disabled={!changed} />
       </div>
-      <div style={{ display: 'flex', gap: 4, marginBottom: 3 }}>
+      <div style={{ display: 'flex', gap: 4, marginBottom: 4 }}>
         <input className="num" type="number" min={macro.min} max={macro.max} step={0.01} value={value.toFixed(2)}
           onChange={e => { const n = parseFloat(e.target.value); if (Number.isFinite(n)) onChange(Math.max(macro.min, Math.min(macro.max, n))) }}
           title="Multiplier"
-          style={{ width: 56, padding: '3px 5px', fontSize: 10.5, color: changed ? 'var(--accent)' : 'var(--muted)' }} />
+          style={{ width: 56, padding: '4px 6px', fontSize: 10, color: changed ? 'var(--accent)' : 'var(--muted)' }} />
         <input
           value={draft ?? resolved.display}
           onChange={e => setDraft(e.target.value)}
@@ -285,7 +285,7 @@ function MacroControl({ macro, value, resolved, onChange }) {
           disabled={!resolved.base}
           title={resolved.hint}
           style={{
-            flex: 1, minWidth: 0, fontFamily: 'var(--mono)', fontSize: 10.5, padding: '3px 5px',
+            flex: 1, minWidth: 0, fontFamily: 'var(--mono)', fontSize: 10, padding: '4px 6px',
             textAlign: 'right', color: 'var(--text-dim)', opacity: resolved.base ? 1 : 0.55,
           }} />
       </div>
@@ -318,18 +318,18 @@ function UiSpeedControl({ value, onChange }) {
 
   return (
     <div style={{ width: '100%', minWidth: 0 }} title="How fast the editor's own panels and controls animate. 0 disables them.">
-      <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 3 }}>
-        <span style={{ fontSize: 10.5, color: changed ? 'var(--text)' : 'var(--muted)', flex: 1, whiteSpace: 'nowrap' }}>UI Animation</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 4 }}>
+        <span style={{ fontSize: 10, color: changed ? 'var(--text)' : 'var(--muted)', flex: 1, whiteSpace: 'nowrap' }}>UI Animation</span>
         <ResetButton onClick={() => onChange(UI_ANIM_DEFAULT)} disabled={!changed} />
       </div>
-      <div style={{ display: 'flex', gap: 4, marginBottom: 3 }}>
+      <div style={{ display: 'flex', gap: 4, marginBottom: 4 }}>
         <input
           value={draft ?? (value ? `${value}ms` : 'off')}
           onChange={e => setDraft(e.target.value)}
           onBlur={e => commit(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur() }}
           style={{
-            flex: 1, minWidth: 0, fontFamily: 'var(--mono)', fontSize: 10.5, padding: '3px 5px',
+            flex: 1, minWidth: 0, fontFamily: 'var(--mono)', fontSize: 10, padding: '4px 6px',
             textAlign: 'right', color: value ? 'var(--text-dim)' : 'var(--dim)',
           }} />
       </div>
@@ -376,20 +376,20 @@ function ScaleSlider({ label, title, value, onChange, disabled, children }) {
 
   return (
     <div style={{ width: '100%', minWidth: 0, opacity: disabled ? 0.55 : 1 }} title={title}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 3 }}>
-        <span style={{ fontSize: 10.5, color: changed ? 'var(--text)' : 'var(--muted)', flex: 1, whiteSpace: 'nowrap' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 4 }}>
+        <span style={{ fontSize: 10, color: changed ? 'var(--text)' : 'var(--muted)', flex: 1, whiteSpace: 'nowrap' }}>
           {label}
         </span>
         <ResetButton onClick={() => onChange(UI_SCALE.def)} disabled={disabled || !changed} />
       </div>
-      <div style={{ display: 'flex', gap: 4, marginBottom: 3 }}>
+      <div style={{ display: 'flex', gap: 4, marginBottom: 4 }}>
         <input
           value={draft ?? `${value}%`} disabled={disabled}
           onChange={e => setDraft(e.target.value)}
           onBlur={e => commit(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur() }}
           style={{
-            flex: 1, minWidth: 0, fontFamily: 'var(--mono)', fontSize: 10.5, padding: '3px 5px',
+            flex: 1, minWidth: 0, fontFamily: 'var(--mono)', fontSize: 10, padding: '4px 6px',
             textAlign: 'right', color: 'var(--text-dim)',
           }} />
       </div>
@@ -418,9 +418,9 @@ function PreviewScaleControl({ value, onChange, linked, setLinked, uiScale }) {
       label="Preview Scale"
       title="How large the preview surface draws, independent of the editor around it. The document is unchanged either way — this is magnification, not a token."
       value={linked ? uiScale : value} onChange={onChange} disabled={linked}>
-      <label className="check" style={{ marginTop: 9, color: linked ? 'var(--text)' : 'var(--muted)' }} title="Follow the UI Scale slider instead of keeping its own value.">
+      <label className="check" style={{ marginTop: 8, color: linked ? 'var(--text)' : 'var(--muted)' }} title="Follow the UI Scale slider instead of keeping its own value.">
         <input type="checkbox" checked={linked} onChange={e => setLinked(e.target.checked)}
-          style={{ width: 14, height: 14, accentColor: 'var(--accent)' }} />
+          style={{ width: 16, height: 16, accentColor: 'var(--accent)' }} />
         Link to UI Scale
       </label>
     </ScaleSlider>
@@ -448,20 +448,20 @@ function UiBrightnessControl({ value, onChange, theme }) {
       title={theme === 'dark'
         ? 'How far the dark theme lifts off black. Text follows, so contrast stays inside AA across the range.'
         : 'How bright the paper is. Text darkens as the page dims, so the page reads as a lower lamp rather than as grey ink.'}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 3 }}>
-        <span style={{ fontSize: 10.5, color: changed ? 'var(--text)' : 'var(--muted)', flex: 1, whiteSpace: 'nowrap' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 4 }}>
+        <span style={{ fontSize: 10, color: changed ? 'var(--text)' : 'var(--muted)', flex: 1, whiteSpace: 'nowrap' }}>
           Brightness
         </span>
         <ResetButton onClick={() => onChange(r.def)} disabled={!changed} />
       </div>
-      <div style={{ display: 'flex', gap: 4, marginBottom: 3 }}>
+      <div style={{ display: 'flex', gap: 4, marginBottom: 4 }}>
         <input
           value={draft ?? `${pct}%`}
           onChange={e => setDraft(e.target.value)}
           onBlur={e => commit(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur() }}
           style={{
-            flex: 1, minWidth: 0, fontFamily: 'var(--mono)', fontSize: 10.5, padding: '3px 5px',
+            flex: 1, minWidth: 0, fontFamily: 'var(--mono)', fontSize: 10, padding: '4px 6px',
             textAlign: 'right', color: 'var(--text-dim)',
           }} />
       </div>
@@ -500,18 +500,18 @@ function UiHueControl({ value, onChange }) {
 
   return (
     <div style={{ width: '100%', minWidth: 0 }} title="The hue of the editor's own chrome. Saturation and lightness are untouched — only the cast changes.">
-      <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 3 }}>
-        <span style={{ fontSize: 10.5, color: changed ? 'var(--text)' : 'var(--muted)', flex: 1, whiteSpace: 'nowrap' }}>UI Hue</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 4 }}>
+        <span style={{ fontSize: 10, color: changed ? 'var(--text)' : 'var(--muted)', flex: 1, whiteSpace: 'nowrap' }}>UI Hue</span>
         <ResetButton onClick={() => onChange(UI_HUE_DEFAULT)} disabled={!changed} />
       </div>
-      <div style={{ display: 'flex', gap: 4, marginBottom: 3 }}>
+      <div style={{ display: 'flex', gap: 4, marginBottom: 4 }}>
         <input
           value={draft ?? `${value}°`}
           onChange={e => setDraft(e.target.value)}
           onBlur={e => commit(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur() }}
           style={{
-            flex: 1, minWidth: 0, fontFamily: 'var(--mono)', fontSize: 10.5, padding: '3px 5px',
+            flex: 1, minWidth: 0, fontFamily: 'var(--mono)', fontSize: 10, padding: '4px 6px',
             textAlign: 'right', color: 'var(--text-dim)',
           }} />
       </div>
@@ -566,7 +566,7 @@ function GlobalMetrics() {
       <SectionHeader title="Global Metrics"
         desc="Five multipliers that reshape every dependent token at once. Everything below them in the app is derived, so these move the whole system rather than one value."
         right={
-          <button className="btn-ghost" onClick={reset} disabled={!anyChanged} style={{ padding: BTN.sm, fontSize: 11.5 }}>
+          <button className="btn-ghost" onClick={reset} disabled={!anyChanged} style={{ padding: BTN.sm, fontSize: 12 }}>
             Reset All
           </button>
         } />
@@ -682,15 +682,15 @@ function ProjectMenu ({ items, onAction, projectId }) {
       {open && (
         <div ref={boxRef} className="anim-pop" style={{
           position: 'absolute', top: 'calc(100% + 6px)', right: 0, zIndex: 500,
-          background: 'var(--surf2)', border: '1px solid var(--bdr2)', borderRadius: 10,
+          background: 'var(--surf2)', border: '1px solid var(--bdr2)', borderRadius: 12,
           boxShadow: '0 12px 32px var(--shade)', width: 232, padding: '6px',
         }}>
           {items.map(a => (
             <button key={a.id} onClick={() => { setOpen(false); onAction(a.id) }} title={a.hint}
               style={{
-                display: 'flex', alignItems: 'center', gap: 9, width: '100%',
+                display: 'flex', alignItems: 'center', gap: 8, width: '100%',
                 /* 44px, the touch target this app requires of everyone else. */
-                minHeight: 44, padding: '0 10px', borderRadius: 7,
+                minHeight: 44, padding: '0 12px', borderRadius: 8,
                 background: 'transparent', border: 0, cursor: 'pointer',
                 font: '400 13px/44px var(--sans)', color: 'var(--text)', textAlign: 'left',
               }}
@@ -753,7 +753,7 @@ function ToolsMenu({ uiSpeed, setUiSpeed, uiHue, setUiHue, uiTheme, setUiTheme, 
          * than a line of text does. Hence the extra on the bottom. */
         <div ref={boxRef} className="anim-pop" style={{
           position: 'absolute', top: 'calc(100% + 6px)', right: 0, zIndex: 500,
-          background: 'var(--surf2)', border: '1px solid var(--bdr2)', borderRadius: 10,
+          background: 'var(--surf2)', border: '1px solid var(--bdr2)', borderRadius: 12,
           boxShadow: '0 12px 32px var(--shade)', width: 288,
           padding: '0 0 6px',
         }}>
@@ -763,11 +763,11 @@ function ToolsMenu({ uiSpeed, setUiSpeed, uiHue, setUiHue, uiTheme, setUiTheme, 
           <div style={{
             fontSize: 10, textTransform: 'uppercase', letterSpacing: '.1em',
             color: 'var(--text-dim)', fontWeight: 700,
-            padding: '11px 14px 10px', borderBottom: '1px solid var(--bdr)',
+            padding: '12px 16px 12px', borderBottom: '1px solid var(--bdr)',
           }}>
             App UI
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: '14px 14px 8px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: '16px 16px 8px' }}>
             <ThemeToggle value={uiTheme} onChange={setUiTheme} />
             <UiBrightnessControl theme={uiTheme} value={uiBright[uiTheme]}
               onChange={v => setUiBright(b => ({ ...b, [uiTheme]: v }))} />
@@ -792,7 +792,7 @@ function ThemeToggle({ value, onChange }) {
   const light = value === 'light'
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-      <span style={{ fontSize: 10.5, color: 'var(--muted)', flex: 1 }}>Appearance</span>
+      <span style={{ fontSize: 10, color: 'var(--muted)', flex: 1 }}>Appearance</span>
       <button onClick={() => onChange(light ? 'dark' : 'light')}
         title={light ? 'Switch to the dark theme' : 'Switch to the light theme'}
         style={{
@@ -800,7 +800,7 @@ function ThemeToggle({ value, onChange }) {
           background: light ? 'rgb(var(--warn-rgb) / .14)' : 'var(--surf3)',
           border: `1px solid ${light ? 'rgb(var(--warn-rgb) / .4)' : 'var(--bdr)'}`,
           color: light ? 'var(--warn)' : 'var(--muted)',
-          borderRadius: 6, padding: BTN.xs, fontSize: 11, fontFamily: 'var(--sans)',
+          borderRadius: 6, padding: BTN.xs, fontSize: 12, fontFamily: 'var(--sans)',
           transition: 'background var(--t) var(--ease), color var(--t) var(--ease), border-color var(--t) var(--ease)',
         }}>
         <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -827,8 +827,8 @@ function FileModal({ onClose }) {
   return (
     <div onClick={onClose} className="anim-fade modal-back" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.75)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
       <div onClick={e => e.stopPropagation()} className="anim-rise modal-panel" style={{ background: 'var(--surf)', border: '1px solid var(--bdr)', borderRadius: 12, width: '100%', maxWidth: 760, maxHeight: '84vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <div style={{ display: 'flex', alignItems: 'baseline', padding: '13px 17px', borderBottom: '1px solid var(--bdr)', gap: 10 }}>
-          <span style={{ fontFamily: 'var(--display)', fontWeight: 700, fontSize: 15, flex: 1 }}>DESIGN.md</span>
+        <div style={{ display: 'flex', alignItems: 'baseline', padding: '12px 16px', borderBottom: '1px solid var(--bdr)', gap: 12 }}>
+          <span style={{ fontFamily: 'var(--display)', fontWeight: 700, fontSize: 16, flex: 1 }}>DESIGN.md</span>
           <span className="chip" style={{ color: report.ok ? 'var(--success)' : 'var(--danger)', borderColor: report.ok ? 'rgb(var(--success-rgb) / .3)' : 'rgb(var(--danger-rgb) / .3)' }}>
             {report.ok ? 'Spec valid' : `${report.errors.length} error${report.errors.length === 1 ? '' : 's'}`}
           </span>
@@ -845,7 +845,7 @@ function FileModal({ onClose }) {
         </div>
 
         {(report.errors.length > 0 || report.warnings.length > 0 || dropped.length > 0) && (
-          <div style={{ padding: '10px 17px', borderBottom: '1px solid var(--bdr)', display: 'flex', flexDirection: 'column', gap: 7, maxHeight: 170, overflow: 'auto' }}>
+          <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--bdr)', display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 172, overflow: 'auto' }}>
             {report.errors.map((e, i) => <Banner key={`e${i}`} tone="error">{e}</Banner>)}
             {report.warnings.map((w, i) => <Banner key={`w${i}`} tone="warn">{w}</Banner>)}
             {dropped.length > 0 && (
@@ -857,7 +857,7 @@ function FileModal({ onClose }) {
           </div>
         )}
 
-        <pre style={{ flex: 1, overflow: 'auto', padding: 17, fontFamily: 'var(--mono)', fontSize: 11.5, lineHeight: 1.65, color: 'var(--text)', margin: 0, background: 'var(--bg)', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{text}</pre>
+        <pre style={{ flex: 1, overflow: 'auto', padding: 16, fontFamily: 'var(--mono)', fontSize: 12, lineHeight: 1.65, color: 'var(--text)', margin: 0, background: 'var(--bg)', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{text}</pre>
       </div>
     </div>
   )
@@ -888,11 +888,11 @@ function SaveFlash({ savedAt }) {
   return (
     <div key={shown.at} className={leaving ? 'anim-fall' : 'anim-rise'} style={{
       pointerEvents: 'none',
-      display: 'flex', alignItems: 'center', gap: 7,
+      display: 'flex', alignItems: 'center', gap: 8,
       /* Opaque. A translucent confirmation over a dark editor is unreadable. */
       background: '#12352a', border: '1px solid rgb(var(--success-rgb) / .55)',
-      color: '#7fd6a4', borderRadius: 7, padding: '7px 12px',
-      fontSize: 11.5, fontFamily: 'var(--mono)',
+      color: '#7fd6a4', borderRadius: 8, padding: '8px 12px',
+      fontSize: 12, fontFamily: 'var(--mono)',
       boxShadow: '0 8px 24px rgba(0,0,0,.5)',
     }}>
       <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round">
@@ -941,8 +941,8 @@ function TitleField({ name, onCommit, full = false }) {
         placeholder="Untitled"
         title="Project name"
         style={{
-          ...(full ? { flex: 1, width: '100%', height: 36, fontSize: 13 } : { width: dirty ? 180 : 150, fontSize: 12 }),
-          padding: '3px 10px',
+          ...(full ? { flex: 1, width: '100%', height: 36, fontSize: 14 } : { width: dirty ? 180 : 150, fontSize: 12 }),
+          padding: '4px 12px',
           fontFamily: 'var(--mono)', background: 'var(--surf2)',
           borderColor: dirty ? 'rgb(var(--accent-rgb) / .45)' : 'var(--bdr)',
           color: dirty ? 'var(--accent)' : 'var(--muted)',
@@ -1018,9 +1018,9 @@ function RestoreToast({ offer, onRestore, onDismiss }) {
       /* Centred: the message is two lines, so Restore is sitting beside a block
          rather than beside a line. Baseline-aligning it to the first line left
          it hanging off the top of the pair. */
-      display: 'flex', alignItems: 'center', gap: 11,
+      display: 'flex', alignItems: 'center', gap: 12,
       background: 'var(--surf2)', border: '1px solid var(--bdr2)',
-      borderRadius: 9, padding: '9px 10px 9px 11px',
+      borderRadius: 8, padding: '8px 12px 8px 12px',
       /* No fixed cap. The second line names the project, and a name the user
          chose is not something to replace with an ellipsis when there is room
          on the screen for it — the toast floats, so growing costs nothing.
@@ -1034,7 +1034,7 @@ function RestoreToast({ offer, onRestore, onDismiss }) {
           editor chrome, so the eye finds this against a bright preview. */}
       <span style={{
         display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-        width: 26, height: 26, borderRadius: '50%', flexShrink: 0, alignSelf: 'center',
+        width: 28, height: 28, borderRadius: '50%', flexShrink: 0, alignSelf: 'center',
         background: 'rgb(var(--success-rgb) / .16)', color: 'var(--success)',
       }}>
         <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -1044,14 +1044,14 @@ function RestoreToast({ offer, onRestore, onDismiss }) {
         </svg>
       </span>
       <div style={{ minWidth: 0 }}>
-        <div style={{ fontSize: 12.5, color: 'var(--text)' }}>
+        <div style={{ fontSize: 12, color: 'var(--text)' }}>
           Started a new project.
         </div>
-        <div style={{ fontSize: 11.5, color: 'var(--muted)', marginTop: 1, overflowWrap: 'anywhere' }}>
+        <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 1, overflowWrap: 'anywhere' }}>
           “{offer.name}” is saved{when ? ` from ${when}` : ''}.
         </div>
       </div>
-      <button className="btn-ghost" style={{ padding: '4px 10px', fontSize: 12, flexShrink: 0 }}
+      <button className="btn-ghost" style={{ padding: '4px 12px', fontSize: 12, flexShrink: 0 }}
         onClick={() => close(onRestore)}>
         Restore
       </button>
@@ -1098,7 +1098,7 @@ function NoticeBar({ notice, onClose }) {
   return (
     <div className={leaving ? 'anim-fade-out' : 'anim-fade'}
       onMouseEnter={() => setHeld(true)} onMouseLeave={() => setHeld(false)}
-      style={{ padding: '9px 20px', background: 'var(--surf)', borderBottom: '1px solid var(--bdr)', flexShrink: 0 }}>
+      style={{ padding: '8px 20px', background: 'var(--surf)', borderBottom: '1px solid var(--bdr)', flexShrink: 0 }}>
       <Banner tone={notice.tone} onDismiss={() => setLeaving(true)}>{notice.text}</Banner>
     </div>
   )
@@ -1112,36 +1112,36 @@ function NewDocModal({ onClose, onCreate }) {
   return (
     <div onClick={onClose} className="anim-fade modal-back" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.72)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
       <div onClick={e => e.stopPropagation()} className="anim-rise modal-panel" style={{ background: 'var(--surf)', border: '1px solid var(--bdr)', borderRadius: 12, width: '100%', maxWidth: 560, maxHeight: '84vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <div style={{ display: 'flex', alignItems: 'center', padding: '13px 17px', borderBottom: '1px solid var(--bdr)' }}>
-          <span style={{ fontFamily: 'var(--display)', fontWeight: 700, fontSize: 15, flex: 1 }}>New design system</span>
+        <div style={{ display: 'flex', alignItems: 'center', padding: '12px 16px', borderBottom: '1px solid var(--bdr)' }}>
+          <span style={{ fontFamily: 'var(--display)', fontWeight: 700, fontSize: 16, flex: 1 }}>New design system</span>
           <CloseButton onClick={onClose} label="Close" size={11} />
         </div>
 
-        <div style={{ padding: 17, overflowY: 'auto', minHeight: 0 }}>
+        <div style={{ padding: 16, overflowY: 'auto', minHeight: 0 }}>
           <div style={{ marginBottom: 16 }}>
             <label>Name</label>
             <input autoFocus value={name} onChange={e => setName(e.target.value)} placeholder="Untitled system" />
           </div>
-          <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 3 }}>Start from</div>
-          <p className="panel-note" style={{ marginBottom: 10 }}>
+          <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 4 }}>Start from</div>
+          <p className="panel-note" style={{ marginBottom: 12 }}>
             This replaces the current document. Anything unsaved to the cloud is lost.
           </p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {PRESETS.map(p => (
               <button key={p.id} onClick={() => onCreate(p.id, name)}
                 style={{
-                  display: 'flex', alignItems: 'center', gap: 11, padding: '8px 16px', textAlign: 'left',
-                  background: 'var(--surf2)', border: '1px solid var(--bdr)', borderRadius: 9,
+                  display: 'flex', alignItems: 'center', gap: 12, padding: '8px 16px', textAlign: 'left',
+                  background: 'var(--surf2)', border: '1px solid var(--bdr)', borderRadius: 8,
                   cursor: 'pointer', color: 'var(--text)', fontFamily: 'var(--sans)',
                 }}
                 onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgb(var(--accent-rgb) / .4)' }}
                 onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--bdr)' }}>
                 <div style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
-                  {p.swatches.map(c => <div key={c} style={{ width: 16, height: 26, background: c, borderRadius: 3, border: '1px solid rgba(255,255,255,.07)' }} />)}
+                  {p.swatches.map(c => <div key={c} style={{ width: 16, height: 28, background: c, borderRadius: 4, border: '1px solid rgba(255,255,255,.07)' }} />)}
                 </div>
                 <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 500 }}>{p.label}</div>
-                  <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 1 }}>{p.desc}</div>
+                  <div style={{ fontSize: 14, fontWeight: 500 }}>{p.label}</div>
+                  <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 1 }}>{p.desc}</div>
                 </div>
               </button>
             ))}
@@ -1873,7 +1873,7 @@ function Shell() {
               live in the stylesheet, where the touch breakpoint can reach
               them; flex centring is gone because it hides the letters from the
               row and tells it nothing about where they landed. */}
-          <div className="bar-mark" style={{ borderRadius: 9, background: 'var(--accent)', alignSelf: 'baseline', fontFamily: 'var(--display)', fontWeight: 800, fontSize: 14, letterSpacing: '-0.04em', color: 'var(--bg)', flexShrink: 0 }}>MD</div>
+          <div className="bar-mark" style={{ borderRadius: 8, background: 'var(--accent)', alignSelf: 'baseline', fontFamily: 'var(--display)', fontWeight: 800, fontSize: 14, letterSpacing: '-0.04em', color: 'var(--bg)', flexShrink: 0 }}>MD</div>
 
           {/* The words. Baseline-aligned, so every size in here shares one
               line with the button labels across the bar.
@@ -1890,13 +1890,13 @@ function Shell() {
            * states the old structure could not reach, which is the argument for
            * re-measuring the row you touched rather than the fault you fixed. */}
           {hasWords && (
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 9, flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flex: 1, minWidth: 0 }}>
             {/* The wordmark, build number and palette are the first things to
                 go. The squircle already says which app this is, and the name
                 field is the only part of this group you can act on. */}
             {!barTrim && (
               <>
-                <span style={{ fontFamily: 'var(--display)', fontWeight: 700, fontSize: 15, letterSpacing: '-0.025em', whiteSpace: 'nowrap' }}>
+                <span style={{ fontFamily: 'var(--display)', fontWeight: 700, fontSize: 16, letterSpacing: '-0.025em', whiteSpace: 'nowrap' }}>
                   MD<span style={{ color: 'var(--muted)', fontWeight: 400 }}>exed</span>
                 </span>
                 <AppBuild />
@@ -1907,7 +1907,7 @@ function Shell() {
                 onCommit={next => set(s => ({ ...s, meta: { ...s.meta, name: next } }), 'meta:name')} />
             )}
             {!barTrim && (
-              <div style={{ display: 'flex', gap: 3, marginLeft: 4, alignSelf: 'center' }}>
+              <div style={{ display: 'flex', gap: 4, marginLeft: 4, alignSelf: 'center' }}>
                 {swatches.map((hex, i) => <div key={i} className="swatch" style={{ width: 12, height: 12, background: hex, cursor: 'default' }} />)}
               </div>
             )}
@@ -1977,14 +1977,14 @@ function Shell() {
                  slot turns into the thing you actually want next. */
               if (a.id === 'saveToCloud' && projectId) return (
                 <button key={a.id} className="btn-ghost" onClick={copyShareUrl}
-                  style={{ padding: BTN.lg, flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 5, color: linkCopied ? 'var(--success)' : 'var(--muted)' }}>
+                  style={{ padding: BTN.lg, flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 6, color: linkCopied ? 'var(--success)' : 'var(--muted)' }}>
                   <Copy /><span className="lbl">{linkCopied ? 'Link copied' : 'Copy share URL'}</span>
                 </button>
               )
               return (
                 <button key={a.id} className={a.id === 'saveToCloud' ? 'btn-fill' : 'btn-ghost'}
                   onClick={() => runProjectAction(a.id)} title={a.hint}
-                  style={{ padding: BTN.lg, flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                  style={{ padding: BTN.lg, flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                   <a.Icon /><span className="lbl">{a.label}</span>
                 </button>
               )
@@ -1994,13 +1994,13 @@ function Shell() {
                 at two levels of commitment, so they share a colour. */}
             {!barCompact && (
               <button className="btn-outline" onClick={() => setShowFile(true)} title="Read the generated file before you export it"
-                style={{ padding: BTN.lg, flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                style={{ padding: BTN.lg, flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                 <Eye /><span className="lbl">Preview DESIGN.md</span>
               </button>
             )}
             <button className="btn-primary" onClick={exportPackage} disabled={packaging}
               title="AGENTS.md, DESIGN.md, tokens.css, a Tailwind preset, tokens.json and every surface as HTML — one zip"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
               <Download /><span className="lbl keep-lbl">{packaging ? "Packaging…" : "Export Payload"}</span>
             </button>
             {/* Off-screen rather than hidden: a `display:none` input cannot be
@@ -2095,14 +2095,14 @@ function Shell() {
                 as a toggle without any ARIA of my own. */}
             <label title="Show both panes down the page instead of one at a time"
               style={{
-                display: 'flex', alignItems: 'center', gap: 9, height: 44,
+                display: 'flex', alignItems: 'center', gap: 8, height: 44,
                 padding: '0 12px 0 16px', marginLeft: 6, cursor: 'pointer', flexShrink: 0,
                 fontFamily: 'var(--sans)', fontSize: 10, fontWeight: 700,
                 letterSpacing: '.08em', color: stackPanes ? 'var(--accent)' : 'var(--text-dim)',
                 borderLeft: '1px solid var(--bdr)',
               }}>
               <input type="checkbox" checked={stackPanes} onChange={e => setStackPanes(e.target.checked)}
-                style={{ width: 15, height: 15, accentColor: 'var(--accent)', margin: 0, flexShrink: 0 }} />
+                style={{ width: 16, height: 16, accentColor: 'var(--accent)', margin: 0, flexShrink: 0 }} />
               STACK
             </label>
           </nav>
@@ -2139,11 +2139,11 @@ function Shell() {
               actions={
                 <>
                   <button className="btn-ghost" onClick={undo} disabled={!canUndo} title="Undo (Ctrl+Z)"
-                    style={{ padding: '4px 10px', gap: 5, color: canUndo ? 'var(--accent)' : undefined, borderColor: canUndo ? 'rgb(var(--accent-rgb) / .35)' : undefined }}>
+                    style={{ padding: '4px 12px', gap: 6, color: canUndo ? 'var(--accent)' : undefined, borderColor: canUndo ? 'rgb(var(--accent-rgb) / .35)' : undefined }}>
                     <Undo />Undo
                   </button>
                   <button className="btn-ghost" onClick={redo} disabled={!canRedo} title="Redo (Ctrl+Shift+Z)"
-                    style={{ padding: '4px 10px', color: canRedo ? 'var(--text-dim)' : undefined }}>
+                    style={{ padding: '4px 12px', color: canRedo ? 'var(--text-dim)' : undefined }}>
                     <Undo flip />
                   </button>
                   {/* Confirms in place: fills, swaps to a tick and reads
@@ -2159,7 +2159,7 @@ function Shell() {
                     title={justSaved ? 'Saved' : dirty ? 'Unsaved changes — click to save now' : 'Everything is saved'}
                     className={justSaved ? 'btn-primary' : 'btn-ghost'}
                     style={{
-                      padding: '4px 10px', gap: 6, display: 'inline-flex', alignItems: 'center',
+                      padding: '4px 12px', gap: 6, display: 'inline-flex', alignItems: 'center',
                       minWidth: 88, justifyContent: 'center',
                       ...(justSaved
                         ? { background: 'var(--success)', color: 'var(--bg)' }
@@ -2170,11 +2170,11 @@ function Shell() {
                       ? <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
                       : <Save />}
                     {justSaved ? 'Saved' : 'Save'}
-                    {!justSaved && dirty && <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'currentColor' }} />}
+                    {!justSaved && dirty && <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'currentColor' }} />}
                   </button>
                   <div style={{ flex: 1 }} />
                   <button className="btn-fill" onClick={() => setShowImport(true)}
-                    style={{ padding: '4px 10px' }} title={IMPORT_FORMATS}><Upload /><span className="lbl">Import Reference</span></button>
+                    style={{ padding: '4px 12px' }} title={IMPORT_FORMATS}><Upload /><span className="lbl">Import Reference</span></button>
                 </>
               } />
             <main style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', padding: '20px 20px 64px',
@@ -2221,7 +2221,7 @@ function Shell() {
            only centres things that have no width of their own. */
         ...(isMobile
           ? { left: 12, right: 12, alignItems: 'center' }
-          : { right: 18, alignItems: 'flex-end' }),
+          : { right: 20, alignItems: 'flex-end' }),
       }}>
         {/* Save confirmation on top, restore offer beneath it. The save flash
             is transient and its own arrival is the message; the restore offer

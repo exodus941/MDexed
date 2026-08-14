@@ -36,7 +36,7 @@ const TONE = {
    that doesn't. Currency of the form, drawn rather than typed so it takes the
    tone colour and stays the same size in every font. */
 function Icon({ level, fg }) {
-  const common = { width: 15, height: 15, viewBox: '0 0 16 16', 'aria-hidden': true, style: { flexShrink: 0, marginTop: 1 } }
+  const common = { width: 16, height: 16, viewBox: '0 0 16 16', 'aria-hidden': true, style: { flexShrink: 0, marginTop: 1 } }
   if (level === 'note') {
     return (
       <svg {...common} fill="none" stroke={fg} strokeWidth={1.4}>
@@ -69,7 +69,7 @@ export function useFindings(tab) {
 function ticks(text) {
   return String(text).split(/(`[^`]+`)/g).map((part, i) =>
     part.startsWith('`') && part.endsWith('`') && part.length > 2
-      ? <code key={i} style={{ fontFamily: 'var(--mono)', fontSize: '0.92em', background: 'var(--surf3)', padding: '1px 4px', borderRadius: 3 }}>{part.slice(1, -1)}</code>
+      ? <code key={i} style={{ fontFamily: 'var(--mono)', fontSize: '0.92em', background: 'var(--surf3)', padding: '1px 4px', borderRadius: 4 }}>{part.slice(1, -1)}</code>
       : part,
   )
 }
@@ -107,7 +107,7 @@ export function Finding({ f, compact, action }) {
               The shape of the icon still carries severity without colour,
               which is the rule this app hands to everyone else. */}
           <div style={{
-            fontSize: 10.5, fontWeight: 700, letterSpacing: '.07em',
+            fontSize: 10, fontWeight: 700, letterSpacing: '.07em',
             textTransform: 'uppercase', color: t.fg,
           }} title={t.word}>
             {f.title}
@@ -118,25 +118,25 @@ export function Finding({ f, compact, action }) {
               amber body copy is the thing this restyle was undoing. */}
           {f.fix && (
             <div style={{ color: 'var(--fg)', marginTop: 4 }}>
-              <span style={{ color: t.fg, marginRight: 5 }} aria-hidden>→</span>{f.fix}
+              <span style={{ color: t.fg, marginRight: 6 }} aria-hidden>→</span>{f.fix}
             </div>
           )}
           <button onClick={() => setOpen(o => !o)} style={{
-            marginTop: 5, background: 'none', border: 'none', padding: 0, cursor: 'pointer',
-            font: 'inherit', fontSize: 11, color: 'var(--dim)', textDecoration: 'underline',
+            marginTop: 6, background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+            font: 'inherit', fontSize: 12, color: 'var(--dim)', textDecoration: 'underline',
             textUnderlineOffset: 2,
           }}>{open ? 'Hide' : 'Why'}</button>
           {open && (
-            <div style={{ marginTop: 5, fontSize: 11.5, color: 'var(--muted)' }}>
+            <div style={{ marginTop: 6, fontSize: 12, color: 'var(--muted)' }}>
               {req && <div>{ticks(req)}</div>}
             </div>
           )}
           {/* The criterion is a citation, so it never wraps — a spec number
               broken across two lines stops being one identifier. The container
               is sized to hold the longest of them instead. */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 6 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 6 }}>
             <span style={{
-              fontFamily: 'var(--mono)', fontSize: 9.5, color: 'var(--dim)',
+              fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--dim)',
               whiteSpace: 'nowrap', flex: 1, minWidth: 0,
             }}>{f.criterion}</span>
             {action}
@@ -172,7 +172,7 @@ export default function PanelAlerts({ tab, inlined }) {
   const failing = shown.some(f => f.level === 'fail')
 
   return (
-    <div style={{ display: 'grid', gap: 10, marginBottom: 14 }}>
+    <div style={{ display: 'grid', gap: 12, marginBottom: 16 }}>
       <div style={{
         fontSize: 10, fontWeight: 700, letterSpacing: '.09em', textTransform: 'uppercase',
         color: 'var(--dim)',

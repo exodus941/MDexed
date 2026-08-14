@@ -20,6 +20,33 @@ return (async () => {
   const chrome = () => [...document.querySelectorAll('button')].filter(e => !e.closest('.dmd'))
   const pause = ms => new Promise(r => setTimeout(r, ms))
 
+  /* ── Wait for the surface to STOP MOVING ──
+     A fixed pause is a guess, and a guess that is 50ms short measures a frame
+     of the entrance animation. That produced two findings in one session which
+     both vanished on the next pass: a row 1px out of alignment, and an icon
+     reported covered by a button that was not over it by the time anyone
+     looked. A moving target is not a defect, and reporting it as one trains
+     the reader to ignore the table.
+
+     So ask the browser instead of counting milliseconds. `getAnimations()`
+     names every running animation and transition, and its `finished` promise
+     settles when the element has come to rest. The rect check afterwards
+     catches anything driven by script rather than by CSS. */
+  const settle = async (root, tries = 40) => {
+    const anims = (root.ownerDocument.getAnimations?.() ?? [])
+      .filter(a => a.effect?.target && root.contains(a.effect.target))
+    await Promise.all(anims.map(a => a.finished.catch(() => {})))
+    let last = ''
+    for (let i = 0; i < tries; i++) {
+      await new Promise(r => requestAnimationFrame(() => r()))
+      const now = [...root.querySelectorAll('*')].slice(0, 60)
+        .map(e => { const r = e.getBoundingClientRect(); return `${r.top.toFixed(1)},${r.left.toFixed(1)}` }).join('|')
+      if (now === last) return true
+      last = now
+    }
+    return false
+  }
+
   /* The preview pane has to be showing, or every surface measures 0x0 and the
      whole run reports clean. That has happened, and it looked like a pass. */
   chrome().filter(e => /^PREVIEW/.test(e.textContent.trim()))[0]?.click()
@@ -32,7 +59,7 @@ return (async () => {
     const tab = chrome().filter(e => e.textContent.trim() === name)[0]
     if (!tab) { rows.push({ surface: name, note: 'TAB NOT FOUND' }); continue }
     tab.click()
-    await pause(450)
+    await pause(60)                     // let React commit before asking what is animating
 
     const frame = [...document.querySelectorAll('.dmd')].filter(d => d.closest('.dmd-frame'))[0]
     const box = frame?.getBoundingClientRect()
@@ -40,6 +67,12 @@ return (async () => {
       rows.push({ surface: name, note: 'NOT VISIBLE — 0x0, nothing measured' })
       continue
     }
+
+    /* Measure only once it has stopped moving. Report a surface that never
+       settles rather than measuring it anyway — an unsettled reading looks
+       exactly like a real fault and wastes the reader's afternoon. */
+    const still = await settle(frame)
+    if (!still) rows.push({ surface: name, note: 'STILL MOVING — reading may be a frame, not a layout' })
 
     /* The frame's own element, not the selector. `sweep('.dmd')` took the
        first of four `.dmd` nodes — the preview plus three component samples —

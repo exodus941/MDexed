@@ -165,8 +165,24 @@ LAYOUT_COMPONENTS.push(
         k: 'rows', label: 'Row separation', default: 'lines',
         options: [
           { value: 'lines', label: 'Rules', sentence: 'Separate rows with a hairline rule in the subtle border colour. No vertical rules.' },
-          { value: 'zebra', label: 'Zebra', sentence: 'Separate rows by alternating the background with the subtle surface colour. No rules.' },
+          { value: 'zebra', label: 'Zebra', sentence: 'Separate rows by alternating the background with the row-stripe colour. No rules.' },
+          /* Carbon does both, and a long table reads better for it: the band
+             gives the rhythm and the rule gives the edge. It was missing here,
+             so a table that wanted both had to be built outside the setting. */
+          { value: 'both', label: 'Zebra and rules', sentence: 'Alternate the row background with the row-stripe colour AND separate the rows with a hairline rule. The band carries the rhythm across a wide row; the rule marks where one row ends.' },
           { value: 'none', label: 'Neither', sentence: 'Rows are separated by spacing alone — no rules, no banding.' },
+        ],
+      },
+      /* Row height had no control at all. The cell padding was editable as a
+         component property, so the height was adjustable and NOBODY WOULD
+         GUESS THAT — a dimension every data table needs was reachable only by
+         knowing which property secretly produced it. Density names it. */
+      {
+        k: 'density', label: 'Row height', default: 'default',
+        options: [
+          { value: 'compact', label: 'Compact', sentence: 'Table rows are compact: one space step of padding above and below the cell text. Use it where the reader scans many rows at once.' },
+          { value: 'default', label: 'Default', sentence: 'Table rows take a comfortable height: two space steps of padding above and below the cell text.' },
+          { value: 'roomy', label: 'Roomy', sentence: 'Table rows are roomy: three space steps of padding above and below the cell text. Use it where a row carries an avatar or two lines.' },
         ],
       },
     ],

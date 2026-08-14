@@ -49,10 +49,10 @@ export function AiHeader() {
   if (!configured) {
     return (
       <div style={box}>
-        <div style={{ fontSize: 12.5, color: 'var(--text-dim)', marginBottom: 6 }}>
+        <div style={{ fontSize: 12, color: 'var(--text-dim)', marginBottom: 6 }}>
           AI assistance is off — the server has no OpenRouter key.
         </div>
-        <p className="panel-note" style={{ marginBottom: 7 }}>
+        <p className="panel-note" style={{ marginBottom: 8 }}>
           Get a free key at <code>openrouter.ai/keys</code>, then give it to the Worker. It stays server-side;
           it is never sent to this page.
         </p>
@@ -78,7 +78,7 @@ export function AiHeader() {
      * plus the 4px gap — and then centres in the space that remains, which is
      * exactly the select's height. Derived rather than nudged, so it stays
      * right if the label's size changes. */
-    <div style={{ ...box, display: 'flex', alignItems: 'stretch', gap: 10 }}>
+    <div style={{ ...box, display: 'flex', alignItems: 'stretch', gap: 12 }}>
       <div style={{ flex: 1, minWidth: 0 }}>
         <label style={{ marginBottom: LABEL_GAP }}>Model</label>
         <select value={model ?? ''} onChange={e => setModel(e.target.value)} style={{ width: '100%', display: 'block' }}>
@@ -87,9 +87,9 @@ export function AiHeader() {
       </div>
       <div style={{
         display: 'flex', alignItems: 'center', flexShrink: 0,
-        paddingTop: LABEL_BAND, maxWidth: 190,
+        paddingTop: LABEL_BAND, maxWidth: 192,
       }}>
-        <span style={{ fontSize: 11, color: 'var(--muted)', lineHeight: 1.5 }}>
+        <span style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.5 }}>
           {models.length} free models{chosen?.context ? `, ${Math.round(chosen.context / 1000)}k context` : ''}.
           {' '}Free tiers are rate-limited.
         </span>
@@ -108,14 +108,14 @@ const LABEL_BAND = Math.round(10.5 * 1.5) + LABEL_GAP
 const Note = ({ children }) => <div style={box}><p className="panel-note">{children}</p></div>
 
 const box = {
-  background: 'var(--surf)', border: '1px solid var(--bdr)', borderRadius: 9,
-  padding: '10px 12px', marginBottom: 12,
+  background: 'var(--surf)', border: '1px solid var(--bdr)', borderRadius: 8,
+  padding: '12px 12px', marginBottom: 12,
 }
 
 const pre = {
-  fontFamily: 'var(--mono)', fontSize: 10.5, lineHeight: 1.65, color: 'var(--muted)',
+  fontFamily: 'var(--mono)', fontSize: 10, lineHeight: 1.65, color: 'var(--muted)',
   background: 'var(--bg)', border: '1px solid var(--bdr)', borderRadius: 6,
-  padding: '8px 10px', margin: 0, overflowX: 'auto', whiteSpace: 'pre',
+  padding: '8px 12px', margin: 0, overflowX: 'auto', whiteSpace: 'pre',
 }
 
 /* ── Per-section actions ─────────────────────────────────────────────────── */
@@ -190,7 +190,7 @@ export function SectionAi({ section, text, onApply, state, derived }) {
   )
 }
 
-const btn = { padding: BTN.sm, fontSize: 11.5 }
+const btn = { padding: BTN.sm, fontSize: 12 }
 
 const Sparkle = () => (
   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"

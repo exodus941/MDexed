@@ -6,6 +6,8 @@
    display sizes and slightly positive at caption sizes — so the scale stays
    optically consistent instead of merely arithmetically consistent. */
 
+import { snapType } from '../state/grid.js'
+
 export const RATIOS = [
   { name: 'Minor second', value: 1.067 },
   { name: 'Major second', value: 1.125 },
@@ -57,6 +59,8 @@ export function autoTracking(sizePx, tightness = 1) {
  * Both endpoints are in px; the middle term is the linear interpolation.
  */
 export function fluidClamp(minPx, maxPx, minVw, maxVw) {
+  /* The two ENDPOINTS are grid values; the middle term is a slope and is
+     fractional by necessity, because it is the line joining them. */
   if (maxVw === minVw || Math.abs(maxPx - minPx) < 0.01) return `${round(maxPx, 1)}px`
   const slope = (maxPx - minPx) / (maxVw - minVw)
   const intercept = minPx - slope * minVw
@@ -79,15 +83,17 @@ export function buildTypeScale(cfg, scale = 1) {
     const key = role.name
     const ov = k => overrides[`${key}.${k}`]
 
-    const px = sizeAt(effectiveBase, ratio, role.step)
+    /* The modular ratio decides the SHAPE of the scale; the grid decides where
+       each step lands. Snap last, on the derived pixel — see state/grid.js. */
+    const px = snapType(sizeAt(effectiveBase, ratio, role.step))
     let fontSize
     if (ov('fontSize')) {
       fontSize = ov('fontSize')
     } else if (fluid?.enabled) {
-      const minPx = sizeAt(base * fluid.minScale, fluid.minRatio, role.step)
+      const minPx = snapType(sizeAt(base * fluid.minScale, fluid.minRatio, role.step))
       fontSize = fluidClamp(minPx, px, fluid.minVw, fluid.maxVw)
     } else {
-      fontSize = `${round(px, 1)}px`
+      fontSize = `${px}px`
     }
 
     /* Prefer the resolved stack when derive supplied one, but never over an
@@ -107,7 +113,7 @@ export function buildTypeScale(cfg, scale = 1) {
       letterSpacing: ov('letterSpacing') ?? `${role.tracking ?? autoTracking(px, tracking)}em`,
       fontFeature: ov('fontFeature') ?? (features?.[role.family]?.length ? features[role.family].map(f => `"${f}" 1`).join(', ') : ''),
       fontVariation: ov('fontVariation') ?? formatVariation(axes?.[role.family], role.weight),
-      computedPx: round(px, 1),
+      computedPx: px,
       modified: Object.keys(overrides).some(k => k.startsWith(`${key}.`)),
     }
   })

@@ -81,7 +81,7 @@ export default function FontPicker({ value, onChange, label, role }) {
           background: 'var(--surf3)', border: `1px solid ${open ? 'var(--accent)' : 'var(--bdr)'}`,
           borderRadius: 6, cursor: 'pointer', color: 'var(--text)', textAlign: 'left', fontFamily: 'var(--sans)',
         }}>
-        <span style={{ flex: 1, fontSize: 13, fontFamily: value ? stackFor(value, current?.category) : 'inherit', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <span style={{ flex: 1, fontSize: 14, fontFamily: value ? stackFor(value, current?.category) : 'inherit', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {value || 'Choose a font'}
         </span>
         {current?.axes?.length > 0 && <span className="chip" style={{ color: 'var(--accent)' }}>VF</span>}
@@ -93,22 +93,22 @@ export default function FontPicker({ value, onChange, label, role }) {
           <div onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 40 }} />
           <div className="anim-pop" style={{
             position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4, zIndex: 41,
-            background: 'var(--surf2)', border: '1px solid var(--bdr2)', borderRadius: 9,
+            background: 'var(--surf2)', border: '1px solid var(--bdr2)', borderRadius: 8,
             boxShadow: '0 12px 32px rgba(0,0,0,.5)', overflow: 'hidden',
           }}>
-            <div style={{ padding: 9, borderBottom: '1px solid var(--bdr)', display: 'flex', flexDirection: 'column', gap: 7 }}>
+            <div style={{ padding: 8, borderBottom: '1px solid var(--bdr)', display: 'flex', flexDirection: 'column', gap: 8 }}>
               <input autoFocus value={query} onChange={e => setQuery(e.target.value)}
-                placeholder={loading ? 'Loading catalogue…' : `Search ${families.length} families`} style={{ fontSize: 13 }} />
+                placeholder={loading ? 'Loading catalogue…' : `Search ${families.length} families`} style={{ fontSize: 14 }} />
               <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
                 <Segmented size="sm" value={category ?? 'all'} onChange={v => setCategory(v === 'all' ? null : v)}
                   options={[{ value: 'all', label: 'All' }, ...CATEGORIES.map(c => ({ value: c, label: c === 'sans-serif' ? 'Sans' : c === 'monospace' ? 'Mono' : c === 'handwriting' ? 'Script' : c[0].toUpperCase() + c.slice(1) }))]} />
-                <button className={variableOnly ? 'seg-on' : 'seg'} onClick={() => setVariableOnly(v => !v)} style={{ fontSize: 11 }}>Variable</button>
-                <span style={{ marginLeft: 'auto', fontSize: 10.5, color: 'var(--dim)', fontFamily: 'var(--mono)' }}>{results.length}</span>
+                <button className={variableOnly ? 'seg-on' : 'seg'} onClick={() => setVariableOnly(v => !v)} style={{ fontSize: 12 }}>Variable</button>
+                <span style={{ marginLeft: 'auto', fontSize: 10, color: 'var(--dim)', fontFamily: 'var(--mono)' }}>{results.length}</span>
               </div>
             </div>
 
             {error && (
-              <div style={{ padding: '7px 10px', fontSize: 11, color: 'var(--warn)', borderBottom: '1px solid var(--bdr)' }}>
+              <div style={{ padding: '8px 12px', fontSize: 12, color: 'var(--warn)', borderBottom: '1px solid var(--bdr)' }}>
                 Catalogue unavailable — showing a built-in shortlist.
               </div>
             )}
@@ -116,7 +116,7 @@ export default function FontPicker({ value, onChange, label, role }) {
             <div ref={listRef} onScroll={e => setScrollTop(e.currentTarget.scrollTop)}
               style={{ height: VIEWPORT_H, overflowY: 'auto', position: 'relative' }}>
               {!results.length && !loading && (
-                <div style={{ padding: 20, textAlign: 'center', color: 'var(--dim)', fontSize: 12.5 }}>No families match.</div>
+                <div style={{ padding: 20, textAlign: 'center', color: 'var(--dim)', fontSize: 12 }}>No families match.</div>
               )}
               <div style={{ height: results.length * ROW_H, position: 'relative' }}>
                 {visible.map((f, i) => {
@@ -126,16 +126,16 @@ export default function FontPicker({ value, onChange, label, role }) {
                     <button key={f.family} onClick={() => select(f)}
                       style={{
                         position: 'absolute', top: idx * ROW_H, left: 0, right: 0, height: ROW_H,
-                        display: 'flex', alignItems: 'center', gap: 9, padding: '0 11px',
+                        display: 'flex', alignItems: 'center', gap: 8, padding: '0 12px',
                         background: active ? 'rgb(var(--accent-rgb) / .12)' : 'none', border: 'none',
                         borderLeft: active ? '2px solid var(--accent)' : '2px solid transparent',
                         cursor: 'pointer', textAlign: 'left', width: '100%',
                       }}>
-                      <span style={{ flex: 1, fontSize: 15, color: 'var(--text)', fontFamily: stackFor(f.family, f.category), overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <span style={{ flex: 1, fontSize: 16, color: 'var(--text)', fontFamily: stackFor(f.family, f.category), overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {f.family}
                       </span>
-                      {f.axes?.length > 0 && <span style={{ fontSize: 9, color: 'var(--accent)', fontFamily: 'var(--mono)' }}>VF</span>}
-                      <span style={{ fontSize: 9.5, color: 'var(--dim)', width: 46, textAlign: 'right' }}>{f.category?.replace('-serif', '')}</span>
+                      {f.axes?.length > 0 && <span style={{ fontSize: 10, color: 'var(--accent)', fontFamily: 'var(--mono)' }}>VF</span>}
+                      <span style={{ fontSize: 10, color: 'var(--dim)', width: 48, textAlign: 'right' }}>{f.category?.replace('-serif', '')}</span>
                     </button>
                   )
                 })}

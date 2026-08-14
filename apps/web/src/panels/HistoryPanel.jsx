@@ -34,7 +34,7 @@ const short = v => {
 
 const Chip = ({ children, tone }) => (
   <code style={{
-    fontFamily: 'var(--mono)', fontSize: 10.5, padding: '2px 6px', borderRadius: 4,
+    fontFamily: 'var(--mono)', fontSize: 10, padding: '2px 6px', borderRadius: 4,
     background: 'var(--surf3)', border: '1px solid var(--bdr)',
     color: tone ?? 'var(--text-dim)', whiteSpace: 'nowrap',
   }}>{children}</code>
@@ -56,14 +56,14 @@ function GradientBar({ snap, ctx }) {
   if (!snap) return null
   const css = gradientCss(snap, ctx)
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
       <div style={{ width: 128, height: 20, borderRadius: 4, background: css, border: '1px solid rgba(255,255,255,.1)' }} />
       <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
         {snap.stops.map((s, i) => {
           const hex = /^#/.test(s.color) ? s.color : (ctx.roles[s.color] ?? resolveRef(s.color, ctx.ramps) ?? '#888')
           return (
             <span key={i} title={`${s.color} — ${hex} at ${s.position}%`}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 9, color: 'var(--dim)', fontFamily: 'var(--mono)' }}>
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, color: 'var(--dim)', fontFamily: 'var(--mono)' }}>
               <Swatch hex={hex} size={9} />{hex}
             </span>
           )
@@ -78,9 +78,9 @@ function Detail({ detail, ctx }) {
 
   if (detail.kind === 'gradient') {
     return (
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9, marginTop: 5 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginTop: 6 }}>
         {detail.from && <GradientBar snap={detail.from} ctx={ctx} />}
-        {detail.from && <div style={{ marginTop: 5 }}><Arrow /></div>}
+        {detail.from && <div style={{ marginTop: 6 }}><Arrow /></div>}
         <GradientBar snap={detail.to} ctx={ctx} />
       </div>
     )
@@ -88,18 +88,18 @@ function Detail({ detail, ctx }) {
 
   if (detail.kind === 'palette') {
     return (
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 5 }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 6 }}>
         {detail.swatches.map(s => (
           <div key={s.name} style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
               {s.from && <Swatch hex={s.from} size={11} />}
               {s.from && s.from !== s.to && <Arrow />}
               {s.from !== s.to && <Swatch hex={s.to} />}
             </div>
-            <span style={{ fontSize: 9, color: s.locked ? 'var(--accent)' : 'var(--dim)', fontFamily: 'var(--mono)' }}>
+            <span style={{ fontSize: 10, color: s.locked ? 'var(--accent)' : 'var(--dim)', fontFamily: 'var(--mono)' }}>
               {s.locked ? '🔒 ' : ''}{s.name}
             </span>
-            <span style={{ fontSize: 8.5, color: 'var(--dim)', fontFamily: 'var(--mono)' }}>{s.to}</span>
+            <span style={{ fontSize: 8, color: 'var(--dim)', fontFamily: 'var(--mono)' }}>{s.to}</span>
           </div>
         ))}
       </div>
@@ -108,7 +108,7 @@ function Detail({ detail, ctx }) {
 
   if (detail.kind === 'colour') {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginTop: 4 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
         {detail.from ? <><Swatch hex={detail.from} /><Chip>{detail.from}</Chip></> : <Chip>unset</Chip>}
         <Arrow />
         {detail.to ? <><Swatch hex={detail.to} /><Chip tone="var(--accent)">{detail.to}</Chip></> : <Chip>cleared</Chip>}
@@ -117,7 +117,7 @@ function Detail({ detail, ctx }) {
   }
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginTop: 4, flexWrap: 'wrap' }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4, flexWrap: 'wrap' }}>
       <Chip>{short(detail.from)}</Chip>
       <Arrow />
       <Chip tone="var(--accent)">{short(detail.to)}</Chip>
@@ -209,9 +209,9 @@ export default function HistoryPanel() {
         </Banner>
       )}
 
-      <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search changes, tokens and values" style={{ fontSize: 12.5 }} />
+      <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search changes, tokens and values" style={{ fontSize: 12 }} />
 
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, alignItems: 'center' }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
         {CHANGE_CATEGORIES.filter(c => counts[c.id]).map(c => {
           const on = active.has(c.id)
           return (
@@ -221,31 +221,31 @@ export default function HistoryPanel() {
                 background: on ? `${c.colour}22` : 'transparent',
                 border: `1px solid ${on ? c.colour : 'var(--bdr)'}`,
                 color: on ? c.colour : 'var(--muted)',
-                borderRadius: 6, padding: '4px 10px', fontSize: 11.5, cursor: 'pointer',
+                borderRadius: 6, padding: '4px 12px', fontSize: 12, cursor: 'pointer',
                 transition: 'all var(--t) var(--ease)',
               }}>
               <span style={{ width: 6, height: 6, borderRadius: '50%', background: c.colour }} />
               {c.label}
-              <span style={{ fontFamily: 'var(--mono)', fontSize: 9.5, opacity: .75 }}>{counts[c.id]}</span>
+              <span style={{ fontFamily: 'var(--mono)', fontSize: 10, opacity: .75 }}>{counts[c.id]}</span>
             </button>
           )
         })}
         {active.size > 0 && (
-          <button className="btn-ghost" style={{ padding: '2px 6px', fontSize: 11 }} onClick={() => setActive(new Set())}>Clear Filter</button>
+          <button className="btn-ghost" style={{ padding: '2px 6px', fontSize: 12 }} onClick={() => setActive(new Set())}>Clear Filter</button>
         )}
-        <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--dim)' }}>{filtered.length} shown</span>
+        <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--dim)' }}>{filtered.length} shown</span>
       </div>
 
       {!filtered.length && (
-        <div style={{ textAlign: 'center', padding: '26px 16px', color: 'var(--dim)', fontSize: 13, border: '1px dashed var(--bdr)', borderRadius: 10 }}>
+        <div style={{ textAlign: 'center', padding: '28px 16px', color: 'var(--dim)', fontSize: 14, border: '1px dashed var(--bdr)', borderRadius: 12 }}>
           {log.length ? 'Nothing matches that filter.' : 'No changes recorded yet.'}
         </div>
       )}
 
       {groups.map(group => (
         <div key={group.day}>
-          <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--muted)', marginBottom: 6 }}>{group.day}</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+          <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--muted)', marginBottom: 6 }}>{group.day}</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             {group.items.map(e => {
               const cat = CATEGORY_BY_ID[e.category] ?? CATEGORY_BY_ID.system
               return (
@@ -253,19 +253,19 @@ export default function HistoryPanel() {
                   /* The actions sit on the line that names the change, and the
                      detail line hangs below them. They also share a baseline
                      with each other, see below. */
-                  display: 'grid', gridTemplateColumns: '8px 1fr auto', gap: 10, alignItems: 'baseline',
+                  display: 'grid', gridTemplateColumns: '8px 1fr auto', gap: 12, alignItems: 'baseline',
                   /* Above, not below. The last entry in the list otherwise
                      draws a rule straight onto the card's own bottom border.
                      A separator belongs between two items, and a top border
                      is that by construction — nothing sits above the first. */
                   padding: PAD.sub, borderTop: '1px solid var(--bdr)',
                 }}>
-                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: cat.colour, marginTop: 5, alignSelf: 'start' }} title={cat.label} />
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: cat.colour, marginTop: 6, alignSelf: 'start' }} title={cat.label} />
                   <div style={{ minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 7, flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: 12.5, color: 'var(--text-dim)' }}>{e.label}</span>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: 12, color: 'var(--text-dim)' }}>{e.label}</span>
                       {e.detail?.subject && (
-                        <code style={{ fontFamily: 'var(--mono)', fontSize: 10.5, color: 'var(--muted)' }}>{e.detail.subject}</code>
+                        <code style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)' }}>{e.detail.subject}</code>
                       )}
                       {e.count > 1 && <span style={{ color: 'var(--dim)', fontFamily: 'var(--mono)', fontSize: 10 }}>×{e.count}</span>}
                     </div>
@@ -284,8 +284,8 @@ export default function HistoryPanel() {
                       title="Undo this change and everything after it"
                       style={{
                         display: 'inline-flex', alignItems: 'center', gap: 4, background: 'none',
-                        border: '1px solid rgb(var(--danger-rgb) / .35)', borderRadius: 5, cursor: 'pointer',
-                        color: 'var(--danger)', padding: '2px 8px', fontSize: 10.5, fontFamily: 'var(--sans)',
+                        border: '1px solid rgb(var(--danger-rgb) / .35)', borderRadius: 6, cursor: 'pointer',
+                        color: 'var(--danger)', padding: '2px 8px', fontSize: 10, fontFamily: 'var(--sans)',
                       }}>
                       <svg width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round">
                         <polyline points="11 17 6 12 11 7" /><polyline points="18 17 13 12 18 7" />
@@ -296,8 +296,8 @@ export default function HistoryPanel() {
                       <button onClick={() => revert(e)} title="Put this one change back, leaving everything else alone"
                         style={{
                           display: 'inline-flex', alignItems: 'center', gap: 4, background: 'none',
-                          border: '1px solid var(--bdr)', borderRadius: 5, cursor: 'pointer',
-                          color: 'var(--muted)', padding: '2px 8px', fontSize: 10.5, fontFamily: 'var(--sans)',
+                          border: '1px solid var(--bdr)', borderRadius: 6, cursor: 'pointer',
+                          color: 'var(--muted)', padding: '2px 8px', fontSize: 10, fontFamily: 'var(--sans)',
                           transition: 'color var(--t) var(--ease), border-color var(--t) var(--ease)',
                         }}
                         onMouseEnter={ev => { ev.currentTarget.style.color = 'var(--accent)'; ev.currentTarget.style.borderColor = 'rgb(var(--accent-rgb) / .4)' }}
@@ -308,7 +308,7 @@ export default function HistoryPanel() {
                         <span className="lbl">Revert</span>
                       </button>
                     )}
-                    <span style={{ fontFamily: 'var(--mono)', fontSize: 10.5, color: 'var(--dim)' }}>{clock(e.at)}</span>
+                    <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--dim)' }}>{clock(e.at)}</span>
                   </div>
                 </div>
               )
@@ -327,11 +327,11 @@ export default function HistoryPanel() {
             cost you on each keystroke.
           </p>
         </div>
-        <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 9 }}>
+        <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ fontSize: 12, color: 'var(--muted)', flex: 1 }}>Clear the entire log</span>
           {log.length > 0
             ? <ConfirmDelete onConfirm={clearLog} title="Clear the log" />
-            : <span style={{ fontSize: 11, color: 'var(--dim)' }}>Already empty</span>}
+            : <span style={{ fontSize: 12, color: 'var(--dim)' }}>Already empty</span>}
         </div>
       </Collapsible>
 
@@ -366,13 +366,13 @@ function RewindConfirm({ plan, onCancel, onConfirm }) {
         background: 'var(--surf)', border: '1px solid var(--bdr)', borderRadius: 12,
         width: '100%', maxWidth: 440, overflow: 'hidden',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: `${PAD.card}px ${PAD.card + 4}px`, borderBottom: '1px solid var(--bdr)', fontSize: 15, lineHeight: 1.5 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: `${PAD.card}px ${PAD.card + 4}px`, borderBottom: '1px solid var(--bdr)', fontSize: 16, lineHeight: 1.5 }}>
           <span style={{ fontFamily: 'var(--display)', fontWeight: 700, flex: 1 }}>Rewind to this point?</span>
           <CloseButton onClick={onCancel} label="Cancel" size={11} />
         </div>
 
         <div style={{ padding: PAD.card + 4, display: 'flex', flexDirection: 'column', gap: PAD.gap }}>
-          <p style={{ fontSize: 12.5, lineHeight: 1.6, color: 'var(--text-dim)', margin: 0 }}>
+          <p style={{ fontSize: 12, lineHeight: 1.6, color: 'var(--text-dim)', margin: 0 }}>
             This undoes <strong style={{ color: 'var(--text)' }}>{total} change{total === 1 ? '' : 's'}</strong>,
             everything from now back to and including{' '}
             <strong style={{ color: 'var(--text)' }}>{entry.label}</strong> at {clock(entry.at)}.
@@ -386,7 +386,7 @@ function RewindConfirm({ plan, onCancel, onConfirm }) {
             </Banner>
           )}
 
-          <p style={{ fontSize: 11.5, lineHeight: 1.55, color: 'var(--muted)', margin: 0 }}>
+          <p style={{ fontSize: 12, lineHeight: 1.55, color: 'var(--muted)', margin: 0 }}>
             It lands in the undo stack as one step, so Ctrl+Z takes the whole rewind back.
           </p>
         </div>

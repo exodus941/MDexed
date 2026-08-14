@@ -137,7 +137,7 @@ export default function Dialog({ onInspect, layout, casing }) {
             <button className="btn btn-secondary btn-sm" {...ins('button-secondary')}>Export</button>
           </div>
           {['82%', '64%', '91%'].map(w => (
-            <div key={w} style={{ height: 9, width: w, borderRadius: 3, background: 'var(--c-bg-subtle, #eee)' }} />
+            <div key={w} style={{ height: 8, width: w, borderRadius: 4, background: 'var(--c-bg-subtle, #eee)' }} />
           ))}
         </div>
 
@@ -156,11 +156,7 @@ export default function Dialog({ onInspect, layout, casing }) {
             A flex box centres it without a transform, and the padding gives it
             an edge to stop against. `min-height` on the stage means there is
             something to centre within when the fake page is short. */}
-        <div className="modal-stage" style={{
-          position: 'absolute', inset: 0, display: 'flex',
-          alignItems: 'center', justifyContent: 'center',
-          padding: 'var(--space-md, 16px)', overflow: 'auto',
-        }}>
+        <div className="modal-stage">
           <Modal ins={ins} txt={txt} layout={modal} onInspect={onInspect} />
         </div>
       </div>
@@ -195,7 +191,7 @@ export default function Dialog({ onInspect, layout, casing }) {
 
       {/* Tooltip, anchored the way one really is */}
       <div className="card" {...ins('card')}>
-        <div className="row" style={{ gap: 'var(--space-xl, 32px)', paddingTop: 26, position: 'relative' }}>
+        <div className="row" style={{ gap: 'var(--space-xl, 32px)', paddingTop: 28, position: 'relative' }}>
           <div style={{ position: 'relative' }}>
             <span {...ins('tooltip')} style={{
               position: 'absolute', bottom: 'calc(100% + 6px)', left: '50%', transform: 'translateX(-50%)',

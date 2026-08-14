@@ -15,15 +15,15 @@ export default function ReviewDiff({ before, after, streaming, error, onAccept, 
 
   return (
     <div style={{
-      marginTop: 9, background: 'var(--surf2)', border: '1px solid rgba(220,144,85,.35)',
-      borderRadius: 9, overflow: 'hidden',
+      marginTop: 8, background: 'var(--surf2)', border: '1px solid rgba(220,144,85,.35)',
+      borderRadius: 8, overflow: 'hidden',
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 11px', borderBottom: '1px solid var(--bdr)' }}>
-        <span style={{ fontSize: 11.5, color: 'var(--accent)', flex: 1 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderBottom: '1px solid var(--bdr)' }}>
+        <span style={{ fontSize: 12, color: 'var(--accent)', flex: 1 }}>
           {streaming ? 'Writing…' : error ? 'Failed' : 'Suggested rewrite'}
         </span>
         {!streaming && !error && stats && (
-          <span style={{ fontFamily: 'var(--mono)', fontSize: 10.5, color: 'var(--dim)' }}>
+          <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--dim)' }}>
             <span className="pass">+{stats.added}</span> <span className="fail">−{stats.removed}</span>
           </span>
         )}
@@ -33,12 +33,12 @@ export default function ReviewDiff({ before, after, streaming, error, onAccept, 
         )}
       </div>
 
-      <div style={{ padding: '11px 13px', maxHeight: 320, overflowY: 'auto' }}>
+      <div style={{ padding: '12px 12px', maxHeight: 320, overflowY: 'auto' }}>
         <CrossFade id={streaming ? 'streaming' : error ? 'error' : view}>
         {error ? (
-          <p style={{ fontSize: 12.5, color: 'var(--danger)', lineHeight: 1.55 }}>{error}</p>
+          <p style={{ fontSize: 12, color: 'var(--danger)', lineHeight: 1.55 }}>{error}</p>
         ) : view === 'diff' && parts ? (
-          <p style={{ fontSize: 12.5, lineHeight: 1.7, color: 'var(--muted)', whiteSpace: 'pre-wrap', margin: 0 }}>
+          <p style={{ fontSize: 12, lineHeight: 1.7, color: 'var(--muted)', whiteSpace: 'pre-wrap', margin: 0 }}>
             {parts.map((p, i) => (
               <span key={i} style={
                 p.type === 'add' ? { background: 'rgba(90,173,128,.18)', color: '#9ad9b4' }
@@ -48,31 +48,31 @@ export default function ReviewDiff({ before, after, streaming, error, onAccept, 
             ))}
           </p>
         ) : (
-          <p style={{ fontSize: 12.5, lineHeight: 1.7, color: 'var(--text-dim)', whiteSpace: 'pre-wrap', margin: 0 }}>
+          <p style={{ fontSize: 12, lineHeight: 1.7, color: 'var(--text-dim)', whiteSpace: 'pre-wrap', margin: 0 }}>
             {after}{streaming && <span style={{ color: 'var(--accent)' }}>▍</span>}
           </p>
         )}
         </CrossFade>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 11px', borderTop: '1px solid var(--bdr)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderTop: '1px solid var(--bdr)' }}>
         {streaming ? (
           <>
-            <span style={{ fontSize: 11, color: 'var(--dim)', flex: 1 }}>Streaming from the model…</span>
-            <button className="btn-ghost" style={{ padding: '4px 10px', fontSize: 11 }} onClick={onReject}>Cancel</button>
+            <span style={{ fontSize: 12, color: 'var(--dim)', flex: 1 }}>Streaming from the model…</span>
+            <button className="btn-ghost" style={{ padding: '4px 12px', fontSize: 12 }} onClick={onReject}>Cancel</button>
           </>
         ) : error ? (
           <>
             <span style={{ flex: 1 }} />
-            <button className="btn-ghost" style={{ padding: '4px 10px', fontSize: 11 }} onClick={onReject}>Dismiss</button>
-            <button className="btn-primary" style={{ padding: '4px 10px', fontSize: 11 }} onClick={onRetry}>Try Again</button>
+            <button className="btn-ghost" style={{ padding: '4px 12px', fontSize: 12 }} onClick={onReject}>Dismiss</button>
+            <button className="btn-primary" style={{ padding: '4px 12px', fontSize: 12 }} onClick={onRetry}>Try Again</button>
           </>
         ) : (
           <>
-            <span style={{ fontSize: 11, color: 'var(--dim)', flex: 1 }}>Nothing is saved until you accept.</span>
-            <button className="btn-ghost" style={{ padding: '4px 10px', fontSize: 11 }} onClick={onRetry}>Regenerate</button>
-            <button className="btn-ghost" style={{ padding: '4px 10px', fontSize: 11 }} onClick={onReject}>Discard</button>
-            <button className="btn-primary" style={{ padding: '4px 10px', fontSize: 11 }} onClick={onAccept}>Accept</button>
+            <span style={{ fontSize: 12, color: 'var(--dim)', flex: 1 }}>Nothing is saved until you accept.</span>
+            <button className="btn-ghost" style={{ padding: '4px 12px', fontSize: 12 }} onClick={onRetry}>Regenerate</button>
+            <button className="btn-ghost" style={{ padding: '4px 12px', fontSize: 12 }} onClick={onReject}>Discard</button>
+            <button className="btn-primary" style={{ padding: '4px 12px', fontSize: 12 }} onClick={onAccept}>Accept</button>
           </>
         )}
       </div>

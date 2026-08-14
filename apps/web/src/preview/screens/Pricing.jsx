@@ -117,7 +117,7 @@ export default function Pricing({ onInspect, casing }) {
             holds, which is what turns five unlabelled rows into a table. An
             empty corner is also the case the system warns about — a box that
             takes a share of the width and paints nothing. */}
-        <div className="plan-grid plan-row plan-head">
+        <div className="plan-grid plan-row">
           <span className="caption muted" {...txt('overline', 'text-muted')}
             style={{ textTransform: 'uppercase', letterSpacing: 'var(--font-overline-tracking)' }}>{L('Feature')}</span>
           {PLANS.map(p => (

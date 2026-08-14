@@ -70,7 +70,7 @@ export const SURFACES = [
 const itemStyle = {
   display: 'flex', alignItems: 'center', gap: 8, width: '100%', textAlign: 'left',
   background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text)',
-  fontFamily: 'var(--sans)', fontSize: 12.5, padding: '7px 8px', borderRadius: 6,
+  fontFamily: 'var(--sans)', fontSize: 12, padding: '8px 8px', borderRadius: 6,
 }
 
 const KIND_LABEL = { component: 'Component', role: 'Colour', type: 'Type', group: 'Text' }
@@ -82,14 +82,14 @@ function MenuItem({ t, open, onOpen, onPick }) {
       <button style={{ ...itemStyle, background: open ? 'var(--surf3)' : 'none' }}
         onClick={() => (isGroup ? onOpen(t) : onPick(t))}>
         <span style={{ flex: 1 }}>{t.label}</span>
-        {isGroup && <span style={{ color: 'var(--muted)', fontSize: 11 }}>›</span>}
+        {isGroup && <span style={{ color: 'var(--muted)', fontSize: 12 }}>›</span>}
       </button>
 
       {isGroup && open && (
         <div className="anim-pop" style={{
-          position: 'absolute', left: '100%', top: -5, marginLeft: 3, zIndex: 802,
-          background: 'var(--surf2)', border: '1px solid var(--bdr2)', borderRadius: 9,
-          boxShadow: '0 12px 32px rgba(0,0,0,.55)', padding: 5, minWidth: 200,
+          position: 'absolute', left: '100%', top: -5, marginLeft: 4, zIndex: 802,
+          background: 'var(--surf2)', border: '1px solid var(--bdr2)', borderRadius: 8,
+          boxShadow: '0 12px 32px rgba(0,0,0,.55)', padding: 6, minWidth: 200,
         }}>
           {t.children.map(child => (
             <button key={`${child.kind}:${child.target}`} style={itemStyle} onClick={() => onPick(child)}
@@ -115,7 +115,7 @@ function TargetMenu({ menu, onPick, onClose }) {
 
   const section = (title, list) => list.length > 0 && (
     <>
-      <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--muted)', padding: '5px 8px 6px' }}>
+      <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--muted)', padding: '6px 8px 6px' }}>
         {title}
       </div>
       {list.map(t => (
@@ -139,12 +139,12 @@ function TargetMenu({ menu, onPick, onClose }) {
         left: Math.min(vp.x(menu.x), vp.w - 280),
         top: Math.min(vp.x(menu.y) + 8, vp.h - 40 - menu.targets.length * 32),
         zIndex: 801,
-        background: 'var(--surf2)', border: '1px solid var(--bdr2)', borderRadius: 9,
-        boxShadow: '0 12px 32px rgba(0,0,0,.55)', padding: 5, minWidth: 240,
+        background: 'var(--surf2)', border: '1px solid var(--bdr2)', borderRadius: 8,
+        boxShadow: '0 12px 32px rgba(0,0,0,.55)', padding: 6, minWidth: 240,
       }}>
         {section('Edit what?', own)}
         {containers.length > 0 && (
-          <div style={{ borderTop: '1px solid var(--bdr)', margin: '5px 0 0' }}>
+          <div style={{ borderTop: '1px solid var(--bdr)', margin: '6px 0 0' }}>
             {section('Inside', containers)}
           </div>
         )}
@@ -185,11 +185,11 @@ function ContrastChip({ onOpen }) {
   return (
     <button onClick={onOpen} title="Open the contrast checker" className="readout"
       style={{
-        display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0, cursor: 'pointer',
+        display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, cursor: 'pointer',
         background: failing ? 'rgb(var(--danger-rgb) / .12)' : 'rgb(var(--success-rgb) / .10)',
         border: `1px solid ${failing ? 'rgb(var(--danger-rgb) / .35)' : 'rgb(var(--success-rgb) / .3)'}`,
         color: failing ? 'var(--danger)' : 'var(--success)',
-        borderRadius: 6, padding: '3px 9px', fontSize: 11, fontFamily: 'var(--mono)',
+        borderRadius: 6, padding: '4px 8px', fontSize: 12, fontFamily: 'var(--mono)',
       }}>
       <ChipMark ok={!failing} />
       {failing ? `${failing} contrast` : 'Contrast OK'}
@@ -277,11 +277,11 @@ function WarningsChip({ onJump, onApply }) {
       <button ref={btnRef} onClick={() => setOpen(o => !o)} aria-expanded={open} className="readout"
         title={count ? 'What the accessibility audit found in this system' : 'The accessibility audit found nothing'}
         style={{
-          display: 'flex', alignItems: 'center', gap: 5, cursor: 'pointer',
+          display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer',
           background: `rgb(var(--${tone}-rgb) / .12)`,
           border: `1px solid rgb(var(--${tone}-rgb) / .35)`,
           color: `var(--${tone})`,
-          borderRadius: 6, padding: '3px 9px', fontSize: 11, fontFamily: 'var(--mono)',
+          borderRadius: 6, padding: '4px 8px', fontSize: 12, fontFamily: 'var(--mono)',
         }}>
         <ChipMark ok={count === 0} />
         {label}
@@ -294,22 +294,22 @@ function WarningsChip({ onJump, onApply }) {
            pane shrinks it rather than pushing it off-screen. */
         <div ref={boxRef} className="anim-pop" style={{
           position: 'absolute', top: 'calc(100% + 6px)', right: 0, zIndex: 500,
-          background: 'var(--surf2)', border: '1px solid var(--bdr2)', borderRadius: 10,
+          background: 'var(--surf2)', border: '1px solid var(--bdr2)', borderRadius: 12,
           boxShadow: '0 12px 32px var(--shade)',
           width: 'min(440px, calc(100vw - 40px))', maxHeight: 460, overflowY: 'auto',
         }}>
           <div style={{
             fontSize: 10, textTransform: 'uppercase', letterSpacing: '.1em', fontWeight: 700,
-            color: 'var(--text-dim)', padding: '11px 14px 10px', borderBottom: '1px solid var(--bdr)',
+            color: 'var(--text-dim)', padding: '12px 16px 12px', borderBottom: '1px solid var(--bdr)',
             position: 'sticky', top: 0, background: 'var(--surf2)', zIndex: 1,
           }}>
             Accessibility {fails.length ? 'Findings' : 'Warnings'}
           </div>
-          <div style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
             {[...fails, ...rest].map(f => (
               <Finding key={f.id} f={f} action={(f.apply || f.tab) && (
                 <button className="btn-ghost" title={f.apply ? f.apply.label : 'Open the control that causes this'}
-                  style={{ padding: '2px 8px', fontSize: 10.5, flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                  style={{ padding: '2px 8px', fontSize: 10, flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 4 }}
                   onClick={() => {
                     if (f.apply) { onApply?.(f.apply); return }
                     onJump?.(f.tab, f.entry); setOpen(false)
@@ -403,7 +403,7 @@ export default function Canvas({ onInspect, surface, setSurface, onOpenContrast,
                    whatever the row had left. `2px 6px` gave the value nowhere
                    to sit and the arrow no clearance, so a label like
                    "2xl · 1536px" was cut off inside its own box. */
-                style={{ width: 'auto', minWidth: 116, fontSize: 11 }}>
+                style={{ width: 'auto', minWidth: 116, fontSize: 12 }}>
                 {widths.map(w => (
                   <option key={w.label} value={w.px == null ? '' : String(w.px)}>
                     {w.label}{w.px ? ` · ${w.px}px` : ''}
@@ -419,7 +419,7 @@ export default function Canvas({ onInspect, surface, setSurface, onOpenContrast,
                 lost to this inline value, which is the other lesson here. */}
             <div className="seg-box" style={{ display: 'flex', gap: 2, background: 'var(--surf3)', padding: 1, borderRadius: 6, border: '1px solid var(--bdr)', flexShrink: 0 }}>
               {['light', 'dark'].map(m => (
-                <button key={m} onClick={() => setMode(m)} className={mode === m ? 'seg-on' : 'seg'} style={{ padding: '2px 10px' }}>
+                <button key={m} onClick={() => setMode(m)} className={mode === m ? 'seg-on' : 'seg'} style={{ padding: '2px 12px' }}>
                   {m === 'light' ? 'Light' : 'Dark'}
                 </button>
               ))}
@@ -524,7 +524,7 @@ export default function Canvas({ onInspect, surface, setSurface, onOpenContrast,
                 background is drawn from the neutral scale, since that is not
                 guessable from looking at it. Inner elements stop propagation,
                 so this only fires on genuinely blank areas. */}
-            <div className="dmd" style={{ ...varsToStyle(vars), borderRadius: 10, border: '1px solid var(--bdr)' }}
+            <div className="dmd" style={{ ...varsToStyle(vars), borderRadius: 12, border: '1px solid var(--bdr)' }}
               {...(onInspect ? inspectProps(role('bg', 'Page background · bg'), handleInspect) : {})}>
               {/* Every surface is inspectable, not just the gallery. */}
               {/* `casing` reaches every surface the same way `tabStyle` does.

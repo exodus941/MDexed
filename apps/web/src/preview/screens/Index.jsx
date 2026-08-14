@@ -98,18 +98,31 @@ export default function Index ({ onInspect, casing, layout }) {
           <Ico d={IconSearch} size="sm" />
           <span className="subtle small" {...txt('body-sm', 'text-subtle')}>{L('Search invoices')}</span>
         </label>
-        {/* A filter that is SET says so on itself, by its edge. The chip row
-            this replaced contradicted the control above it — one read "All"
-            while the other read "Overdue" — two controls for one decision. */}
-        <button className="btn btn-secondary" {...ins('button-secondary')}
+        {/* A FILTER IS A DROPDOWN, so it uses the component that exists for
+            exactly this: `.select-trigger`, a value on the left and a chevron
+            on the right. These were plain buttons with a colon in the label —
+            no chevron, nothing to say they open anything, and no relation to
+            the declared `select`. A control that opens a list must look like
+            one.
+            A filter that is SET says so by its EDGE, and it replaced a chip
+            row that contradicted it: one read "All" while the other read
+            "Overdue", which is two controls for one decision. */}
+        {/* NO dot. It was a red mark on a blue control, which is two colour
+            signals in one object saying different things: the accent says
+            "this filter is set" and the danger dot said nothing at all — the
+            value already reads "Overdue". A mark that carries no meaning still
+            looks like it carries one. One control, one signal, and here the
+            signal is the edge. */}
+        <button className="btn btn-secondary select-trigger" {...ins('select')}
           style={{ borderColor: 'var(--c-accent)', color: 'var(--c-accent)', flexShrink: 0 }}>
-          <span className="dot" style={{ color: 'var(--c-danger)' }} />
-          {L('Status')}: {L('Overdue')}
+          {L('Status')}: {L('Overdue')}<Ico d={IconChevron} size="sm" />
         </button>
-        <button className="btn btn-secondary" {...ins('button-secondary')} style={{ flexShrink: 0 }}>{L('Due')}: {L('Any')}</button>
+        <button className="btn btn-secondary select-trigger" {...ins('select')} style={{ flexShrink: 0 }}>
+          {L('Due')}: {L('Any')}<Ico d={IconChevron} size="sm" />
+        </button>
         <button className="btn btn-ghost" {...ins('button-ghost')} style={{ flexShrink: 0 }}>{L('Clear')}</button>
-        <button className="btn btn-secondary" {...ins('button-secondary')} style={{ flexShrink: 0, marginLeft: 'auto' }}>
-          {L('Sort')}: {L('Newest first')}
+        <button className="btn btn-secondary select-trigger" {...ins('select')} style={{ flexShrink: 0, marginLeft: 'auto' }}>
+          {L('Sort')}: {L('Newest first')}<Ico d={IconChevron} size="sm" />
         </button>
       </div>
 
@@ -136,22 +149,37 @@ export default function Index ({ onInspect, casing, layout }) {
         {/* A table of real columns cannot fold, so it scrolls — the one shape
             where sideways scrolling is the answer rather than the failure. */}
         <div className="table-scroll">
-          <table className={`table ${tb.head === 'plain' ? 'table-head-plain' : ''} table-rows-zebra`} {...ins('table')}>
+          {/* Every class here is READ FROM THE DOCUMENT, not chosen.
+           *
+           * This said `tb.head`, and the field is called `header` — so the
+           * setting had no effect at all and the header rendered the same
+           * whatever the editor said. The row separation was hard-coded to
+           * zebra for the same reason: I picked what I wanted to demonstrate
+           * instead of demonstrating what the document states. A sample that
+           * ignores a setting is the setting's strongest argument for not
+           * existing. */}
+          <table {...ins('table')} className={[
+            'table',
+            tb.header === 'plain' ? 'table-head-plain' : '',
+            tb.rows === 'zebra' ? 'table-rows-zebra' : tb.rows === 'both' ? 'table-rows-both'
+              : tb.rows === 'none' ? 'table-rows-none' : '',
+            tb.density === 'compact' ? 'table-dense' : tb.density === 'roomy' ? 'table-roomy' : '',
+          ].filter(Boolean).join(' ')}>
             <thead>
               <tr>
-                <th className="sel-col" style={{ paddingLeft: 'var(--space-md)' }} />
+                <th className="sel-col" />
                 <th>{L('Invoice')}</th>
                 <th>{L('Account')}</th>
                 <th>{L('Status')}</th>
                 <th>{L('Due')}</th>
-                <th className="num-col" style={{ paddingRight: 'var(--space-md)' }}>{L('Amount')}</th>
-                <th />
+                <th className="num-col">{L('Amount')}</th>
+                <th className="act-col" />
               </tr>
             </thead>
             <tbody>
               {ROWS.map(r => (
                 <tr key={r.id} className={r.on ? 'is-selected' : undefined}>
-                  <td className="sel-col" style={{ paddingLeft: 'var(--space-md)' }}>
+                  <td className="sel-col">
                     <Check on={r.on} {...ins(r.on ? 'checkbox-checked' : 'checkbox')} />
                   </td>
                   {/* An identifier: the mono face, and NO right edge. Nobody
@@ -171,10 +199,10 @@ export default function Index ({ onInspect, casing, layout }) {
                   </td>
                   <td><span className="small muted">{r.due}</span></td>
                   {/* An amount: the mono face AND the right edge. */}
-                  <td className="num-col" style={{ paddingRight: 'var(--space-md)' }}>
+                  <td className="num-col">
                     <span className="amount small">{r.amount}</span>
                   </td>
-                  <td style={{ paddingRight: 'var(--space-xs)' }}>
+                  <td className="act-col">
                     <button className="btn btn-ghost btn-sm icon-only" {...ins('button-ghost')}><Ico d={IconMore} /></button>
                   </td>
                 </tr>
@@ -184,21 +212,30 @@ export default function Index ({ onInspect, casing, layout }) {
         </div>
       </div>
 
-      {/* Where you are in the list, and how to move. */}
+      {/* Where you are, and one step either way.
+       *
+       * The numbered pages are gone. A run of page buttons grows with the data
+       * — this one already needed an ellipsis at 48 rows — so it is a row that
+       * cannot state its own width, and it ran off the end of the card. Two
+       * arrows do the same job at a fixed size, and the count beside them says
+       * where you are better than a highlighted "1" does.
+       *
+       * "Showing 1–10 of 48" is PROSE, so it is not recased. It read "Showing
+       * 1–10 Of 48" because the label helper had been pointed at a sentence.
+       * `Rows` is a label and keeps its capital. */}
       <div className="row row-wrap">
         <span className="small muted" {...txt('body-sm', 'text-muted')}>
-          {L('Showing')} <span className="figure">1–10</span> {L('of')} <span className="figure">48</span>
+          Showing <span className="figure">1–10</span> of <span className="figure">48</span>
         </span>
+        {/* One group, so the label, the dropdown and the arrows travel
+            together and the whole thing sits on the sentence's baseline. */}
         <span className="row" style={{ marginLeft: 'auto' }}>
-          <span className="input" style={{ flex: '0 0 auto' }}><span className="small">{L('Rows')}: <span className="figure">10</span></span></span>
-          <span className="row" style={{ gap: 'var(--space-3xs)' }}>
-            <button className="btn btn-secondary btn-sm icon-only" disabled aria-label="Previous page" {...ins('button-primary-disabled')}><Ico d={IconChevron} className="icon-left" /></button>
-            <button className="btn btn-primary btn-sm" {...ins('button-primary')}><span className="figure">1</span></button>
-            <button className="btn btn-secondary btn-sm" {...ins('button-secondary')}><span className="figure">2</span></button>
-            <button className="btn btn-secondary btn-sm" {...ins('button-secondary')}><span className="figure">3</span></button>
-            <span className="caption subtle" {...txt('caption', 'text-subtle')}>…</span>
-            <button className="btn btn-secondary btn-sm icon-only" aria-label="Next page" {...ins('button-secondary')}><Ico d={IconChevron} className="icon-right" /></button>
-          </span>
+          <span className="small muted" {...txt('body-sm', 'text-muted')}>{L('Rows')}</span>
+          <button className="btn btn-secondary btn-sm select-trigger" {...ins('select')}>
+            <span className="figure">10</span><Ico d={IconChevron} size="sm" />
+          </button>
+          <button className="btn btn-secondary btn-sm icon-only" disabled aria-label="Previous page" {...ins('button-primary-disabled')}><Ico d={IconChevron} className="icon-left" /></button>
+          <button className="btn btn-secondary btn-sm icon-only" aria-label="Next page" {...ins('button-secondary')}><Ico d={IconChevron} className="icon-right" /></button>
         </span>
       </div>
     </div>

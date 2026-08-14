@@ -73,7 +73,7 @@ export const BTN = {
  * Exported rather than repeated so the three modals cannot drift apart again,
  * which is how they got here — each one sized on its own, none of them wrong
  * next to itself. */
-export const MODAL_BTN = { padding: BTN.xl, fontSize: 13 }
+export const MODAL_BTN = { padding: BTN.xl, fontSize: 14 }
 
 /**
  * A slider that moves between named scale steps, beside a field that accepts
@@ -120,10 +120,10 @@ export function SnapSlider({ steps, value, onChange, refFor, title }) {
         /* Ticks make the stops visible before you drag, so the control shows
            how many choices there are rather than making you discover them. */
         list="dmd-snap-ticks"
-        style={{ flex: 1, minWidth: 60, height: 13, opacity: off ? .55 : 1 }} />
+        style={{ flex: 1, minWidth: 60, height: 12, opacity: off ? .55 : 1 }} />
       <span style={{
-        fontFamily: 'var(--mono)', fontSize: 9.5, whiteSpace: 'nowrap', flexShrink: 0,
-        minWidth: 62, textAlign: 'right',
+        fontFamily: 'var(--mono)', fontSize: 10, whiteSpace: 'nowrap', flexShrink: 0,
+        minWidth: 64, textAlign: 'right',
         color: off ? 'var(--dim)' : 'var(--muted)',
       }}>
         {off ? `off scale` : `${steps[nearest].name} · ${steps[nearest].value}`}
@@ -214,11 +214,11 @@ export function SectionHeader({ title, desc, count, right }) {
   return (
     <div style={{ marginBottom: TITLE_GAP - PANEL_GAP, display: 'flex', alignItems: 'baseline', gap: 12 }}>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 9 }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
           <h2 style={{ fontFamily: 'var(--display)', fontSize: 18, fontWeight: 700, letterSpacing: '-0.025em', color: 'var(--text)' }}>{title}</h2>
           {count != null && <span className="chip">{count}</span>}
         </div>
-        {desc && <p style={{ fontSize: 12.5, color: 'var(--muted)', marginTop: 3, lineHeight: 1.5 }}>{desc}</p>}
+        {desc && <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4, lineHeight: 1.5 }}>{desc}</p>}
       </div>
       {right}
     </div>
@@ -270,7 +270,7 @@ export function Collapsible({ title, note, children, defaultOpen = false, right,
   }, [open])
 
   return (
-    <div style={{ border: '1px solid var(--bdr)', borderRadius: 9, background: 'var(--surf)', overflow: 'hidden' }}>
+    <div style={{ border: '1px solid var(--bdr)', borderRadius: 8, background: 'var(--surf)', overflow: 'hidden' }}>
       <div style={{ display: 'flex', alignItems: 'baseline' }}>
         <button
           onClick={() => setOpen(o => !o)}
@@ -292,7 +292,7 @@ export function Collapsible({ title, note, children, defaultOpen = false, right,
             paddingBottom: PAD.sub - (note ? CHIP_OPTICAL_SHIFT : 0),
             paddingLeft: PAD.card, paddingRight: PAD.card,
             background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text)',
-            fontFamily: 'var(--sans)', fontSize: 13, textAlign: 'left', minWidth: 0,
+            fontFamily: 'var(--sans)', fontSize: 14, textAlign: 'left', minWidth: 0,
           }}>
           {/* No `alignSelf:center`. That centred the chevron on the button's box,
               which put it 1px below the label's optical mid — the icon-beside-a-
@@ -307,7 +307,7 @@ export function Collapsible({ title, note, children, defaultOpen = false, right,
           <span style={{ flex: 1, minWidth: 0 }}>{title}</span>
           {note && <span className="chip">{note}</span>}
         </button>
-        {right && <div style={{ paddingRight: 10, flexShrink: 0 }}>{right}</div>}
+        {right && <div style={{ paddingRight: 12, flexShrink: 0 }}>{right}</div>}
       </div>
       <div style={{
         display: 'grid',
@@ -364,11 +364,11 @@ export function FilterField({ value, onChange, placeholder = 'Search…', width 
       </svg>
       <input value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
         style={{
-          fontSize: 11, padding: '4px 22px 4px 25px', fontFamily: 'var(--sans)',
+          fontSize: 12, padding: '4px 24px 4px 24px', fontFamily: 'var(--sans)',
           color: value ? 'var(--accent)' : 'var(--text-dim)',
         }} />
       {value && (
-        <span style={{ position: 'absolute', right: 5, top: '50%', transform: 'translateY(-50%)', color: 'var(--muted)', fontSize: 11, lineHeight: 1 }}>
+        <span style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', color: 'var(--muted)', fontSize: 12, lineHeight: 1 }}>
           <CloseButton onClick={() => onChange('')} label="Clear" line={1.4} size={8} />
         </span>
       )}
@@ -424,18 +424,18 @@ export function Slider({ label, desc, value, onChange, min = 0, max = 1, step = 
 
   return (
     <div style={{ marginBottom: 12 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
-        <span style={{ fontSize: 12.5, color: 'var(--text)', flex: 1, minWidth: 0 }}>{label}</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+        <span style={{ fontSize: 12, color: 'var(--text)', flex: 1, minWidth: 0 }}>{label}</span>
         <input
           value={display}
           onChange={e => setDraft(e.target.value)}
           onBlur={e => commit(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur() }}
           style={{
-            width: 62, flexShrink: 0, fontFamily: 'var(--mono)', fontSize: 10.5, padding: '3px 5px',
+            width: 64, flexShrink: 0, fontFamily: 'var(--mono)', fontSize: 10, padding: '4px 6px',
             textAlign: 'right', color: modified ? 'var(--accent)' : 'var(--muted)',
           }} />
-        {suffix && <span style={{ fontSize: 10, color: 'var(--dim)', fontFamily: 'var(--mono)', width: 18 }}>{suffix}</span>}
+        {suffix && <span style={{ fontSize: 10, color: 'var(--dim)', fontFamily: 'var(--mono)', width: 20 }}>{suffix}</span>}
         {defaultValue != null && (
           <ResetButton onClick={() => onChange(defaultValue)} disabled={!modified} />
         )}
@@ -443,7 +443,7 @@ export function Slider({ label, desc, value, onChange, min = 0, max = 1, step = 
       <input type="range" min={min} max={max} step={step} value={value}
         onChange={e => onChange(snap(parseFloat(e.target.value)))}
         onDoubleClick={() => defaultValue != null && onChange(defaultValue)} />
-      {desc && <div style={{ fontSize: 11, color: 'var(--dim)', marginTop: 1 }}>{desc}</div>}
+      {desc && <div style={{ fontSize: 12, color: 'var(--dim)', marginTop: 1 }}>{desc}</div>}
     </div>
   )
 }
@@ -499,8 +499,8 @@ export function NumField({ label, value, onChange, min, max, step = 1, suffix, w
             const n = parseFloat(e.target.value)
             onChange(Number.isFinite(n) ? n : 0)
           }}
-          style={suffix ? { paddingRight: 22 } : undefined} />
-        {suffix && <span style={{ position: 'absolute', right: 7, top: '50%', transform: 'translateY(-50%)', fontSize: 10, color: 'var(--dim)', pointerEvents: 'none', fontFamily: 'var(--mono)' }}>{suffix}</span>}
+          style={suffix ? { paddingRight: 24 } : undefined} />
+        {suffix && <span style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', fontSize: 10, color: 'var(--dim)', pointerEvents: 'none', fontFamily: 'var(--mono)' }}>{suffix}</span>}
       </div>
     </div>
   )
@@ -525,7 +525,7 @@ export function Segmented({ options, value, onChange, size = 'md', full }) {
         return (
           <button key={val} onClick={() => onChange(val)} className={value === val ? 'seg-on' : 'seg'}
             style={{
-              ...(size === 'sm' ? { padding: '2px 6px', fontSize: 11 } : null),
+              ...(size === 'sm' ? { padding: '2px 6px', fontSize: 12 } : null),
               /* Equal shares rather than content-sized, so the divisions land
                  on a regular rhythm instead of tracking label length.
                  *
@@ -548,7 +548,7 @@ export function Segmented({ options, value, onChange, size = 'md', full }) {
                  * it fit, with the weight up a shade to pay for the size: ten
                  * pixels of 400 reads lighter than eleven did. */
                 flex: '1 1 auto', minWidth: 'max-content',
-                padding: '3px 4px', fontSize: 10, fontWeight: 550,
+                padding: '4px 4px', fontSize: 10, fontWeight: 550,
                 textAlign: 'center', whiteSpace: 'nowrap',
               } : null),
             }}>
@@ -562,12 +562,12 @@ export function Segmented({ options, value, onChange, size = 'md', full }) {
 
 export function Toggle({ label, checked, onChange, desc }) {
   return (
-    <label style={{ display: 'flex', alignItems: 'flex-start', gap: 9, cursor: 'pointer', textTransform: 'none', letterSpacing: 'normal', fontSize: 13, color: 'var(--text)', fontWeight: 400, marginBottom: 0 }}>
+    <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, cursor: 'pointer', textTransform: 'none', letterSpacing: 'normal', fontSize: 14, color: 'var(--text)', fontWeight: 400, marginBottom: 0 }}>
       <input type="checkbox" checked={checked} onChange={e => onChange(e.target.checked)}
-        style={{ width: 15, height: 15, marginTop: 2, accentColor: 'var(--accent)', flexShrink: 0, padding: 0 }} />
+        style={{ width: 16, height: 16, marginTop: 2, accentColor: 'var(--accent)', flexShrink: 0, padding: 0 }} />
       <span>
         {label}
-        {desc && <div style={{ fontSize: 11, color: 'var(--dim)', marginTop: 1 }}>{desc}</div>}
+        {desc && <div style={{ fontSize: 12, color: 'var(--dim)', marginTop: 1 }}>{desc}</div>}
       </span>
     </label>
   )
@@ -580,7 +580,7 @@ export function OverrideBadge({ onReset, title = 'Overridden — click to relink
       style={{
         display: 'inline-flex', alignItems: 'center', gap: 4, background: 'rgb(var(--accent-rgb) / .12)',
         border: '1px solid rgb(var(--accent-rgb) / .3)', color: 'var(--accent)', borderRadius: 4,
-        padding: '2px 6px', fontSize: 9.5, fontFamily: 'var(--mono)', cursor: 'pointer', lineHeight: 1.6,
+        padding: '2px 6px', fontSize: 10, fontFamily: 'var(--mono)', cursor: 'pointer', lineHeight: 1.6,
       }}>
       <span style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--accent)' }} />
       set
@@ -589,7 +589,7 @@ export function OverrideBadge({ onReset, title = 'Overridden — click to relink
 }
 
 export function Empty({ msg = 'Nothing here yet.' }) {
-  return <div style={{ textAlign: 'center', padding: '26px 16px', color: 'var(--dim)', fontSize: 13, border: '1px dashed var(--bdr)', borderRadius: 10, lineHeight: 1.6 }}>{msg}</div>
+  return <div style={{ textAlign: 'center', padding: '28px 16px', color: 'var(--dim)', fontSize: 14, border: '1px dashed var(--bdr)', borderRadius: 12, lineHeight: 1.6 }}>{msg}</div>
 }
 
 /* The one close control.
@@ -638,8 +638,8 @@ export function Banner({ tone = 'info', children, onDismiss }) {
   }[tone]
   return (
     <div style={{
-      display: 'flex', alignItems: 'flex-start', gap: 10, background: tones.bg, border: `1px solid ${tones.bd}`,
-      color: tones.fg, borderRadius: 8, padding: '9px 12px', fontSize: 12.5, lineHeight: LINE,
+      display: 'flex', alignItems: 'flex-start', gap: 12, background: tones.bg, border: `1px solid ${tones.bd}`,
+      color: tones.fg, borderRadius: 8, padding: '8px 12px', fontSize: 12, lineHeight: LINE,
     }}>
       <div style={{ flex: 1, minWidth: 0 }}>{children}</div>
       {onDismiss && <CloseButton onClick={onDismiss} />}

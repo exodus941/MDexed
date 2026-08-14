@@ -163,7 +163,7 @@ body{zoom:var(--ui-zoom,1);background:var(--bg);color:var(--text);font-family:va
 /* Wide enough to grab and dark enough to see. A 6px thumb on a transparent
    track reads as "no scrollbar", which is worse than no styling at all. */
 *{scrollbar-width:thin;scrollbar-color:var(--scroll) transparent}
-::-webkit-scrollbar{width:11px;height:11px}
+::-webkit-scrollbar{width:12px;height:12px}
 ::-webkit-scrollbar-track{background:var(--track-shade)}
 ::-webkit-scrollbar-thumb{background:var(--scroll);border-radius:6px;border:2px solid transparent;background-clip:content-box;min-height:32px}
 ::-webkit-scrollbar-thumb:hover{background:var(--scroll-hover);background-clip:content-box}
@@ -222,15 +222,15 @@ textarea:not(.dmd *){height:auto;min-height:var(--field-h);line-height:1.5}
  * sized at the call site, and there is no third size to drift into. */
 .dense input:not([type=range]):not([type=checkbox]):not([type=radio]),
 .dense select,
-.dense textarea{padding:5px 8px;font-size:10.5px;border-radius:5px;line-height:var(--field-line-dense)}
+.dense textarea{padding:4px 8px;font-size:12px;border-radius:4px;line-height:var(--field-line-dense)}
 .dense input:not([type=range]):not([type=checkbox]):not([type=radio]),
 .dense select{height:var(--field-h-dense);line-height:var(--field-line-dense)}
 .dense textarea{height:auto;min-height:var(--field-h-dense)}
-.dense select{padding-right:26px;background-position:right 8px center;background-size:10px 10px}
+.dense select{padding-right:28px;background-position:right 8px center;background-size:12px 12px}
 input:focus:not(.dmd *),textarea:focus:not(.dmd *),select:focus:not(.dmd *){border-color:var(--accent);background:var(--surf2)}
-select:not(.dmd *){-webkit-appearance:none;appearance:none;padding-right:34px;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238e969d' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");background-repeat:no-repeat;background-position:right 12px center;background-size:11px 11px}
+select:not(.dmd *){-webkit-appearance:none;appearance:none;padding-right:32px;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238e969d' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");background-repeat:no-repeat;background-position:right 12px center;background-size:12px 12px}
 :root[data-ui-theme="light"] select{background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23596369' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>")}
-textarea:not(.dmd *){resize:vertical;min-height:90px;font-size:13px;line-height:1.6}
+textarea:not(.dmd *){resize:vertical;min-height:88px;font-size:14px;line-height:1.6}
 /* A button label that donates its button's baseline.
  *
  * A flex container takes its first baseline from the first flex item that is
@@ -270,7 +270,7 @@ textarea:not(.dmd *){resize:vertical;min-height:90px;font-size:13px;line-height:
    The select stood 36 and the Light/Dark box 27, which is the "button 2px
    shorter than the field beside it" problem with a 9px gap. Equal heights are
    also what puts their baselines within a pixel, so this fixes both. */
-.action-row select{height:28px;padding:0 26px 0 8px}
+.action-row select{height:28px;padding:0 28px 0 8px}
 /* 1px of inset, not 2. With a 1px border either side, 2px of padding left the
    segments 22px tall inside a 28px control — under the 24px floor where a
    click starts needing aim, and these are the two most-used buttons in the
@@ -367,7 +367,7 @@ main{container-type:inline-size}
   header .bar-mark{--bar-ctrl:40px}
   header .no-bar{align-items:center}
 
-  .action-row{min-height:56px!important;gap:10px!important;padding:0 12px!important}
+  .action-row{min-height:56px!important;gap:12px!important;padding:0 12px!important}
   /* 44 across the row, so the SEGMENTS reach 40. The seg-box was the thing
      measured and it passed at 40, while the two buttons inside it — the parts
      anyone actually taps — stood 36 after its border and padding. A control
@@ -383,7 +383,7 @@ main{container-type:inline-size}
      Line height with the height, as always: 44 minus the two borders. */
   .action-row .btn-ghost,.action-row .btn-fill,.action-row .btn-outline,
   .action-row .btn-primary,.action-row .btn-secondary{height:44px;line-height:42px}
-  .action-row select{height:44px;padding:0 28px 0 10px}
+  .action-row select{height:44px;padding:0 28px 0 12px}
   .action-row .seg-box{height:44px;box-sizing:border-box;align-items:stretch}
   .action-row .seg-box button{height:100%;display:flex;align-items:center}
   .action-row .readout{height:44px}
@@ -432,7 +432,7 @@ main{container-type:inline-size}
      divide the row evenly and truncate instead. */
   /* `!important` on both, because the element carries `display:flex; gap:8`
      inline for the wide layout and inline always wins a specificity contest. */
-  .form-stack{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px!important;align-items:center}
+  .form-stack{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px!important;align-items:center}
   .form-stack>:first-child{grid-column:1/-1;margin-bottom:2px}
   .form-stack>button{grid-column:1/-1;width:100%}
   .form-stack>select{width:100%}
@@ -466,7 +466,7 @@ main{container-type:inline-size}
    * no rule here touches it. */
   header button.btn-ghost:not(:has(.keep-lbl)){width:44px;padding:0}
 }
-label:not(.dmd *){display:block;font-size:10.5px;font-weight:500;text-transform:uppercase;letter-spacing:0.07em;color:var(--muted);margin-bottom:5px}
+label:not(.dmd *){display:block;font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:0.07em;color:var(--muted);margin-bottom:4px}
 /* A label that names a checkbox, not a field.
  *
  * The rule above is for the small caps heading that sits above an input, and
@@ -474,14 +474,14 @@ label:not(.dmd *){display:block;font-size:10.5px;font-weight:500;text-transform:
  * as LINK TO UI SCALE, block-level, with 5px of margin under it that pushed
  * the text off the checkbox's centre line. Sentence case, inline, no margin,
  * and an explicit line-height so flex centring has an exact box to centre. */
-label.check:not(.dmd *){display:inline-flex;align-items:center;gap:7px;margin:0;font-size:11.5px;font-weight:400;text-transform:none;letter-spacing:normal;line-height:1.2;color:var(--muted);cursor:pointer;user-select:none}
+label.check:not(.dmd *){display:inline-flex;align-items:center;gap:8px;margin:0;font-size:12px;font-weight:400;text-transform:none;letter-spacing:normal;line-height:1.2;color:var(--muted);cursor:pointer;user-select:none}
 label.check input[type=checkbox]:not(.dmd *){flex-shrink:0;margin:0}
 
-.btn-primary{font-family:var(--sans);font-size:13px;line-height:18px;font-weight:500;cursor:pointer;border:1px solid transparent;border-radius:6px;padding:8px 16px;background:var(--accent);color:var(--bg);transition:filter var(--t-hover) var(--ease)}
+.btn-primary{font-family:var(--sans);font-size:14px;line-height:18px;font-weight:500;cursor:pointer;border:1px solid transparent;border-radius:6px;padding:8px 16px;background:var(--accent);color:var(--bg);transition:filter var(--t-hover) var(--ease)}
 .btn-primary:hover{filter:brightness(1.1)}
 /* The accent in outline form. Sits beside the filled Export as its quieter
    sibling — same colour, same weight in the eye's hierarchy minus one step. */
-.btn-outline{font-family:var(--sans);font-size:13px;line-height:18px;font-weight:500;cursor:pointer;border:1px solid var(--accent);border-radius:6px;padding:8px 16px;background:transparent;color:var(--accent);transition:background var(--t-hover) var(--ease),color var(--t-hover) var(--ease)}
+.btn-outline{font-family:var(--sans);font-size:14px;line-height:18px;font-weight:500;cursor:pointer;border:1px solid var(--accent);border-radius:6px;padding:8px 16px;background:transparent;color:var(--accent);transition:background var(--t-hover) var(--ease),color var(--t-hover) var(--ease)}
 .btn-outline:hover{background:var(--accent-soft)}
 .btn-outline:disabled{opacity:.5;cursor:progress}
 .btn-outline:disabled:hover{background:transparent}
@@ -497,7 +497,7 @@ label.check input[type=checkbox]:not(.dmd *){flex-shrink:0;margin:0}
    the chrome was failing its own check. --bdr2 roughly doubles the separation,
    which is what makes a ghost button read as a button rather than as a label
    with generous padding. Hover still steps beyond it. */
-.btn-ghost{font-family:var(--sans);font-size:13px;line-height:18px;font-weight:400;cursor:pointer;border:1px solid var(--bdr2);border-radius:6px;padding:8px 16px;background:transparent;color:var(--muted);transition:background var(--t-hover) var(--ease),color var(--t-hover) var(--ease),border-color var(--t-hover) var(--ease);display:inline-flex;align-items:center;gap:5px}
+.btn-ghost{font-family:var(--sans);font-size:14px;line-height:18px;font-weight:400;cursor:pointer;border:1px solid var(--bdr2);border-radius:6px;padding:8px 16px;background:transparent;color:var(--muted);transition:background var(--t-hover) var(--ease),color var(--t-hover) var(--ease),border-color var(--t-hover) var(--ease);display:inline-flex;align-items:center;gap:6px}
 .btn-ghost:hover{background:var(--surf2);color:var(--text);border-color:var(--dim)}
 .btn-ghost:disabled{opacity:.4;cursor:not-allowed}
 .btn-ghost:disabled:hover{background:transparent;color:var(--muted);border-color:var(--bdr2)}
@@ -517,7 +517,7 @@ label.check input[type=checkbox]:not(.dmd *){flex-shrink:0;margin:0}
    * transition naming the same longhand. Nothing was broken by the shorthand —
    * it is simply the only property here that should animate, and transitioning
    * `background` also drags image, position and size along for no reason. */
-.btn-fill{font-family:var(--sans);font-size:13px;line-height:18px;font-weight:500;cursor:pointer;border:1px solid var(--bdr2);border-radius:6px;padding:8px 16px;background-color:var(--surf3);color:var(--text);transition:background-color var(--t-hover) var(--ease),border-color var(--t-hover) var(--ease);display:inline-flex;align-items:center;gap:5px}
+.btn-fill{font-family:var(--sans);font-size:14px;line-height:18px;font-weight:500;cursor:pointer;border:1px solid var(--bdr2);border-radius:6px;padding:8px 16px;background-color:var(--surf3);color:var(--text);transition:background-color var(--t-hover) var(--ease),border-color var(--t-hover) var(--ease);display:inline-flex;align-items:center;gap:6px}
 .btn-fill:hover{background-color:var(--bdr);border-color:var(--dim)}
 .btn-fill:disabled{opacity:.4;cursor:not-allowed}
 .btn-fill:disabled:hover{background-color:var(--surf3);border-color:var(--bdr2)}
@@ -541,7 +541,7 @@ label.check input[type=checkbox]:not(.dmd *){flex-shrink:0;margin:0}
    2.5.8 target-size check wants anyway. */
 .btn-field{height:var(--field-h);padding:0 12px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
 .btn-field-icon{width:var(--field-h);padding:0}
-.dense .btn-field{height:var(--field-h-dense);padding:0 8px;font-size:10.5px}
+.dense .btn-field{height:var(--field-h-dense);padding:0 8px;font-size:10px}
 .dense .btn-field-icon{width:var(--field-h-dense);padding:0}
 
 /* The font-size above is not cosmetic, it is what makes the row align.
@@ -558,7 +558,7 @@ label.check input[type=checkbox]:not(.dmd *){flex-shrink:0;margin:0}
    had none of them, because its "icon" was a plus typed into the label and a
    word space was doing the spacing. 5px is the gap every other chrome button
    uses — btn-ghost and btn-fill both state it. */
-.btn-add{margin-top:8px;width:100%;padding:10px 16px;background:var(--accent-wash);color:var(--accent);border:1px dashed var(--accent-line);border-radius:8px;cursor:pointer;font-size:13px;font-family:var(--sans);display:inline-flex;align-items:center;justify-content:center;gap:5px;transition:background var(--t-hover) var(--ease)}
+.btn-add{margin-top:8px;width:100%;padding:12px 16px;background:var(--accent-wash);color:var(--accent);border:1px dashed var(--accent-line);border-radius:8px;cursor:pointer;font-size:14px;font-family:var(--sans);display:inline-flex;align-items:center;justify-content:center;gap:6px;transition:background var(--t-hover) var(--ease)}
 .btn-add:hover{background:var(--accent-soft)}
 /* 24px is the target, 13px is the mark. Sized by its icon and 4px of padding
    this came out 21, and a 21px destructive control is the one you least want
@@ -586,8 +586,8 @@ label.check input[type=checkbox]:not(.dmd *){flex-shrink:0;margin:0}
    box — which means inheriting the field-label styling above, hence the
    resets on the first line. */
 .dropzone{text-transform:none;letter-spacing:normal;font-weight:400;margin-bottom:0;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;
-  padding:34px 20px;border:1.5px dashed var(--bdr2);border-radius:10px;background:var(--surf2);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;
+  padding:32px 20px;border:2px dashed var(--bdr2);border-radius:8px;background:var(--surf2);
   color:var(--muted);cursor:pointer;text-align:center;
   transition:border-color var(--t-hover) var(--ease),background var(--t-hover) var(--ease),color var(--t-hover) var(--ease)}
 .dropzone:hover{border-color:var(--accent);color:var(--text-dim)}
@@ -635,7 +635,7 @@ label.check input[type=checkbox]:not(.dmd *){flex-shrink:0;margin:0}
    not a modal and a table loses its columns, so these take the full width and
    accept the extra height. Order is flipped in CSS rather than in the JSX, so
    both layouts render from one tree. */
-.entry-stack{display:flex;flex-direction:column;gap:10px}
+.entry-stack{display:flex;flex-direction:column;gap:12px}
 .entry-stack .entry-sample-slot{order:-1}
 
 /* The stage a single component entry stands on.
@@ -644,7 +644,7 @@ label.check input[type=checkbox]:not(.dmd *){flex-shrink:0;margin:0}
    separation the preview pane earns by being a different column. min-height
    keeps the row from jumping as you move between a badge and a card. */
 .entry-sample{display:flex;align-items:center;justify-content:center;
-  min-height:74px;padding:14px;border-radius:8px;
+  min-height:72px;padding:16px;border-radius:8px;
   background:var(--preview);border:1px solid var(--preview-bdr);
   overflow:hidden}
 .entry-sample>*{max-width:100%}
@@ -664,7 +664,7 @@ label.check input[type=checkbox]:not(.dmd *){flex-shrink:0;margin:0}
 .btn-confirm-no:hover{color:var(--success);background:var(--success-soft)}
 
 /* Live samples. Darker than any input so a preview never reads as a field. */
-.preview-box{background:var(--preview);border:1px solid var(--preview-bdr);border-radius:7px}
+.preview-box{background:var(--preview);border:1px solid var(--preview-bdr);border-radius:8px}
 
 /* The tab strip scrolls, but a visible scrollbar inside a 42px bar looks like
    a rendering fault. Chevrons take over the job. */
@@ -697,7 +697,7 @@ label.check input[type=checkbox]:not(.dmd *){flex-shrink:0;margin:0}
 .xfade-out{animation:dmd-xfade-out var(--t) linear forwards}
 .xfade-in{animation:dmd-fade var(--t) linear both}
 
-.seg,.seg-on{font-family:var(--sans);font-size:12px;cursor:pointer;border:1px solid transparent;border-radius:5px;padding:4px 10px;background:transparent;color:var(--muted);transition:background var(--t-hover) var(--ease),color var(--t-hover) var(--ease);white-space:nowrap}
+.seg,.seg-on{font-family:var(--sans);font-size:12px;cursor:pointer;border:1px solid transparent;border-radius:4px;padding:4px 12px;background:transparent;color:var(--muted);transition:background var(--t-hover) var(--ease),color var(--t-hover) var(--ease);white-space:nowrap}
 /* min-height 24 for the same reason as the close button: 4px of padding on
    12px text stood these at 22.
    NOT inside a `.seg-box`. There the box states the height and the buttons
@@ -708,7 +708,7 @@ label.check input[type=checkbox]:not(.dmd *){flex-shrink:0;margin:0}
 .seg:hover{color:var(--text);background:var(--surf3)}
 .seg-on{background:var(--surf3);color:var(--text);font-weight:500}
 
-.chip{font-family:var(--mono);font-size:10.5px;padding:2px 6px;border-radius:4px;background:var(--surf3);border:1px solid var(--bdr);color:var(--muted);white-space:nowrap}
+.chip{font-family:var(--mono);font-size:10px;padding:2px 6px;border-radius:4px;background:var(--surf3);border:1px solid var(--bdr);color:var(--muted);white-space:nowrap}
 
 /* A search field must not read as a chip. Chips are flat --surf3 with a dim
    border; this is inset, brighter-edged and carries a visible magnifier. */
@@ -721,12 +721,12 @@ label.check input[type=checkbox]:not(.dmd *){flex-shrink:0;margin:0}
 .filter-field.has-value input{border-color:var(--accent-ring)}
 
 /* Range inputs: the macro sliders live or die on these feeling right */
-input[type=range]:not(.dmd *){-webkit-appearance:none;appearance:none;width:100%;height:18px;background:transparent;padding:0;border:none}
-input[type=range]:not(.dmd *)::-webkit-slider-runnable-track{height:3px;border-radius:2px;background:var(--bdr2)}
-input[type=range]:not(.dmd *)::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:13px;height:13px;border-radius:50%;background:var(--accent);margin-top:-5px;cursor:grab;border:none;transition:transform var(--t) var(--ease)}
+input[type=range]:not(.dmd *){-webkit-appearance:none;appearance:none;width:100%;height:20px;background:transparent;padding:0;border:none}
+input[type=range]:not(.dmd *)::-webkit-slider-runnable-track{height:4px;border-radius:2px;background:var(--bdr2)}
+input[type=range]:not(.dmd *)::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:12px;height:12px;border-radius:50%;background:var(--accent);margin-top:-4px;cursor:grab;border:none;transition:transform var(--t) var(--ease)}
 input[type=range]:active:not(.dmd *)::-webkit-slider-thumb{cursor:grabbing;transform:scale(1.15)}
-input[type=range]:not(.dmd *)::-moz-range-track{height:3px;border-radius:2px;background:var(--bdr2)}
-input[type=range]:not(.dmd *)::-moz-range-thumb{width:13px;height:13px;border-radius:50%;background:var(--accent);border:none;cursor:grab}
+input[type=range]:not(.dmd *)::-moz-range-track{height:4px;border-radius:2px;background:var(--bdr2)}
+input[type=range]:not(.dmd *)::-moz-range-thumb{width:12px;height:12px;border-radius:50%;background:var(--accent);border:none;cursor:grab}
 
 /* ── The hue slider ──
    The spectrum belongs to the track, not to the input box behind it — a
@@ -741,16 +741,16 @@ input[type=range]:not(.dmd *)::-moz-range-thumb{width:13px;height:13px;border-ra
    specificity (0,1,0) and the generic track rule above is (0,1,1) — a type
    selector plus an attribute selector — so the grey won and the spectrum was
    never painted, in either place it had been tried. */
-input[type=range].hue-slider:not(.dmd *)::-webkit-slider-runnable-track{height:6px;border-radius:3px;background:var(--spectrum)}
-input[type=range].hue-slider:not(.dmd *)::-moz-range-track{height:6px;border-radius:3px;background:var(--spectrum)}
-input[type=range].hue-slider:not(.dmd *)::-webkit-slider-thumb{width:14px;height:14px;margin-top:-4px;background:hsl(var(--hue) 70% 55%);box-shadow:0 0 0 2px var(--surf),0 0 0 3px var(--thumb-ring)}
-input[type=range].hue-slider:not(.dmd *)::-moz-range-thumb{width:14px;height:14px;background:hsl(var(--hue) 70% 55%);box-shadow:0 0 0 2px var(--surf),0 0 0 3px var(--thumb-ring)}
+input[type=range].hue-slider:not(.dmd *)::-webkit-slider-runnable-track{height:8px;border-radius:4px;background:var(--spectrum)}
+input[type=range].hue-slider:not(.dmd *)::-moz-range-track{height:8px;border-radius:4px;background:var(--spectrum)}
+input[type=range].hue-slider:not(.dmd *)::-webkit-slider-thumb{width:16px;height:16px;margin-top:-4px;background:hsl(var(--hue) 70% 55%);box-shadow:0 0 0 2px var(--surf),0 0 0 3px var(--thumb-ring)}
+input[type=range].hue-slider:not(.dmd *)::-moz-range-thumb{width:16px;height:16px;background:hsl(var(--hue) 70% 55%);box-shadow:0 0 0 2px var(--surf),0 0 0 3px var(--thumb-ring)}
 
 .num{font-family:var(--mono);font-size:12px;padding:4px 6px;text-align:right}
 .num::-webkit-outer-spin-button,.num::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 .num[type=number]{-moz-appearance:textfield}
 
-.swatch{border-radius:5px;border:1px solid var(--hover-wash);cursor:pointer;position:relative;flex-shrink:0;transition:transform var(--t) var(--ease)}
+.swatch{border-radius:4px;border:1px solid var(--hover-wash);cursor:pointer;position:relative;flex-shrink:0;transition:transform var(--t) var(--ease)}
 .swatch:hover{transform:scale(1.06);z-index:1}
 
 .panel-note{font-size:12px;color:var(--muted);line-height:1.55}

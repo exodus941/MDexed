@@ -26,25 +26,25 @@ function References({ value, onChange }) {
   }
   return (
     <div>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 8 }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
         {value.map(r => (
           <span key={r} style={{
             display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgb(var(--accent-rgb) / .12)',
-            border: '1px solid rgb(var(--accent-rgb) / .3)', color: 'var(--accent)', borderRadius: 5,
-            padding: '3px 6px 3px 9px', fontSize: 12,
+            border: '1px solid rgb(var(--accent-rgb) / .3)', color: 'var(--accent)', borderRadius: 6,
+            padding: '4px 6px 4px 8px', fontSize: 12,
           }}>
             {r}
             <CloseButton onClick={() => onChange(value.filter(x => x !== r))} label={`Remove ${r}`} line={1.2} size={8} />
           </span>
         ))}
-        {!value.length && <span style={{ fontSize: 11.5, color: 'var(--dim)' }}>None yet — one or two is plenty.</span>}
+        {!value.length && <span style={{ fontSize: 12, color: 'var(--dim)' }}>None yet — one or two is plenty.</span>}
       </div>
       <input value={draft} onChange={e => setDraft(e.target.value)}
         onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); add(draft) } }}
-        placeholder="Describe the feel, then press Enter" style={{ fontSize: 12.5, marginBottom: 8 }} />
+        placeholder="Describe the feel, then press Enter" style={{ fontSize: 12, marginBottom: 8 }} />
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
         {SUGGESTED_REFERENCES.filter(s => !value.includes(s)).map(s => (
-          <button key={s} className="seg" onClick={() => add(s)} style={{ fontSize: 11, border: '1px dashed var(--bdr2)' }}>+ {s}</button>
+          <button key={s} className="seg" onClick={() => add(s)} style={{ fontSize: 12, border: '1px dashed var(--bdr2)' }}>+ {s}</button>
         ))}
       </div>
     </div>
@@ -69,12 +69,12 @@ export default function DirectivesPanel() {
   const activeCount = d.antiPatterns.filter(a => a.on).length
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       <PanelAlerts tab="directives" />
       <SectionHeader title="Voice & Directives" desc="What the agent should aim for, and what it must never do." />
 
       <Collapsible title="Style References" note={String(d.references.length)} defaultOpen>
-        <p className="panel-note" style={{ marginBottom: 10 }}>
+        <p className="panel-note" style={{ marginBottom: 12 }}>
           Models hold strong priors on labels like these. A couple of words here moves output further than most token changes.
         </p>
         <References value={d.references} onChange={val => setDir('references', val)} />
@@ -82,11 +82,11 @@ export default function DirectivesPanel() {
 
       <Collapsible title="Hard Constraints" note={`${activeCount} active`} defaultOpen>
         <Banner tone="info">Negative constraints are the instructions models follow most reliably. These become the Do's and Don'ts section.</Banner>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 7, margin: '11px 0' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, margin: '12px 0' }}>
           {d.antiPatterns.map(a => (
             <div key={a.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
               <div style={{ flex: 1 }}>
-                <Toggle label={<span style={{ fontSize: 12.5, color: a.on ? 'var(--text)' : 'var(--muted)' }}>{a.text}</span>}
+                <Toggle label={<span style={{ fontSize: 12, color: a.on ? 'var(--text)' : 'var(--muted)' }}>{a.text}</span>}
                   checked={a.on} onChange={() => toggleAnti(a.id)} />
               </div>
               {a.custom && <CloseButton onClick={() => removeAnti(a.id)} label="Remove" line={1.5} size={9} />}
@@ -95,13 +95,13 @@ export default function DirectivesPanel() {
         </div>
         <input value={draft} onChange={e => setDraft(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter' && draft.trim()) { e.preventDefault(); addAnti(draft.trim()); setDraft('') } }}
-          placeholder="Add your own constraint, then press Enter" style={{ fontSize: 12.5 }} />
+          placeholder="Add your own constraint, then press Enter" style={{ fontSize: 12 }} />
       </Collapsible>
 
       <Collapsible title="Output Preferences" note={d.framework} defaultOpen>
-        <div style={{ marginBottom: 11 }}>
+        <div style={{ marginBottom: 12 }}>
           <label>Target stack</label>
-          <select value={d.framework} onChange={e => setDir('framework', e.target.value)} style={{ fontSize: 12.5, padding: '6px 8px' }}>
+          <select value={d.framework} onChange={e => setDir('framework', e.target.value)} style={{ fontSize: 12, padding: '6px 8px' }}>
             {FRAMEWORKS.map(f => <option key={f} value={f}>{f}</option>)}
           </select>
         </div>
@@ -132,10 +132,10 @@ export default function DirectivesPanel() {
             <Segmented value={v.errorTone} onChange={val => setVoice('errorTone', val)} size="sm"
               options={[{ value: 'plain', label: 'Plain' }, { value: 'terse', label: 'Terse' }, { value: 'apologetic', label: 'Apologetic' }]} />
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
-            <div><label>Date format</label><input value={v.dateFormat} onChange={e => setVoice('dateFormat', e.target.value)} style={{ fontFamily: 'var(--mono)', fontSize: 11.5 }} /></div>
-            <div><label>Numbers</label><input value={v.numberFormat} onChange={e => setVoice('numberFormat', e.target.value)} style={{ fontFamily: 'var(--mono)', fontSize: 11.5 }} /></div>
-            <div><label>Currency</label><input value={v.currency} onChange={e => setVoice('currency', e.target.value)} style={{ fontFamily: 'var(--mono)', fontSize: 11.5 }} /></div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+            <div><label>Date format</label><input value={v.dateFormat} onChange={e => setVoice('dateFormat', e.target.value)} style={{ fontFamily: 'var(--mono)', fontSize: 12 }} /></div>
+            <div><label>Numbers</label><input value={v.numberFormat} onChange={e => setVoice('numberFormat', e.target.value)} style={{ fontFamily: 'var(--mono)', fontSize: 12 }} /></div>
+            <div><label>Currency</label><input value={v.currency} onChange={e => setVoice('currency', e.target.value)} style={{ fontFamily: 'var(--mono)', fontSize: 12 }} /></div>
           </div>
         </div>
       </Collapsible>
