@@ -164,18 +164,49 @@
    *
    * The label ladder is untouched by this: its stages differ by the label, not
    * by where the actions sit. */
-  .dmd .page-head > .page-title { order: 1; flex: 1 1 0; }
+  /* The title takes CONTENT width, and the row breaks when the content stops
+   * fitting — not when a document breakpoint fires.
+   *
+   * This read `flex: 1 1 0`, which makes the title claim the whole line
+   * whatever it holds. Paired with a full-width action row below, the header
+   * broke into three lines the instant the pane crossed `md`. Measured on the
+   * Index at a 736px pane: the heading "Invoices" painted 151px inside a
+   * 670px box, with the buttons on a line of their own and 519px of empty
+   * space beside the title.
+   *
+   * `md` is the document's general breakpoint. It was never measured against
+   * THIS row, and a threshold borrowed from somewhere else is a threshold
+   * nobody derived. Let the flex line decide instead: the title takes its
+   * content, the actions keep their auto margin, and the row wraps at the
+   * width where they genuinely stop fitting — which is the right width for a
+   * long title and a short one alike. */
+  .dmd .page-head > .page-title { order: 1; flex: 0 1 auto; min-width: 0; }
   .dmd .page-head > .nav-collapse { order: 2; flex: 0 0 auto; margin-left: auto; }
-  .dmd .page-head > .page-sub { order: 3; }
-  /* On its own line the action row states its own top spacing. The header row
-     runs `row-gap: 0`, so that the byline can sit close to the title without a
-     second source adding to it — which means a wrapped row that says nothing
-     gets nothing. Left to the first-line alignment margin alone this measured
-     5.2px under the byline, against the 4px inside the title block. */
+  /* The byline keeps its base order of 9, so it sits BELOW the actions rather
+     than between them and the title. Ordered 3 it split the header into three
+     lines by construction: the actions could never reach the title's row,
+     whatever the width, because a full-width byline always came first. */
+  /* The actions now sit BESIDE the title while they fit, so the top margin is
+     the first-line centring one the base rule states, not a fixed 12px. Beside
+     a 48px first line a 28px button centres at 10px; the old 12 put it 2px
+     low. Where the row does wrap, the actions land on a line of their own and
+     `row-gap` supplies the separation instead of a per-child margin — one
+     source, so the two cannot add up. */
   .dmd .page-head > .page-actions {
-    order: 4; flex: 1 0 100%; margin-left: 0;
-    margin-top: var(--space-sm, 12px);
+    order: 4; flex: 0 0 auto; margin-left: auto;
   }
+  /* `row-gap: 0` stays. The actions carry ONE margin — the first-line centring
+     one from the base rule — and it serves both arrangements: beside the title
+     it centres the buttons on line one, and on a wrapped line it is the whole
+     separation. Adding a row gap on top measured 20px under the byline where
+     12 was intended, because the two sources add. One source, one number.
+
+     Written against all three classes, because this element carries
+     `row row-wrap page-head` and `.dmd .row.row-wrap` is (0,3,0). Raising that
+     rule's row gap from 4 to 8 — a correct fix for a filter row — silently
+     took this header's `row-gap: 0` with it, and the header measured 8px where
+     it declared 0. A fix that wins by specificity has to be written to win. */
+  .dmd .row.row-wrap.page-head { row-gap: 0; }
 
   /* Stacking the rail is only half the job. Left alone it becomes five links
      stacked above the page title, which pushes the heading below the fold and
