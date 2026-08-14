@@ -760,6 +760,15 @@ function componentsBody(state, derived) {
        agent will make the same mistake unless the file says otherwise. */
     'An icon-only button is a button. Same variant, same size entry, same height as any other button on its row — square, with width equal to that height, no label and an accessible name from `aria-label`. It is not a separate component with a size of its own.',
 
+    /* Figures. The mono family is named in this document and, until now,
+       nothing said what it was for — so it would be used for code samples and
+       every table of money would come out misaligned. */
+    '**Set figures in the mono family**, and there are two cases. An AMOUNT — money, a quantity, a percentage, a duration, anything you would add up or compare in size — takes the mono face AND a right edge: the right edge lines up the magnitudes and the mono face lines up the digits inside them. Any OTHER figure — an invoice number, a journal or order reference, a version, a hash — takes the mono face alone and keeps its normal alignment, because nobody compares its magnitude and a right-aligned identifier reads as a total. A date is text when it carries a month name and a figure when it does not: "12 Aug" stays in the body face, "12/08/2026" takes the mono face.',
+
+    /* Found by drawing a list with a select-all box over a part-selected set.
+       The component had two states and needed three. */
+    'A checkbox has **three** states, not two. Indeterminate is the only honest answer for a select-all box when some of the rows below it are selected and some are not — unchecked claims nothing is selected while rows plainly are, and checked claims everything is. Distinguish it by the MARK, a dash against a tick, never by the fill alone: a reader who cannot separate the two hues still sees two shapes.',
+
     /* Which variant, decided by context rather than by habit. A ghost went
        into an empty state because a ghost is the reflex for a secondary
        action, and an empty state is the one place with no frame to supply the

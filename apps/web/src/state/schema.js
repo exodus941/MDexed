@@ -25,6 +25,23 @@ export const ROLE_GROUPS = [
       { name: 'surface',         desc: 'Cards, panels, sheets',      light: 'neutral.50',  dark: 'neutral.900' },
       { name: 'surface-raised',  desc: 'Popovers, menus, modals',    light: 'neutral.50',  dark: 'neutral.800' },
       { name: 'surface-sunken',  desc: 'Wells, inset fields',        light: 'neutral.200', dark: 'neutral.950' },
+      /* Striping a long list is a readability aid, not decoration: the eye
+         loses its row on the way across a wide table, and a band brings it
+         back. It needs its own role because nothing else in this group means
+         "every other row" — reusing `bg-subtle` measured 1.62:1 against the
+         surface, which is a boundary rather than a rhythm.
+         THE STRIPE IS THE PAGE SHOWING THROUGH, and that is why it steps the
+         way it does: away from the surface, TOWARD the page. In light that is
+         darker and in dark it is darker again, because the page sits below the
+         card in both. Both land on the same step the `bg` role uses.
+         Striping the other way in dark — lighter than the surface — was tried
+         and it breaks two things at once: a bordered control on the stripe
+         falls to 2.68, and the selected row has nowhere left to go, landing at
+         exactly 1.00 against it. Stepping down instead gives the control 4.37
+         and the selection 1.63.
+         Light reads 1.27:1 and dark 1.23:1. Those are the softest steps the
+         ramp holds; there is nothing between 50 and 100. */
+      { name: 'row-stripe',      desc: 'Every other row in a list',  light: 'neutral.100', dark: 'neutral.950' },
     ],
   },
   {
@@ -93,6 +110,37 @@ export const ROLE_GROUPS = [
       { name: 'accent-active',   desc: 'Pressed state',              light: 'accent.900',  dark: 'accent.200'  },
       { name: 'accent-subtle',   desc: 'Tinted background',          light: 'accent.100',  dark: 'accent.900'  },
       { name: 'accent-fg',       desc: 'Content on accent fill',     light: 'neutral.50',  dark: 'neutral.950' },
+      /* A SELECTED row, and `accent-subtle` cannot do this job.
+       *
+       * `accent-subtle` is the background behind accent-coloured content — a
+       * chip, a callout — and it is deliberately quiet: 1.26:1 against the
+       * surface. Used to mark a selected row it fails, because a selection has
+       * to be found by the eye rather than merely noticed once you are already
+       * looking at it. Two uses, two different bars, so two roles.
+       *
+       * It is NEUTRAL, not the accent, and that is the correction they made on
+       * sight: "omigod why baby blue for the selection". `accent.200` clears
+       * every number — band 1.62, body 8.34, muted 4.56 — and is unbearable
+       * across ten rows, because a saturated tint repeated down a table is
+       * fatigue rather than information. Carbon reaches the same answer with
+       * its `layer-selected`, which is grey. The accent still marks the
+       * selection; it does it through the checkbox and a left edge, where it
+       * appears once per row instead of filling it.
+       *
+       * `neutral.200` measures identically to the rejected blue — band 1.62,
+       * body 8.38, muted 4.57 — and reads calm.
+       *
+       * DARK GOES THE OTHER WAY, and that is not a whim. The stripe steps
+       * toward the page, which is DOWN in both modes; the selection steps
+       * toward the reader, which is down on paper and UP in the dark. So light
+       * runs 50 surface, 100 stripe, 200 selected — one direction — while dark
+       * runs 900 surface, 950 stripe, 800 selected, diverging from the
+       * surface. Diverging is what buys the separation: 1.63 between stripe
+       * and selection, against 1.00 for the first arrangement I tried.
+       * Measured dark: band 1.32, body 10.23, muted 4.83. Choosing
+       * `neutral.700` instead reads as a stronger band and drops muted text to
+       * 3.50, which the suite catches. */
+      { name: 'selected',        desc: 'Selected row or item',       light: 'neutral.200', dark: 'neutral.800' },
     ],
   },
   {
@@ -159,6 +207,24 @@ export const CONTRAST_PAIRS = [
   { fg: 'warning-fg',   bg: 'warning',        label: 'Label on warning' },
   { fg: 'danger-fg',    bg: 'danger',         label: 'Label on destructive' },
   { fg: 'border',       bg: 'surface',        label: 'Control outline',  ui: true },
+  /* The same trap the `text-subtle` note above describes, caught a second time
+     and in the same shape: `border` was measured on `surface` and nowhere
+     else, and `surface` is its BEST case. It reads 3.82 there and 2.36 on a
+     recessed band — a button sitting in a selection bar has an outline under
+     the 3:1 floor, and nothing said so.
+     No step fixes both. At neutral.600 the band still reads 2.93, and
+     neutral.700 is a hairline heavy enough to change every control in the
+     product. One role cannot serve two grounds at one bar.
+     So the limit is stated rather than designed away, the way the disabled
+     pair above is: measured, reported, exempt from the count, with the remedy
+     at the point of use — a control on a recessed band steps its outline to
+     `text-muted`, which reads 4.57 there. */
+  { fg: 'border',       bg: 'bg-subtle',      label: 'Control outline on a band', ui: true, exempt: true },
+  /* The two new grounds. A row is where body and muted text meet a fill that
+     is neither the page nor the card, and neither had a pair. */
+  { fg: 'text',         bg: 'selected',       label: 'Body on a selected row' },
+  { fg: 'text-muted',   bg: 'selected',       label: 'Muted on a selected row' },
+  { fg: 'text-muted',   bg: 'row-stripe',     label: 'Muted on a striped row' },
   { fg: 'ring',         bg: 'bg',             label: 'Focus ring',       ui: true },
 ]
 

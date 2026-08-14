@@ -86,6 +86,20 @@ export const COMPONENT_LIBRARY = [
     base: { size: '16px', rounded: '{rounded.sm}', borderColor: '{colors.border}', backgroundColor: '{colors.surface}' },
     states: {
       checked: { _: { backgroundColor: '{colors.accent}', borderColor: '{colors.accent}', textColor: '{colors.accent-fg}' } },
+      /* A checkbox has THREE states, not two.
+       *
+       * Indeterminate is the state a "select all" box is in when some of the
+       * rows below it are selected and some are not. It is the only honest
+       * answer to that question, and leaving it out forces the box to lie:
+       * unchecked says "nothing is selected" while two rows plainly are, and
+       * checked says "everything is" while eight are not.
+       *
+       * It was missing here from the first version, and it went unnoticed
+       * because no sample surface had a selectable list. Drawing one found it
+       * in a minute. It takes the checked colours and a DASH rather than a
+       * tick — the mark is what distinguishes it, never the fill, because a
+       * reader who cannot separate the two hues still sees two shapes. */
+      indeterminate: { _: { backgroundColor: '{colors.accent}', borderColor: '{colors.accent}', textColor: '{colors.accent-fg}' } },
     },
   },
   {
