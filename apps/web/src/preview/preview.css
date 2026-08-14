@@ -290,7 +290,17 @@
   align-items: center; justify-content: center;
   padding: var(--space-md, 16px); overflow: auto;
 }
-.dmd .shell-split { align-items: stretch; gap: var(--space-lg, 24px); }
+/* A GUTTER BETWEEN COLUMNS IS A STEP OF ITS OWN, never the row's default.
+   This element carries `row shell-split`, and `.dmd .row` declares an 8px gap
+   334 lines further down. Both selectors are (0,2,0), so line order decided
+   it and the 24 here never applied — a rule that wins by position is not a
+   rule. `.row.shell-split` is (0,3,0) and wins wherever it sits.
+
+   The measured result of losing: two tab strips 8px apart, with 4px between
+   the tabs inside each of them. At 2:1 the eye reads one strip of seven tabs
+   rather than two strips of four and three. 24 against 4 is 6:1, and nobody
+   has to think about it. */
+.dmd .row.shell-split { align-items: stretch; gap: var(--space-lg, 24px); }
 
 /* A row that is allowed to wrap.
  *
