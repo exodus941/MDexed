@@ -826,7 +826,11 @@
    measured 3.7px where every card measured 24. A custom property used in a
    calc has to exist everywhere the calc runs, or the rule fails silently and
    nothing reports it. */
-.dmd { --card-action-gap: var(--space-lg, 24px); }
+/* `md`, not `lg`. Stated by them, 15 August 2026, looking at the rendered
+   distance: "maybe 16px. 20-24 may be too much." An action still stands clear of
+   the sentence explaining it; 24 read as a separated block rather than a card
+   with an action in it. */
+.dmd { --card-action-gap: var(--space-md, 16px); }
 /* The subtraction asks about the PARENT, so the rule is written on the parent.
  *
  * This first read the container's gap from an inherited custom property, and
@@ -839,10 +843,31 @@
  * A child combinator names the real relationship. An element whose parent
  * genuinely is a stack subtracts that stack's gap; everything else takes the
  * whole distance. Nothing is inherited and nothing leaks. */
-.dmd .card-actions { margin-top: var(--card-action-gap); }
-.dmd .stack > .card-actions { margin-top: calc(var(--card-action-gap) - var(--space-md, 16px)); }
-.dmd .stack-sm > .card-actions { margin-top: calc(var(--card-action-gap) - var(--space-sm, 12px)); }
-.dmd .stack-lg > .card-actions { margin-top: calc(var(--card-action-gap) - var(--space-lg, 24px)); }
+/* ── AND IN A ROW OF CARDS, THE ACTIONS SIT ON THE BOTTOM EDGE ──
+ *
+ * Stated by them, 15 August 2026. Three plan cards stretched to one height, and
+ * their buttons sat at two: Solo's description wraps to two lines, so its button
+ * was pushed 22.2px below the other two and ended 25px from the card's foot
+ * while they ended 47.3px from theirs. Equal cards, ragged actions.
+ *
+ * `margin-top: auto` on the last child of a flex column takes all the free
+ * space, so the actions land on the bottom edge wherever the text above them
+ * ends. In a card sized by its own content there is no free space, the margin
+ * resolves to zero, and nothing moves.
+ *
+ * THE DISTANCE MOVES TO PADDING, and that is not a preference. An auto margin
+ * consumes the free space, so it cannot also hold a minimum — the moment a card
+ * fills up, a stated margin would collapse to nothing and the action would touch
+ * the sentence above it. Padding cannot be consumed. One writer per property:
+ * the margin pushes, the padding spaces.
+ *
+ * The subtraction still asks about the PARENT, so it is still a child
+ * combinator. `max()` floors it at zero, because padding cannot go negative and
+ * a parent whose own gap already exceeds the target has answered the question. */
+.dmd .card-actions { margin-top: auto; padding-top: var(--card-action-gap); }
+.dmd .stack > .card-actions { padding-top: max(0px, calc(var(--card-action-gap) - var(--space-md, 16px))); }
+.dmd .stack-sm > .card-actions { padding-top: max(0px, calc(var(--card-action-gap) - var(--space-sm, 12px))); }
+.dmd .stack-lg > .card-actions { padding-top: max(0px, calc(var(--card-action-gap) - var(--space-lg, 24px))); }
 
 /* A stat tile: a label, the number, and the change under it.
  *
@@ -1542,6 +1567,27 @@
  */
 .dmd .plan-row:not(:first-of-type) > *:not(.is-picked) {
   border-top: 1px solid var(--c-border-subtle);
+}
+/* THE MARKED COLUMN CARRIES THE DIVIDERS TOO. Stated by them, 15 August 2026,
+ * looking at it rendered: the rows have to read straight across, and a column
+ * with no rules in it reads as a panel laid over the table rather than as one of
+ * its columns.
+ *
+ * It does not go back to a `border-top`. A border spans the cell's whole width,
+ * including the 1px where the accent edge is painted, so it would chip that edge
+ * once per row — the seam this block spent three attempts removing. A background
+ * image can be inset: 1px in from each side, so the divider stops short of both
+ * edges and the vertical line stays whole.
+ *
+ * Safe as a background because the marked column has no fill. It is marked by
+ * its edge, and a filled column beside two unfilled ones reads as already
+ * chosen. Measured after: five dividers at 211.5px inside a 213.5px cell, the
+ * first row skipped, the cells still meeting at 0.00. */
+.dmd .plan-row:not(:first-of-type) > .plan-cell.is-picked {
+  background-image: linear-gradient(var(--c-border-subtle), var(--c-border-subtle));
+  background-size: calc(100% - 2px) 1px;
+  background-position: 1px 0;
+  background-repeat: no-repeat;
 }
 .dmd .plan-cell.is-picked {
   box-shadow: inset 1px 0 0 var(--c-accent), inset -1px 0 0 var(--c-accent);
