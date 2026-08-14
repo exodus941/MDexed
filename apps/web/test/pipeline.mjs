@@ -51,7 +51,11 @@ assert(derived.ramps.accent.anchor != null, `seed anchored at step ${derived.ram
 /* 28 since danger-hover joined the status group. Accent had a hover role from
    the start and danger did not, so a destructive button's hover resolved to
    the colour it already was. */
-assert(Object.keys(derived.roles.light).length === 28, `28 light roles (got ${Object.keys(derived.roles.light).length})`)
+/* 30 since `row-stripe` and `selected` joined. Both exist because drawing a
+   selectable, striped list found that neither had a role: the stripe was being
+   improvised from `bg-subtle` and the selection from `accent-subtle`, and each
+   was wrong for a measured reason. */
+assert(Object.keys(derived.roles.light).length === 30, `30 light roles (got ${Object.keys(derived.roles.light).length})`)
 assert(derived.roles.light.bg !== derived.roles.dark.bg, 'light and dark bg differ')
 
 line('\n- generated scales -')
@@ -1431,6 +1435,9 @@ line('\n- prompt construction -')
     ['a recommendation is marked by its edge', ['never by a fill']],
     ['a marked column is one unbroken edge', ['stop against it rather than crossing it']],
     ['a painting table has no column gap', ['no column gap at all']],
+    ['figures take the mono family', ['set figures in the mono family']],
+    ['an amount takes a right edge, an identifier does not', ['reads as a total']],
+    ['a checkbox has three states', ['a checkbox has **three** states']],
     ['moving what draws a seam can move the seam', ['the seam can simply move too']],
     ['a bordered cell is stretched, never centred', ['stretch any cell that carries a border']],
     ['a column marker cannot span auto-placed rows', ['names the end of the explicit grid']],
