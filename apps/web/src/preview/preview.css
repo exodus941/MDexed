@@ -257,6 +257,35 @@
   padding: var(--cmp-textarea-padding, var(--space-xs, 8px));
   border-radius: var(--cmp-textarea-rounded, var(--radius-md, 8px));
 }
+/* A field whose content is ELEMENTS rather than a text node cannot use the
+   padding to make its height.
+ *
+ * `.input` states a height AND vertical padding, which works for a bare
+ * `<input>`: the text node has no box of its own, so the padding is the whole
+ * story. Put an icon and a span inside and the content box is 20px holding a
+ * 22.6px line — measured, it spilled 6px below its own border and stood 34
+ * tall in a row of 36s. Centre it instead, and drop the vertical padding that
+ * is now doing the opposite of its job. */
+/* A row of fixed-height CONTROLS takes centre, never baseline.
+ *
+ * `.row` is baseline-aligned, which is right for a row that is mostly text. A
+ * toolbar is not: it holds a field and four buttons, all of one stated height,
+ * and none of them has a baseline worth sharing. Worse, a field that leads
+ * with an icon donates the ICON's edge as the row's baseline — a flex box
+ * takes its baseline from its first item — so the field sat 2px above every
+ * button beside it. Count what the row holds, then choose. */
+.dmd .row.row-controls { align-items: center; }
+
+.dmd label.input.with-icon {
+  display: inline-flex; align-items: center; gap: var(--space-2xs, 6px);
+  height: var(--cmp-input-height, 36px);
+  padding-block: 0;
+  /* The placeholder holds one line. `min-content` on the field lets the text
+     break at its word boundaries, and "Search Invoices" folded into two lines
+     inside a 36px box — 45.2px of span, spilling 6px below the border. A field
+     keeps its line and the ROW wraps instead. */
+  white-space: nowrap;
+}
 .dmd .input::placeholder { color: var(--c-text-subtle, #999); }
 .dmd .input:focus {
   outline: none;
@@ -934,14 +963,70 @@
    Driven by the settings in the Components tab rather than hard-coded, so the
    conventions the exported file states are the ones on screen. */
 .dmd .table-head-plain th { text-transform: none; letter-spacing: normal; font-size: var(--font-body-sm-size, 14px); font-weight: 600; }
-.dmd .table-rows-zebra td { border-bottom: 0; }
-.dmd .table-rows-zebra tbody tr:nth-child(odd) { background: var(--c-bg-subtle, #f6f6f6); }
+/* The stripe keeps the row rules rather than replacing them.
+ *
+ * Carbon does both, and its table reads better for it: the stripe gives the
+ * rhythm and the rule gives the edge. Dropping the rule was my own idea and it
+ * left ten rows floating in two shades.
+ *
+ * `row-stripe`, not `bg-subtle`. The stripe is the PAGE showing through, and
+ * `bg-subtle` is a recessed area — a different job at a different strength.
+ * Measured, `bg-subtle` bands at 1.62:1, which divides the table into blocks
+ * instead of striping it. `row-stripe` lands at 1.27. */
+.dmd .table-rows-zebra tbody tr:nth-child(even) { background: var(--c-row-stripe); }
 .dmd .table-rows-zebra td:first-child { padding-left: var(--space-xs, 8px); }
 .dmd .table-rows-zebra td:last-child { padding-right: var(--space-xs, 8px); }
 .dmd .table-rows-none td { border-bottom: 0; }
 /* Tabular figures so digits sit in columns between rows, which is the whole
    reason to right-align a number in the first place. */
 .dmd .table .num-col { text-align: right; font-variant-numeric: tabular-nums; }
+
+/* ── Figures ──
+ * An AMOUNT takes the mono face and a right edge: the edge lines up the
+ * magnitudes and the face lines up the digits inside them. Any other figure —
+ * an invoice number, a reference, a version — takes the face alone and keeps
+ * its alignment, because nobody compares its size and a right-aligned
+ * identifier reads as a total. */
+.dmd .figure { font-family: var(--font-code-family, ui-monospace, monospace); font-variant-numeric: tabular-nums; }
+/* `display: block`, so the right edge is a promise the class can actually
+   keep. As an inline span its `text-align` did nothing at all: alignment is
+   set by the BLOCK a run of text sits in, never by the run. It looked correct
+   only because the cell around it happened to carry `.num-col`, and it would
+   have failed silently the first time somebody used it anywhere else. */
+.dmd .amount { display: block; font-family: var(--font-code-family, ui-monospace, monospace); font-variant-numeric: tabular-nums; text-align: right; }
+
+/* ── A list you work in ──
+ * Selection is marked by an EDGE and a fill, and the fill is NEUTRAL. A
+ * saturated tint repeated down ten rows is fatigue rather than information,
+ * which is why `accent-subtle` is wrong here however well it measures. The
+ * accent appears once per row instead, in the box and the edge. */
+.dmd .table tr.is-selected > td { background: var(--c-selected); }
+.dmd .table tr.is-selected > td:first-child { box-shadow: inset 3px 0 0 var(--c-accent); }
+
+/* The batch bar REPLACES the toolbar for the selected rows rather than adding
+   a second one, and it is solid rather than tinted. A pale bar puts every
+   control on a ground its outline was never calibrated for — measured 1.26:1
+   for a button fill and 2.36 for its border. On a solid accent the controls
+   take a light outline instead and the question does not arise. */
+/* It WRAPS. Six actions cannot fit a 296px pane, and the card clips its own
+   overflow — measured 629px of bar inside a 260px box, silently cut. A bar of
+   actions is the one row that must never lose a member. */
+.dmd .batch-bar {
+  display: flex; align-items: center; flex-wrap: wrap;
+  row-gap: var(--space-2xs, 6px); column-gap: var(--space-sm, 12px);
+  background: var(--c-accent); color: var(--c-accent-fg);
+  padding: var(--space-xs, 8px) var(--space-md, 16px);
+  border-radius: var(--radius-md, 8px) var(--radius-md, 8px) 0 0;
+}
+.dmd .batch-bar .btn {
+  background: transparent; color: var(--c-accent-fg);
+  border-color: color-mix(in srgb, var(--c-accent-fg) 55%, transparent);
+}
+.dmd .batch-bar .batch-end { margin-left: auto; }
+
+/* The select column is a fixed gutter, so the first data column starts on the
+   same left edge in every row whatever the box is doing. */
+.dmd .table .sel-col { width: 1%; padding-right: var(--space-xs, 8px); }
 
 /* An inline-block centring its monogram with line-height, not a flex box
    centring it with align-items. The two look identical, but only this one has
