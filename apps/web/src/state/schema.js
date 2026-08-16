@@ -349,6 +349,21 @@ export const ANTI_PATTERNS = [
 
 export const FRAMEWORKS = ['React + Tailwind', 'React + CSS variables', 'Plain HTML + CSS', 'Vue + Tailwind', 'Svelte', 'Unspecified']
 
+/* ── Reading `color.theme` ──
+ *
+ * Three questions get asked of it, and each one gets a function rather than a
+ * second stored field. A document saved before this existed carries
+ * `emitDark` instead, so the fallback reads that: an old file must open.
+ */
+export const themeOf = state =>
+  state?.color?.theme ?? (state?.color?.emitDark === false ? 'light' : 'both')
+/** Does a dark set of values exist at all? */
+export const hasDark = state => themeOf(state) !== 'light'
+/** Does a light set exist? False only when the site is dark and nothing else. */
+export const hasLight = state => themeOf(state) !== 'dark'
+/** Can the reader switch? Only when the site actually has two themes. */
+export const hasThemeToggle = state => themeOf(state) === 'both'
+
 /* ── Default document ──
    A warm editorial system, deliberately opinionated. Nobody should ever face
    a blank canvas here; tuning something coherent beats assembling from zero. */
@@ -486,7 +501,20 @@ export const createInitialState = () => ({
     gradients: [],
     mode: 'light',
     emitRamps: true,
-    emitDark: true,
+    /* ── WHICH THEMES THE SITE HAS. One decision, one field. ──
+     *
+     * This used to be two: `color.emitDark` in Roles decided whether dark
+     * tokens existed, and `build.themeToggle` under Meta decided whether the
+     * page could switch. Nothing stopped them disagreeing, and the pair could
+     * not say "dark only" at all — light was always emitted.
+     *
+     *   light   only a light theme. No dark block, no toggle.
+     *   dark    only a dark theme. Dark values sit on :root itself.
+     *   both    both themes, and the page carries a visible toggle.
+     *
+     * `emitDark` is derived from this and kept as a read-only convenience for
+     * the six places that already ask the question that way. */
+    theme: 'both',
   },
 
   type: {
@@ -495,6 +523,24 @@ export const createInitialState = () => ({
       body:    { family: 'Manrope', category: 'sans-serif' },
       mono:    { family: 'JetBrains Mono', category: 'monospace' },
     },
+    /* ── TABULAR FIGURES, AND ONLY WHERE THEY EARN IT ──
+     *
+     * Tabular digits are all one width, so a column of them lines up between
+     * rows. That is the whole reason to use them, and it is also the whole
+     * limit: outside a column there is nothing to line up with, and the even
+     * spacing reads as a monospaced slab in the middle of a sentence. A figure
+     * inside an info card, a stat tile or a paragraph takes the body face's own
+     * proportional digits.
+     *
+     * On by default, because every product has tables and the fault it prevents
+     * — a column of money that does not align — is visible at a glance. */
+    numerals: 'tabular-in-tables',   // tabular-in-tables | proportional
+    /* ── WHAT A LONG HEADING DOES ──
+     *
+     * `wrap` takes the lines it needs and keeps every word. `truncate` holds one
+     * line and ends in an ellipsis. Nothing in this system stated either, so
+     * every generated page got whatever the browser happened to do. */
+    headingWrap: 'wrap',             // wrap | truncate
     base: 16,
     ratio: 1.25,
     leading: 1,     // multiplier on the auto line-height curve

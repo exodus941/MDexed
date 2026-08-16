@@ -3,9 +3,9 @@
    sunken wells, selected nav, disabled controls, danger affordances. */
 import { inspectProps, text } from '../inspect.js'
 import { labeller } from '../casing.js'
-import { Ico, Switch, IconUser, IconFolder, IconBell, IconLock, IconChart, IconCheck, IconTrash, IconAlert } from '../icons.jsx'
+import { Ico, Switch, ThemeToggle, IconUser, IconFolder, IconBell, IconLock, IconChart, IconCheck, IconTrash, IconAlert } from '../icons.jsx'
 
-export default function Settings({ onInspect, casing }) {
+export default function Settings({ onInspect, casing, theme, mode, onToggleTheme }) {
   const L = labeller(casing)
   const ins = entry => inspectProps(entry, onInspect)
   const txt = (typeName, roleName = 'text') => inspectProps(text(typeName, roleName), onInspect)
@@ -55,6 +55,17 @@ export default function Settings({ onInspect, casing }) {
             <div className="page-title">
               <h2 {...txt("h2")}>Notifications</h2>
             </div>
+            {/* THE WRAPPER IS CONDITIONAL, NOT JUST ITS CONTENTS.
+                `.page-actions` carries the ordering and the auto margin, so the
+                toggle needs it to sit right and to land after the title. An
+                empty one under light-only or dark-only is a flex child with no
+                ink that still takes the row's gap, which is the restructure
+                trap this project has hit before. */}
+            {theme === 'both' && (
+              <div className="row page-actions">
+                <ThemeToggle theme={theme} mode={mode} onToggle={onToggleTheme} inspect={ins('button-secondary')} />
+              </div>
+            )}
             {/* The menu control is a button in the action group, rightmost. This
                 screen has no other actions, so it is the only one — and it still
                 takes the same shell and the same seat. See Dashboard. */}

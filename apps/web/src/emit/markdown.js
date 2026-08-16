@@ -6,7 +6,7 @@
    `## Elevation & Depth` as guidance and acts on it; it would skim past an
    unrecognised frontmatter key. Prose is the better channel for this content,
    and it keeps the file spec-legal. */
-import { PROSE_SECTIONS, CONTRAST_PAIRS, ROLE_GROUPS, TEXT_ROLES, SURFACE_ROLES } from '../state/schema.js'
+import { PROSE_SECTIONS, CONTRAST_PAIRS, ROLE_GROUPS, TEXT_ROLES, SURFACE_ROLES, hasDark, hasLight, hasThemeToggle, themeOf } from '../state/schema.js'
 import { check } from '../color/contrast.js'
 import { SPEC_COMPONENT_PROPS, collectComponents } from './yaml.js'
 import { LAYOUT_COMPONENTS, layoutRows, layoutSentences } from '../state/componentLayout.js'
@@ -43,9 +43,8 @@ const fenceGenerated = body => (body && body.trim() ? `${GEN_OPEN}\n${body}\n${G
    changes what it writes more than most token values do. */
 function overviewBody(state) {
   const { directives } = state
-  const build = state.build ?? { themeToggle: true }
   const casing = state.voice?.casing ?? 'title'
-  const dark = state.color?.emitDark
+  const dark = hasDark(state)
   const refs = (directives?.references ?? []).filter(Boolean)
   return joinBlocks(
     refs.length && `**Reference points:** ${refs.join(' · ')}`,
@@ -84,11 +83,19 @@ function overviewBody(state) {
          is not the same as naming the boundary, so state the boundary too. */
       'Recase a LABEL, never CONTENT. A label names a control or a region: a button, a tab, a menu item, a column heading, a field name, a section title. Everything else is content and keeps its natural capitalisation — a placeholder, a status line like "Showing 1–6 of 48 invoices", a record\'s name, a person\'s name, an address, body copy, a timestamp. A placeholder is a sentence addressed to the reader, not a label on a box.',
       'Convert in ONE direction only. Sentence case to Title Case is mechanical and safe. Title Case back to sentence case needs to know which words are proper nouns, and no rule can tell you that — so where this file supplies a label already in Title Case and the system asks for sentence case, recase it by hand rather than by algorithm.',
-      dark && build.themeToggle
-        ? 'Build a **theme toggle** into the page. Set `data-theme="light"` or `data-theme="dark"` on the root element; every token reassigns itself and no variable name changes. Persist the choice, and default to the operating system setting via `prefers-color-scheme` on first load.'
-        : dark
-          ? 'Do not build a theme toggle. The tokens support both themes and the page follows `prefers-color-scheme` on its own, which is what this system asks for.'
-          : 'This system ships one theme. Do not build a theme toggle, and do not invent a dark palette for it.',
+      /* THREE THEME SETTINGS, THREE INSTRUCTIONS, and the two single-theme ones
+         say the same forbidding sentence. A system with one theme that reads as
+         though it might have two is how an agent ends up inventing the palette
+         it was never given. */
+      hasThemeToggle(state)
+        ? 'Build a **theme toggle** into the page, as a visible icon button carrying a lightbulb. It is a real control that a reader has to be able to find, so give it a label, a place in the tab order and the same target size as any other button in its row — not a hover-only affordance and not a hidden keyboard shortcut. Set `data-theme="light"` or `data-theme="dark"` on the root element; every token reassigns itself and no variable name changes. Persist the choice, and default to the operating system setting via `prefers-color-scheme` on first load.'
+        : 'This system ships one theme. Do not build a theme toggle, and do not invent the other palette to fill one.',
+      /* WHERE the button goes, because the rule above says only that it exists.
+         Placement was the whole cost of building it here: the toggle went
+         through three arrangements before it aligned, and every one of them
+         measured as a defect on screen. */
+      hasThemeToggle(state) && 'Put the theme toggle in the **header action group**, and put it **before the navigation menu** — the rightmost seat in a header belongs to navigation, and nothing may take it. It answers to that row like any other control in it: one stated height, square because it carries no words, and the same promotion to a finger target at narrow widths. A header row holding only fixed-height controls aligns on **centre**, not on baseline. An icon-only button has no text baseline to share, and a menu button wrapped in a `<details>` does not share one either, so a baseline row puts them at different heights — measured at 9px apart in this system, on two controls that were both 44px tall.',
+      hasThemeToggle(state) && 'The toggle carries `aria-pressed` and a label that states the CURRENT theme and the one a press will produce: "Dark theme is on. Switch to light." An icon-only control with no state is a button whose meaning a screen reader has to guess from a picture it cannot see. One mark in both states, not a sun swapped for a moon — two marks force the button to decide which of them means "now" and which means "next", and readers split evenly on that.',
     ]),
     directives?.notes?.trim()
   )
@@ -97,7 +104,7 @@ function overviewBody(state) {
 /* ── Colors ── */
 function colorsBody(state, derived) {
   const { roles } = derived
-  const dark = state.color.emitDark
+  const dark = hasDark(state)
 
   const rows = []
   for (const group of ROLE_GROUPS) {
@@ -790,6 +797,19 @@ function componentsBody(state, derived) {
        nothing said what it was for — so it would be used for code samples and
        every table of money would come out misaligned. */
     '**Set figures in the mono family**, and there are two cases. An AMOUNT — money, a quantity, a percentage, a duration, anything you would add up or compare in size — takes the mono face AND a right edge: the right edge lines up the magnitudes and the mono face lines up the digits inside them. Any OTHER figure — an invoice number, a journal or order reference, a version, a hash — takes the mono face alone and keeps its normal alignment, because nobody compares its magnitude and a right-aligned identifier reads as a total. A date is text when it carries a month name and a figure when it does not: "12 Aug" stays in the body face, "12/08/2026" takes the mono face.',
+
+    /* NUMERALS. A setting, so the sentence follows it rather than stating a
+       preference the document might contradict. The limit is the point: tabular
+       digits are a fix for a column, and outside one they are a slab. */
+    (state.type?.numerals ?? 'tabular-in-tables') === 'proportional'
+      ? '**Set every figure in proportional digits**, including tables. Digits then vary in width, so a column of figures will not line up between rows and magnitudes are compared by reading rather than by looking. Do not switch a table to tabular figures to fix that — this system has chosen proportional everywhere, and one table in a different treatment reads as a mistake.'
+      : '**Use tabular figures ONLY where a column of numbers has to line up**, and proportional digits everywhere else. Tabular means every digit occupies the same width, so 1 is as wide as 8 and the magnitudes stack down a column — apply it with `font-variant-numeric: tabular-nums` on the table cells that hold figures, or on the table. That is the whole reason to reach for it, and it is also the whole limit. Outside a column there is nothing to line up with, and the even spacing reads as a monospaced slab dropped into the middle of the text: a figure in a stat tile, an info card, a badge, a heading or a sentence takes the body face and its normal proportional digits.',
+
+    /* HEADING WRAP. Nothing stated this before, so a generated page got
+       whatever the browser did with a long title. */
+    (state.type?.headingWrap ?? 'wrap') === 'truncate'
+      ? '**A heading too long for its line is truncated with an ellipsis**, on one line. Use `text-overflow: ellipsis` with `overflow: hidden` and `white-space: nowrap`, so every row keeps the same height. The reader cannot see what was cut, so the full text has to be reachable another way: put it in a `title` attribute, or show it on the record the heading names.'
+      : '**A heading too long for its line breaks into more lines** and keeps every word. It is the thing that says where you are, so nothing in it is hidden. Never break mid-word — `overflow-wrap: anywhere` turns "Overview" into "Overvie" over "w", and a title either ends with a mark that says it continues or it does not end at all. Use `text-wrap: balance` so a two-word heading does not split one word onto a line of its own.',
 
     /* Found by drawing a list with a select-all box over a part-selected set.
        The component had two states and needed three. */

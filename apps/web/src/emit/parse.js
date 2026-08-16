@@ -158,7 +158,12 @@ export function parseFile(text) {
       roleOverrides,
       custom,
       emitRamps: Object.keys(rampSteps).length > 0,
-      emitDark: Object.keys(roleOverrides).some(k => k.endsWith(':dark')),
+      /* A DESIGN.md carries dark ROLES or it does not, and that is all the file
+         says. It cannot distinguish "dark only" from "both", because the
+         frontmatter has no field for the question — so the round trip lands on
+         `both` whenever dark values are present, which is the safe reading:
+         it emits everything the file contained. */
+      theme: Object.keys(roleOverrides).some(k => k.endsWith(':dark')) ? 'both' : 'light',
     },
     typography,
     rounded: asArray(doc.rounded, ([name, value]) => ({ id: uid(), name, value: String(value) })),

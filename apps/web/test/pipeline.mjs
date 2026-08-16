@@ -15,6 +15,7 @@ import { TYPE_ROLES } from '../src/type/scale.js'
 import { generateFile, validate } from '../src/emit/designmd.js'
 import { parseFile } from '../src/emit/parse.js'
 import { collectComponents } from '../src/emit/yaml.js'
+import { tokensCss } from '../src/emit/tokens.js'
 import { agentContract, CONTRACT_MAX_LINES, CONTRACT_MAX_BYTES } from '../src/emit/agents.js'
 import { payloadTextFiles, REQUIRED_FILES, EXAMPLE_PREFIX, HTML_EXAMPLES_MODES, exampleFilename } from '../src/emit/payload.js'
 import { serializeProject, parseProject, projectFilename } from '../src/emit/project.js'
@@ -734,15 +735,19 @@ line('\n- prompt construction -')
  * case for the ones it invented. A panel that stores a choice and emits the
  * same document either way would leave the next build guessing identically. */
 {
-  const doc = ({ casing, themeToggle }) => {
+  /* `theme` replaced two fields, so these fixtures set one value rather than a
+     pair that could disagree. `light` is what "no toggle" now means: a site
+     with one theme has nothing to switch to, and that used to be expressible
+     as a toggle preference sitting on top of a light-only palette. */
+  const doc = ({ casing, theme }) => {
     const s = createInitialState()
     if (casing) s.voice = { ...s.voice, casing }
-    s.build = { ...s.build, themeToggle }
+    s.color = { ...s.color, theme }
     return generateFile(s, derive(s)).text
   }
-  const sentence = doc({ casing: 'sentence', themeToggle: false })
-  const title    = doc({ casing: 'title',    themeToggle: false })
-  const toggled  = doc({ casing: 'sentence', themeToggle: true  })
+  const sentence = doc({ casing: 'sentence', theme: 'light' })
+  const title    = doc({ casing: 'title',    theme: 'light' })
+  const toggled  = doc({ casing: 'sentence', theme: 'both'  })
 
   /* Capitalisation must be stated in exactly one place. It had two fields —
      `build.labelCase` and `voice.casing` — and the document then carried both
@@ -763,15 +768,16 @@ line('\n- prompt construction -')
   assert(/Build a \*\*theme toggle\*\*/.test(toggled) && /Do not build a theme toggle/.test(sentence),
     'the toggle instruction states both directions')
 
-  /* A light-only system must forbid a toggle rather than describe one, however
-     the preference is set. Otherwise an agent invents a dark palette to fill
-     the control, which is the worst outcome of the three. */
-  const s = createInitialState()
-  s.color.emitDark = false
-  s.build = { themeToggle: true }
-  const lightOnly = generateFile(s, derive(s)).text
-  assert(/ships one theme/.test(lightOnly) && !/Build a \*\*theme toggle\*\*/.test(lightOnly),
-    'a light-only system forbids a toggle even when the preference asks for one')
+  /* A single-theme system must FORBID a toggle rather than describe one.
+     Otherwise an agent invents the missing palette to fill the control, which
+     is the worst of the three outcomes. One field makes the contradiction
+     unrepresentable; this checks the document says so. */
+  assert(/ships one theme/.test(sentence) && !/Build a \*\*theme toggle\*\*/.test(sentence),
+    'a light-only system forbids a toggle')
+  const darkOnly = doc({ theme: 'dark' })
+  assert(/ships one theme/.test(darkOnly) && !/Build a \*\*theme toggle\*\*/.test(darkOnly),
+    'a dark-only system forbids a toggle too')
+  assert(darkOnly !== sentence, 'light-only and dark-only are different documents')
 
   /* And an older document without the field takes the defaults rather than
      emitting "no capitalisation stated", which is the gap this closed. */
@@ -779,6 +785,57 @@ line('\n- prompt construction -')
   delete bare.build
   assert(/Capitalise every UI label/.test(generateFile(bare, derive(bare)).text),
     'a document with no build preferences still states a capitalisation')
+
+  /* A document saved before `theme` existed carries `emitDark` instead. It has
+     to open, and it has to open as the thing it was. */
+  const legacyLight = createInitialState()
+  delete legacyLight.color.theme
+  legacyLight.color.emitDark = false
+  assert(/ships one theme/.test(generateFile(legacyLight, derive(legacyLight)).text),
+    'an old document with emitDark false still reads as light only')
+  const legacyBoth = createInitialState()
+  delete legacyBoth.color.theme
+  legacyBoth.color.emitDark = true
+  assert(/Build a \*\*theme toggle\*\*/.test(generateFile(legacyBoth, derive(legacyBoth)).text),
+    'an old document with emitDark true still reads as both')
+
+  /* ── A SETTING THAT DOES NOT CHANGE THE OUTPUT IS DECORATION ──
+     Each of the two new Type settings is generated at both values and the bytes
+     compared. A control that stores a choice and emits the same file either way
+     leaves the next build guessing, which is the fault this checks for. */
+  const typed = (k, v) => {
+    const s = createInitialState()
+    s.type = { ...s.type, [k]: v }
+    return generateFile(s, derive(s)).text
+  }
+  const tabular = typed('numerals', 'tabular-in-tables')
+  const proportional = typed('numerals', 'proportional')
+  assert(tabular !== proportional, 'the numerals choice changes the document')
+  assert(/ONLY where a column of numbers has to line up/.test(tabular)
+    && /including tables/.test(proportional),
+    'each numerals value states its own rule')
+
+  const wrapped = typed('headingWrap', 'wrap')
+  const truncated = typed('headingWrap', 'truncate')
+  assert(wrapped !== truncated, 'the heading-wrap choice changes the document')
+  assert(/breaks into more lines/.test(wrapped) && /truncated with an ellipsis/.test(truncated),
+    'each heading-wrap value states its own rule')
+
+  /* And the tokens honour the theme, because "dark only" was not expressible
+     before: light was always written to :root. */
+  const css = t => {
+    const s = createInitialState()
+    s.color = { ...s.color, theme: t }
+    return tokensCss(s, derive(s))
+  }
+  const lightCss = css('light'), darkCss = css('dark'), bothCss = css('both')
+  assert(!/data-theme="dark"/.test(lightCss) && !/prefers-color-scheme/.test(lightCss),
+    'a light-only system emits no dark block')
+  assert(!/data-theme="dark"/.test(darkCss) && !/prefers-color-scheme/.test(darkCss),
+    'a dark-only system emits no switch either')
+  assert(darkCss !== lightCss, 'dark-only and light-only produce different tokens')
+  assert(/data-theme="dark"/.test(bothCss) && /prefers-color-scheme/.test(bothCss),
+    'both emits the query and the explicit override')
 }
 
 /* ── The dark values are reachable by name, and the sentence is true ──
@@ -1404,6 +1461,17 @@ line('\n- prompt construction -')
        segmented control from its content, and the 1px that fell out of centring
        two heights read as a misalignment. */
     ['a control row is one stated height', ['same height, and that height is stated rather than inherited', 'the row was holding two heights']],
+    /* Two settings that state a rule. The default branch is asserted here; the
+       other branch is exercised in the settings block below, which checks the
+       document actually changes. */
+    ['tabular figures only where a column aligns', ['only where a column of numbers has to line up', 'reads as a monospaced slab']],
+    ['a long heading breaks into lines', ['breaks into more lines', 'never break mid-word']],
+    ['the theme toggle is a visible lightbulb button', ['visible icon button carrying a lightbulb', 'same target size as any other button in its row']],
+    /* Placement, alignment and naming, learned by building it. Three
+       arrangements measured as defects before this one held. */
+    ['the theme toggle sits before the navigation menu', ['header action group', 'before the navigation menu']],
+    ['a row of fixed-height controls centres', ['aligns on **centre**, not on baseline', 'has no text baseline to share']],
+    ['the toggle names the current theme and the next', ['dark theme is on. switch to light', 'one mark in both states']],
     ['an optical correction belongs to its mechanism', ['belongs to the mechanism it corrects']],
     ['a selector needs the class to be on the node', ['actually on the node']],
     ['a demonstration is a real instance', ['demonstration and the thing demonstrated']],

@@ -3,9 +3,9 @@
    under which a system built for dashboards usually falls apart. */
 import { inspectProps, text } from '../inspect.js'
 import { labeller } from '../casing.js'
-import { Ico, IconArrow, IconPlus, IconCheck, IconStar } from '../icons.jsx'
+import { Ico, ThemeToggle, IconArrow, IconPlus, IconCheck, IconStar } from '../icons.jsx'
 
-export default function Landing({ onInspect, casing }) {
+export default function Landing({ onInspect, casing, theme, mode, onToggleTheme }) {
   const L = labeller(casing)
   const ins = entry => inspectProps(entry, onInspect)
   /* Text has two owners — the text style and the colour role — so it offers
@@ -29,17 +29,48 @@ export default function Landing({ onInspect, casing }) {
             Links, not spans. These are the most-copied lines in the payload,
             and a span cannot be tabbed to or announced as navigation. */}
         <div className="aside-rail header-nav">
-          <details className="nav-collapse">
-            {/* The burger alone. Its label goes inside the menu, with the links
-                it names. See the same change on Dashboard and Settings. */}
-            {/* A button, like every other control in this header, and last in
-                the row. See the note on Dashboard. */}
-            <summary className="nav-summary btn btn-secondary btn-sm" aria-label="Menu"
-              {...inspectProps(['nav-burger', 'nav-item'], onInspect, { passthrough: true })}>
-              <span className="nav-burger" aria-hidden="true"><span /><span /><span /></span>
-              <span className="nav-label">Menu</span>
-            </summary>
-          </details>
+          {/* THE TOGGLE AND THE BURGER ARE ONE CONTROL ROW, SO THEY ARE
+              SIBLINGS IN ONE.
+           *
+           * Three earlier shapes were each wrong in a way that measured:
+           *
+           *   a third child of the bar   `space-between` hands every gap to the
+           *                              browser, so the slack lands between the
+           *                              toggle and the menu as well
+           *   its own row beside the     `.header-nav` is a flex COLUMN and it
+           *   column                     is taller than the burger, so the row
+           *                              centred the toggle on the column and
+           *                              left it 7px above the burger at 640px
+           *   any bare wrapper           the touch promotion matches a LIST of
+           *                              containers, so a name it does not hold
+           *                              left a 28px button beside a 44px one
+           *
+           * `.page-actions` is the primitive for exactly this: the controls at
+           * the end of a header row. It already promotes both to 44px on a
+           * phone, and its `margin-left: auto` is scoped to `.page-head > `, so
+           * it does not reach this bar. The toggle is first, because the
+           * rightmost seat belongs to navigation.
+           *
+           * `.row-controls` for the alignment, because a bare `.row` is
+           * baseline. Two buttons in a `.page-actions` share a line-height and
+           * agree by accident; a button beside a `details` does not, and the
+           * two sat 9px apart at 296px at identical heights. This row holds two
+           * fixed-height controls and no prose, so it centres. */}
+          <div className="row row-controls page-actions">
+            <ThemeToggle theme={theme} mode={mode} onToggle={onToggleTheme} inspect={ins('button-secondary')} />
+            <details className="nav-collapse">
+              {/* The burger alone. Its label goes inside the menu, with the
+                  links it names. See the same change on Dashboard and
+                  Settings. */}
+              {/* A button, like every other control in this header, and last in
+                  the row. See the note on Dashboard. */}
+              <summary className="nav-summary btn btn-secondary btn-sm" aria-label="Menu"
+                {...inspectProps(['nav-burger', 'nav-item'], onInspect, { passthrough: true })}>
+                <span className="nav-burger" aria-hidden="true"><span /><span /><span /></span>
+                <span className="nav-label">Menu</span>
+              </summary>
+            </details>
+          </div>
           <div className="nav-fold">
           <nav className="row nav-list" aria-label="Main">
             <span className="caption nav-title" style={{ textTransform: 'uppercase', letterSpacing: '.08em' }}

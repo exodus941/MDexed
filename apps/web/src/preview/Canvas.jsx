@@ -2,7 +2,7 @@
    stylesheet, then renders whichever surface is selected inside them. */
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useStore } from '../state/store.jsx'
-import { CONTRAST_PAIRS, pairFails } from '../state/schema.js'
+import { CONTRAST_PAIRS, pairFails, themeOf } from '../state/schema.js'
 import { check } from '../color/contrast.js'
 import { audit } from '../a11y/audit.js'
 import { Finding } from '../a11y/PanelAlerts.jsx'
@@ -541,8 +541,15 @@ export default function Canvas({ onInspect, surface, setSurface, onOpenContrast,
                   demonstrated sentence case while its own file demanded Title
                   Case. A sample that contradicts the specification it ships is
                   worse than no sample. */}
+              {/* `theme` and `mode` travel the same road. The document states
+                  whether the built page ships one palette or two, and a page
+                  shipping two carries a visible button to swap them. So the
+                  surfaces have to render that button, and it has to work: the
+                  toggle sets the preview's own mode, which is a lens rather
+                  than an edit. */}
               <Component onInspect={onInspect ? handleInspect : undefined} layout={derived.componentLayout}
-                tabStyle={state.components?.tabStyle} casing={state.voice?.casing ?? 'title'} />
+                tabStyle={state.components?.tabStyle} casing={state.voice?.casing ?? 'title'}
+                theme={themeOf(state)} mode={mode} onToggleTheme={setMode} />
             </div>
           </div>
         </CrossFade>

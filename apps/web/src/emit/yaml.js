@@ -5,6 +5,7 @@
 
    The allow-lists below are the whole spec surface. Anything outside them is
    deliberately not emitted here; it goes into the markdown body instead. */
+import { hasDark } from '../state/schema.js'
 
 export const SPEC_TOP_LEVEL = ['version', 'name', 'description', 'omitted', 'colors', 'typography', 'rounded', 'spacing', 'components']
 export const SPEC_COMPONENT_PROPS = ['backgroundColor', 'textColor', 'typography', 'rounded', 'padding', 'size', 'height', 'width']
@@ -35,7 +36,7 @@ export function collectColors(state, derived) {
   }
 
   for (const [name, hex] of Object.entries(derived.roles.light)) push(name, hex, 'Semantic roles')
-  if (color.emitDark) {
+  if (hasDark({ color })) {
     for (const [name, hex] of Object.entries(derived.roles.dark)) push(`dark-${name}`, hex, 'Dark mode roles')
   }
   if (color.emitRamps) {

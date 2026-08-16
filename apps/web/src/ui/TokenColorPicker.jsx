@@ -14,7 +14,26 @@ import { createPortal } from 'react-dom'
 import ColorPicker from './ColorPicker.jsx'
 import { viewport } from './zoom.js'
 
-const WIDTH = 520
+/* ── THE LEFT COLUMN HOLDS THREE NUMBER FIELDS, SO IT IS SIZED BY THEM ──
+ *
+ * At 208px each field came out 51.3px wide, and a field spends 36px of that on
+ * padding: 12 at the left and 24 at the right for the degree or percent suffix.
+ * That leaves 13px of content box. Measured in the field's own 14px face:
+ *
+ *   "66"     16.7px    cut off by  3.7
+ *   "100"    25.7px    cut off by 12.7
+ *   "360"    27.1px    cut off by 14.1
+ *   "0.375"  38.7px    cut off by 25.7   (the OKLCH chroma)
+ *
+ * So the widest legal value in the picker needs 38.7px of ink, and the column
+ * has to carry three of those plus their padding and gaps:
+ *   3 * (38.7 + 36) + 2 * 6 = 236, rounded up to the 4px grid at 240.
+ *
+ * 312 is that with room to spare, and it is also the 50% they asked for. The
+ * popover grows by the same 104px so the swatch column keeps its 274px; taking
+ * it out of the swatches instead would have reflowed the 11-across grid. */
+const LEFT_COL = 312
+const WIDTH = 520 + (LEFT_COL - 208)
 
 /** Build the swatch groups once, from derived state. */
 export function paletteGroups({ seeds, roles, ramps, rampSteps, resolveRef }) {
@@ -74,14 +93,16 @@ export default function TokenColorPicker({
         zIndex: 2001, width: WIDTH,
         background: 'var(--surf2)', border: '1px solid var(--bdr2)', borderRadius: 12,
         boxShadow: '0 18px 44px rgba(0,0,0,.6)', padding: 12,
-        display: 'grid', gridTemplateColumns: '208px 1fr', gap: 12,
+        display: 'grid', gridTemplateColumns: `${LEFT_COL}px 1fr`, gap: 12,
       }}>
         <div>
           <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--muted)', marginBottom: 8 }}>
             Custom colour
           </div>
           {/* Always available — editing it detaches the value from the palette. */}
-          <ColorPicker value={following ? resolved : value} onChange={onPick} compact />
+          {/* `stackHex` only here. This column is the one narrow enough that a
+              fourth field on the row cuts the digits off. */}
+          <ColorPicker value={following ? resolved : value} onChange={onPick} compact stackHex />
           <p className="panel-note" style={{ fontSize: 10, marginTop: 8 }}>
             {note ?? (following
               ? <>Following <code style={{ fontFamily: 'var(--mono)', fontSize: 10 }}>{value}</code>. Adjusting this pins it to a literal colour.</>

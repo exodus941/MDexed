@@ -3,7 +3,7 @@
    Sizes, leading and tracking are all generated. The per-token editors exist
    for the cases where a scale genuinely shouldn't win, and anything you touch
    is marked so you can see at a glance how far the system has been bent. */
-import { useEffect } from 'react'
+import { useEffect, Fragment } from 'react'
 import { useStore } from '../state/store.jsx'
 import { RATIOS, OPENTYPE_FEATURES } from '../type/scale.js'
 import { loadDocumentFonts, stackFor } from '../type/fonts.js'
@@ -11,6 +11,24 @@ import FontPicker, { useFontCatalog } from '../ui/FontPicker.jsx'
 import { SectionHeader, Collapsible, Slider, NumField, Segmented, Toggle, OverrideBadge, Banner, PAD } from '../ui/controls.jsx'
 import { useReveal, revealStyle } from '../ui/reveal.js'
 import PanelAlerts from '../a11y/PanelAlerts.jsx'
+/* The same recasing the preview surfaces use. A second implementation here
+   would let the sample and the surfaces disagree about what Title Case is. */
+import { titleCase } from '../preview/casing.js'
+
+/* ── The frame every Text Treatment sample sits in ──
+ *
+ * One container, so three samples read as three of the same thing rather than
+ * as three ad-hoc blocks. It sits ABOVE its control and close to it: the sample
+ * and the segmented control are one object, and the next setting is 16px away.
+ * A sample that floated equidistant between two controls would label neither. */
+function TreatmentPreview({ children }) {
+  return (
+    <div style={{
+      background: 'var(--surf2)', border: '1px solid var(--bdr)', borderRadius: 8,
+      padding: PAD.sub, marginBottom: 6, overflow: 'hidden',
+    }}>{children}</div>
+  )
+}
 
 const ROLE_LABELS = { display: 'Display', body: 'Body', mono: 'Mono' }
 const ROLE_DESC = {
@@ -111,6 +129,10 @@ export default function TypographyPanel({ inspect }) {
   useEffect(() => { loadDocumentFonts(t.families, catalog) }, [t.families, catalog])
 
   const upd = (fn, tag) => set(s => ({ ...s, type: fn(s.type) }), tag)
+  /* Capitalisation is `voice.casing`, edited here and in Directives. One value,
+     two ways to reach it — never two values. */
+  const casing = state.voice?.casing ?? 'title'
+  const upCasing = v => set(s => ({ ...s, voice: { ...s.voice, casing: v } }), 'voice:casing')
   const setFamily = (role, fam) => upd(c => ({
     ...c,
     families: { ...c.families, [role]: { family: fam.family, category: fam.category } },
@@ -142,6 +164,110 @@ export default function TypographyPanel({ inspect }) {
       <PanelAlerts tab="type" />
       <SectionHeader title="Typography" desc="Three families and one modular scale generate every text style."
         right={overrideCount > 0 ? <span className="chip">{overrideCount} overridden</span> : null} />
+
+      {/* ── TEXT TREATMENT ──
+       *
+       * Three rules about how words are SET, as opposed to which family or size
+       * they take. Capitalisation moved here from a Build Preferences section
+       * under Meta that held it alone; the other two never existed anywhere, so
+       * every generated page got whatever the browser or the agent decided. */}
+      <Collapsible title="Text Treatment" note={casing === 'title' ? 'Title Case' : 'Sentence case'} defaultOpen>
+        <div style={{ marginBottom: 16 }}>
+          {/* The sample renders the state the setting WRITES, above the control
+              that writes it. A sentence describing a look is a second thing to
+              keep in sync, and the reader still has to imagine it. */}
+          <TreatmentPreview>
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+              {['Export payload', 'New invoice', 'Mark as paid'].map(l => (
+                <span key={l} style={{
+                  fontSize: 12, padding: '4px 8px', borderRadius: 6,
+                  background: 'var(--surf3)', border: '1px solid var(--bdr)', color: 'var(--text)',
+                }}>{casing === 'title' ? titleCase(l) : l}</span>
+              ))}
+            </div>
+          </TreatmentPreview>
+          <label>Label capitalisation</label>
+          {/* This edits `voice.casing`, the same value the Directives panel
+              shows under Copy and Formatting. It had its own field for one
+              session, and the document then stated both rules — one section
+              demanding Title Case, another demanding sentence case, in one
+              file with no precedence between them. */}
+          <Segmented value={casing} onChange={upCasing} size="sm" full
+            options={[{ value: 'sentence', label: 'Sentence case' }, { value: 'title', label: 'Title Case' }]} />
+          <div className="panel-note" style={{ marginTop: 6 }}>
+            Applies to every button, tab, menu item and column heading an agent writes.
+            {casing === 'sentence'
+              ? ' “Export payload”, not “Export Payload”.'
+              : ' “Export Payload”, not “Export payload”.'}
+            {' '}Also shown in Directives under Copy and Formatting — one setting, two ways in.
+          </div>
+        </div>
+
+        <div style={{ marginBottom: 16 }}>
+          {/* Two rows of figures, right-aligned, in the mono face the system
+              names for amounts. Tabular is the whole point of the setting, so
+              the sample has to be a COLUMN — one number proves nothing. */}
+          <TreatmentPreview>
+            <div style={{
+              display: 'grid', gridTemplateColumns: '1fr auto', gap: '2px 16px',
+              fontSize: 12, color: 'var(--text)',
+            }}>
+              {[['Ashford & Kline', '21,050.00'], ['Northwind', '1,118.40'], ['Meridian Labs', '937.75']]
+                .map(([who, amt]) => (
+                  <Fragment key={who}>
+                    <span style={{ color: 'var(--muted)' }}>{who}</span>
+                    <span style={{
+                      fontFamily: 'var(--mono)', textAlign: 'right',
+                      fontVariantNumeric: (t.numerals ?? 'tabular-in-tables') === 'tabular-in-tables'
+                        ? 'tabular-nums' : 'proportional-nums',
+                    }}>{amt}</span>
+                  </Fragment>
+                ))}
+            </div>
+          </TreatmentPreview>
+          <label>Numerals</label>
+          <Segmented value={t.numerals ?? 'tabular-in-tables'}
+            onChange={v => upd(c => ({ ...c, numerals: v }), 'type:numerals')} size="sm" full
+            options={[
+              { value: 'tabular-in-tables', label: 'Tabular where aligned' },
+              { value: 'proportional', label: 'Always proportional' },
+            ]} />
+          <div className="panel-note" style={{ marginTop: 6 }}>
+            {(t.numerals ?? 'tabular-in-tables') === 'tabular-in-tables'
+              ? 'Tabular digits in tables and anywhere a column of figures has to line up, and nowhere else. Every digit is the same width there, so the magnitudes compare down the column. A figure in a stat tile, an info card or a sentence keeps the body face’s proportional digits — even spacing outside a column reads as a monospaced slab.'
+              : 'Proportional digits everywhere. Columns of figures will not align between rows, so a table of money is compared by reading rather than by looking.'}
+          </div>
+        </div>
+
+        <div>
+          {/* A heading in a box narrow enough to force the decision. Without the
+              constraint both settings render identically and the sample teaches
+              nothing. */}
+          <TreatmentPreview>
+            <div style={{ maxWidth: 260 }}>
+              <div style={{
+                fontFamily: 'var(--sans)', fontSize: 18, fontWeight: 600, color: 'var(--text)',
+                lineHeight: 1.25,
+                ...((t.headingWrap ?? 'wrap') === 'truncate'
+                  ? { whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }
+                  : { textWrap: 'balance' }),
+              }}>Ashford &amp; Kline — Q4 reconciliation</div>
+            </div>
+          </TreatmentPreview>
+          <label>A heading too long for its line</label>
+          <Segmented value={t.headingWrap ?? 'wrap'}
+            onChange={v => upd(c => ({ ...c, headingWrap: v }), 'type:headingWrap')} size="sm" full
+            options={[
+              { value: 'wrap', label: 'Break into lines' },
+              { value: 'truncate', label: 'Truncate with …' },
+            ]} />
+          <div className="panel-note" style={{ marginTop: 6 }}>
+            {(t.headingWrap ?? 'wrap') === 'wrap'
+              ? 'Keeps every word and takes the lines it needs. A heading is what says where you are, so nothing is hidden. Words never break mid-word.'
+              : 'Holds one line and ends in an ellipsis. Keeps every row the same height, and the reader cannot see the rest without another affordance — so give the full text a title or a tooltip.'}
+          </div>
+        </div>
+      </Collapsible>
 
       <Collapsible title="Families" note={t.families.body?.family ?? ''} defaultOpen>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
