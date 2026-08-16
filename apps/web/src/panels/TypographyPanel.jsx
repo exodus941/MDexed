@@ -3,12 +3,14 @@
    Sizes, leading and tracking are all generated. The per-token editors exist
    for the cases where a scale genuinely shouldn't win, and anything you touch
    is marked so you can see at a glance how far the system has been bent. */
-import { useEffect, Fragment } from 'react'
+import { useEffect, useMemo, Fragment } from 'react'
 import { useStore } from '../state/store.jsx'
+import { PREVIEW_CSS, varsToStyle } from '../preview/tokens.js'
+import { buildCssVars } from '../state/derive.js'
 import { RATIOS, OPENTYPE_FEATURES } from '../type/scale.js'
 import { loadDocumentFonts, stackFor } from '../type/fonts.js'
 import FontPicker, { useFontCatalog } from '../ui/FontPicker.jsx'
-import { SectionHeader, Collapsible, Slider, NumField, Segmented, Toggle, OverrideBadge, Banner, PAD } from '../ui/controls.jsx'
+import { SectionHeader, Collapsible, Expand, Slider, NumField, Segmented, Toggle, OverrideBadge, Banner, PAD } from '../ui/controls.jsx'
 import { useReveal, revealStyle } from '../ui/reveal.js'
 import PanelAlerts from '../a11y/PanelAlerts.jsx'
 /* The same recasing the preview surfaces use. A second implementation here
@@ -20,14 +22,51 @@ import { titleCase } from '../preview/casing.js'
  * One container, so three samples read as three of the same thing rather than
  * as three ad-hoc blocks. It sits ABOVE its control and close to it: the sample
  * and the segmented control are one object, and the next setting is 16px away.
- * A sample that floated equidistant between two controls would label neither. */
+ * A sample that floated equidistant between two controls would label neither.
+ *
+ * IT TAKES `.entry-sample`, THE SAME STAGE THE COMPONENTS TAB USES.
+ *
+ * The first version painted it in `--surf2` and `--bdr`, which are the editor's
+ * own chrome. So the sample was drawn in the same colours as the control under
+ * it, and the two read as one block of options rather than as a preview and its
+ * setting. The Components tab already solved this: a recessed plane in
+ * `--preview`, and the sample itself rendered in the DOCUMENT's tokens rather
+ * than the editor's.
+ *
+ * `.dmd` is what brings the document's tokens in, and it is why the samples
+ * below name `--c-text` and `--c-surface` rather than `--text` and `--surf`. */
 function TreatmentPreview({ children }) {
   return (
-    <div style={{
-      background: 'var(--surf2)', border: '1px solid var(--bdr)', borderRadius: 8,
-      padding: PAD.sub, marginBottom: 6, overflow: 'hidden',
+    <div className="dmd entry-sample" style={{
+      display: 'block', minHeight: 0, padding: PAD.sub, marginBottom: 6,
     }}>{children}</div>
   )
+}
+
+/* ── THE THREE ANSWERS, AS FLEX PLUS ONE OFFSET ──
+ *
+ * The control's BOX centres on the LINE's box. The distance from a line's edge
+ * to the control's centre is the same at the top and at the bottom, so `first`
+ * and `last` share one number and differ only in which edge they hang from.
+ * `center` uses the block's own centre and takes no offset: a margin there
+ * would move it off the centre the alignment just found.
+ *
+ * The sample's heading is 18px at 1.25 leading and its button is 28px, so the
+ * offset is (18 * 1.25 - 28) / 2 = -2.75. The surfaces compute the same thing
+ * from tokens; this sample states its own two numbers because they are the
+ * sample's, not the document's.
+ *
+ * Baseline alignment was built here and withdrawn at their request. Measured
+ * with font metrics, `align-items: baseline` and `last baseline` put the
+ * button's LABEL on the heading's baseline, where this puts it 3.00px below.
+ * They saw both and chose this one. */
+const HEAD_LINE = 18 * 1.25
+const HEAD_BTN = 28
+const HEAD_OFFSET = (HEAD_LINE - HEAD_BTN) / 2
+const HEAD_ALIGN = {
+  first: { row: { alignItems: 'flex-start' }, item: { marginTop: HEAD_OFFSET } },
+  center: { row: { alignItems: 'center' }, item: {} },
+  last: { row: { alignItems: 'flex-end' }, item: { marginBottom: HEAD_OFFSET } },
 }
 
 const ROLE_LABELS = { display: 'Display', body: 'Body', mono: 'Mono' }
@@ -126,6 +165,14 @@ export default function TypographyPanel({ inspect }) {
   const t = state.type
   const { families: catalog, loading } = useFontCatalog()
 
+  /* The document's own custom properties, so the Text Treatment samples render
+     in the system being designed rather than in the editor's chrome. Built the
+     same way the Components tab builds them, and set once on the panel root so
+     every `.dmd` sample below inherits them. */
+  const sampleVars = useMemo(() => varsToStyle(buildCssVars({
+    ...derived, elevationCfg: state.elevation,
+  }, state.color.mode)), [derived, state.elevation, state.color.mode])
+
   useEffect(() => { loadDocumentFonts(t.families, catalog) }, [t.families, catalog])
 
   const upd = (fn, tag) => set(s => ({ ...s, type: fn(s.type) }), tag)
@@ -133,6 +180,8 @@ export default function TypographyPanel({ inspect }) {
      two ways to reach it — never two values. */
   const casing = state.voice?.casing ?? 'title'
   const upCasing = v => set(s => ({ ...s, voice: { ...s.voice, casing: v } }), 'voice:casing')
+  const wraps = (t.headingWrap ?? 'wrap') === 'wrap'
+  const headAlign = t.headingAlign ?? 'last'
   const setFamily = (role, fam) => upd(c => ({
     ...c,
     families: { ...c.families, [role]: { family: fam.family, category: fam.category } },
@@ -160,7 +209,13 @@ export default function TypographyPanel({ inspect }) {
   const generated = derived.typography.filter(x => !x.custom)
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+    /* The document's tokens, set once for the whole panel, so every `.dmd`
+       sample under here inherits them. Same arrangement as the Components tab,
+       and the reason the two tabs' samples now read as the same kind of thing. */
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12, ...sampleVars }}>
+      {/* Every rule in here is scoped to `.dmd`, so this copy styles the
+          Text Treatment samples and reaches nothing else in the panel. */}
+      <style>{PREVIEW_CSS}</style>
       <PanelAlerts tab="type" />
       <SectionHeader title="Typography" desc="Three families and one modular scale generate every text style."
         right={overrideCount > 0 ? <span className="chip">{overrideCount} overridden</span> : null} />
@@ -177,12 +232,14 @@ export default function TypographyPanel({ inspect }) {
               that writes it. A sentence describing a look is a second thing to
               keep in sync, and the reader still has to imagine it. */}
           <TreatmentPreview>
-            <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+            {/* `.btn` rather than three hand-rolled spans. The primitive is
+                what the samples on the other tabs use, and it carries the
+                document's own radius, border and label size. */}
+            <div className="dmd" style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
               {['Export payload', 'New invoice', 'Mark as paid'].map(l => (
-                <span key={l} style={{
-                  fontSize: 12, padding: '4px 8px', borderRadius: 6,
-                  background: 'var(--surf3)', border: '1px solid var(--bdr)', color: 'var(--text)',
-                }}>{casing === 'title' ? titleCase(l) : l}</span>
+                <span key={l} className="btn btn-secondary btn-sm">
+                  {casing === 'title' ? titleCase(l) : l}
+                </span>
               ))}
             </div>
           </TreatmentPreview>
@@ -204,23 +261,50 @@ export default function TypographyPanel({ inspect }) {
         </div>
 
         <div style={{ marginBottom: 16 }}>
-          {/* Two rows of figures, right-aligned, in the mono face the system
-              names for amounts. Tabular is the whole point of the setting, so
-              the sample has to be a COLUMN — one number proves nothing. */}
+          {/* THE SAMPLE NEEDS BOTH HALVES, AND THE FIRST VERSION HAD ONE.
+           *
+           * It was a column of amounts in the mono face, and it never changed.
+           * Measured: "21,050.00" is 64.81px wide under `tabular-nums` and
+           * 64.81px under `proportional-nums`, at the same left edge, because a
+           * mono face already gives every digit one width. The property moved
+           * and no pixel did. Reading the declaration called that a pass.
+           *
+           * So the sample shows the two places a figure lands, and the rule is
+           * the boundary between them:
+           *
+           *   an info card    the body face, proportional, under BOTH settings
+           *   a column        tabular where the setting allows it
+           *
+           * In the body face the difference is 16.5px on six digits — "111111"
+           * is 43.2 tabular against 26.72 proportional — so the column visibly
+           * goes ragged when the setting turns tabular off. */}
           <TreatmentPreview>
+            {/* A figure in a card is never tabular. These two do not react, and
+                that is the half of the rule the column cannot show. */}
+            <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+              {[['Open invoices', '18'], ['Avg. days to pay', '21']].map(([k, v]) => (
+                <div key={k} className="card" style={{ flex: 1, minWidth: 0, padding: '6px 8px' }}>
+                  <div className="caption" style={{ color: 'var(--c-text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{k}</div>
+                  {/* Body face, proportional, stated rather than inherited. */}
+                  <div style={{ fontSize: 18, color: 'var(--c-text)', fontVariantNumeric: 'proportional-nums' }}>{v}</div>
+                </div>
+              ))}
+            </div>
             <div style={{
               display: 'grid', gridTemplateColumns: '1fr auto', gap: '2px 16px',
-              fontSize: 12, color: 'var(--text)',
+              fontSize: 12, color: 'var(--c-text)',
             }}>
               {[['Ashford & Kline', '21,050.00'], ['Northwind', '1,118.40'], ['Meridian Labs', '937.75']]
                 .map(([who, amt]) => (
                   <Fragment key={who}>
-                    <span style={{ color: 'var(--muted)' }}>{who}</span>
-                    <span style={{
-                      fontFamily: 'var(--mono)', textAlign: 'right',
-                      fontVariantNumeric: (t.numerals ?? 'tabular-in-tables') === 'tabular-in-tables'
-                        ? 'tabular-nums' : 'proportional-nums',
-                    }}>{amt}</span>
+                    <span style={{ color: 'var(--c-text-muted)' }}>{who}</span>
+                    <span style={(t.numerals ?? 'tabular-in-tables') === 'tabular-in-tables'
+                      /* The column gets the treatment the setting names: the
+                         mono face and tabular digits, which is what lines a
+                         column up. Turned off, it falls back to the body face
+                         and its proportional digits, like any other figure. */
+                      ? { fontFamily: 'var(--font-mono-family, monospace)', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }
+                      : { textAlign: 'right', fontVariantNumeric: 'proportional-nums' }}>{amt}</span>
                   </Fragment>
                 ))}
             </div>
@@ -239,19 +323,30 @@ export default function TypographyPanel({ inspect }) {
           </div>
         </div>
 
+        {/* No conditional margin here. The separation belongs to the block that
+            appears, so it collapses WITH it — a margin on this block would jump
+            from 0 to 16 while the block below was still opening. One writer per
+            distance. */}
         <div>
           {/* A heading in a box narrow enough to force the decision. Without the
               constraint both settings render identically and the sample teaches
-              nothing. */}
+              nothing.
+           *
+           * The BUTTON is in the sample too, because the wrap setting and the
+           * alignment setting share one picture: you cannot see where a control
+           * sits against a heading without both of them. */}
           <TreatmentPreview>
-            <div style={{ maxWidth: 260 }}>
+            <div style={{ maxWidth: 300, display: 'flex', gap: 8, ...HEAD_ALIGN[headAlign].row }}>
               <div style={{
-                fontFamily: 'var(--sans)', fontSize: 18, fontWeight: 600, color: 'var(--text)',
-                lineHeight: 1.25,
-                ...((t.headingWrap ?? 'wrap') === 'truncate'
-                  ? { whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }
-                  : { textWrap: 'balance' }),
+                minWidth: 0, flex: '0 1 auto',
+                fontFamily: 'var(--font-h2-family, var(--font-body-family))',
+                fontSize: 18, fontWeight: 600, color: 'var(--c-text)', lineHeight: 1.25,
+                ...(wraps ? {} : { whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }),
               }}>Ashford &amp; Kline — Q4 reconciliation</div>
+              {/* The offset is the same formula the surfaces use: half the
+                  difference between one line and the control. Here the line is
+                  18 x 1.25 and the control is the sample button. */}
+              <span className="btn btn-secondary btn-sm" style={{ flex: '0 0 auto', ...HEAD_ALIGN[headAlign].item }}>Export</span>
             </div>
           </TreatmentPreview>
           <label>A heading too long for its line</label>
@@ -262,11 +357,46 @@ export default function TypographyPanel({ inspect }) {
               { value: 'truncate', label: 'Truncate with …' },
             ]} />
           <div className="panel-note" style={{ marginTop: 6 }}>
-            {(t.headingWrap ?? 'wrap') === 'wrap'
+            {wraps
               ? 'Keeps every word and takes the lines it needs. A heading is what says where you are, so nothing is hidden. Words never break mid-word.'
               : 'Holds one line and ends in an ellipsis. Keeps every row the same height, and the reader cannot see the rest without another affordance — so give the full text a title or a tooltip.'}
           </div>
         </div>
+
+        {/* ASKED ONLY WHERE IT HAS AN ANSWER.
+         *
+         * A truncated heading is one line, so all three alignments land in the
+         * same place. Offering the choice there is offering a decision that
+         * changes nothing, which is worse than not offering it.
+         *
+         * `Expand` rather than a bare conditional, so the block opens and closes
+         * instead of appearing. It is the same primitive every other disclosure
+         * in the editor uses, and it already reads the UI-animation setting: it
+         * unmounts immediately when animations are off and after the transition
+         * when they are on. A block that pops in moves everything below it with
+         * no warning, which reads as the panel having jumped. */}
+        <Expand open={wraps}>
+          {/* The 16px that separates this from the setting above it lives here,
+              inside the collapsing box, so it opens and closes with the block
+              rather than appearing under it. */}
+          <div style={{ paddingTop: 16 }}>
+            <label>Controls beside a wrapped heading</label>
+            <Segmented value={headAlign}
+              onChange={v => upd(c => ({ ...c, headingAlign: v }), 'type:headingAlign')} size="sm" full
+              options={[
+                { value: 'first', label: 'First line' },
+                { value: 'center', label: 'Optical centre' },
+                { value: 'last', label: 'Last line' },
+              ]} />
+            <div className="panel-note" style={{ marginTop: 6 }}>
+              {headAlign === 'first'
+                ? 'Every control on the heading’s row centres on its FIRST line, so the row reads the same however many lines the heading takes. A long heading then grows downward away from its buttons.'
+                : headAlign === 'center'
+                  ? 'Controls centre on the whole heading block. Two lines and they sit between them; the more lines the heading takes, the further they drift from any one of them.'
+                  : 'Controls centre on the heading’s LAST line, so they sit level with where the title finishes and the page continues. One line makes all three identical — only a heading that wraps shows the difference.'}
+            </div>
+          </div>
+        </Expand>
       </Collapsible>
 
       <Collapsible title="Families" note={t.families.body?.family ?? ''} defaultOpen>
@@ -326,8 +456,10 @@ export default function TypographyPanel({ inspect }) {
           Emits <code>clamp()</code> so type interpolates with the viewport instead of stepping at breakpoints.
         </p>
         <Toggle label="Generate fluid sizes" checked={t.fluid.enabled} onChange={v => setFluid('enabled', v)} />
-        {t.fluid.enabled && (
-          <div style={{ marginTop: 12 }}>
+        {/* Opens with the toggle. The four fields below it are half this
+            section's height, so appearing was the biggest jump in the panel. */}
+        <Expand open={t.fluid.enabled}>
+          <div style={{ paddingTop: 12 }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
               <NumField label="Min viewport" value={t.fluid.minVw} min={280} max={768} suffix="px" onChange={v => setFluid('minVw', v)} />
               <NumField label="Max viewport" value={t.fluid.maxVw} min={768} max={2000} suffix="px" onChange={v => setFluid('maxVw', v)} />
@@ -338,7 +470,7 @@ export default function TypographyPanel({ inspect }) {
             <Slider label="Small-screen base" value={t.fluid.minScale} onChange={v => setFluid('minScale', v)}
               min={0.75} max={1} step={0.01} defaultValue={0.9} format={v => `${v.toFixed(2)}×`} />
           </div>
-        )}
+        </Expand>
       </Collapsible>
 
       <Collapsible title="Generated Styles" note={String(generated.length)} defaultOpen

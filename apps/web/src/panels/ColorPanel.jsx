@@ -29,6 +29,10 @@ const PROTECTED_SEEDS = ['accent', 'neutral']
  * this value is stated once rather than typed twice. */
 const STRIP_GAP = 4
 const SEED_BASIS = '1 1 96px'
+/* The distance from a swatch to its own lock, one step up from the 4px between
+   the swatches. Proximity is a ratio: at 4 and 4 the lock read as belonging to
+   the whole strip rather than to the colour above it. */
+const LOCK_GAP = 8
 
 /* Names a design system actually uses, offered in order. `custom-6` tells you
    nothing at the point you next read the file. */
@@ -514,7 +518,7 @@ export default function ColorPanel() {
               the same object, and nothing on the swatch said so. The lock now
               has its own control under each swatch, where a padlock reads as a
               padlock instead of as an overlay that appears on hover. */}
-          <div style={{ display: 'flex', gap: STRIP_GAP, height: 64, borderRadius: 6, overflow: 'hidden', marginBottom: STRIP_GAP }}>
+          <div style={{ display: 'flex', gap: STRIP_GAP, height: 64, borderRadius: 6, overflow: 'hidden', marginBottom: LOCK_GAP }}>
             {color.seeds.map(s => (
               <button key={s.id} onClick={e => setPick({ id: s.id, el: e.currentTarget })}
                 title={`${s.name}. Click to edit ${s.hex}`}

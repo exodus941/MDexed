@@ -10,7 +10,7 @@ import { ICON_LIBRARIES } from '../state/schema.js'
 import { resolveRef, RAMP_STEPS } from '../color/ramp.js'
 import BezierEditor from '../ui/BezierEditor.jsx'
 import TokenColorPicker, { paletteGroups } from '../ui/TokenColorPicker.jsx'
-import { SectionHeader, Collapsible, Slider, NumField, Segmented, Toggle, OverrideBadge, Banner, PAD } from '../ui/controls.jsx'
+import { SectionHeader, Collapsible, Expand, Slider, NumField, Segmented, Toggle, OverrideBadge, Banner, PAD } from '../ui/controls.jsx'
 import PanelAlerts from '../a11y/PanelAlerts.jsx'
 
 /* A colour that is stored as a palette reference.
@@ -345,7 +345,11 @@ export function DepthPanel() {
           ))}
         </div>
 
-        {state.elevation.strategy === 'shadow' && (
+        {/* Opens and closes with the strategy rather than appearing. A block
+            that pops moves everything under it with no warning, which reads as
+            the panel having jumped. `Expand` already reads the UI-animation
+            setting, so it unmounts at once when animations are off. */}
+        <Expand open={state.elevation.strategy === 'shadow'}>
           <>
             <Slider label="Tint strength" desc="How much of the neutral hue carries into the shadow"
               value={state.elevation.tintStrength} onChange={v => setElev('tintStrength', v)}
@@ -359,7 +363,7 @@ export function DepthPanel() {
               <span style={{ color: 'var(--dim)' }}>not black</span>
             </div>
           </>
-        )}
+        </Expand>
         <div style={{ marginTop: 12 }}>
           <Toggle label="Dark mode raises surfaces instead of deepening shadows"
             checked={state.elevation.darkStrategy === 'lighten'}

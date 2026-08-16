@@ -821,6 +821,33 @@ line('\n- prompt construction -')
   assert(/breaks into more lines/.test(wrapped) && /truncated with an ellipsis/.test(truncated),
     'each heading-wrap value states its own rule')
 
+  /* Three answers, three documents. `last` is the default, so a state with no
+     `headingAlign` has to read as `last` rather than as absent. */
+  const align = v => { const s = createInitialState(); s.type = { ...s.type, headingWrap: 'wrap', headingAlign: v }; return generateFile(s, derive(s)).text }
+  const [aFirst, aCenter, aLast] = ['first', 'center', 'last'].map(align)
+  assert(new Set([aFirst, aCenter, aLast]).size === 3, 'each heading-align value changes the document')
+  assert(/FIRST line/.test(aFirst) && /heading BLOCK/.test(aCenter) && /LAST line/.test(aLast),
+    'each heading-align value states its own rule')
+  assert(/margin-top: calc/.test(aFirst) && !/margin-bottom: calc/.test(aFirst)
+    && /margin-bottom: calc/.test(aLast) && !/margin-top: calc/.test(aLast)
+    && /align-self: center` and no margin/.test(aCenter),
+    'the offset hangs from the edge each value names, and centre states none')
+  {
+    /* The default. A document that never set the field must read as `last`,
+       not fall through to nothing. */
+    const s = createInitialState()
+    delete s.type.headingAlign
+    assert(/LAST line/.test(generateFile(s, derive(s)).text), 'an unset heading-align defaults to the last line')
+  }
+  {
+    /* And it is silent under truncation, where all three land in one place. */
+    const s = createInitialState()
+    s.type = { ...s.type, headingWrap: 'truncate', headingAlign: 'first' }
+    const out = generateFile(s, derive(s)).text
+    assert(!/FIRST line/.test(out) && !/LAST line/.test(out),
+      'a truncated heading states no alignment rule')
+  }
+
   /* And the tokens honour the theme, because "dark only" was not expressible
      before: light was always written to :root. */
   const css = t => {
@@ -1466,6 +1493,8 @@ line('\n- prompt construction -')
        document actually changes. */
     ['tabular figures only where a column aligns', ['only where a column of numbers has to line up', 'reads as a monospaced slab']],
     ['a long heading breaks into lines', ['breaks into more lines', 'never break mid-word']],
+    /* Default branch. The other two are exercised in the settings block. */
+    ['controls beside a wrapped heading hold its last line', ["centres on the heading's last line", 'align-self: flex-end']],
     ['the theme toggle is a visible lightbulb button', ['visible icon button carrying a lightbulb', 'same target size as any other button in its row']],
     /* Placement, alignment and naming, learned by building it. Three
        arrangements measured as defects before this one held. */

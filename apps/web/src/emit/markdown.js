@@ -811,6 +811,17 @@ function componentsBody(state, derived) {
       ? '**A heading too long for its line is truncated with an ellipsis**, on one line. Use `text-overflow: ellipsis` with `overflow: hidden` and `white-space: nowrap`, so every row keeps the same height. The reader cannot see what was cut, so the full text has to be reachable another way: put it in a `title` attribute, or show it on the record the heading names.'
       : '**A heading too long for its line breaks into more lines** and keeps every word. It is the thing that says where you are, so nothing in it is hidden. Never break mid-word — `overflow-wrap: anywhere` turns "Overview" into "Overvie" over "w", and a title either ends with a mark that says it continues or it does not end at all. Use `text-wrap: balance` so a two-word heading does not split one word onto a line of its own.',
 
+    /* WHERE THE CONTROLS SIT BESIDE A WRAPPED HEADING. Only stated when the
+       heading wraps: one line makes all three answers identical, so under
+       truncation this is a rule about nothing. */
+    (state.type?.headingWrap ?? 'wrap') === 'wrap' && (
+      (state.type?.headingAlign ?? 'last') === 'first'
+        ? '**Every control on a wrapped heading\'s row centres on the heading\'s FIRST line.** Hang the group from the top of the row with `align-self: flex-start`, then push it down by half the difference between one line and the control: `margin-top: calc((<heading size> * <heading leading> - <control height>) / 2)`. Both terms are tokens, so a type-scale change carries and no pixel is typed. The row then reads the same however many lines the heading takes, and a long heading grows downward away from its buttons.'
+        : (state.type?.headingAlign ?? 'last') === 'center'
+          ? '**Every control on a wrapped heading\'s row centres on the heading BLOCK.** `align-self: center` and no margin: an offset here would move the control off the centre the alignment just found. With more than two lines the controls drift further from any single line, so they read as attached to the block rather than to a line of it.'
+          : '**Every control on a wrapped heading\'s row centres on the heading\'s LAST line**, so it sits level with where the title finishes and the page continues. Hang the group from the bottom of the row with `align-self: flex-end`, then lift it by half the difference between one line and the control: `margin-bottom: calc((<heading size> * <heading leading> - <control height>) / 2)`. It is the same offset the first-line rule uses, because the distance from a line\'s edge to a control\'s centre is the same at the top and at the bottom. Both terms are tokens, so a type-scale change carries and no pixel is typed. A one-line heading makes every answer identical, so build this against a heading that actually wraps or you cannot see it is wrong.'
+    ),
+
     /* Found by drawing a list with a select-all box over a part-selected set.
        The component had two states and needed three. */
     'A checkbox has **three** states, not two. Indeterminate is the only honest answer for a select-all box when some of the rows below it are selected and some are not — unchecked claims nothing is selected while rows plainly are, and checked claims everything is. Distinguish it by the MARK, a dash against a tick, never by the fill alone: a reader who cannot separate the two hues still sees two shapes.',

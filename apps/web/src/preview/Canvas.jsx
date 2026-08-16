@@ -532,7 +532,11 @@ export default function Canvas({ onInspect, surface, setSurface, onOpenContrast,
                 background is drawn from the neutral scale, since that is not
                 guessable from looking at it. Inner elements stop propagation,
                 so this only fires on genuinely blank areas. */}
-            <div className="dmd" style={{ ...varsToStyle(vars), borderRadius: 12, border: '1px solid var(--bdr)' }}
+            {/* `data-heading-align` rather than a prop: this one is answered
+                entirely in CSS, on children the screens never name. A prop
+                would have to reach every page header on every surface. */}
+            <div className="dmd" data-heading-align={state.type?.headingAlign ?? 'last'}
+              style={{ ...varsToStyle(vars), borderRadius: 12, border: '1px solid var(--bdr)' }}
               {...(onInspect ? inspectProps(role('bg', 'Page background · bg'), handleInspect) : {})}>
               {/* Every surface is inspectable, not just the gallery. */}
               {/* `casing` reaches every surface the same way `tabStyle` does.
