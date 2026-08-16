@@ -3,14 +3,15 @@
    Semantic roles used to live here too, but they're 27 rows deep and the panel
    became unreadable. They have their own tab now and read from these scales. */
 import { useState, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { useStore } from '../state/store.jsx'
 import { uid } from '../state/schema.js'
 import { RAMP_STEPS, DEFAULT_SHAPE, resolveRef } from '../color/ramp.js'
 import { generatePalette, HARMONIES, INTENSITIES } from '../color/palette.js'
 import { isValidColor } from '../color/convert.js'
-import { bestOn } from '../color/contrast.js'
 import ColorPicker from '../ui/ColorPicker.jsx'
 import TokenColorPicker, { paletteGroups } from '../ui/TokenColorPicker.jsx'
+import { viewport } from '../ui/zoom.js'
 import { GRADIENT_TYPES, GRADIENT_PURPOSES, purposeOf } from '../color/modes.js'
 import { SectionHeader, Collapsible, Expand, Slider, NumField, Toggle, OverrideBadge, ConfirmDelete, Banner, Plus, PAD, BTN } from '../ui/controls.jsx'
 import { useAi } from '../ai/ui.jsx'
@@ -18,6 +19,16 @@ import { complete } from '../ai/client.js'
 import { systemPrompt, gradientNotePrompt } from '../ai/prompts.js'
 
 const PROTECTED_SEEDS = ['accent', 'neutral']
+
+/* ── THE SWATCH STRIP IS ONE BAR CUT INTO N, AND THE LOCKS SIT UNDER IT ──
+ *
+ * Both rows are flex, both hold the same number of children, both give every
+ * child the same `flex: 1 1 96px`, and both use this gap. The flex algorithm is
+ * deterministic, so column k of one row is exactly column k of the other. That
+ * is why the lock lands centred under its own swatch without a grid, and why
+ * this value is stated once rather than typed twice. */
+const STRIP_GAP = 4
+const SEED_BASIS = '1 1 96px'
 
 /* Names a design system actually uses, offered in order. `custom-6` tells you
    nothing at the point you next read the file. */
@@ -42,6 +53,53 @@ const Lock = ({ locked, size = 12 }) => (
     {locked ? <path d="M8 11V7a4 4 0 118 0v4" /> : <path d="M8 11V7a4 4 0 117-2.6" />}
   </svg>
 )
+
+/* ── THE FULL PICKER, HUNG OFF A STRIP SWATCH ──
+ *
+ * The compact picker in `TokenColorPicker` answers a different question: it
+ * offers the palette as swatches, because a component property usually wants a
+ * token. A seed IS the palette, so there is nothing to follow and no swatch
+ * column. What is left is the picker at full size.
+ *
+ * 420 is the widest row it holds: three number fields at 74.7 each, the 104px
+ * hex field, the 36px eyedropper, and four 8px gaps come to 396.
+ *
+ * Portalled for the reason the other one is: inside the panel the popover is
+ * clipped by the scroll container and crammed into its own scrollbar. */
+const SEED_PICKER_W = 420
+
+function SeedPickerPop({ seed, anchor, onChange, onClose }) {
+  const vp = viewport()
+  const r = anchor?.getBoundingClientRect()
+  const rect = r && { left: vp.x(r.left), top: vp.x(r.top), bottom: vp.x(r.bottom) }
+  const left = rect
+    ? Math.min(Math.max(10, rect.left), vp.w - SEED_PICKER_W - 10)
+    : Math.max(10, (vp.w - SEED_PICKER_W) / 2)
+  const below = rect ? vp.h - rect.bottom : 0
+  const openUp = !!rect && below < 340 && rect.top > below
+
+  return createPortal(
+    <>
+      <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 2000 }} />
+      <div className="anim-pop" role="dialog" aria-label={`Edit the ${seed.name} seed`} style={{
+        position: 'fixed', left,
+        ...(openUp ? { bottom: vp.h - rect.top + 8 } : { top: rect ? rect.bottom + 8 : 80 }),
+        zIndex: 2001, width: SEED_PICKER_W,
+        background: 'var(--surf2)', border: '1px solid var(--bdr2)', borderRadius: 12,
+        boxShadow: '0 18px 44px rgba(0,0,0,.6)', padding: 12,
+      }}>
+        <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--muted)', marginBottom: 8 }}>
+          {seed.name} seed
+        </div>
+        <ColorPicker value={seed.hex} onChange={onChange} />
+        <p className="panel-note" style={{ fontSize: 10, marginTop: 8 }}>
+          Every step of the <code style={{ fontFamily: 'var(--mono)', fontSize: 10 }}>{seed.name}</code> scale regenerates from this.
+        </p>
+      </div>
+    </>,
+    document.body
+  )
+}
 
 function SeedRow({ seed, ramps, onChange, onRename, onDelete, onLock, open, onToggle }) {
   const anchor = ramps[seed.name]?.anchor
@@ -378,6 +436,9 @@ export default function ColorPanel() {
   const { color } = state
   const { ramps } = derived
   const [openSeed, setOpenSeed] = useState(null)
+  /* Which strip swatch has the full picker open, and the element it hangs
+     from. `{ id, el }` rather than two states, because they are one fact. */
+  const [pick, setPick] = useState(null)
   const [harmony, setHarmony] = useState('analogous')
   const [intensity, setIntensity] = useState('balanced')
 
@@ -448,44 +509,58 @@ export default function ColorPanel() {
               Generate
             </button>
           </div>
-          {/* The lock is drawn in whichever of black or white actually reads
-              against the swatch, computed per colour. `mix-blend-mode:
-              difference` was the clever answer and the wrong one — against a
-              mid-grey it inverts to another mid-grey and vanishes, which is
-              exactly where you most need to see it. */}
-          <div style={{ display: 'flex', gap: 4, height: 64, borderRadius: 6, overflow: 'hidden', marginBottom: 8 }}>
-            {color.seeds.map(s => {
-              const ink = bestOn(s.hex)
-              return (
-                <button key={s.id} onClick={() => toggleLock(s.id)} className="seed-lock"
-                  title={`${s.name} — ${s.locked ? 'locked, click to release' : 'click to lock'}`}
-                  style={{
-                    /* 96 is the intended swatch, and the basis states it. The
-                       PAINTED width is the strip's width less its gaps, over
-                       five: the palette is one rounded bar cut into five, so
-                       it stays flush to both edges rather than holding a fixed
-                       96 and leaving a hole at the end. At a 496px strip the
-                       two agree exactly; at 511 the swatch renders 99. */
-                    flex: '1 1 96px', background: s.hex, border: 'none', cursor: 'pointer', position: 'relative',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0,
-                    outline: s.locked ? '2px solid var(--accent)' : 'none', outlineOffset: -2,
-                  }}>
-                  <span style={{
-                    color: ink, display: 'flex',
-                    /* Unlocked shows an open padlock on hover only, so the
-                       affordance is discoverable without every swatch
-                       shouting. */
-                    opacity: s.locked ? 1 : 0,
-                    transition: 'opacity var(--t) var(--ease)',
-                  }}>
-                    <Lock locked={s.locked} size={26} />
-                  </span>
-                </button>
-              )
-            })}
+          {/* A SWATCH IS A COLOUR, SO CLICKING IT EDITS THE COLOUR.
+              It used to toggle the lock, which is a different decision about
+              the same object, and nothing on the swatch said so. The lock now
+              has its own control under each swatch, where a padlock reads as a
+              padlock instead of as an overlay that appears on hover. */}
+          <div style={{ display: 'flex', gap: STRIP_GAP, height: 64, borderRadius: 6, overflow: 'hidden', marginBottom: STRIP_GAP }}>
+            {color.seeds.map(s => (
+              <button key={s.id} onClick={e => setPick({ id: s.id, el: e.currentTarget })}
+                title={`${s.name}. Click to edit ${s.hex}`}
+                style={{
+                  /* 96 is the intended swatch, and the basis states it. The
+                     PAINTED width is the strip's width less its gaps, over
+                     five: the palette is one rounded bar cut into five, so
+                     it stays flush to both edges rather than holding a fixed
+                     96 and leaving a hole at the end. At a 496px strip the
+                     two agree exactly; at 511 the swatch renders 99. */
+                  flex: SEED_BASIS, background: s.hex, border: 'none', cursor: 'pointer', padding: 0,
+                  outline: s.locked ? '2px solid var(--accent)' : 'none', outlineOffset: -2,
+                }} />
+            ))}
           </div>
+
+          {/* THE LOCK ROW. Each cell takes the same basis as the swatch above
+              it, so the button centres under its own colour. The button itself
+              is square and 24px: an icon-only control is 1:1, and 24 is the
+              floor where a click stops being an act of marksmanship. */}
+          <div style={{ display: 'flex', gap: STRIP_GAP, marginBottom: 8 }}>
+            {color.seeds.map(s => (
+              <div key={s.id} style={{ flex: SEED_BASIS, display: 'flex', justifyContent: 'center', minWidth: 0 }}>
+                <button onClick={() => toggleLock(s.id)} className="seed-lock"
+                  aria-pressed={!!s.locked}
+                  aria-label={`${s.name}: ${s.locked ? 'locked, click to release' : 'unlocked, click to lock'}`}
+                  title={`${s.name}. ${s.locked ? 'Locked, so the generator will leave it alone' : 'Unlocked, so the generator may replace it'}`}
+                  style={{
+                    background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+                    width: 24, height: 24, aspectRatio: '1',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    color: s.locked ? 'var(--accent)' : 'var(--dim)',
+                    transition: 'color var(--t) var(--ease)',
+                  }}>
+                  <Lock locked={s.locked} size={14} />
+                </button>
+              </div>
+            ))}
+          </div>
+          {pick && color.seeds.some(s => s.id === pick.id) && (
+            <SeedPickerPop seed={color.seeds.find(s => s.id === pick.id)} anchor={pick.el}
+              onChange={hex => setSeed(pick.id, hex)} onClose={() => setPick(null)} />
+          )}
+
           <p className="panel-note">
-            Lock the ones you like, then generate again — locked colours anchor the hue and weight of everything else.
+            Click a swatch to edit it, or lock the ones you like and generate again. Locked colours anchor the hue and weight of everything else.
             Status seeds stay inside the hue bands that still read as success, warning and danger.
             {' '}<strong style={{ color: 'var(--text-dim)', fontWeight: 500 }}>The page background comes from the neutral seed</strong>,
             not the accent — so a deep blue or oxblood interface starts by giving <code style={{ fontFamily: 'var(--mono)', fontSize: 10 }}>neutral</code> that

@@ -46,33 +46,19 @@ export function MetaTab() {
         </div>
       </Collapsible>
 
-      {/* Build Preferences — decisions about the page an agent produces,
-          rather than about the system it produces it from. Both settings exist
-          because a generated build had to guess and said so in its notes. */}
-      <Collapsible title="Build Preferences" note={casing === 'title' ? 'Title Case' : 'Sentence case'} defaultOpen>
-        <div style={{ marginBottom: 16 }}>
-          <label>Label capitalisation</label>
-          {/* This edits `voice.casing`, the same value the Directives panel
-              shows under Copy and Formatting. It had its own field for one
-              session, and the document then stated both rules — one section
-              demanding Title Case, another demanding sentence case, in one
-              file with no precedence between them. */}
-          <Segmented value={casing} onChange={upCasing} size="sm"
-            options={[{ value: 'sentence', label: 'Sentence case' }, { value: 'title', label: 'Title Case' }]} />
-          <div className="panel-note" style={{ marginTop: 6 }}>
-            Applies to every button, tab, menu item and column heading an agent writes.
-            {casing === 'sentence'
-              ? ' “Export payload”, not “Export Payload”.'
-              : ' “Export Payload”, not “Export payload”.'}
-            {' '}Also shown in Directives under Copy and Formatting — one setting, two ways in.
-          </div>
-        </div>
-        <Toggle label="Build a theme toggle into the page" checked={build.themeToggle}
-          onChange={val => upBuild('themeToggle', val)}
-          desc={state.color.emitDark
-            ? 'Adds a control that switches themes by setting data-theme on the root element. The tokens already support it.'
-            : 'This system ships light only, so a toggle would have nothing to switch to. Turn on dark mode in the Roles panel first.'} />
-      </Collapsible>
+      {/* Build Preferences is GONE from here, and both of its settings moved to
+          the panel that owns the thing they describe.
+
+          The theme toggle went to Roles, where the palettes are, and became one
+          three-way choice: light only, dark only, or both. It was a boolean
+          sitting beside a separate `emitDark` in another panel, so the pair
+          could contradict each other and could not say "dark only" at all.
+
+          Label capitalisation went to Type, where the rest of the text
+          treatment lives, alongside numerals and heading wrap.
+
+          What was left was a section holding one control, which reads as a
+          section somebody forgot to finish. */}
 
       <Collapsible title="Start from a Preset" note={String(PRESETS.length)}>
         <p className="panel-note" style={{ marginBottom: 12 }}>

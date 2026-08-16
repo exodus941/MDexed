@@ -7,9 +7,9 @@
    reachable underneath, because `inspectProps` collects ancestors too. */
 import { inspectProps, text } from '../inspect.js'
 import { labeller } from '../casing.js'
-import { Ico, IconPlus, IconDownload, IconChart, IconFolder, IconBell, IconAlert, IconMore, IconSend } from '../icons.jsx'
+import { Ico, ThemeToggle, IconPlus, IconDownload, IconChart, IconFolder, IconBell, IconAlert, IconMore, IconSend } from '../icons.jsx'
 
-export default function Dashboard({ onInspect, layout, casing }) {
+export default function Dashboard({ onInspect, layout, casing, theme, mode, onToggleTheme }) {
   const L = labeller(casing)
   const ins = entry => inspectProps(entry, onInspect)
   const txt = (typeName, roleName = 'text') => inspectProps(text(typeName, roleName), onInspect)
@@ -97,6 +97,10 @@ export default function Dashboard({ onInspect, layout, casing }) {
               <button className="btn btn-secondary btn-sm" {...ins('button-sm')}><Ico d={IconDownload} size="sm" />{L('Export')}</button>
               <button className="btn btn-primary btn-sm" {...ins('button-primary')}><Ico d={IconPlus} size="sm" />{L('New invoice')}</button>
               <button className="btn btn-secondary btn-sm icon-only" {...ins('button-secondary')}><Ico d={IconBell} /></button>
+              {/* Inside the action group, and before the menu control, because
+                  the rightmost seat belongs to navigation. It appears only when
+                  the document ships both palettes. */}
+              <ThemeToggle theme={theme} mode={mode} onToggle={onToggleTheme} inspect={ins('button-secondary')} />
             </div>
             {/* The menu control is a BUTTON, and it belongs to the action group.
              *

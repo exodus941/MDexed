@@ -6,7 +6,7 @@
    agent how to build a card and `neutral-800` doesn't. */
 import { useState, useEffect } from 'react'
 import { useStore } from '../state/store.jsx'
-import { ROLE_GROUPS, CONTRAST_PAIRS, pairFails } from '../state/schema.js'
+import { ROLE_GROUPS, CONTRAST_PAIRS, pairFails, themeOf } from '../state/schema.js'
 import { RAMP_STEPS } from '../color/ramp.js'
 import { check } from '../color/contrast.js'
 import { generateCounterpart, clearOverridesFor } from '../color/modes.js'
@@ -245,6 +245,12 @@ export default function RolesPanel({ inspect }) {
   const [scope, setScope] = useState('both')
 
   const upd = (fn, tag) => set(s => ({ ...s, color: fn(s.color) }), tag)
+  /* Writing `theme` also clears `emitDark`, so an old document that carried it
+     cannot keep answering the same question a second way after an edit. */
+  const setTheme = v => set(s => {
+    const { emitDark, ...rest } = s.color
+    return { ...s, color: { ...rest, theme: v } }
+  }, 'color:theme')
   const setRoleRef = (role, mode, ref) => upd(c => ({ ...c, roles: { ...c.roles, [role]: { ...c.roles[role], [mode]: ref } } }))
   const setRoleOverride = (key, hex) => upd(c => ({ ...c, roleOverrides: { ...c.roleOverrides, [key]: hex } }), `role:${key}`)
   const resetRole = key => upd(c => { const n = { ...c.roleOverrides }; delete n[key]; return { ...c, roleOverrides: n } })
@@ -283,6 +289,32 @@ export default function RolesPanel({ inspect }) {
         right={overrideCount > 0 ? <span className="chip">{overrideCount} overridden</span> : null} />
 
       <Collapsible title="Modes" defaultOpen>
+        {/* WHAT THE SITE SHIPS, and it governs everything below it.
+         *
+         * This used to be two fields in two panels: `emitDark` here decided
+         * whether dark values existed, and a "Build a theme toggle" switch under
+         * Meta decided whether the page could switch. Nothing stopped them
+         * disagreeing, and the pair could not express "dark only" at all.
+         *
+         * It sits above the editing scope on purpose. The two controls carry the
+         * same three words and mean different things — this one is what the
+         * reader of the built site gets, the one below is which values you are
+         * editing right now — so the labels beside them do the separating. */}
+        <div style={{ marginBottom: 12 }}>
+          <label>Themes this system ships</label>
+          <Segmented value={themeOf(state)} onChange={setTheme} size="sm" full
+            options={[
+              { value: 'light', label: 'Light only' },
+              { value: 'dark', label: 'Dark only' },
+              { value: 'both', label: 'Light and dark' },
+            ]} />
+          <div className="panel-note" style={{ marginTop: 6 }}>
+            {themeOf(state) === 'both'
+              ? 'Both palettes are exported, and the built page carries a visible lightbulb button to switch between them.'
+              : `Only the ${themeOf(state)} palette is exported. The built page has no theme toggle, and an agent is told not to invent the other palette to fill one.`}
+          </div>
+        </div>
+
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
           <span style={{ fontSize: 12, color: 'var(--muted)' }}>Editing</span>
           <Segmented value={scope} onChange={setScope} size="sm"

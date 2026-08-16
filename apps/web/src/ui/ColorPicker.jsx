@@ -13,7 +13,11 @@ import {
 } from '../color/convert.js'
 import { NumField, Segmented } from './controls.jsx'
 
-const MODELS = ['HEX', 'RGB', 'HSL', 'HSB', 'OKLCH']
+/* HEX is not a MODE. It used to be one of five, so reading the hex meant
+   leaving whatever model you were working in, and the value you were adjusting
+   went off screen to do it. It is now a field that is present in every model:
+   always readable, always copyable, always editable. */
+const MODELS = ['RGB', 'HSL', 'HSB', 'OKLCH']
 const clamp01 = v => Math.max(0, Math.min(1, v))
 
 function useDragArea(onMove) {
@@ -32,8 +36,15 @@ function useDragArea(onMove) {
   }
 }
 
-export default function ColorPicker({ value, onChange, alpha: allowAlpha = false, compact = false }) {
-  const [model, setModel] = useState('HEX')
+/* `compact` and `stackHex` are two questions, not one.
+ *
+ * `compact` shrinks the swatch, and the ramp-step picker in the Colour panel
+ * asks for it while still being 613px wide. `stackHex` is about the row: only
+ * the token popover is narrow enough that a fourth field on it would cut the
+ * digits off. Folding them into one flag put the hex on its own line in a
+ * container with 613px of room. */
+export default function ColorPicker({ value, onChange, alpha: allowAlpha = false, compact = false, stackHex = false }) {
+  const [model, setModel] = useState('HSL')
   const [hexDraft, setHexDraft] = useState(value)
   const parsed = parseColor(value)
   const valid = parsed != null
@@ -73,6 +84,36 @@ export default function ColorPicker({ value, onChange, alpha: allowAlpha = false
   const outOfGamut = valid && !inGamut(fromOklch(okl))
 
   const swatchSize = compact ? 108 : 132
+
+  /* THE HEX FIELD, present in every model.
+   *
+   * Declared once and placed twice, because wide and compact want it on
+   * different axes and two copies of an input drift the moment either is
+   * edited. The wrapper at each site states the width; the field itself has no
+   * opinion about it. */
+  const hexField = (
+    <div style={{ width: '100%' }}>
+      <label style={{
+        display: 'block', fontSize: 10, textTransform: 'uppercase',
+        letterSpacing: '.07em', color: 'var(--muted)', marginBottom: 4,
+      }}>Hex</label>
+      <input
+        value={hexDraft}
+        onChange={e => {
+          setHexDraft(e.target.value)
+          if (isValidColor(e.target.value)) emitHex(toHex(parseColor(e.target.value)))
+        }}
+        onBlur={() => setHexDraft(value)}
+        onFocus={e => e.target.select()}
+        spellCheck={false}
+        aria-label="Hex value"
+        placeholder="#000000"
+        style={{
+          fontFamily: 'var(--mono)', fontSize: 14, width: '100%',
+          borderColor: isValidColor(hexDraft) ? 'var(--bdr)' : 'var(--danger)',
+        }} />
+    </div>
+  )
 
   return (
     <div>
@@ -135,24 +176,20 @@ export default function ColorPicker({ value, onChange, alpha: allowAlpha = false
 
       {/* Numeric entry. Switching model swaps one set of fields for another,
           which is a tab change in everything but name — dissolve it. */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6 }}>
-        <div style={{ flex: 1, minWidth: 0 }}>
-        <CrossFade id={model}>
-      {model === 'HEX' && (
-        <input
-          value={hexDraft}
-          onChange={e => {
-            setHexDraft(e.target.value)
-            if (isValidColor(e.target.value)) emitHex(toHex(parseColor(e.target.value)))
-          }}
-          onBlur={() => setHexDraft(value)}
-          placeholder="#000000"
-          style={{
-            fontFamily: 'var(--mono)', fontSize: 14,
-            borderColor: isValidColor(hexDraft) ? 'var(--bdr)' : 'var(--danger)',
-          }} />
-      )}
+      {/* WIDE: the hex sits BESIDE the model's own fields, as a fourth field on
+          the same row. COMPACT: it goes UNDER them, because the popover's left
+          column cannot hold four fields — measured at 13px of content box
+          against 27.1px for "360". Same field either way; only the axis moves.
 
+          `align-items: flex-end` on the row, NOT flex-start. Every field is a
+          label above an input, and the eyedropper is an input-height button with
+          no label. Top-aligned it sat level with the LABELS, a whole line above
+          the boxes it belongs beside. Bottom-aligned, its box and theirs share
+          both edges, because they are the same height. */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+        <CrossFade id={model}>
       {model === 'RGB' && (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6 }}>
           {['r', 'g', 'b'].map(k => (
@@ -193,25 +230,34 @@ export default function ColorPicker({ value, onChange, alpha: allowAlpha = false
         </div>
       )}
         </CrossFade>
+          </div>
+
+          {/* Wide only: a stated width, because it holds exactly seven mono
+              characters and a share of the row would steal room from the fields
+              carrying the digits. */}
+          {!stackHex && <div style={{ width: 104, flexShrink: 0 }}>{hexField}</div>}
+
+          {/* Square, so it matches the field height rather than sitting proud of
+              it, and only rendered where the browser can actually open one. */}
+          {typeof window !== 'undefined' && 'EyeDropper' in window && (
+            <button className="btn-ghost" title="Pick a colour from anywhere on screen"
+              aria-label="Pick a colour from anywhere on screen"
+              style={{ padding: 0, width: 36, height: 36, flexShrink: 0, justifyContent: 'center' }}
+              onClick={async () => {
+                try {
+                  const { sRGBHex } = await new window.EyeDropper().open()
+                  emitHex(sRGBHex)
+                } catch { /* the user dismissed the picker */ }
+              }}>
+              <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+                <path d="M2 22l1-4 9-9 3 3-9 9-4 1z" /><path d="M15 6l3 3" /><path d="M17.5 3.5a2.12 2.12 0 013 3L18 9l-3-3 2.5-2.5z" />
+              </svg>
+            </button>
+          )}
         </div>
 
-        {/* Square, so it matches the field height rather than sitting proud of
-            it, and only rendered where the browser can actually open one. */}
-        {typeof window !== 'undefined' && 'EyeDropper' in window && (
-          <button className="btn-ghost" title="Pick a colour from anywhere on screen"
-            aria-label="Pick a colour from anywhere on screen"
-            style={{ padding: 0, width: 36, height: 36, flexShrink: 0, justifyContent: 'center' }}
-            onClick={async () => {
-              try {
-                const { sRGBHex } = await new window.EyeDropper().open()
-                emitHex(sRGBHex)
-              } catch { /* the user dismissed the picker */ }
-            }}>
-            <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
-              <path d="M2 22l1-4 9-9 3 3-9 9-4 1z" /><path d="M15 6l3 3" /><path d="M17.5 3.5a2.12 2.12 0 013 3L18 9l-3-3 2.5-2.5z" />
-            </svg>
-          </button>
-        )}
+        {/* Compact only: its own line, full width. */}
+        {stackHex && hexField}
       </div>
     </div>
   )

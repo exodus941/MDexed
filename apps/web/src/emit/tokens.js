@@ -10,6 +10,7 @@
  * markdown read, so none of them can disagree with the file or the screen.
  */
 import { buildCssVars } from '../state/derive.js'
+import { hasDark, hasLight, hasThemeToggle } from '../state/schema.js'
 import { gradientCss } from '../color/modes.js'
 import { resolveRef } from '../color/ramp.js'
 import { RAMP_STEPS } from '../color/ramp.js'
@@ -34,7 +35,7 @@ const varsFor = (state, derived, mode, opts) => buildCssVars({
 export function tokensCss(state, derived) {
   /* The light block carries the dark set under `--c-dark-*` as well, so a
      value can be named from a light context. See buildCssVars. */
-  const light = varsFor(state, derived, 'light', { darkAliases: state.color.emitDark })
+  const light = varsFor(state, derived, 'light', { darkAliases: hasDark(state) })
   const dark = varsFor(state, derived, 'dark')
   const decl = vars => Object.entries(vars).map(([k, v]) => `  ${k}: ${v};`).join('\n')
 
@@ -54,6 +55,40 @@ export function tokensCss(state, derived) {
 
 `
     : ''
+
+  /* ── THREE SHAPES, ONE PER THEME SETTING ──
+   *
+   * A site with one theme must not carry the other one's block. The old file
+   * always wrote light on `:root` and appended dark, so "dark only" could not
+   * be expressed at all: the page loaded light and switched on a media query
+   * nobody asked for.
+   *
+   *   light   light on :root. Nothing else.
+   *   dark    DARK on :root. Nothing else, so it cannot be switched away from.
+   *   both    light on :root, dark under the OS query and under data-theme.
+   */
+  if (!hasDark(state)) {
+    return `${stamp('tokens.css')}
+
+${fontImport}/* This system ships a light theme and no other. There is no dark block and no
+   toggle: adding either would invent values nobody chose. */
+:root {
+${decl(light)}
+}
+`
+  }
+
+  if (!hasLight(state)) {
+    return `${stamp('tokens.css')}
+
+${fontImport}/* This system ships a DARK theme and no other, so the dark values are the root
+   values. There is no light block and no toggle, and no media query either —
+   the page looks the same whatever the operating system prefers. */
+:root {
+${decl(dark)}
+}
+`
+  }
 
   return `${stamp('tokens.css')}
 

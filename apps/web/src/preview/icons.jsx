@@ -55,6 +55,50 @@ export const IconX = <><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6"
 export const IconAlert = <><path d="M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L14.7 3.9a2 2 0 00-3.4 0z" /><path d="M12 9v4M12 17h.01" /></>
 export const IconCalendar = <><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></>
 export const IconChart = <><line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" /></>
+/* A bulb, because that is the control the document promises when a system
+   ships both palettes. A sun and a moon are two marks for one button, and the
+   button then has to decide which of them means "now" and which means "next".
+   A bulb is one shape in both states, so nothing has to be decided. */
+export const IconBulb = <><path d="M9 18h6" /><path d="M10 22h4" /><path d="M12 2a7 7 0 00-4 12.7V17h8v-2.3A7 7 0 0012 2z" /></>
+
+/* ── THE THEME TOGGLE ──
+ *
+ * It renders only when the document ships BOTH palettes. Under light-only or
+ * dark-only there is nothing to toggle, and a control that switches between one
+ * thing is the clearest way to contradict the file it ships beside.
+ *
+ * Operable, not drawn. It flips the surface it sits on, which is what the built
+ * page's own button does. A sample control that cannot be operated is a
+ * drawing, and a drawing of a toggle proves nothing about a toggle.
+ *
+ * It carries a name, because it carries no words. `aria-pressed` says which way
+ * it is set: an icon-only control with no state is a button whose meaning a
+ * screen reader has to guess from an icon it cannot see. */
+export const ThemeToggle = ({ theme, mode, onToggle, inspect }) => {
+  if (theme !== 'both') return null
+  const dark = mode === 'dark'
+  /* COMPOSE THE TWO HANDLERS. `inspectProps` returns its own `onClick`, and a
+     spread replaces a prop rather than adding to it, so spreading it after the
+     button's own handler silently deleted the toggle. It measured as a control
+     that renders, names itself and does nothing: every check on it passed.
+     Pull the inspector's handler out by name and call both. */
+  const { onClick: inspectClick, ...rest } = inspect ?? {}
+  return (
+    <button type="button" className="btn btn-secondary btn-sm icon-only"
+      aria-pressed={dark}
+      aria-label={dark ? 'Dark theme is on. Switch to light.' : 'Light theme is on. Switch to dark.'}
+      title={dark ? 'Switch to the light theme' : 'Switch to the dark theme'}
+      {...rest}
+      onClick={e => {
+        e.stopPropagation()
+        onToggle?.(dark ? 'light' : 'dark')
+        /* Alt-click is the inspector's own escape hatch, so it stays. */
+        inspectClick?.(e)
+      }}>
+      <Ico d={IconBulb} />
+    </button>
+  )
+}
 
 /* Form controls drawn from tokens rather than native widgets, so radius,
    colour and size all follow the system. */
