@@ -1495,6 +1495,8 @@ line('\n- prompt construction -')
     ['a long heading breaks into lines', ['breaks into more lines', 'never break mid-word']],
     /* Default branch. The other two are exercised in the settings block. */
     ['controls beside a wrapped heading hold its last line', ["centres on the heading's last line", 'align-self: flex-end']],
+    ['a gated settings block opens', ['opens, it does not appear', 'grid-template-rows']],
+    ['three cases are not a disclosure', ['fires on resize', 'while the reader types']],
     ['the theme toggle is a visible lightbulb button', ['visible icon button carrying a lightbulb', 'same target size as any other button in its row']],
     /* Placement, alignment and naming, learned by building it. Three
        arrangements measured as defects before this one held. */
