@@ -541,6 +541,25 @@ export const createInitialState = () => ({
      * line and ends in an ellipsis. Nothing in this system stated either, so
      * every generated page got whatever the browser happened to do. */
     headingWrap: 'wrap',             // wrap | truncate
+    /* ── WHERE THE CONTROLS BESIDE A WRAPPED HEADING SIT ──
+     *
+     * Only asked when the heading wraps. A truncated heading is one line, so all
+     * three answers land in the same place.
+     *
+     * `last` is the default, set 16 August 2026. It replaces a hard-wired rule
+     * that pinned them to the FIRST line, which was right for the case it was
+     * measured on and was never a choice the reader could make.
+     *
+     * Each value is one formula against the tokens, so a type-scale change
+     * carries and no number is typed:
+     *
+     *   first    flex-start, margin-top:    (line − control) / 2
+     *   center   the block's own centre, no margin
+     *   last     flex-end,   margin-bottom: (line − control) / 2
+     *
+     * One line makes all three identical, which is why a short title hides a
+     * wrong answer here. */
+    headingAlign: 'last',            // first | center | last
     base: 16,
     ratio: 1.25,
     leading: 1,     // multiplier on the auto line-height curve
