@@ -921,6 +921,11 @@ function motionSection(state, derived) {
       'Use `normal` for a colour change on hover or focus, `fast` for something appearing or moving a short distance, `slow` for a full-screen change. Movement and colour are read differently: slowing a panel that slides makes an interface feel sticky, while speeding a colour change makes it invisible.',
       'A colour fade under about 180ms is present, running, and over before the eye resolves it. The transition passes every check and the interface still feels dead. If a hover looks like it is doing nothing, the duration is the first thing to measure.',
       'Animate transform and opacity only. Never animate layout properties.',
+      /* Learned by building it here. Three settings blocks in this editor's own
+         chrome appeared and vanished on a toggle, and the panel read as having
+         jumped rather than as having revealed something. */
+      'A settings block revealed by another setting **opens, it does not appear**. A block that pops moves everything under it with no warning, so the reader sees the panel jump instead of the block arrive. Animate `grid-template-rows` from `0fr` to `1fr` on a wrapper whose child has `overflow: hidden` — that transitions to the content\'s real height without measuring it, and it is one of the two properties safe to animate here because nothing around it reflows. Put the block\'s own separation INSIDE the collapsing box, so the distance closes with it rather than arriving underneath. Unmount the contents after the transition, or immediately when motion is reduced.',
+      'Three cases are NOT this rule, and animating them is worse than the pop. A layout branch that fires on resize, because the window is already moving. A step inside a wizard or a modal, which is a cross-fade between two things rather than one thing opening. And a block that appears WHILE THE READER TYPES, where a transition on every keystroke turns a settled field into a moving one.',
       state.motion.reducedMotion === 'crossfade'
         ? 'Under `prefers-reduced-motion`, drop to a cross-fade at `fast`.'
         : 'Under `prefers-reduced-motion`, remove transitions entirely.',
