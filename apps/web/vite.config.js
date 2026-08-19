@@ -145,6 +145,53 @@ export default defineConfig(({ command }) => ({
      fine, because the bundler resolves it statically. */
   optimizeDeps: { include: ['react-dom/server'] },
 
+  /* ── ONE 977KB CHUNK, SPLIT BY HOW OFTEN EACH PART CHANGES ──
+   *
+   * Vite warned about this on every build and the warning was ignored. The cost
+   * is not the total, which barely moves: it is that every edit to any source
+   * file invalidated the whole 977KB, so a returning reader re-downloaded React
+   * and the colour maths to pick up a one-line change.
+   *
+   * Split on CHANGE RATE, not on size. `react` and `react-dom` change when they
+   * are upgraded, a few times a year. `culori` is the colour maths behind every
+   * ramp and conversion, and it changes never. The app changes on every commit.
+   * Three chunks, and two of them stay in cache across a deploy.
+   *
+   * Named functions rather than an object map, because `manualChunks` as an
+   * object cannot express "anything under this path" without listing files. */
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return
+          /* `react-dom/server` is EXCLUDED, and that exclusion is the whole
+             difference between this helping and hurting.
+           *
+             The HTML export imports it dynamically, so Rollup gives it its own
+             185KB async chunk that a reader who never exports never downloads.
+             Naming `react-dom` here pulled it into the always-loaded chunk:
+             measured 385KB for react against 200KB, and first-load bytes went
+             from 992KB to 1191KB. The split made the number worse while the
+             warning went quiet.
+
+             So match the client renderer and the scheduler, and let the server
+             renderer keep the async chunk it already had. */
+          if (/[\\/]node_modules[\\/]react-dom[\\/].*server/.test(id)) return
+          if (/[\\/]node_modules[\\/](react|react-dom|scheduler)[\\/]/.test(id)) return 'react'
+          if (/[\\/]node_modules[\\/]culori[\\/]/.test(id)) return 'colour'
+        },
+      },
+    },
+    /* Just above the app chunk at 760KB, so the warning still fires the next
+       time it grows. Silencing it outright would remove the only thing that
+       reported the problem, and leaving it below the current size makes it fire
+       on every build, which trains the reader to skim it.
+     *
+     * The app chunk is the next thing to split if it passes this. The panels are
+     * the obvious seam: eleven of them, and a reader opens one at a time. */
+    chunkSizeWarningLimit: 800,
+  },
+
   server: {
     proxy: {
       '/api': {
