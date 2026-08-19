@@ -1332,9 +1332,22 @@
 /* It WRAPS. Six actions cannot fit a 296px pane, and the card clips its own
    overflow — measured 629px of bar inside a 260px box, silently cut. A bar of
    actions is the one row that must never lose a member. */
+/* THE COLUMN GAP IS THE GAP BETWEEN TWO GROUPS, so it answers to the gap INSIDE
+   one of them. This bar holds the selection count on the left and the action
+   group on the right, and that group sets its own buttons 8px apart. At 12px
+   between the groups the count read as one more item in the run of actions, at a
+   ratio of 1.5:1 where proximity wants 3:1.
+
+   24px is the next step up and gives exactly 3:1. It costs nothing: the action
+   group takes the 12px out of its own width, so the bar stays 116px tall and
+   keeps two buttons per line. Measured at a 480px frame, before and after.
+
+   It only shows between 360px and 600px. Below that the two groups wrap onto
+   separate lines; above it the ratio clears. No declared breakpoint falls in that
+   band, which is why it survived 77 sweeps. */
 .dmd .batch-bar {
   display: flex; align-items: center; flex-wrap: wrap;
-  row-gap: var(--space-2xs, 4px); column-gap: var(--space-sm, 12px);
+  row-gap: var(--space-2xs, 4px); column-gap: var(--space-lg, 24px);
   background: var(--c-accent); color: var(--c-accent-fg);
   padding: var(--space-xs, 8px) var(--space-md, 16px);
   border-radius: var(--radius-md, 8px) var(--radius-md, 8px) 0 0;

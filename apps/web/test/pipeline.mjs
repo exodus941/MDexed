@@ -1650,6 +1650,59 @@ line('\n- prompt construction -')
   assert(missing.length === 0,
     `every learned design rule reaches the payload${missing.length ? ` — missing: ${missing.join('; ')}` : ` (${RULES.length})`}`)
 
+  /* ── NO RULE IS STATED TWICE ──
+   *
+   * The assertion above only checks that a rule ARRIVED. It has no opinion about
+   * a rule arriving twice, and 159 of them have accumulated over months. Two had
+   * duplicated themselves in different words:
+   *
+   *   "Every interactive element needs visible hover, active, focus-visible and
+   *    disabled states" in Components, against "has a hover, a focus-visible, an
+   *    active and a disabled appearance" in Accessibility.
+   *
+   *   "A button that grows at a breakpoint has two natural widths" stated as its
+   *    own rule and then repeated verbatim inside the threshold rule below it.
+   *
+   * Neither is harmless. A rule with two homes drifts the moment either is
+   * edited, and the reader then has two versions with no way to tell which is
+   * current. This is the same standing rule the five stores answer to, applied
+   * inside the one store that a stranger actually reads.
+   *
+   * Word-set overlap rather than string distance: the duplicates were the same
+   * claim in different words, which no substring check would find. Tables and
+   * fences are excluded, because a table row repeating a term is a column, not a
+   * restatement. */
+  {
+    const prose = generateFile(state, derived).text.split('\n')
+      .filter(l => !/^\s*\|/.test(l) && !/^\s*```/.test(l))
+      .join(' ')
+    const sentences = prose.split(/(?<=[.!?])\s+/)
+      .map(s => s.replace(/\s+/g, ' ').trim())
+      .filter(s => s.split(' ').length >= 8)
+    const STOP = new Set(['the', 'a', 'an', 'and', 'or', 'is', 'it', 'its', 'to', 'of', 'in',
+      'on', 'that', 'this', 'not', 'never', 'so', 'as', 'at', 'by', 'for', 'with', 'from', 'be',
+      'are', 'was', 'has', 'have', 'one', 'two', 'no', 'but', 'than', 'then', 'which', 'when',
+      'you', 'your'])
+    const bag = s => new Set(s.toLowerCase().replace(/[^a-z0-9 ]/g, ' ').split(/\s+/)
+      .filter(w => w.length > 2 && !STOP.has(w)))
+    const bags = sentences.map(bag)
+    const dupes = []
+    for (let i = 0; i < sentences.length; i++) {
+      for (let j = i + 1; j < sentences.length; j++) {
+        const a = bags[i], b = bags[j]
+        /* Six content words at minimum. Below that an overlap is a coincidence
+           of vocabulary rather than a restatement, and short instructions like
+           "Apply it with :focus-visible" legitimately share their words. */
+        if (a.size < 6 || b.size < 6) continue
+        let shared = 0
+        for (const w of a) if (b.has(w)) shared++
+        if (shared / Math.min(a.size, b.size) >= 0.8) dupes.push(sentences[i].slice(0, 64))
+      }
+    }
+    assert(dupes.length === 0,
+      `no rule is stated twice in the payload${dupes.length ? ` — ${dupes.length}: ${dupes.slice(0, 3).join(' / ')}` : ` (${sentences.length} sentences)`}`)
+  }
+
   /* The payload is a BUILD GUIDE, never a method.
    *
    * Their boundary, 14 August 2026: the receiving agent builds from the

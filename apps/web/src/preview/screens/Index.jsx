@@ -147,19 +147,24 @@ export default function Index ({ onInspect, casing, layout }) {
       <div className="card" {...ins('card')} style={{ padding: 0, overflow: 'hidden' }}>
         {/* The batch bar takes the toolbar's place while a selection exists. */}
         <div className="batch-bar" {...ins('card-overlay')}>
-          {/* The box and its count are ONE item in this row, not two. Loose,
-              the 16px box sat among 28px buttons and the row held two heights
-              — and a control row is one height. Grouped, the bar's children
-              are uniform and the box centres inside its own group. */}
-          {/* A LABEL, not a span. The box and its count were already adjacent,
-              so the text was there and reached nothing: the box was a bare
-              span with no control in it. As a label the visible text becomes
-              the control's name, which is the rule for any box that has text
-              beside it. Only four structures may go without. */}
-          <label className="row" style={{ gap: 'var(--space-2xs)', flexShrink: 0, cursor: 'pointer' }}>
-            <Check mixed {...ins('checkbox-indeterminate')} />
-            <strong className="small" style={{ fontWeight: 600 }}>{selected} {L('Selected')}</strong>
-          </label>
+          {/* THE COUNT IS A READOUT, NOT A CONTROL.
+           *
+           * A select-all checkbox used to sit here beside it. It belongs at the
+           * top of the column it controls, so it moved into the table header,
+           * where the cell for it was empty.
+           *
+           * Two things went with it. The `label` wrapper is gone, because a
+           * label with no control in it names nothing. And the box's own
+           * invisibility went with it: painted in `--c-accent` on this
+           * `--c-accent` bar, its fill and its border both measured 1.00:1, so
+           * only the indeterminate dash was visible and it read as a stray
+           * hyphen before the number. On the table header it sits on `surface`,
+           * where its outline is calibrated.
+           *
+           * A live region, because the count changes as rows are picked and a
+           * number that silently rewrites itself is a number nobody hears. */}
+          <strong className="small" role="status" aria-live="polite"
+            style={{ fontWeight: 600, flexShrink: 0 }}>{selected} {L('Selected')}</strong>
           {/* `btn-sm` STAYS. Promoting these five to the large step was an
               attempt to give the select-all beside them a 44px target while
               keeping the row one height, and it cost far more than it bought:
@@ -224,7 +229,24 @@ export default function Index ({ onInspect, casing, layout }) {
           ].filter(Boolean).join(' ')}>
             <thead>
               <tr>
-                <th className="sel-col" />
+                {/* THE SELECT-ALL BOX BELONGS HERE, AT THE TOP OF THE COLUMN IT
+                    CONTROLS.
+                 *
+                 * It was in the batch bar, which detaches it from its own column
+                 * and from the row boxes it sets. This header cell was empty.
+                 *
+                 * Indeterminate, because two of the rows below are selected and
+                 * the rest are not. That is the third state, and the only honest
+                 * answer here: unchecked claims nothing is selected while rows
+                 * plainly are, and checked claims everything is.
+                 *
+                 * It is the one positional case that needs its OWN name. A row
+                 * box is named by its column heading plus its record; this box IS
+                 * the column heading, so nothing else can name it. */}
+                <th className="sel-col">
+                  <Check mixed label={L('Select all invoices')}
+                    {...ins('checkbox-indeterminate')} />
+                </th>
                 <th>{L('Invoice')}</th>
                 <th>{L('Account')}</th>
                 <th>{L('Status')}</th>
