@@ -1497,6 +1497,17 @@ line('\n- prompt construction -')
     ['controls beside a wrapped heading hold its last line', ["centres on the heading's last line", 'align-self: flex-end']],
     ['a gated settings block opens', ['opens, it does not appear', 'grid-template-rows']],
     ['three cases are not a disclosure', ['fires on resize', 'while the reader types']],
+    /* Measured on this system's own surfaces: ten screens, eleven aria-labels,
+       and an overlay surface carrying no role at all. The rules were absent, so
+       nothing was being broken. */
+    ['an overlay declares itself a dialog', ['role="dialog"', 'aria-modal="true"', 'reading the page underneath']],
+    ['a dialog is named by its own heading', ['aria-labelledby', 'two statements of one name drift']],
+    ['focus enters an overlay and returns', ['cannot leave while it is open', 'returns to the control that opened it']],
+    ['an invalid field points at its message', ['aria-invalid="true"', 'aria-describedby', 'never `labelledby`']],
+    ['a pager names its steps and announces its range', ['previous page', 'is a live region', 'cannot state its own width']],
+    ['a loading state holds its own shape', ['aria-busy="true"', 'nothing moves when the data lands', 'opacity only']],
+    ['loading is the fourth empty state', ['fourth** empty state']],
+    ['aria-disabled and disabled are not interchangeable', ['removes the control from the tab order', 'keeps it reachable']],
     ['the theme toggle is a visible lightbulb button', ['visible icon button carrying a lightbulb', 'same target size as any other button in its row']],
     /* Placement, alignment and naming, learned by building it. Three
        arrangements measured as defects before this one held. */

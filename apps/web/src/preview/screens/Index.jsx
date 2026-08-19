@@ -300,7 +300,17 @@ export default function Index ({ onInspect, casing, layout }) {
        * item on a wrapped line packs to the start. Both widths come out
        * right. */}
       <div className="row row-wrap" style={{ justifyContent: 'space-between' }}>
-        <span className="small muted" {...txt('body-sm', 'text-muted')}>
+        {/* THE COUNT IS THE THING THAT SAYS WHERE YOU ARE, so it announces.
+         *
+         * This pager has no numbered pages by design, which is why nothing here
+         * carries `aria-current`. A run of page buttons cannot state its own
+         * width. So the sentence does the whole job, and a page change swaps
+         * every row underneath it. Without a live region that happens in
+         * silence.
+         *
+         * `polite`, not `assertive`. A range that updates is worth hearing at
+         * the next pause, not worth interrupting for. */}
+        <span className="small muted" role="status" aria-live="polite" {...txt('body-sm', 'text-muted')}>
           Showing <span className="figure">1–10</span> of <span className="figure">48</span>
         </span>
         {/* One group, so the label, the dropdown and the arrows travel
@@ -310,8 +320,26 @@ export default function Index ({ onInspect, casing, layout }) {
           <button className="btn btn-secondary btn-sm select-trigger" {...ins('select')}>
             <span className="figure">10</span><Ico d={IconChevron} size="sm" />
           </button>
-          <button className="btn btn-secondary btn-sm icon-only" disabled aria-label="Previous page" {...ins('button-primary-disabled')}><Ico d={IconChevron} className="icon-left" /></button>
-          <button className="btn btn-secondary btn-sm icon-only" aria-label="Next page" {...ins('button-secondary')}><Ico d={IconChevron} className="icon-right" /></button>
+          {/* A NAMED LANDMARK AROUND THE STEPS, AND ONLY THE STEPS.
+           *
+           * The rows-per-page select stays outside it. That control changes how
+           * much you see, not where you are, so it is not part of the pager.
+           *
+           * `.row` on the nav, so its own 8px gap replaces the one it takes over
+           * from the group. Measured before and after: 8/8/8 either way, because
+           * both rows declare the same step. */}
+          <nav className="row" aria-label="Invoice pages">
+            {/* `aria-disabled`, never `disabled`.
+             *
+             * `disabled` takes the control out of the tab order, so a reader
+             * moving by keyboard never reaches it and never learns which end of
+             * the list they are at. The button stays focusable, announces itself
+             * as unavailable, and does nothing when pressed. The appearance is
+             * unchanged: `.btn[aria-disabled="true"]` carries the same opacity
+             * the native state does. */}
+            <button className="btn btn-secondary btn-sm icon-only" aria-disabled="true" aria-label="Previous page" {...ins('button-primary-disabled')}><Ico d={IconChevron} className="icon-left" /></button>
+            <button className="btn btn-secondary btn-sm icon-only" aria-label="Next page" {...ins('button-secondary')}><Ico d={IconChevron} className="icon-right" /></button>
+          </nav>
         </span>
       </div>
     </div>

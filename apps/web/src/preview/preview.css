@@ -20,6 +20,10 @@
 /* Disabled controls swallow pointer events entirely, so a click on one never
    reaches the wrapper that knows where to send you. In the preview nothing is
    really interactive anyway — the click is for inspection. */
+/* `aria-disabled` is NOT in these two rules, on purpose. It stays out of the
+   pointer-events list because the whole point of choosing it over `disabled` is
+   that the control remains reachable. It IS in the APPEARANCE rule below, so it
+   still reads as unavailable. */
 .dmd [disabled], .dmd .is-disabled { pointer-events: none; }
 .dmd [data-cmp] [disabled], .dmd [data-cmp] .is-disabled { pointer-events: none; }
 .dmd h1, .dmd h2, .dmd h3 { margin: 0; }
@@ -164,8 +168,20 @@
   background: var(--cmp-button-danger-ghost-hover-background-color, var(--c-danger-subtle, #fbe9e7));
   color: var(--cmp-button-danger-ghost-hover-text-color, var(--c-danger, #c2453c));
 }
+/* THREE WAYS TO BE UNAVAILABLE, ONE APPEARANCE.
+ *
+ * `aria-disabled` joined this list when the pager's Previous arrow moved off
+ * `disabled` to stay in the tab order. Without it the button kept its full
+ * contrast and did nothing, which is a worse fault than the one being fixed.
+ *
+ * `pointer-events` is set only for the two that are genuinely inert. An
+ * `aria-disabled` control is reachable by design, so it keeps its events and
+ * declines the action itself. */
 .dmd .btn[disabled], .dmd .btn.is-disabled {
   opacity: var(--cmp-button-primary-disabled-opacity, .5); cursor: not-allowed; pointer-events: none;
+}
+.dmd .btn[aria-disabled="true"] {
+  opacity: var(--cmp-button-primary-disabled-opacity, .5); cursor: not-allowed;
 }
 .dmd .btn-sm {
   height: var(--cmp-button-sm-height, 28px); line-height: calc(var(--cmp-button-sm-height, 28px) - 2px);
@@ -1494,6 +1510,45 @@
   width: calc(var(--icon-lg, 20px) * 2);
   height: calc(var(--icon-lg, 20px) * 2);
 }
+
+/* ── A SKELETON HOLDS THE SHAPE OF WHAT IS COMING ──
+ *
+ * Every height here is a token, and that is the whole point: a skeleton row is
+ * the height of the line it stands in for, so nothing moves when the data lands.
+ * A hand-picked 12px would be a bar that happens to look right beside today's
+ * body size and wrong after the next scale change.
+ *
+ * `border-subtle` for the fill, which is the quietest step that still reads as a
+ * shape rather than as a gap. `bg` was invisible on the card and `border` read
+ * as a filled row of content.
+ *
+ * The pulse animates OPACITY only. A background-position shimmer needs a
+ * gradient the size of the element and re-lays out on every resize. */
+.dmd .skeleton {
+  display: inline-block;
+  background: var(--c-border-subtle, #ddd);
+  border-radius: var(--radius-sm, 4px);
+  opacity: .5;
+}
+.dmd .skeleton-line { height: calc(var(--font-body-sm-size, 14px) * var(--font-body-sm-leading, 1.5)); }
+/* The figure column is a fixed width, because an amount column is a fixed width.
+   `ch` on the mono face, so it tracks the face a figure is actually set in. */
+.dmd .skeleton-figure { flex: 0 0 auto; width: 9ch; font-family: var(--font-mono-family, monospace); }
+.dmd .skeleton-chip {
+  height: calc(var(--font-caption-size, 12px) * var(--font-caption-leading, 1.4));
+  width: 7ch;
+  border-radius: var(--radius-pill, 999px);
+}
+@media (prefers-reduced-motion: no-preference) {
+  /* ONE declaration. A shorthand followed by its own longhand is the trap this
+     project has already hit: whichever comes last wins, and the pair reads as
+     two decisions. The duration is three times the slow step, because that token
+     is sized for a transition and a wait at 300ms is a strobe. */
+  .dmd .skeleton {
+    animation: dmd-skeleton-pulse calc(var(--duration-slow, 300ms) * 3) ease-in-out infinite alternate;
+  }
+}
+@keyframes dmd-skeleton-pulse { from { opacity: .35 } to { opacity: .7 } }
 
 /* ── A comparison ──
    The rows have to line up across the columns, or the eye cannot read across

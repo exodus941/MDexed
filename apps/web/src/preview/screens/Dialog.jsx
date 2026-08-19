@@ -10,6 +10,12 @@ import { Ico, Check, IconAlert, IconCheck, IconX, IconTrash, IconInfo, IconMore,
 /* The composition rules from the Components tab, rendered. This is the only
    way to tell whether "icon above, centred, full-width actions" is what you
    actually meant — a settings list can't show you that. */
+/* One id each, stated once and referenced twice, so the dialog's name and its
+   description cannot drift from the elements they point at. Constants rather
+   than literals because three places use them. */
+const TITLE_ID = 'dmd-modal-title'
+const DESC_ID = 'dmd-modal-desc'
+
 function Modal({ ins, txt, layout, onInspect }) {
   const centred = layout.align === 'center'
   const showIcon = layout.iconPlacement !== 'none'
@@ -40,7 +46,24 @@ function Modal({ ins, txt, layout, onInspect }) {
   const confirm = <button key="d" className="btn btn-danger" {...ins('button-danger')} style={actionsStretch ? { width: '100%', justifyContent: 'center' } : undefined}><Ico d={IconTrash} />Delete</button>
 
   return (
-    <div {...ins('modal')} style={{
+    /* ── IT SAYS IT IS A DIALOG ──
+     *
+     * This surface exists to demonstrate an overlay and carried no `role` and no
+     * `aria-*` at all. A keyboard reader met a card in a page, and the page
+     * behind it stayed reachable. The a11y section of the emitted file never
+     * said `dialog`, `aria-modal` or `role=`, so there was no rule to break.
+     *
+     * `aria-labelledby` points at the heading this dialog already has, rather
+     * than repeating its words in an `aria-label`. Two copies of one name drift
+     * the moment either is edited.
+     *
+     * `alertdialog` rather than `dialog`, because this one destroys something and
+     * its message is the reason to stop. The role tells assistive technology to
+     * read the description without being asked. */
+    <div {...ins('modal')}
+      role="alertdialog" aria-modal="true"
+      aria-labelledby={TITLE_ID} aria-describedby={DESC_ID}
+      style={{
       /* Centred by its parent now, not by a transform. See the stage below.
          `flexShrink: 0` here held it at 400px inside a 296px stage, so it
          overflowed equally on both sides and the clip took the left edge of
@@ -60,7 +83,9 @@ function Modal({ ins, txt, layout, onInspect }) {
           Cancel and Delete, when dismissing is the quietest thing on the
           dialog. At 28px it was also under the touch minimum. */}
       {layout.dismiss === 'corner' && (
-        <button className="btn btn-ghost icon-only" {...ins('button-ghost')}
+        /* An icon-only control with a hidden label owes an accessible name.
+           A cross is not a word. */
+        <button className="btn btn-ghost icon-only" aria-label="Close" {...ins('button-ghost')}
           style={{ position: 'absolute', top: 'var(--space-sm, 12px)', right: 'var(--space-sm, 12px)' }}>
           <Ico d={IconX} />
         </button>
@@ -73,10 +98,10 @@ function Modal({ ins, txt, layout, onInspect }) {
           : { alignItems: 'center', justifyContent: centred ? 'center' : 'flex-start' }),
       }}>
         {icon}
-        <h3 style={{ fontSize: 'var(--font-h5-size, 20px)' }} {...txt('h5')}>Delete this invoice?</h3>
+        <h3 id={TITLE_ID} style={{ fontSize: 'var(--font-h5-size, 20px)' }} {...txt('h5')}>Delete this invoice?</h3>
       </div>
 
-      <p className="muted small" style={{ marginBottom: 'var(--space-md, 16px)' }} {...txt('body-sm', 'text-muted')}>
+      <p id={DESC_ID} className="muted small" style={{ marginBottom: 'var(--space-md, 16px)' }} {...txt('body-sm', 'text-muted')}>
         Invoice NW-0421 will be removed permanently. This cannot be undone.
       </p>
 

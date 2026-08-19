@@ -174,10 +174,18 @@ return (async () => {
          hand, so a surface with only an `edges` finding reported as dirty with
          an empty body — a verdict I could not act on and nearly skipped. What
          the sweep found is the sweep's answer, not a list I curate here. */
+      /* NO SILENT CAP. This sliced each category to three and said nothing, so
+         a surface with four findings reported three and read as complete. I hit
+         it on the Index pager: three findings existed, two reached the summary,
+         and I spent a round trip deciding the third check was broken. A bound on
+         coverage has to announce itself, or the report claims a completeness it
+         does not have. */
       detail: r.clean ? null : Object.fromEntries(
         Object.entries(r)
           .filter(([, v]) => Array.isArray(v) && v.length)
-          .map(([k, v]) => [k, v.slice(0, 3)])),
+          .map(([k, v]) => [k, v.length > 3
+            ? [...v.slice(0, 3), `+ ${v.length - 3} more ${k} not listed`]
+            : v])),
       /* Notices, which `clean` excludes on purpose: a sideways scroller, an
          uneven gap, a small target. Each is a question rather than a fault, so
          it must not fail the run — and it must not vanish either. Returned for
