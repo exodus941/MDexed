@@ -1042,5 +1042,50 @@ export function emitBody(state, derived) {
   parts.push(`## Motion\n\n${fenceGenerated(motionSection(state, derived))}`)
   parts.push(`## Accessibility\n\n${fenceGenerated(accessibilitySection(state, derived, audit(state, derived)))}`)
 
-  return { text: parts.join('\n\n'), omitted }
+  /* ── A MAP OF THIS FILE, MEASURED FROM THIS FILE ──
+   *
+   * The document reached 17,630 words, about 23,800 tokens, with ten sections
+   * and no route through them. `AGENTS.md` states the order to read the FILES
+   * and is the wrong place for this: it cannot know how long each section came
+   * out, and restating its file order here would be one rule with two homes.
+   *
+   * The measurement is the point. One section is 59% of the document, and it is
+   * a lookup table rather than prose — a reader who does not know that reads it
+   * linearly, or gives up in it and never reaches Accessibility at the end. The
+   * shares are computed from the assembled text, so they cannot drift from it.
+   *
+   * Placed after assembly and prepended, because a map written before the
+   * sections exist is a claim about them. */
+  const body = parts.join('\n\n')
+  const measured = parts.map(p => {
+    const heading = /^##\s+(.+)$/m.exec(p)?.[1] ?? '?'
+    return { heading, words: p.split(/\s+/).filter(Boolean).length }
+  })
+  const total = measured.reduce((a, x) => a + x.words, 0)
+  /* A section is a LOOKUP where it is mostly generated rows, and prose where a
+     reader has to read it. The distinction is what makes the length safe. */
+  const LOOKUP = new Set(['Components', 'Colors'])
+  const map = [
+    '## How to read this file',
+    '',
+    `About ${(Math.round(total / 100) * 100).toLocaleString('en-GB')} words. Two kinds of section, and they are read differently.`,
+    '',
+    '**Read in full.** These carry constraints that no token value states, and'
+      + ' a build that skips them validates and still looks wrong.',
+    '',
+    ...measured.filter(m => !LOOKUP.has(m.heading))
+      .map(m => `- **${m.heading}** — ${Math.round(m.words / total * 100)}%`),
+    '',
+    '**Look up as you build.** Generated tables, one row per token or component.'
+      + ' Reading these end to end is not the intended use.',
+    '',
+    ...measured.filter(m => LOOKUP.has(m.heading))
+      .map(m => `- **${m.heading}** — ${Math.round(m.words / total * 100)}%`),
+    '',
+    'Accessibility is last and is not optional. It carries the rules for overlays,'
+      + ' invalid fields, pagers and loading states, which are the four situations'
+      + ' most often invented rather than looked up.',
+  ].join('\n')
+
+  return { text: `${map}\n\n${body}`, omitted }
 }
