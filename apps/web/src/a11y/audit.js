@@ -689,8 +689,13 @@ export const REQUIREMENTS = [
   { id: 'headings',   checked: true, text: 'Heading levels describe the document outline, never the type size. Style an h2 to look small rather than reaching for h4.' },
   { id: 'order',      checked: false, text: 'Keep the DOM order and the visual order the same. Reordering with CSS breaks keyboard and screen-reader navigation silently.' },
   { id: 'keyboard',   checked: true, text: 'Everything reachable by mouse is reachable by keyboard, in a sensible order, with visible focus at each stop.' },
-  { id: 'escape',     checked: false, text: 'Modals and popovers trap focus while open, restore it on close, and close on Escape.' },
-  { id: 'live',       checked: false, text: 'Anything that changes without a page load — toasts, validation, async results — is announced through a live region.' },
+  /* These two named the behaviour and never the mechanism, so a build could
+     agree with both and still ship an overlay that declares nothing. The
+     surface demonstrating an overlay in this very system carried no `role` and
+     no `aria-*` at all, and this line was in the file the whole time. Name the
+     attributes, or the rule is a sentiment. */
+  { id: 'escape',     checked: false, text: 'A modal declares itself: `role="dialog"` (or `alertdialog` where it is stopping you), `aria-modal="true"`, and a name from `aria-labelledby` pointing at its own heading. It traps focus while open, restores it to whatever opened it on close, and closes on Escape.' },
+  { id: 'live',       checked: false, text: 'Anything that changes without a page load — a toast, a validation message, an async result, a pager\'s range — is announced through a live region. `role="status"` with `aria-live="polite"` for the ordinary case; reserve `assertive` for something that must interrupt.' },
   { id: 'alt',        checked: false, text: 'Images that carry meaning have alt text; decorative ones carry an empty alt so they are skipped.' },
   { id: 'zoom',       checked: true, text: 'The layout survives 200% zoom and a 320px viewport without horizontal scrolling.' },
   { id: 'colour',     checked: true, text: 'Never signal state with colour alone. Pair every colour cue with an icon, a shape, or a word.' },

@@ -5,6 +5,11 @@ import { inspectProps, text } from '../inspect.js'
 import { labeller } from '../casing.js'
 import { Ico, Switch, ThemeToggle, IconUser, IconFolder, IconBell, IconLock, IconChart, IconCheck, IconTrash, IconAlert } from '../icons.jsx'
 
+/* One id each. The label points at the field, the field points at the message,
+   and nothing here is a literal typed twice. */
+const BILLING_ID = 'dmd-billing-contact'
+const BILLING_ERR_ID = 'dmd-billing-contact-err'
+
 export default function Settings({ onInspect, casing, theme, mode, onToggleTheme }) {
   const L = labeller(casing)
   const ins = entry => inspectProps(entry, onInspect)
@@ -130,15 +135,29 @@ export default function Settings({ onInspect, casing, theme, mode, onToggleTheme
               screen beside the resting one rather than described in prose. The
               mark matters as much as the colour: red alone is unreadable to a
               red-green eye and disappears in greyscale. */}
+          {/* THE FIELD POINTS AT ITS OWN MESSAGE.
+           *
+           * The drawing was already right: red plus a mark, the message below the
+           * field, never a tooltip. The WIRING was the half a picture cannot
+           * show, and it was missing. `aria-invalid` on its own tells the reader
+           * something is wrong and never what.
+           *
+           * `aria-describedby`, not `aria-labelledby`. The field is named by its
+           * label; the message is a description added to that name. Pointing the
+           * label at the error would replace "Billing contact" with the
+           * complaint, and the reader would lose which field it is. */}
           <div className="field">
             <div className="row" style={{ alignItems: 'flex-end' }}>
               <div className="field" style={{ flex: 1 }} {...ins('input-error')}>
-                <label className="label" {...txt("caption", "text-muted")}>Billing contact</label>
-                <input className="input is-error" defaultValue="billing@northwind" aria-invalid="true" />
+                <label className="label" htmlFor={BILLING_ID} {...txt("caption", "text-muted")}>Billing contact</label>
+                <input id={BILLING_ID} className="input is-error" defaultValue="billing@northwind"
+                  aria-invalid="true" aria-describedby={BILLING_ERR_ID} />
               </div>
               <button className="btn btn-secondary" {...ins('button-secondary')}>Verify</button>
             </div>
-            <p className="caption field-note is-error" {...txt("caption", "danger")}>
+            {/* A live region, so a message that appears after a check is
+                announced rather than sitting there unread. */}
+            <p id={BILLING_ERR_ID} role="status" className="caption field-note is-error" {...txt("caption", "danger")}>
               <Ico d={IconAlert} size="sm" />That address is missing a domain.
             </p>
           </div>

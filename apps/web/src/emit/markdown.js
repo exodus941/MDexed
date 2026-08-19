@@ -968,6 +968,31 @@ function accessibilitySection(state, derived, findings) {
       `Minimum interactive target: ${state.states?.touchTarget ?? 44}px. Controls smaller than this need clear space around them to compensate.`,
       `Disabled controls sit at ${state.states?.disabledOpacity ?? 0.5} opacity and stay in the tab order only if they explain why they are disabled.`,
       'Every interactive element has a hover, a focus-visible, an active and a disabled appearance. Do not ship a control with only a resting state.',
+      /* `disabled` versus `aria-disabled`. The rule above says a disabled
+         control stays in the tab order "only if it explains why", and never
+         said how — and `disabled` makes that impossible, because the control is
+         gone. Found on a pager's Previous arrow: on page one it vanished from
+         the tab order, so a keyboard reader could not learn which end they were
+         at. */
+      'Two ways to be unavailable, and they are not interchangeable. `disabled` removes the control from the tab order entirely, which is right for a form field nobody may edit yet. `aria-disabled="true"` keeps it reachable and announces the state, which is right for anything whose unavailability is itself information — a pager step at the first page, a Save with nothing to save. Give both the same appearance, or the second reads as a live control that does nothing.',
+    ]),
+
+    /* ── OVERLAYS, FIELDS AND WAITING ──
+     *
+     * Four situations every product has, and this file described none of them at
+     * the level an agent could act on. It was measured: this system's own preview
+     * surfaces carried eleven `aria-label`, three `aria-hidden` and one
+     * `aria-invalid` between ten screens, and the surface whose whole job was to
+     * demonstrate an overlay carried nothing at all. The rules were absent, so
+     * there was nothing to break. */
+    '**Overlays, fields and waiting**',
+    bullets([
+      'An **overlay** is not a card in a page. It carries `role="dialog"`, or `role="alertdialog"` where its message is the reason to stop and think. It carries `aria-modal="true"`, or assistive technology keeps reading the page underneath it. It takes its name from `aria-labelledby` pointing at its own heading rather than from a second copy of that heading in an `aria-label` — two statements of one name drift the moment either is edited. Where it also has a description worth reading unprompted, `aria-describedby` points at that.',
+      'Focus enters the overlay when it opens, cannot leave while it is open, and returns to the control that opened it. An icon-only close button carries a name: a cross is not a word.',
+      'An **invalid field** carries `aria-invalid="true"` AND `aria-describedby` pointing at its message. On its own, `aria-invalid` tells the reader that something is wrong and never what. Use `describedby`, never `labelledby`: the label names the field, and replacing it with the complaint loses which field it was. The message sits below the field, never in a tooltip, names the fix rather than the failure, and is marked by a glyph as well as a colour.',
+      'A **pager** names its steps ("Previous page", not a bare chevron) and lives in a `nav` with a name, so it can be jumped to. Where a page changes without a page load, the range beside it — "Showing 21 to 40 of 128" — is a live region, or every row swaps in silence. A run of numbered page buttons is optional and often wrong: it grows with the data and cannot state its own width, so two steps and a count is the safer shape. If you do ship numbers, the current one carries `aria-current="page"`.',
+      'A **loading state** holds the shape of what is coming, at the height it will occupy, so nothing moves when the data lands. It carries `role="status"` and `aria-busy="true"` and a name; the placeholder shapes themselves carry `aria-hidden="true"`, because read aloud they are noise. Derive every placeholder height from the type tokens of the line it stands in for, so the skeleton and the loaded row measure the same. Any shimmer animates opacity only and stops under `prefers-reduced-motion`. A spinner is the fallback for something whose shape cannot be known, not the default.',
+      'Loading is the **fourth** empty state, beside first run, no results and a failure. A system that demonstrates three gets a centred spinner invented for the fourth.',
     ]),
 
     live.length > 0 && '**Known issues in this system**',
