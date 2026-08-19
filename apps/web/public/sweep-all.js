@@ -76,15 +76,130 @@ return (async () => {
   await pause(250)
 
   const SURFACES = ['Dashboard', 'Record', 'Index', 'Shell', 'Landing', 'Pricing', 'Form', 'Settings', 'Empty', 'Overlays', 'Gallery']
+
+  /* ── THE RUN OWNS THE WIDTH. THE READER DOES NOT. ──
+   *
+   * This file swept whatever width the preview happened to be set to, and said
+   * nothing about which one that was. Every "11 of 11 clean" it ever printed
+   * meant eleven surfaces at ONE width, chosen by accident.
+   *
+   * It cost a real finding. A batch bar on Index puts 12px between its two
+   * groups and 8px inside one of them, a 1.5:1 ratio where the rule wants 3:1.
+   * It exists between 360px and 600px and nowhere else: below that the groups
+   * wrap onto separate lines, above it the ratio clears. Every earlier run was
+   * on "Fit" or 296. 296 is outside the band, and "Fit" is not a width at all
+   * — it is whatever the browser window happens to be. So the finding did not
+   * appear because the code changed. It appeared because the window did.
+   *
+   * Two consequences, both handled below. The run drives the width control
+   * itself, over every value the document declares. And it never reports "Fit"
+   * as a width, because nobody chose it.
+   *
+   * The declared list comes from the control rather than from a constant here,
+   * so a document that adds a breakpoint gets swept at it without this file
+   * being edited. */
+  const widthSelect = [...document.querySelectorAll('select')]
+    .filter(s => !s.closest('.dmd'))
+    .find(s => [...s.options].some(o => /\d+px/.test(o.textContent)))
+  /* ── A SELECT CANNOT HOLD A VALUE IT HAS NO OPTION FOR ──
+   *
+   * The first version of the midpoint sweep set `value = '480'` and dispatched
+   * change. A `<select>` silently refuses a value with no matching option, so
+   * `value` became '' — which is "Fit" — and the frame went to whatever the
+   * window happened to give. Every midpoint measured 429px, one accidental
+   * width, and 429 happens to sit inside the band this failsafe was written to
+   * catch. So it reported the right finding six times for entirely the wrong
+   * reason, and would have reported nothing on a different window.
+   *
+   * Inject the value as a real option, select it, fire change, drop the option.
+   * React reads `e.target.value`, stores the number, and the frame follows.
+   * Verified: asking for 308, 480, 704 and 896 gives frames of exactly those. */
+  const setWidth = v => {
+    let temp = null
+    if (![...widthSelect.options].some(o => o.value === String(v))) {
+      temp = document.createElement('option')
+      temp.value = String(v)
+      temp.textContent = v + 'px'
+      widthSelect.appendChild(temp)
+    }
+    const set = Object.getOwnPropertyDescriptor(window.HTMLSelectElement.prototype, 'value').set
+    set.call(widthSelect, String(v))
+    widthSelect.dispatchEvent(new Event('change', { bubbles: true }))
+    return temp
+  }
+  /* ── THE DECLARED WIDTHS ARE NOT ENOUGH, AND THAT IS THE POINT ──
+   *
+   * Sweeping every breakpoint the document declares STILL missed the batch bar.
+   * Its band is 360 to 600, and the declared list runs 296, 320, 640, 768,
+   * 1024, 1280, 1536. Not one value falls inside it. Seventy-seven sweeps came
+   * back clean over a fault that had been on screen the whole time.
+   *
+   * A breakpoint is where the layout CHANGES. The arrangement BETWEEN two of
+   * them is the one nobody declared, nobody chose and nobody has looked at, so
+   * that is where a fault survives. "Test the bands, not the corners" was
+   * already written down; this is the tool doing it instead of me remembering.
+   *
+   * So: every declared width, plus the midpoint of each adjacent pair. 320 and
+   * 640 give 480, which is inside the band and catches it. The midpoints are
+   * labelled `mid` so a finding at one is legible as "between two breakpoints"
+   * rather than as a width somebody chose.
+   *
+   * The empty-valued option is "Fit" and stays excluded: a width nobody chose
+   * cannot be part of a coverage claim. */
+  const declared = widthSelect
+    ? [...widthSelect.options].filter(o => o.value)
+      .map(o => ({ px: Number(o.value), label: o.textContent.trim() }))
+      .sort((a, b) => a.px - b.px)
+    : []
+  const WIDTHS = declared.flatMap((w, i) => {
+    const next = declared[i + 1]
+    if (!next) return [w]
+    const mid = Math.round((w.px + next.px) / 2)
+    /* Skip a midpoint that lands on a declared value, which happens when two
+       breakpoints are one or two pixels apart. */
+    return mid === w.px || mid === next.px ? [w] : [w, { px: mid, label: `mid ${mid}px`, mid: true }]
+  })
+  const keptWidth = widthSelect ? widthSelect.value : null
+
   const rows = []
   /* The surface id measured on the previous pass. A frame still drawing it is a
      frame that has not finished cross-fading, and measuring it labels every
      finding one surface out of place. */
   let lastDrawn = null
 
+  /* If the control is missing the run still works, at one width, and SAYS SO.
+     Silence here would put the file back where it started. */
+  if (!WIDTHS.length) rows.push({
+    surface: '(width control)',
+    note: 'NOT FOUND — swept at one unknown width. Coverage across widths is unverified.',
+  })
+
+  for (const width of (WIDTHS.length ? WIDTHS : [null])) {
+    let temp = null
+    if (width) { temp = setWidth(width.px); await pause(320); lastDrawn = null }
+
+  const at = width ? width.label : '(unknown width)'
+
+  /* ── ASSERT THE WIDTH LANDED, BEFORE MEASURING ANYTHING AT IT ──
+   *
+   * The reason this exists is the bug above: a width that failed to apply left
+   * the frame somewhere else entirely, and eleven surfaces were then swept and
+   * attributed to a width they were never at. A run that cannot set the width
+   * it claims must say so, not measure and label. */
+  if (width) {
+    const probe = [...document.querySelectorAll('.dmd-frame')]
+      .find(f => !f.closest('.xfade-out') && !f.closest('[aria-hidden="true"]') && f.getBoundingClientRect().width > 0)
+    const got = probe ? Math.round(probe.getBoundingClientRect().width) : null
+    if (got !== width.px) {
+      rows.push({ at, surface: '(all)', note: `WIDTH NOT APPLIED — asked ${width.px}px, frame is ${got}px. Nothing measured at this width.` })
+      temp?.remove()
+      continue
+    }
+  }
+
   for (const name of SURFACES) {
     const tab = chrome().filter(e => e.textContent.trim() === name)[0]
-    if (!tab) { rows.push({ surface: name, note: 'TAB NOT FOUND' }); continue }
+    if (!tab) { rows.push({ at, surface: name, note: 'TAB NOT FOUND' }); continue }
     tab.click()
     await pause(60)                     // let React commit before asking what is animating
 
@@ -114,13 +229,13 @@ return (async () => {
        survive the filter, say so rather than taking the first and reporting a
        surface nobody was looking at. */
     if (candidates.length > 1) {
-      rows.push({ surface: name, note: `AMBIGUOUS — ${candidates.length} live frames, nothing measured` })
+      rows.push({ at, surface: name, note: `AMBIGUOUS — ${candidates.length} live frames, nothing measured` })
       continue
     }
     const frame = candidates[0]
     const box = frame?.getBoundingClientRect()
     if (!frame || !box.height || !box.width) {
-      rows.push({ surface: name, note: 'NOT VISIBLE — 0x0, nothing measured' })
+      rows.push({ at, surface: name, note: 'NOT VISIBLE — 0x0, nothing measured' })
       continue
     }
     /* ASSERT the attribution rather than trusting it, and assert the thing that
@@ -140,7 +255,7 @@ return (async () => {
      * trusted. */
     const drawn = frame.closest('.dmd-frame')?.dataset.surface
     if (drawn && drawn === lastDrawn) {
-      rows.push({ surface: name, note: `STALE FRAME — still drawing "${drawn}", nothing measured` })
+      rows.push({ at, surface: name, note: `STALE FRAME — still drawing "${drawn}", nothing measured` })
       continue
     }
     if (drawn) lastDrawn = drawn
@@ -149,13 +264,14 @@ return (async () => {
        settles rather than measuring it anyway — an unsettled reading looks
        exactly like a real fault and wastes the reader's afternoon. */
     const still = await settle(frame)
-    if (!still) rows.push({ surface: name, note: 'STILL MOVING — reading may be a frame, not a layout' })
+    if (!still) rows.push({ at, surface: name, note: 'STILL MOVING — reading may be a frame, not a layout' })
 
     /* The frame's own element, not the selector. `sweep('.dmd')` took the
        first of four `.dmd` nodes — the preview plus three component samples —
        so every run here had been measuring a surface nobody was looking at. */
     const r = sweep(frame)
     rows.push({
+      at,
       surface: name,
       clean: r.clean,
       baselines: r.baselines.length,
@@ -199,16 +315,36 @@ return (async () => {
       ],
     })
   }
+    temp?.remove()
+  }
+
+  /* Put the control back where it was found. A tool that leaves the app on the
+     last width it happened to try makes the NEXT reading depend on this one. */
+  if (keptWidth !== null) { setWidth(keptWidth); await pause(200) }
 
   const dirty = rows.filter(x => x.clean === false)
   console.table(rows.map(({ detail, ...rest }) => rest))
+
+  /* ── THE VERDICT NAMES ITS OWN COVERAGE ──
+   *
+   * `allClean` on its own is a claim about the widths that were swept, and the
+   * old version never said what those were. So it reads as a claim about the
+   * layout. `widthsSwept` and `coverage` are returned beside it, and a run that
+   * covered one width says so in the same breath as saying it was clean. */
+  const swept = [...new Set(rows.filter(x => x.clean != null).map(x => x.at))]
   return {
+    widthsSwept: swept,
+    coverage: `${SURFACES.length} surfaces x ${swept.length} width(s)`
+      + (WIDTHS.length ? '' : ' — WIDTH CONTROL NOT FOUND, coverage unverified'),
     surfacesSwept: rows.filter(x => x.clean != null).length,
-    ofExpected: SURFACES.length,
+    ofExpected: SURFACES.length * (WIDTHS.length || 1),
     allClean: dirty.length === 0,
-    dirty: dirty.map(d => ({ surface: d.surface, ...d.detail })),
+    /* Findings carry the width they were found at. A ratio that only breaks
+       between 360 and 600 is a different piece of work from one that breaks
+       everywhere, and the old shape could not tell them apart. */
+    dirty: dirty.map(d => ({ at: d.at, surface: d.surface, ...d.detail })),
     notices: rows.filter(x => x.notices?.length)
-      .map(x => x.surface + ': ' + x.notices.join('; ')),
-    skipped: rows.filter(x => x.note).map(x => x.surface + ': ' + x.note),
+      .map(x => x.at + ' ' + x.surface + ': ' + x.notices.join('; ')),
+    skipped: rows.filter(x => x.note).map(x => (x.at ? x.at + ' ' : '') + x.surface + ': ' + x.note),
   }
 })()
