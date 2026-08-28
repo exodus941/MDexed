@@ -757,3 +757,31 @@ input[type=range].hue-slider:not(.dmd *)::-moz-range-thumb{width:16px;height:16p
 .pass{color:var(--success)}
 .warn{color:var(--warn)}
 .fail{color:var(--danger)}
+
+/* ── THE CHROME'S ICONS PAINT AT ONE WEIGHT ──
+ *
+ * They pointed at two buttons and asked what was going on with the icons. The
+ * preview turned out to be faithful Lucide; the chrome was not. Measured across
+ * the editor: TWELVE hand-typed stroke widths — 1, 1.4, 1.5, 1.6, 1.8, 1.9, 2,
+ * 2.1, 2.2, 2.4, 2.5, 2.6 — in 38 places, each invented at the moment it was
+ * written.
+ *
+ * Rendered, that came out as seven different painted weights between 0.97px and
+ * 1.28px, because an SVG scales its stroke with its box and the boxes ran 10, 12,
+ * 13 and 14px.
+ *
+ * Every check passed. They all measure position and box, and none measured ink.
+ *
+ * Two declarations fix the class rather than the instances. CSS beats a
+ * presentation attribute, so this overrides all 38 without touching them, and
+ * `non-scaling-stroke` takes the weight out of the box so it cannot drift again
+ * when somebody resizes an icon.
+ *
+ * 1.5 rather than the preview's number: the chrome's icons run 10 to 14px beside
+ * 11 to 13px text, which is smaller than the surfaces, and a mark reads lighter
+ * at a smaller size. */
+.dmd-chrome-icons svg,
+body svg:not(.dmd svg):not(.entry-sample svg) {
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+}

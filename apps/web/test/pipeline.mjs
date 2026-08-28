@@ -1496,6 +1496,8 @@ line('\n- prompt construction -')
     /* Default branch. The other two are exercised in the settings block. */
     ['controls beside a wrapped heading hold its last line', ["centres on the heading's last line", 'align-self: flex-end']],
     ['a gated settings block opens', ['opens, it does not appear', 'grid-template-rows']],
+    ['a stroke is a painted weight, not a viewbox length', ['the weight the mark paints', 'vector-effect: non-scaling-stroke']],
+    ['do not compensate the stroke per size', ['the two disagree wherever a button']],
     ['three cases are not a disclosure', ['fires on resize', 'while the reader types']],
     /* Measured on this system's own surfaces: ten screens, eleven aria-labels,
        and an overlay surface carrying no role at all. The rules were absent, so

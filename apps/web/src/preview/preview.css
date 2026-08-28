@@ -541,7 +541,31 @@
 .dmd .btn-sm .icon { width: var(--cmp-button-sm-icon-size, var(--icon-sm, 14px)); height: var(--cmp-button-sm-icon-size, var(--icon-sm, 14px)); }
 .dmd .btn-lg .icon { width: var(--cmp-button-lg-icon-size, var(--icon-lg, 20px)); height: var(--cmp-button-lg-icon-size, var(--icon-lg, 20px)); }
 .dmd .nav-item .icon { width: var(--cmp-nav-item-icon-size, var(--icon-md, 16px)); height: var(--cmp-nav-item-icon-size, var(--icon-md, 16px)); }
-.dmd svg { stroke-width: var(--icon-stroke, 1.75); }
+/* ── THE STROKE IS A PAINTED WEIGHT, SO IT DOES NOT SCALE ──
+ *
+ * `stroke-width` alone is a length in the viewBox, and an SVG scales it with the
+ * box. One token therefore painted six different marks across the surfaces:
+ * 0.73px, 1.02, 1.17, 1.33, 1.75 and 2.33. The icons got heavier as they grew,
+ * which is backwards, and a row holding two sizes read as two different sets.
+ *
+ * Every check passed the whole time. They all measure position and box, and none
+ * measured ink. They pointed at two buttons and asked what was wrong with them.
+ *
+ * A PER-SIZE TOKEN WAS THE WRONG FIX, and it is worth saying why. The component
+ * knows which size it asked for; CSS is what actually sets the box, in a dozen
+ * places — a small button, an icon-only button, a select trigger, the empty-state
+ * mark at double size. Every one of those resized the icon and left the weight
+ * behind, so the class said `md` while the box was 14. Two writers, and they
+ * disagreed wherever they met.
+ *
+ * `vector-effect: non-scaling-stroke` removes the disagreement rather than
+ * managing it. The stroke is then painted at its declared width in device
+ * pixels, whatever the box, so whoever sets the size cannot get the weight
+ * wrong. The token becomes what it always claimed to be: a weight.
+ *
+ * It also makes the number honest. `--icon-stroke` is now the px the mark
+ * paints, not a figure that has to be multiplied by a scale to mean anything. */
+.dmd svg { stroke-width: var(--icon-stroke, 1.25); vector-effect: non-scaling-stroke; }
 /* An icon-only button is a button. This used to be its own component with a
    hardcoded 36px box, so it stood 8px taller than the small buttons it sat
    beside in the dashboard header — while being tagged button-secondary for
@@ -1156,6 +1180,22 @@
    call to action beside them 28, which is the "button two sizes short of the
    thing next to it" problem in the most looked-at row on the page. Both take
    the medium step, and the line height comes off the content box as always. */
+/* ── A HEADER BAR IS A ROW, EVEN WHERE IT REUSES THE RAIL ──
+ *
+ * `.header-nav` borrows `.aside-rail`, which is a flex COLUMN, because a rail in
+ * a sidebar stacks its menu under its own button. In a header it must not: at
+ * wide widths the fold is in normal flow, so the column put the theme toggle on
+ * its own line ABOVE the links, with the whole nav pushed down under it.
+ *
+ * I introduced that when the toggle moved into this bar, and I verified it
+ * against the BURGER at 296, 320 and 640. Above 768 the burger is hidden, I
+ * recorded "menu hidden", and never asked what the toggle did relative to the
+ * LINKS. The case I did not touch is the case that broke.
+ *
+ * Safe at every width: below the collapse the fold is absolutely positioned, so
+ * the direction of its parent reaches nothing. */
+.dmd .header-nav { flex-direction: row; align-items: center; }
+
 /* Height, not min-height. A floor let the links keep the 38px their own
    padding gave them, so the row still ran 38, 38, 36. Stated, all three are
    36 and share one baseline — measured at 194 for each. */

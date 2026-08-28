@@ -870,7 +870,13 @@ function componentsBody(state, derived) {
     '**Iconography**',
     bullets([
       `Library: **${icons.library}**. Do not mix icon sets.`,
-      `Stroke width \`${icons.strokeWidth}\`, ${icons.joinStyle} joins and caps.`,
+      /* The number alone was ambiguous, and the ambiguity cost real weight
+         drift here: one token painted six different marks across the surfaces,
+         from 0.73px to 2.33px, because an SVG scales its stroke with its box. */
+      `Stroke width \`${icons.strokeWidth}\`, ${icons.joinStyle} joins and caps. **That figure is the weight the mark PAINTS, in pixels, at every icon size.** An SVG scales `
+        + 'its stroke with its viewBox by default, so one `stroke-width` renders heavier in a bigger box and a row holding two sizes reads as two different sets. '
+        + 'Set `vector-effect: non-scaling-stroke` on every icon, which takes the stroke out of that transform and makes the number mean what it says. '
+        + 'Do not compensate per size instead: the component knows which size it asked for, the stylesheet is what actually sets the box, and the two disagree wherever a button, a trigger or a mark resizes an icon.',
     ]),
     iconTable,
 

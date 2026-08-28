@@ -198,11 +198,11 @@ export function ShapePanel() {
           </select>
         </div>
         <Slider label="Stroke width" value={state.icons.strokeWidth} onChange={v => setIcons('strokeWidth', v)}
-          min={1} max={3} step={0.25} defaultValue={1.75} format={v => `${v}`} />
+          min={1} max={3} step={0.25} defaultValue={1.25} format={v => `${v}px`} />
         <div className="preview-box" style={{ display: 'flex', gap: 16, alignItems: 'center', margin: '4px 0 12px', padding: '12px 16px' }}>
           {Object.entries(state.icons.sizes).map(([k, px]) => (
             <svg key={k} width={px} height={px} viewBox="0 0 24 24" fill="none" stroke="var(--accent)"
-              strokeWidth={state.icons.strokeWidth} strokeLinecap={state.icons.joinStyle} strokeLinejoin={state.icons.joinStyle}>
+              strokeWidth={state.icons.strokeWidth} vectorEffect="non-scaling-stroke" strokeLinecap={state.icons.joinStyle} strokeLinejoin={state.icons.joinStyle}>
               <circle cx="12" cy="12" r="9" /><path d="M9 12l2 2 4-4" />
             </svg>
           ))}
@@ -233,13 +233,13 @@ export function ShapePanel() {
                 fontSize: 12,
               }}>
                 {pos !== 'right' && (
-                  <svg width={state.icons.sizes.md} height={state.icons.sizes.md} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={state.icons.strokeWidth} strokeLinecap={state.icons.joinStyle} strokeLinejoin={state.icons.joinStyle}>
+                  <svg width={state.icons.sizes.md} height={state.icons.sizes.md} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={state.icons.strokeWidth} vectorEffect="non-scaling-stroke" strokeLinecap={state.icons.joinStyle} strokeLinejoin={state.icons.joinStyle}>
                     <path d="M12 5v14M5 12h14" />
                   </svg>
                 )}
                 {pos !== 'only' && <span>Label</span>}
                 {pos === 'right' && (
-                  <svg width={state.icons.sizes.md} height={state.icons.sizes.md} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={state.icons.strokeWidth} strokeLinecap={state.icons.joinStyle} strokeLinejoin={state.icons.joinStyle}>
+                  <svg width={state.icons.sizes.md} height={state.icons.sizes.md} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={state.icons.strokeWidth} vectorEffect="non-scaling-stroke" strokeLinecap={state.icons.joinStyle} strokeLinejoin={state.icons.joinStyle}>
                     <polyline points="9 6 15 12 9 18" />
                   </svg>
                 )}

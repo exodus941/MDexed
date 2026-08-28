@@ -25,6 +25,9 @@
    away. A component that discards what it is given is the same fault as a CSS
    property that does nothing: the instruction is written, it looks right in the
    source, and it never reaches the screen. */
+/* No size class here. The weight is held by `vector-effect: non-scaling-stroke`
+   in the stylesheet, so it does not depend on the box, and a class naming the
+   requested size would only lie whenever CSS resized the icon. */
 export const Ico = ({ d, size = 'md', end = false, className = '', ...rest }) => (
   <svg className={`${end ? 'icon icon-end' : 'icon'}${className ? ' ' + className : ''}`}
     aria-hidden="true" focusable="false"

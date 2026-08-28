@@ -273,6 +273,9 @@ export function buildCssVars(d, mode = 'light', { darkAliases = false } = {}) {
      reader checks first. */
   if (d.states?.touchTarget != null) vars['--target-min'] = `${d.states.touchTarget}px`
   for (const [name, px] of Object.entries(d.icons?.sizes ?? {})) vars[`--icon-${name}`] = `${px}px`
+  /* The stroke is a PAINTED WEIGHT in device pixels, because the stylesheet sets
+     `vector-effect: non-scaling-stroke`. Emitted unitless, which is what
+     `stroke-width` wants, and it means the same number at every icon size. */
   if (d.icons?.strokeWidth != null) vars['--icon-stroke'] = String(d.icons.strokeWidth)
   if (d.icons?.gap) vars['--icon-gap'] = d.spacing?.find(s => s.name === d.icons.gap)?.value ?? '8px'
   if (d.layout?.maxMeasure) vars['--measure'] = `${d.layout.maxMeasure}ch`
