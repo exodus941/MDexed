@@ -37,7 +37,7 @@ export const COMPONENT_LIBRARY = [
        these override it per size. */
     sizes: {
       sm: { height: '28px', padding: '0 {spacing.sm}',  typography: 'caption',  gap: '{spacing.3xs}', iconSize: '{icons.sm}' },
-      md: { height: '36px', padding: '0 {spacing.md}',  typography: 'button',   gap: '{spacing.2xs}', iconSize: '{icons.md}' },
+      md: { height: '36px', padding: '0 {spacing.md}',  typography: 'body-sm',  gap: '{spacing.2xs}', iconSize: '{icons.md}' },
       lg: { height: '44px', padding: '0 {spacing.lg}',  typography: 'body-md',  gap: '{spacing.xs}',  iconSize: '{icons.lg}' },
     },
     states: {

@@ -9,7 +9,7 @@
     "dev": "concurrently -n web,api -c blue,magenta \"npm run dev -w apps/web\" \"npm run dev -w apps/api\"",
     "dev:web": "npm run dev -w apps/web",
     "dev:api": "npm run dev -w apps/api",
-    "check": "node tools/syntax-guard.mjs && node tools/scope-guard.mjs && node tools/primitives-guard.mjs && node tools/strays-guard.mjs && node tools/grid-guard.mjs",
+    "check": "node tools/syntax-guard.mjs && node tools/scope-guard.mjs && node tools/primitives-guard.mjs && node tools/strays-guard.mjs && node tools/grid-guard.mjs && node apps/web/tools/fix-never-raises.mjs",
     "build": "npm run build -w apps/web",
     "test": "npm run test -w apps/web",
     "db:migrate:local": "npm run db:migrate:local -w apps/api"

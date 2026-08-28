@@ -270,10 +270,16 @@ return (async () => {
        first of four `.dmd` nodes — the preview plus three component samples —
        so every run here had been measuring a surface nobody was looking at. */
     const r = sweep(frame)
+    /* The cap-band check rasterises, so it is async and cannot live inside
+       the synchronous sweep. Run it here and fold its findings in, or a
+       surface with an oversized icon reports clean. */
+    const cb = await capband(frame)
+    const cbN = (cb.findings || []).length
     rows.push({
       at,
       surface: name,
-      clean: r.clean,
+      clean: r.clean && cbN === 0,
+      capband: cbN,
       baselines: r.baselines.length,
       heights: r.heights.length,
       ghosts: r.ghosts.length,
@@ -296,6 +302,7 @@ return (async () => {
          and I spent a round trip deciding the third check was broken. A bound on
          coverage has to announce itself, or the report claims a completeness it
          does not have. */
+      capbandDetail: cbN ? cb.findings.map(x => x.el + " -> " + x.finding) : null,
       detail: r.clean ? null : Object.fromEntries(
         Object.entries(r)
           .filter(([, v]) => Array.isArray(v) && v.length)
@@ -342,7 +349,13 @@ return (async () => {
     /* Findings carry the width they were found at. A ratio that only breaks
        between 360 and 600 is a different piece of work from one that breaks
        everywhere, and the old shape could not tell them apart. */
-    dirty: dirty.map(d => ({ at: d.at, surface: d.surface, ...d.detail })),
+    /* THE CAP-BAND FINDINGS BELONG IN THE BODY TOO. `detail` is keyed on the
+       SWEEP’s verdict, and the cap-band check is a second, asynchronous one.
+       A surface the sweep called clean and the cap-band called dirty came out
+       as a dirty row with a null body: 89 of them, each unactionable, and the
+       run read as 89 unexplained failures. Spread both. */
+    dirty: dirty.map(d => ({ at: d.at, surface: d.surface, ...d.detail,
+      ...(d.capbandDetail ? { capband: d.capbandDetail } : {}) })),
     notices: rows.filter(x => x.notices?.length)
       .map(x => x.at + ' ' + x.surface + ': ' + x.notices.join('; ')),
     skipped: rows.filter(x => x.note).map(x => (x.at ? x.at + ' ' : '') + x.surface + ': ' + x.note),

@@ -27,7 +27,7 @@ import { useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { useStore } from '../state/store.jsx'
 import { derive } from '../state/derive.js'
-import { audit, withFinding, simulateDeuter } from './audit.js'
+import { audit, withFinding, chooseFix, simulateDeuter } from './audit.js'
 
 /* ── THE CHROME AND THE PREVIEW HAVE DIFFERENT PRIMITIVES ──
  *
@@ -71,21 +71,35 @@ export default function FixPreview({ fix, onCancel, onConfirm }) {
   /* The candidate, and what the audit says about it. Both derived from the same
      `withFinding` the button uses, so the preview cannot promise a change the
      button does not make. */
-  const after = useMemo(() => {
-    if (!fix) return null
-    const s = withFinding(state, fix)
-    const d = derive(s)
-    return { state: s, derived: d, findings: audit(s, d) }
-  }, [state, fix])
+  /* CHOOSE the candidate, never take the first one offered.
+   *
+   * They opened this on a warning-to-success finding and the preview read
+   * failures 3 -> 4. "it is not trading one failure for another, it is
+   * creating additional ones!"
+   *
+   * The search inside the audit can only ask local questions — it runs inside
+   * the audit, so it cannot run the audit. It now hands back every step that
+   * separates the pair, nearest first. This is the only place that can score
+   * them, because building the after-state is what this component already
+   * does. Take the nearest candidate whose TOTAL falls; if none does, take
+   * none, and the footer says so instead of offering a button that adds work.
+   *
+   * Warnings count. A step that clears one failure and raises two warnings has
+   * moved the problem, not solved it. */
+  /* One writer for the choice. The scorer lives in audit.js so a test can run
+     it over every preset without mounting React, and so this component and the
+     button cannot drift into two answers. */
+  const after = useMemo(() => chooseFix(state, derived, fix, derive), [state, derived, fix])
 
   if (!fix || !after) return null
 
-  const now = audit(state, derived)
-  const n = (list, level) => list.filter(f => f.level === level).length
-  const before = { fail: n(now, 'fail'), warn: n(now, 'warn') }
-  const next = { fail: n(after.findings, 'fail'), warn: n(after.findings, 'warn') }
+  const before = after.before
+  const next = { fail: after.fail, warn: after.warn }
   const worse = (next.fail + next.warn) > (before.fail + before.warn)
   const settled = (next.fail + next.warn) < (before.fail + before.warn)
+  /* The step the scorer actually chose, which may not be the one the finding
+     named. Show that one, or the swatch and the title disagree. */
+  const chosen = after.fix ?? fix
 
   const fromHex = derived.roles?.[fix.mode]?.[fix.role]
   const toHex = after.derived.roles?.[fix.mode]?.[fix.role]
@@ -104,7 +118,7 @@ export default function FixPreview({ fix, onCancel, onConfirm }) {
         }}>
         <div style={{ padding: 16, borderBottom: '1px solid var(--bdr)' }}>
           <h2 id="fixprev-title" style={{ margin: 0, fontSize: 16, fontWeight: 600, color: 'var(--text)' }}>
-            {fix.label}
+            {chosen.label ?? fix.label}
           </h2>
           <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--muted)' }}>
             {fix.mode} mode. Nothing changes until you apply it, and undo reverses it.
@@ -115,9 +129,9 @@ export default function FixPreview({ fix, onCancel, onConfirm }) {
           {/* The change itself. The dashed square beside each is the same colour
               under deuteranopia, so the claim can be checked rather than taken. */}
           <div style={{ display: 'flex', alignItems: 'flex-end', gap: 16 }}>
-            <Chip hex={fromHex} label={`now · ${fix.from ?? ''}`} />
+            <Chip hex={fromHex} label={`now · ${chosen.from ?? ''}`} />
             <span style={{ fontSize: 18, color: 'var(--dim)', paddingBottom: 20 }} aria-hidden="true">&rarr;</span>
-            <Chip hex={toHex} label={`after · ${fix.ref}`} />
+            <Chip hex={toHex} label={`after · ${chosen.ref}`} />
           </div>
 
           {/* THE NUMBER, because the swatches cannot carry it. A reader with
@@ -143,7 +157,18 @@ export default function FixPreview({ fix, onCancel, onConfirm }) {
           {/* A fix that makes the total worse is still offered, and it says so.
               The alternative is hiding a remedy because one number moved, and the
               reader is the one who knows which finding they care about. */}
-          {worse && (
+          {/* NOTHING IN THE RAMP HELPS. Every step that separates the pair
+              adds more than it removes, so there is no button to press. Saying
+              this is the honest answer; offering a change that raises the count
+              is what they caught. */}
+          {after.noImprovement && (
+            <p style={{ margin: 0, fontSize: 12, color: 'var(--warn)' }}>
+              No step on this ramp clears the finding without adding others.
+              The nearest candidate is shown above for reference. Choose the
+              colour yourself, or accept this finding.
+            </p>
+          )}
+          {!after.noImprovement && worse && (
             <p style={{ margin: 0, fontSize: 12, color: 'var(--warn)' }}>
               This clears the finding you opened and raises the total. Something
               else in the palette now trips a check that was quiet.
@@ -162,7 +187,11 @@ export default function FixPreview({ fix, onCancel, onConfirm }) {
           padding: 16, borderTop: '1px solid var(--bdr)', justifyContent: 'flex-end',
         }}>
           <button className="btn-ghost" onClick={onCancel}>Cancel</button>
-          <button className="btn-primary" onClick={() => onConfirm(fix)}>Apply the change</button>
+          <button className="btn-primary" onClick={() => onConfirm(chosen)}
+            disabled={after.noImprovement}
+            title={after.noImprovement ? "No step in this ramp lowers the total" : undefined}>
+            Apply the change
+          </button>
         </div>
       </div>
     </div>,

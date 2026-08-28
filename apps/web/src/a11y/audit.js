@@ -550,17 +550,34 @@ function stepThatSeparates(derived, mode, role, roleHex, otherHex) {
   }
 
   /* Outward from where it is, nearest first, so the palette moves as little
-     as it has to. */
+     as it has to.
+   *
+   * EVERY candidate, not the first. They opened the remedy for one finding and
+   * the preview said failures 3 -> 4. Their words: "it is not trading one
+   * failure for another, it is creating additional ones!"
+   *
+   * The reason is the shape of `clears` above. It asks two local questions —
+   * is this pair separated now, and does the role keep its own label — and a
+   * role sits in many more pairs than the one being repaired. A step that
+   * answers both can still trip three checks it was never shown.
+   *
+   * The whole audit is the only honest test, and it cannot run here: this
+   * function runs INSIDE the audit, so calling it would recurse. So hand back
+   * the ranked list and let the preview, which already builds the after-state,
+   * choose the first candidate whose TOTAL falls. `ref` stays the nearest one
+   * so an existing caller reading it still gets an answer. */
+  const candidates = []
   for (let d = 1; d < steps.length; d++) {
     for (const i of [from - d, from + d]) {
       if (i < 0 || i >= steps.length) continue
       const step = steps[i]
       if (clears(found.ramp.steps[step])) {
-        return { ref: `${found.name}.${step}`, hex: found.ramp.steps[step], from: `${found.name}.${found.step}` }
+        candidates.push({ ref: `${found.name}.${step}`, hex: found.ramp.steps[step], from: `${found.name}.${found.step}` })
       }
     }
   }
-  return null
+  if (!candidates.length) return null
+  return { ...candidates[0], candidates }
 }
 
 function colourAlone(derived, mode) {
@@ -603,7 +620,7 @@ function colourAlone(derived, mode) {
         apply: (() => {
           const s = stepThatSeparates(derived, mode, b, c[b], c[a])
           return s && { kind: 'role-step', role: b, mode, ref: s.ref, from: s.from,
-            label: `Move ${b} to ${s.ref}` }
+            candidates: s.candidates, label: `Move ${b} to ${s.ref}` }
         })(),
         measured: `Δ${r1(worst * 100)}`,
         pairHex: [c[a], c[b]],
@@ -700,6 +717,49 @@ function disabledCheck(state, derived, mode) {
  * So the change is a pure function of the state and the fix. The preview derives
  * a candidate from it and re-audits; the button hands the same result to `set`.
  * Neither can describe a change the other does not make. */
+/* ── PICK THE STEP WHOSE TOTAL FALLS, OR PICK NOTHING ──
+ *
+ * They opened a remedy and the preview read failures 3 -> 4. Their words:
+ * "it is not trading one failure for another, it is creating additional ones!"
+ *
+ * `stepThatSeparates` runs INSIDE the audit, so it cannot run the audit. It
+ * asks two local questions — is this pair separated, does the role keep its own
+ * label — and a role sits in many more pairs than the one being repaired.
+ *
+ * This runs OUTSIDE, so it can ask the only question that matters: does the
+ * whole count go down. Nearest first, so the first improvement is also the
+ * smallest move. Warnings count, because clearing one failure by raising two
+ * warnings has moved the problem rather than solved it.
+ *
+ * Returns `noImprovement` rather than null, so the caller can still SHOW the
+ * nearest candidate and say why it is not offered. A silent absence reads as a
+ * missing feature.
+ *
+ * `derive` is passed in rather than imported, because audit.js is imported by
+ * the deriver in some paths and a cycle here takes the app down with an
+ * undefined name — which renders as a blank screen, not an error. */
+export function chooseFix(state, derived, fix, derive) {
+  if (!fix) return null
+  const count = list => ({
+    fail: list.filter(f => f.level === 'fail').length,
+    warn: list.filter(f => f.level === 'warn').length,
+  })
+  const before = count(audit(state, derived))
+  const total0 = before.fail + before.warn
+
+  const score = f => {
+    const st = withFinding(state, f)
+    const d = derive(st)
+    const findings = audit(st, d)
+    const c = count(findings)
+    return { state: st, derived: d, findings, ...c, total: c.fail + c.warn, fix: f }
+  }
+
+  const list = fix.candidates?.length ? fix.candidates : [fix]
+  const scored = list.map(c => score({ ...fix, ref: c.ref, from: c.from }))
+  const win = scored.find(x => x.total < total0)
+  return { before, ...(win ?? { ...scored[0], noImprovement: true }) }
+}
 export function withFinding(state, fix) {
   if (!fix) return state
   if (fix.kind === 'role-step') {

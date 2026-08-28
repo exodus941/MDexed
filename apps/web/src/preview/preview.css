@@ -521,6 +521,51 @@
 /* Icon + label pairings, wherever they appear. One gap token governs them all. */
 .dmd .with-icon { display: inline-flex; align-items: center; gap: var(--icon-gap, 8px); }
 
+/* ── A MARK BESIDE A LABEL THAT CAN WRAP BELONGS TO THE FIRST LINE ──
+ *
+ * `align-items: center` centres the mark on the whole BLOCK, which is right
+ * for a chip and wrong for a checkbox. At 296px "Send a copy to my accountant"
+ * wraps to two lines, the label grows to 44.5px, and the 10px mark floats
+ * 11.25px down from the cap line of the words it belongs to. The eye reads it
+ * as attached to the paragraph rather than to the sentence it ticks.
+ *
+ * The rule this breaks is already written down: an item beside a multi-line
+ * block centres on the block, UNLESS it belongs to the first line specifically
+ * — like a checkbox or a bullet.
+ *
+ * `baseline` answers it with no arithmetic. An SVG at `display: block` takes
+ * its baseline from its bottom margin edge, so the mark sits ON the first
+ * line’s baseline and its box lands on the cap band. Measured at 296px:
+ * 11.25px above and -11.25px below, to 0.00 and 0.00.
+ *
+ * Scoped to a LABEL. A badge or a chip holds one line by construction and has
+ * no second line to belong to, so centring stays right there. */
+.dmd label.with-icon { align-items: baseline; }
+
+/* Baseline alignment puts the mark’s BOTTOM on the baseline, which is the
+ * right line and the wrong place on it. The mark is shorter than the cap band,
+ * so it then hangs from the top of the band: measured 2.0px below the cap line
+ * and 0.0px above the baseline, on 13 rows. Fixing the wrapped case had traded
+ * a 22px fault for a 2px one on more surfaces.
+ *
+ * Lift it by half the difference between the band and the box. Stated against
+ * the tokens, never typed: the cap band is 0.72em and the box is the icon size
+ * token, so one expression holds at every type scale and every icon step. The
+ * same expression already sets the checkbox padding further down this file.
+ *
+ * A transform, so nothing in the row moves. */
+/* The flex child is the MARK’S BOX, never the glyph. The mark is a
+ * `span.checkbox` holding the svg, so a rule aimed at `> svg` matched nothing
+ * and the sweep stayed at 13 findings while the stylesheet looked repaired.
+ * Measured on the box: 16px tall, hanging 1px above the cap line and 3px below
+ * the baseline. The lift takes the glyph inside it to 1.24 and 0.76 — a 0.48px
+ * spread, under the whole pixel that is the smallest visible move. */
+.dmd label.with-icon > .checkbox,
+.dmd label.with-icon > .switch,
+.dmd label.with-icon > svg {
+  transform: translateY(calc((var(--icon-sm, 10px) - 0.72em) / 2));
+}
+
 /* A menu item is a row in a list, never an item in a row.
  *
  * `.with-icon` makes things inline-flex, which is right on a chip and wrong
@@ -537,10 +582,10 @@
 .dmd .icon { flex-shrink: 0; }
 /* Per-component icon sizing overrides the global scale, so a small button can
    carry a smaller glyph than a large one. */
-.dmd .btn .icon { width: var(--cmp-button-md-icon-size, var(--cmp-button-icon-size, var(--icon-md, 16px))); height: var(--cmp-button-md-icon-size, var(--cmp-button-icon-size, var(--icon-md, 16px))); }
-.dmd .btn-sm .icon { width: var(--cmp-button-sm-icon-size, var(--icon-sm, 14px)); height: var(--cmp-button-sm-icon-size, var(--icon-sm, 14px)); }
-.dmd .btn-lg .icon { width: var(--cmp-button-lg-icon-size, var(--icon-lg, 20px)); height: var(--cmp-button-lg-icon-size, var(--icon-lg, 20px)); }
-.dmd .nav-item .icon { width: var(--cmp-nav-item-icon-size, var(--icon-md, 16px)); height: var(--cmp-nav-item-icon-size, var(--icon-md, 16px)); }
+.dmd .btn .icon { width: var(--cmp-button-md-icon-size, var(--cmp-button-icon-size, var(--icon-md, 12px))); height: var(--cmp-button-md-icon-size, var(--cmp-button-icon-size, var(--icon-md, 12px))); }
+.dmd .btn-sm .icon { width: var(--cmp-button-sm-icon-size, var(--icon-sm, 10px)); height: var(--cmp-button-sm-icon-size, var(--icon-sm, 10px)); }
+.dmd .btn-lg .icon { width: var(--cmp-button-lg-icon-size, var(--icon-lg, 14px)); height: var(--cmp-button-lg-icon-size, var(--icon-lg, 14px)); }
+.dmd .nav-item .icon { width: var(--cmp-nav-item-icon-size, var(--icon-md, 12px)); height: var(--cmp-nav-item-icon-size, var(--icon-md, 12px)); }
 /* ── THE STROKE IS A PAINTED WEIGHT, SO IT DOES NOT SCALE ──
  *
  * `stroke-width` alone is a length in the viewBox, and an SVG scales it with the
@@ -684,7 +729,7 @@
    looking: at this contrast the difference is easy to read past. */
 .dmd .input-icon > .icon { z-index: 1; pointer-events: none; }
 .dmd .input-icon > svg { position: absolute; left: var(--space-sm, 12px); color: var(--c-text-subtle, #999); pointer-events: none; }
-.dmd .input-icon > .input { padding-left: calc(var(--space-sm, 12px) + var(--icon-md, 16px) + var(--icon-gap, 8px)); }
+.dmd .input-icon > .input { padding-left: calc(var(--space-sm, 12px) + var(--icon-md, 12px) + var(--icon-gap, 8px)); }
 
 /* Text on a row shares one baseline, including a button label and the initials
    in an avatar — both of those donate a real baseline now. Things with no text
@@ -928,7 +973,7 @@
  * box. The correction is derived from the icon size and the cap height, so a
  * change to either carries. */
 .dmd .card > :first-child + .row:has(svg) {
-  padding-top: calc((var(--icon-sm, 14px) - 0.72em) / 2);
+  padding-top: calc((var(--icon-sm, 10px) - 0.72em) / 2);
 }
 /* A mark TALLER than the line box is a different correction, not the same one
    scaled. An icon of 14px sits inside a 22.59px line box, so it overshoots the
@@ -1193,8 +1238,21 @@
  * LINKS. The case I did not touch is the case that broke.
  *
  * Safe at every width: below the collapse the fold is absolutely positioned, so
- * the direction of its parent reaches nothing. */
-.dmd .header-nav { flex-direction: row; align-items: center; }
+ * the direction of its parent reaches nothing.
+ *
+ * BASELINE, NOT CENTRE. The first version of this rule said `center` and broke
+ * the bar it was fixing: four baselines across five runs of text, spread 6.07px,
+ * with "Northwind" at 201.93, the links at 203.42 and "Start Free" at 208. The
+ * bar declares baseline and the link list declares baseline; this sits between
+ * them, and centring here cut the chain.
+ *
+ * A row is baseline when it is mostly text, and this one is: a brand, two links
+ * and a call to action. The toggle is the only thing in it without a word, so it
+ * takes `align-self` rather than deciding the row. */
+.dmd .header-nav { flex-direction: row; align-items: baseline; }
+/* The toggle has no text, so it can donate no baseline and would synthesise one
+   from its bottom edge. It centres on the link row instead. */
+.dmd .header-nav > .page-actions { align-self: center; }
 
 /* Height, not min-height. A floor let the links keep the 38px their own
    padding gave them, so the row still ran 38, 38, 36. Stated, all three are
@@ -1560,8 +1618,8 @@
    this with them. */
 .dmd .empty-mark { display: inline-flex; align-items: center; justify-content: center; }
 .dmd .empty-mark > svg {
-  width: calc(var(--icon-lg, 20px) * 2);
-  height: calc(var(--icon-lg, 20px) * 2);
+  width: calc(var(--icon-lg, 14px) * 2);
+  height: calc(var(--icon-lg, 14px) * 2);
 }
 
 /* ── A SKELETON HOLDS THE SHAPE OF WHAT IS COMING ──
