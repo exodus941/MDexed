@@ -14,7 +14,11 @@ export const COMPONENT_LIBRARY = [
     name: 'button', label: 'Button', group: 'Actions', on: true,
     /* iconSize is per-component and per-size: a 28px button wants a smaller
        glyph than a 44px one, and the global icon scale can't express that. */
-    base: { rounded: '{rounded.md}', typography: 'button', gap: '{spacing.xs}', iconSize: '{icons.md}' },
+    /* The plain `.btn` IS the md size — there is no `.btn-md` class — so it takes
+       its type from HERE and not from `sizes.md`. Changing only the size entry
+       left every default button at 16px beside a 14px icon, on 233 rows. The
+       label size and the icon size are one decision, so they move together. */
+    base: { rounded: '{rounded.md}', typography: 'body-sm', gap: '{spacing.xs}', iconSize: '{icons.md}' },
     variants: {
       /* backgroundImage takes a `{gradient.name}` reference. It sits above the
          fill colour when set, and is dropped from the output when 'none'. */

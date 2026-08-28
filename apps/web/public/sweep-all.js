@@ -273,13 +273,13 @@ return (async () => {
     /* The cap-band check rasterises, so it is async and cannot live inside
        the synchronous sweep. Run it here and fold its findings in, or a
        surface with an oversized icon reports clean. */
-    const cb = await capband(frame)
+    const cb = await inkband(frame)
     const cbN = (cb.findings || []).length
     rows.push({
       at,
       surface: name,
       clean: r.clean && cbN === 0,
-      capband: cbN,
+      inkband: cbN,
       baselines: r.baselines.length,
       heights: r.heights.length,
       ghosts: r.ghosts.length,
@@ -302,7 +302,7 @@ return (async () => {
          and I spent a round trip deciding the third check was broken. A bound on
          coverage has to announce itself, or the report claims a completeness it
          does not have. */
-      capbandDetail: cbN ? cb.findings.map(x => x.el + " -> " + x.finding) : null,
+      inkbandDetail: cbN ? cb.findings.map(x => x.el + " -> " + x.finding) : null,
       detail: r.clean ? null : Object.fromEntries(
         Object.entries(r)
           .filter(([, v]) => Array.isArray(v) && v.length)
@@ -355,7 +355,7 @@ return (async () => {
        as a dirty row with a null body: 89 of them, each unactionable, and the
        run read as 89 unexplained failures. Spread both. */
     dirty: dirty.map(d => ({ at: d.at, surface: d.surface, ...d.detail,
-      ...(d.capbandDetail ? { capband: d.capbandDetail } : {}) })),
+      ...(d.inkbandDetail ? { inkband: d.inkbandDetail } : {}) })),
     notices: rows.filter(x => x.notices?.length)
       .map(x => x.at + ' ' + x.surface + ': ' + x.notices.join('; ')),
     skipped: rows.filter(x => x.note).map(x => (x.at ? x.at + ' ' : '') + x.surface + ': ' + x.note),

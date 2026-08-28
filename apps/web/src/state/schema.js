@@ -636,7 +636,7 @@ export const createInitialState = () => ({
   /* `gap` is the space between an icon and its label — in buttons, menu items,
      list rows, anywhere the two pair up. It is one decision, not a per-
      component one, so it lives with the icons. */
-  icons: { library: 'Lucide', strokeWidth: 1.25, sizes: { sm: 10, md: 12, lg: 14, xl: 16 }, joinStyle: 'round', gap: 'xs' },
+  icons: { library: 'Lucide', strokeWidth: 1.25, sizes: { sm: 12, md: 14, lg: 16, xl: 20 }, joinStyle: 'round', gap: 'xs' },
 
   focus: { width: 2, offset: 2, style: 'solid', role: 'ring' },
 
