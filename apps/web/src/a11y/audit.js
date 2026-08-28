@@ -627,6 +627,14 @@ function colourAlone(derived, mode) {
 
 const hexOf = c => toHex({ ...rgb(c), alpha: 1 })
 
+/* The same simulation the rule above is written against, exported so a preview
+   can show what the reader with deuteranopia receives. A second implementation
+   of this would let the picture disagree with the finding beside it. */
+export const simulateDeuter = hex => {
+  const c = parseColor(hex)
+  return c ? hexOf(deuter(c)) : hex
+}
+
 /* ── Disabled state ──
  *
  * Disabled controls are explicitly exempt from contrast requirements, which
@@ -683,6 +691,32 @@ function disabledCheck(state, derived, mode) {
  * why all twelve go into DESIGN.md regardless: the agent writing the markup is
  * the only party that can satisfy them.
  */
+/* ── ONE WRITER FOR A REMEDY ──
+ *
+ * The preview has to show what the button will do. Two implementations of "what
+ * the button does" drift, and a preview that drifts from its own action is worse
+ * than no preview: it is a promise the app then breaks.
+ *
+ * So the change is a pure function of the state and the fix. The preview derives
+ * a candidate from it and re-audits; the button hands the same result to `set`.
+ * Neither can describe a change the other does not make. */
+export function withFinding(state, fix) {
+  if (!fix) return state
+  if (fix.kind === 'role-step') {
+    return {
+      ...state,
+      color: {
+        ...state.color,
+        roles: {
+          ...state.color.roles,
+          [fix.role]: { ...state.color.roles[fix.role], [fix.mode]: fix.ref },
+        },
+      },
+    }
+  }
+  return state
+}
+
 export const REQUIREMENTS = [
   { id: 'semantics',  checked: false, text: 'Use the semantic element. A control that acts like a button is a `<button>`, not a styled `<div>` with a click handler.' },
   { id: 'labels',     checked: false, text: 'Every input has a programmatic label. A placeholder is not a label — it disappears the moment someone types.' },

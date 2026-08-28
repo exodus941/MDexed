@@ -19,6 +19,8 @@ import { Banner, ResetButton, CloseButton, SectionHeader, SectionBreak, Collapsi
 import CrossFade from './ui/CrossFade.jsx'
 import TabStrip, { scrollableUnder } from './ui/TabStrip.jsx'
 import ImportModal, { IMPORT_FORMATS } from './ui/ImportModal.jsx'
+import FixPreview from './a11y/FixPreview.jsx'
+import { withFinding } from './a11y/audit.js'
 import Canvas, { SURFACES } from './preview/Canvas.jsx'
 import ColorPanel from './panels/ColorPanel.jsx'
 import RolesPanel from './panels/RolesPanel.jsx'
@@ -1281,17 +1283,25 @@ function Shell() {
      It still navigates afterwards: the change lands in front of you rather
      than somewhere you have to go and verify, and undo reverses it like any
      other edit. */
+  /* ── FIX IT ASKS FIRST ──
+   *
+   * It used to change the document on the first click. That is fine for a
+   * spacing nudge and wrong for a colour: the remedy moves a semantic role to a
+   * different step of its ramp, and a role is a decision somebody made.
+   *
+   * So the button now opens a preview. `pendingFix` holds what it would do until
+   * the reader agrees. */
+  const [pendingFix, setPendingFix] = useState(null)
+
   const applyFinding = useCallback(fix => {
     if (!fix) return
-    if (fix.kind === 'role-step') {
-      set(s => ({
-        ...s,
-        color: {
-          ...s.color,
-          roles: { ...s.color.roles, [fix.role]: { ...s.color.roles[fix.role], [fix.mode]: fix.ref } },
-        },
-      }), `role:${fix.role}:${fix.mode}`)
-    }
+    /* `withFinding` is the one writer. The preview derives its candidate from
+       the same function, so the picture cannot promise a change this does not
+       make. */
+    set(s => withFinding(s, fix), `role:${fix.role}:${fix.mode}`)
+    setPendingFix(null)
+    /* Still navigates. The change lands in front of you rather than somewhere
+       you have to go and verify, and undo reverses it like any other edit. */
     navigate('roles', fix.role)
   }, [set, navigate])
   /* The previous session's document, offered rather than loaded. */
@@ -2243,7 +2253,7 @@ function Shell() {
             ...(isMobile && !stackPanes && mobilePane !== 'preview' ? { display: 'none' } : null),
             ...(isMobile && stackPanes ? { minHeight: '80vh' } : null),
           }}>
-            <Canvas surface={surface} setSurface={setSurface} compact={isMobile} onOpenContrast={() => setTab('roles')} onJump={navigate} onApply={applyFinding} onInspect={t => {
+            <Canvas surface={surface} setSurface={setSurface} compact={isMobile} onOpenContrast={() => setTab('roles')} onJump={navigate} onApply={setPendingFix} onInspect={t => {
               setInspect({ entry: t.target, kind: t.kind, at: Date.now() })
               setTab(KIND_TAB[t.kind] ?? 'components')
             }} />
@@ -2282,6 +2292,8 @@ function Shell() {
         )}
       </div>
 
+      {/* Fix It opens this rather than changing the document. */}
+      <FixPreview fix={pendingFix} onCancel={() => setPendingFix(null)} onConfirm={applyFinding} />
       {showFile && <FileModal onClose={() => setShowFile(false)} />}
       {showImport && (
         <ImportModal onClose={() => setShowImport(false)}
