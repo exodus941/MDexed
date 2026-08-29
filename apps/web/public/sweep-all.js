@@ -15,7 +15,12 @@
  */
 return (async () => {
   const src = await (await fetch('/layout-tools.js?v=' + Date.now())).text()
-  new Function(src + '\nwindow.sweep=sweep;window.probe=probe;window.align=align')()
+  /* `inkband` has to be exported here too, or this run finds whatever a previous
+     manual load happened to leave on `window`. On a freshly reloaded page it
+     found nothing and the whole sweep died with "inkband is not defined". A tool
+     that works only after you have used it by hand is not wired up. */
+  new Function(src + '\nwindow.sweep=sweep;window.probe=probe;window.align=align;window.inkband=inkband')()
+  if (typeof window.inkband !== 'function') throw new Error('layout-tools loaded without inkband')
 
   const chrome = () => [...document.querySelectorAll('button')].filter(e => !e.closest('.dmd'))
   const pause = ms => new Promise(r => setTimeout(r, ms))
@@ -273,7 +278,7 @@ return (async () => {
     /* The cap-band check rasterises, so it is async and cannot live inside
        the synchronous sweep. Run it here and fold its findings in, or a
        surface with an oversized icon reports clean. */
-    const cb = await inkband(frame)
+    const cb = await window.inkband(frame)
     const cbN = (cb.findings || []).length
     rows.push({
       at,

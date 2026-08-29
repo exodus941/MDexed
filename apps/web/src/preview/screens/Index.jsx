@@ -95,7 +95,9 @@ export default function Index ({ onInspect, casing, layout }) {
             to 80px holding 84. */}
         <label className="input with-icon" {...ins('input')}
           style={{ flex: '1 1 14rem', minWidth: 'min-content' }}>
-          <Ico d={IconSearch} size="sm" />
+          {/* The field sets a 14px label, so its mark takes the md step. At `sm`
+              it painted 10px beside 14px type, 71% where the pair wants 86%. */}
+          <Ico d={IconSearch} size="md" />
           <span className="subtle small" {...txt('body-sm', 'text-subtle')}>{L('Search invoices')}</span>
         </label>
         {/* A FILTER IS A DROPDOWN, so it uses the component that exists for
