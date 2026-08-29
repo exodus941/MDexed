@@ -563,7 +563,7 @@
 .dmd label.with-icon > .checkbox,
 .dmd label.with-icon > .switch,
 .dmd label.with-icon > svg {
-  transform: translateY(calc((var(--icon-sm, 10px) - 0.72em) / 2));
+  transform: translateY(calc((var(--icon-sm, 14px) - 0.72em) / 2));
 }
 
 /* A menu item is a row in a list, never an item in a row.
@@ -582,10 +582,10 @@
 .dmd .icon { flex-shrink: 0; }
 /* Per-component icon sizing overrides the global scale, so a small button can
    carry a smaller glyph than a large one. */
-.dmd .btn .icon { width: var(--cmp-button-md-icon-size, var(--cmp-button-icon-size, var(--icon-md, 12px))); height: var(--cmp-button-md-icon-size, var(--cmp-button-icon-size, var(--icon-md, 12px))); }
-.dmd .btn-sm .icon { width: var(--cmp-button-sm-icon-size, var(--icon-sm, 10px)); height: var(--cmp-button-sm-icon-size, var(--icon-sm, 10px)); }
-.dmd .btn-lg .icon { width: var(--cmp-button-lg-icon-size, var(--icon-lg, 14px)); height: var(--cmp-button-lg-icon-size, var(--icon-lg, 14px)); }
-.dmd .nav-item .icon { width: var(--cmp-nav-item-icon-size, var(--icon-md, 12px)); height: var(--cmp-nav-item-icon-size, var(--icon-md, 12px)); }
+.dmd .btn .icon { width: var(--cmp-button-md-icon-size, var(--cmp-button-icon-size, var(--icon-md, 16px))); height: var(--cmp-button-md-icon-size, var(--cmp-button-icon-size, var(--icon-md, 16px))); }
+.dmd .btn-sm .icon { width: var(--cmp-button-sm-icon-size, var(--icon-sm, 14px)); height: var(--cmp-button-sm-icon-size, var(--icon-sm, 14px)); }
+.dmd .btn-lg .icon { width: var(--cmp-button-lg-icon-size, var(--icon-lg, 20px)); height: var(--cmp-button-lg-icon-size, var(--icon-lg, 20px)); }
+.dmd .nav-item .icon { width: var(--cmp-nav-item-icon-size, var(--icon-md, 16px)); height: var(--cmp-nav-item-icon-size, var(--icon-md, 16px)); }
 /* ── THE STROKE IS A PAINTED WEIGHT, SO IT DOES NOT SCALE ──
  *
  * `stroke-width` alone is a length in the viewBox, and an SVG scales it with the
@@ -610,7 +610,7 @@
  *
  * It also makes the number honest. `--icon-stroke` is now the px the mark
  * paints, not a figure that has to be multiplied by a scale to mean anything. */
-.dmd svg { stroke-width: var(--icon-stroke, 1.25); vector-effect: non-scaling-stroke; }
+.dmd svg { stroke-width: var(--icon-stroke, 1); vector-effect: non-scaling-stroke; }
 /* An icon-only button is a button. This used to be its own component with a
    hardcoded 36px box, so it stood 8px taller than the small buttons it sat
    beside in the dashboard header — while being tagged button-secondary for
@@ -728,15 +728,7 @@
    measured 16 by 16 and rendered none of it. Found by a paint check, not by
    looking: at this contrast the difference is easy to read past. */
 .dmd .input-icon > .icon { z-index: 1; pointer-events: none; }
-/* The field reserves `--icon-md` on the line below, and the mark rendered at
-   `--icon-sm`: 10px of glyph in a 12px gap, beside a 14px label. The reserved
-   width and the painted width are one decision, so they name one token. */
-.dmd .input-icon > svg {
-  position: absolute; left: var(--space-sm, 12px);
-  width: var(--icon-md, 12px); height: var(--icon-md, 12px);
-  color: var(--c-text-subtle, #999); pointer-events: none;
-}
-.dmd .input-icon > .input { padding-left: calc(var(--space-sm, 12px) + var(--icon-md, 12px) + var(--icon-gap, 8px)); }
+.dmd .input-icon > svg { position: absolute; left: var(--space-sm, 12px); color: var(--c-text-subtle, #999); pointer-events: none; }.dmd .input-icon > .input { padding-left: calc(var(--space-sm, 12px) + var(--icon-md, 16px) + var(--icon-gap, 8px)); }
 
 /* Text on a row shares one baseline, including a button label and the initials
    in an avatar — both of those donate a real baseline now. Things with no text
@@ -980,7 +972,7 @@
  * box. The correction is derived from the icon size and the cap height, so a
  * change to either carries. */
 .dmd .card > :first-child + .row:has(svg) {
-  padding-top: calc((var(--icon-sm, 10px) - 0.72em) / 2);
+  padding-top: calc((var(--icon-sm, 14px) - 0.72em) / 2);
 }
 /* A mark TALLER than the line box is a different correction, not the same one
    scaled. An icon of 14px sits inside a 22.59px line box, so it overshoots the
@@ -1270,18 +1262,6 @@
   line-height: calc(var(--cmp-button-md-height, 36px) - 2px);
   padding: 0 var(--cmp-button-md-padding-x, var(--space-md, 16px));
   font-size: var(--cmp-button-md-font-size, var(--font-button-size, 16px));
-}
-/* AND ITS MARK, because this rule promotes the button off the size class its
-   markup still carries. The element keeps `btn-sm`, so `.btn-sm .icon` went on
-   painting a 10px mark beside the 14px label this rule gives it: 71% where the
-   pair wants 86%, on 13 rows of the sweep.
-
-   A first repair went into the narrow-width block, which is inactive at 640px
-   where the fault also shows. Height, padding, label and mark are one decision,
-   so the mark belongs in the block that makes the other three. */
-.dmd .header-nav .nav-list > .btn .icon {
-  width: var(--cmp-button-md-icon-size, var(--icon-md, 12px));
-  height: var(--cmp-button-md-icon-size, var(--icon-md, 12px));
 }
 
 /* The fold runs on the document's own motion tokens.
@@ -1637,8 +1617,8 @@
    this with them. */
 .dmd .empty-mark { display: inline-flex; align-items: center; justify-content: center; }
 .dmd .empty-mark > svg {
-  width: calc(var(--icon-lg, 14px) * 2);
-  height: calc(var(--icon-lg, 14px) * 2);
+  width: calc(var(--icon-lg, 20px) * 2);
+  height: calc(var(--icon-lg, 20px) * 2);
 }
 
 /* ── A SKELETON HOLDS THE SHAPE OF WHAT IS COMING ──

@@ -18,7 +18,7 @@ export const COMPONENT_LIBRARY = [
        its type from HERE and not from `sizes.md`. Changing only the size entry
        left every default button at 16px beside a 14px icon, on 233 rows. The
        label size and the icon size are one decision, so they move together. */
-    base: { rounded: '{rounded.md}', typography: 'body-sm', gap: '{spacing.xs}', iconSize: '{icons.md}' },
+    base: { rounded: '{rounded.md}', typography: 'button', gap: '{spacing.xs}', iconSize: '{icons.md}' },
     variants: {
       /* backgroundImage takes a `{gradient.name}` reference. It sits above the
          fill colour when set, and is dropped from the output when 'none'. */
@@ -41,7 +41,7 @@ export const COMPONENT_LIBRARY = [
        these override it per size. */
     sizes: {
       sm: { height: '28px', padding: '0 {spacing.sm}',  typography: 'caption',  gap: '{spacing.3xs}', iconSize: '{icons.sm}' },
-      md: { height: '36px', padding: '0 {spacing.md}',  typography: 'body-sm',  gap: '{spacing.2xs}', iconSize: '{icons.md}' },
+      md: { height: '36px', padding: '0 {spacing.md}',  typography: 'button',   gap: '{spacing.2xs}', iconSize: '{icons.md}' },
       lg: { height: '44px', padding: '0 {spacing.lg}',  typography: 'body-md',  gap: '{spacing.xs}',  iconSize: '{icons.lg}' },
     },
     states: {

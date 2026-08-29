@@ -591,20 +591,6 @@
     padding: var(--cmp-button-lg-padding, 0 var(--space-lg, 24px));
     font-size: var(--cmp-button-lg-font-size, var(--font-body-md-size, 16px));
   }
-  /* THE ICON IS PART OF THE PROMOTION. The rule above moves the height, the
-     leading, the padding and the label to the large step, and left the mark on
-     the small one. Measured at 296px: a 44px button carrying a 16px label and a
-     10px icon, 63% where the pair wants 86%. It reached 37 rows of the sweep.
-
-     The label size and the icon size are one decision, so they move in one
-     block. Anything added to the selector list above belongs here too. */
-  .dmd .nav-summary .icon,
-  .dmd .page-actions > .btn .icon,
-  .dmd .stack-narrow > .btn .icon,
-  .dmd .stack-narrow-rev > .btn .icon {
-    width: var(--cmp-button-lg-icon-size, var(--icon-lg, 14px));
-    height: var(--cmp-button-lg-icon-size, var(--icon-lg, 14px));
-  }
   .dmd .page-actions > .btn.icon-only,
   .dmd .stack-narrow > .btn.icon-only,
   .dmd .stack-narrow-rev > .btn.icon-only {
