@@ -108,9 +108,45 @@
    translate lifts it onto the label's cap-height centre, which is the middle
    the eye actually compares against. It is a transform so it changes no
    layout, and roughly half the difference between cap height and x-height. */
+/* ── AN ICON BESIDE A LABEL CENTRES ON THE CAP BAND ──
+ *
+ * Their rule, said many times before I built it: "the only acceptable space
+ * for the alignment of the icon is between the cap height and the baseline of
+ * the text label on the button."
+ *
+ * `vertical-align: middle` puts the mark on the x-height, which is lower, and
+ * the 0.12em lift that used to sit here was a partial correction for it. Both
+ * are gone. Two declarations do the whole job:
+ *
+ *   `baseline` puts the box’s BOTTOM edge on the text baseline, which is one
+ *   of the two lines. `align-self` is needed beside it because a flex parent
+ *   ignores `vertical-align` entirely: nav items centred on the row box while
+ *   buttons sat on the baseline, and one transform could not serve both.
+ *
+ *   The transform then lifts the box by half of what it overhangs. A percentage
+ *   in `translateY` resolves against the element’s OWN height, so this holds at
+ *   every icon size with no per-size arithmetic. `0.75em` is the cap height of
+ *   the label, measured from painted ink at 12, 16, 20 and 24px.
+ *
+ * Measured after: a 16px mark on a 12px label sits 3.50px above the cap line
+ * and 3.50px below the baseline, spread 0.01. Worst case across the header is
+ * 0.51, where the browser rounds a 10.5px cap band to 10.
+ *
+ * AN ICON-ONLY CONTROL IS EXCLUDED. It has no label, so it has no baseline to
+ * sit on, and `vertical-align: baseline` dropped the bell and the bulb out of
+ * their boxes. It centres on its own box, which is the existing rule. */
+/* A SELECT TRIGGER IS EXCLUDED TOO. Its chevron sits at the far end of a flex
+   row that sets its own alignment, and `align-self: baseline` pulled it 10px
+   above the cap line against 2.92 before. A control with its own arrangement
+   is not a label with a mark beside it. */
+.dmd .btn:not(.icon-only):not(.select-trigger) .icon,
+.dmd .nav-item:not(.icon-only):not(.select-trigger) .icon {
+  vertical-align: baseline;
+  align-self: baseline;
+  transform: translateY(calc((100% - 0.75em) / 2));
+}
 .dmd .btn .icon {
-  vertical-align: middle; margin-right: var(--cmp-button-gap, var(--icon-gap, 8px)); margin-left: 0;
-  transform: translateY(-0.12em);
+  margin-right: var(--cmp-button-gap, var(--icon-gap, 8px)); margin-left: 0;
 }
 .dmd .btn .icon-end { margin-right: 0; margin-left: var(--cmp-button-gap, var(--icon-gap, 8px)); }
 .dmd .btn:focus-visible {
@@ -582,9 +618,12 @@
 .dmd .icon { flex-shrink: 0; }
 /* Per-component icon sizing overrides the global scale, so a small button can
    carry a smaller glyph than a large one. */
-.dmd .btn .icon { width: var(--cmp-button-md-icon-size, var(--cmp-button-icon-size, var(--icon-md, 16px))); height: var(--cmp-button-md-icon-size, var(--cmp-button-icon-size, var(--icon-md, 16px))); }
-.dmd .btn-sm .icon { width: var(--cmp-button-sm-icon-size, var(--icon-sm, 14px)); height: var(--cmp-button-sm-icon-size, var(--icon-sm, 14px)); }
-.dmd .btn-lg .icon { width: var(--cmp-button-lg-icon-size, var(--icon-lg, 20px)); height: var(--cmp-button-lg-icon-size, var(--icon-lg, 20px)); }
+/* ONE SIZE FOR EVERY BUTTON MARK. Their instruction: 14px. 16 read as toothy
+   beside a 12px label. The alignment rule above centres it on the cap band at
+   whatever size it is, so the step no longer has to track the label. */
+.dmd .btn .icon,
+.dmd .btn-sm .icon,
+.dmd .btn-lg .icon { width: var(--cmp-button-icon-size, 14px); height: var(--cmp-button-icon-size, 14px); }
 .dmd .nav-item .icon { width: var(--cmp-nav-item-icon-size, var(--icon-md, 16px)); height: var(--cmp-nav-item-icon-size, var(--icon-md, 16px)); }
 /* ── THE STROKE IS A PAINTED WEIGHT, SO IT DOES NOT SCALE ──
  *
