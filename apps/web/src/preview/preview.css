@@ -614,7 +614,21 @@
  * Stated at three classes so it beats `.with-icon` on specificity rather than
  * on which line came last. A rule that wins by file position is not a fix. */
 .dmd .nav-item { display: flex; align-items: center; gap: var(--icon-gap, 8px); }
-.dmd .nav-item.with-icon { display: flex; }
+/* A NAV ITEM CARRYING A MARK ALIGNS ITS ROW ON THE BASELINE.
+
+   `align-self: baseline` on the mark aligns it to the FLEX LINE’s baseline, and
+   a row that declares `align-items: center` does not put that line on the
+   label. Inside the folded menu the item grows to 40px and the two diverge: the
+   mark measured 4.32px above the cap line against 1.68 below it, a spread of
+   2.65, while the same markup at 640px read 0.50.
+
+   Declaring the row on the baseline makes the line the label’s, and the mark
+   rule above then lands. Measured 0.51 at 296 and 480, unchanged at 640 and
+   1280 where it was already right.
+
+   Three classes, because the narrow-width sheet restates `align-items: center`
+   at two and a rule of equal weight cannot be relied on to come last. */
+.dmd .nav-item.with-icon { display: flex; align-items: baseline; }
 .dmd .icon { flex-shrink: 0; }
 /* Per-component icon sizing overrides the global scale, so a small button can
    carry a smaller glyph than a large one. */
