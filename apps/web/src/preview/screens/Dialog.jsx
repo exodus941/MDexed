@@ -91,11 +91,30 @@ function Modal({ ins, txt, layout, onInspect }) {
         </button>
       )}
 
-      <div style={{
-        display: 'flex', gap: 'var(--icon-gap, 8px)', marginBottom: gap,
+      {/* THE PRIMITIVE, not a hand-rolled copy of it. This row set its own
+          `gap` and `align-items: center`, which is `.with-icon` written out
+          again and one value behind it: the class aligns on the baseline so
+          the mark lands on the label's cap band, and this copy centred it on
+          the box. Measured, the mark sat 0.89px below the heading's optical
+          mid, and the sweep only found it once it stopped matching a tag list.
+
+          `flex`, not the class's own `inline-flex`, because the row spans the
+          dialog. The stacked variant keeps its own cross-axis rule: a column
+          has no baseline to share.
+
+          THE ROW CARRIES ITS LABEL'S TYPE, and that is not decoration. The
+          cap-band rule states the band as `0.75em`, and `em` resolves against
+          the element carrying the transform, which is the mark's wrapper here.
+          Left at the body size it computed a 12px band for a 20px heading and
+          shifted 4px where 2.5 was wanted. The heading sets the same token on
+          itself, and the mark is `--icon-lg` rather than an em, so nothing
+          resizes. */}
+      <div className="with-icon" style={{
+        display: 'flex', marginBottom: gap,
+        fontSize: 'var(--font-h5-size, 20px)',
         ...(stacked
           ? { flexDirection: 'column', alignItems: centred ? 'center' : 'flex-start' }
-          : { alignItems: 'center', justifyContent: centred ? 'center' : 'flex-start' }),
+          : { justifyContent: centred ? 'center' : 'flex-start' }),
       }}>
         {icon}
         <h3 id={TITLE_ID} style={{ fontSize: 'var(--font-h5-size, 20px)' }} {...txt('h5')}>Delete this invoice?</h3>

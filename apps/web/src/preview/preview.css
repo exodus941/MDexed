@@ -139,8 +139,31 @@
    row that sets its own alignment, and `align-self: baseline` pulled it 10px
    above the cap line against 2.92 before. A control with its own arrangement
    is not a label with a mark beside it. */
+/* A FIELD'S LEADING MARK IS THE SAME PAIRING, and it was left out. The rule
+   named `.btn` and `.nav-item` only, so the search field's mark kept the
+   `align-items: center` it inherits from its row. That centres the mark on the
+   36px BOX, and a cap band does not sit on a box centre: a text box carries
+   more leading below the baseline than above the cap. Measured on "Search
+   Invoices": 0.08px above the cap line against 4.08 below the baseline.
+
+   The field needs the row half of the rule as well, which is why the first
+   attempt at this failed. `align-self: baseline` aligns to the FLEX LINE
+   baseline, and a row declaring `align-items: center` does not put that line
+   on the label. See the block on `label.input.with-icon` below. */
 .dmd .btn:not(.icon-only):not(.select-trigger) .icon,
-.dmd .nav-item:not(.icon-only):not(.select-trigger) .icon {
+.dmd .nav-item:not(.icon-only):not(.select-trigger) .icon,
+.dmd label.input.with-icon > .icon,
+.dmd label.input.with-icon > svg,
+.dmd .with-icon:not(.badge):not(.btn):not(.nav-item) > .icon,
+.dmd .with-icon:not(.badge):not(.btn):not(.nav-item) > svg,
+/* AND A WRAPPER THAT HOLDS ONLY THE MARK. The editor wraps every component
+   instance in an inspector span, so inside a preview the mark is a grandchild
+   and `> svg` matches nothing at all. Worse once the row aligns on the
+   baseline: a text-less inline-flex span takes its baseline from its bottom
+   MARGIN edge, so the mark hung its whole height above the line, measured 6px
+   over the cap against 0 below the baseline. The wrapper is the flex item, so
+   the wrapper is what takes the rule. */
+.dmd .with-icon:not(.badge):not(.btn):not(.nav-item) > span:has(> svg):not(:has(> :not(svg))) {
   vertical-align: baseline;
   align-self: baseline;
   transform: translateY(calc((100% - 0.75em) / 2));
@@ -395,9 +418,34 @@
 .dmd .row.row-controls { align-items: center; }
 
 .dmd label.input.with-icon {
-  display: inline-flex; align-items: center; gap: var(--space-2xs, 4px);
+  display: inline-flex; gap: var(--cmp-input-gap, var(--space-2xs, 4px));
   height: var(--cmp-input-height, 36px);
   padding-block: 0;
+  /* ── BASELINE, NOT CENTRE, AND A STATED LINE BOX WITH IT ──
+   *
+   * These two are one decision. `align-items: baseline` is what puts the flex
+   * line on the label, so the mark's own `align-self: baseline` has the right
+   * line to sit on. On its own it also strands the text at cross-start, which
+   * is what an earlier attempt at this did: the mark went to 9px above the cap
+   * line against 6 below the baseline, worse than the fault.
+   *
+   * The line-height is the other half. Stated as the CONTENT box — the height
+   * minus its two borders — the text's own line box fills the field, so the
+   * label is centred by its leading rather than by the flex box, exactly as
+   * `.btn` does it. The baseline then lands where centring used to put it, and
+   * the mark sits on the cap band above it. */
+  align-items: baseline;
+  line-height: calc(var(--cmp-input-height, 36px) - 2px);
+}
+/* THE LINE BOX HAS TO REACH THE CHILD THAT HOLDS THE TEXT. Stated on the field
+   alone it was overridden: the label inside carries `.small`, which sets its
+   own 22.26px, so the text sat in a 22px box at the top of a 36px field and
+   the cap landed 7px from the top against a baseline 19px from the bottom.
+   The field's own children take the field's line box, the way a button's label
+   takes its button's. Direct children only, so nothing outside this field
+   inherits a control's line height. */
+.dmd label.input.with-icon > * {
+  line-height: inherit;
   /* The placeholder holds one line. `min-content` on the field lets the text
      break at its word boundaries, and "Search Invoices" folded into two lines
      inside a 36px box — 45.2px of span, spilling 6px below the border. A field
@@ -554,8 +602,21 @@
 .dmd .alert-danger  { background-color: var(--cmp-alert-danger-background-color, var(--c-danger-subtle, #f7e8e7));  color: var(--cmp-alert-danger-text-color, var(--c-danger, #c2453c)); }
 
 /* ── Structure ── */
-/* Icon + label pairings, wherever they appear. One gap token governs them all. */
-.dmd .with-icon { display: inline-flex; align-items: center; gap: var(--icon-gap, 8px); }
+/* Icon + label pairings, wherever they appear. One gap token governs them all.
+ *
+ * BASELINE, NOT CENTRE, AND THIS IS THE CLASS THE SEARCH FIELD BELONGED TO.
+ * `center` puts the mark on the middle of the flex line's BOX, and a cap band
+ * does not sit there: a text box carries more leading below the baseline than
+ * above the cap. Measured on this rule's own instances, a heading's mark and a
+ * caption's mark each read 0.89px and 0.86px below the label's optical mid.
+ *
+ * `label.with-icon` and `.nav-item.with-icon` already carried the fix as
+ * special cases, which is the tell that the general rule was wrong. Two
+ * exceptions to a rule are the rule asking to be rewritten.
+ *
+ * The row half only. The mark's own half is the cap-band block near the top of
+ * this file, which now names this selector too. */
+.dmd .with-icon { display: inline-flex; align-items: baseline; gap: var(--icon-gap, 8px); }
 
 /* ── A MARK BESIDE A LABEL THAT CAN WRAP BELONGS TO THE FIRST LINE ──
  *
