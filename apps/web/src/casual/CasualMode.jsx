@@ -126,7 +126,7 @@ export function LaunchFork({ onGuided, onHandsOn, onRestore, restorableName, lea
         }}>
         <div style={{ padding: `${PANEL_Y + 8}px ${PANEL_X}px ${PANEL_Y}px`, borderBottom: '1px solid var(--bdr)' }}>
           <h2 id="fork-title" style={{ margin: 0, fontFamily: 'var(--display)', fontSize: 20, fontWeight: 700, color: 'var(--text)' }}>
-            Make a design system
+            Make a Design System
           </h2>
           <p style={{ margin: '6px 0 0', fontSize: 12, color: 'var(--muted)', lineHeight: 1.5 }}>
             Two ways in. You can switch at any point.
@@ -151,7 +151,7 @@ export function LaunchFork({ onGuided, onHandsOn, onRestore, restorableName, lea
               padding: BTN.md, fontSize: 12, textAlign: 'left',
             }}>
               <Glyph d={IconFolder} size={16} />
-              <span>Or reopen “{restorableName}”</span>
+              <span>Or Reopen “{restorableName}”</span>
             </button>
           )}
         </div>
@@ -270,8 +270,8 @@ export default function CasualWizard({ onClose, onBack, leaving }) {
               get the full width and the sample lands where the eye goes after
               a click. */}
           {STEPS[step].id === 'building' && (
-            <Field label="One line is enough. Or skip it."
-              note="The only free-text answer. Leave it empty and the agent asks you before it starts.">
+            <Field label="What You’re Building"
+              note="One line is enough, and you can skip it. Leave it empty and the agent asks you before it starts.">
               <input ref={firstField} className="input" value={a.building}
                 onChange={e => set('building', e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') setStep(step + 1) }}
@@ -284,34 +284,34 @@ export default function CasualWizard({ onClose, onBack, leaving }) {
           )}
 
           {STEPS[step].id === 'theme' && (
-            <Field label="Light, dark, or both?"
+            <Field label="Themes"
               note="Both ships a light block, a dark one, and a visible toggle. Every later preview then shows you two panes.">
               <Choices options={THEMES} value={a.theme} onChange={v => set('theme', v)} columns={3} />
             </Field>
           )}
 
           {STEPS[step].id === 'colours' && (
-            <Field label="Up to six colours."
-              note="Skip this and the agent chooses inside the hue range you pick next. Anything you add here anchors the palette."
+            <Field label="Brand Colours"
+              note="Up to six. Skip this and the agent chooses inside the hue range you pick next. Anything you add here anchors the palette."
             >
               <BrandColours value={a.brand} onChange={v => set('brand', v)} />
             </Field>
           )}
 
           {STEPS[step].id === 'palette' && (
-            <Field label="A range of hues, not a swatch." note="The agent picks inside it.">
+            <Field label="Hue Range" note="A range, not a swatch. The agent picks inside it.">
               <Choices options={PALETTES} value={a.palette} onChange={v => set('palette', v)} columns={2} />
             </Field>
           )}
 
           {STEPS[step].id === 'type' && (
-            <Field label="A pairing, not a font list.">
+            <Field label="Pairing" note="A pairing, not a font list.">
               <Choices options={TYPE_PAIRINGS} value={a.type} onChange={v => set('type', v)} columns={2} />
             </Field>
           )}
 
           {STEPS[step].id === 'tightness' && (
-            <Field label="How much room everything gets." note="One number, multiplying every step on the spacing scale.">
+            <Field label="Spacing" note="How much room everything gets. One number, multiplying every step on the scale.">
               <Choices options={TIGHTNESS} value={a.tightness} onChange={v => set('tightness', v)} columns={2} />
             </Field>
           )}
@@ -341,7 +341,7 @@ export default function CasualWizard({ onClose, onBack, leaving }) {
                 background: 'var(--accent-subtle)', border: '1px solid var(--accent)',
               }}>
                 <strong style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)' }}>
-                  Copy this, and paste it to an AI assistant.
+                  Copy This, and Paste It to an AI Assistant.
                 </strong>
                 <span style={{ fontSize: 14, color: 'var(--text)', lineHeight: 1.5 }}>
                   Anything that can open a web page will do. It opens{' '}

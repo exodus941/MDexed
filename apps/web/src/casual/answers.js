@@ -63,8 +63,8 @@ export const DEPTHS = [
 ]
 
 export const THEMES = [
-  { id: 'light', label: 'Light only', note: 'No dark block and no toggle.' },
-  { id: 'dark',  label: 'Dark only',  note: 'Dark values sit on the root.' },
+  { id: 'light', label: 'Light Only', note: 'No dark block and no toggle.' },
+  { id: 'dark',  label: 'Dark Only',  note: 'Dark values sit on the root.' },
   { id: 'both',  label: 'Both',       note: 'Both themes, and a visible toggle.' },
 ]
 
@@ -94,16 +94,16 @@ export const BLANK = {
  * carried four decisions was hiding them, not deferring them.
  */
 export const STEPS = [
-  { id: 'building',  title: 'What are you building?', sample: null },
+  { id: 'building',  title: 'What Are You Building?', sample: null },
   /* THEME FIRST OF THE LOOKS QUESTIONS, because it decides how every later page
      draws its sample. Choosing "Both" gives those pages two panes. */
-  { id: 'theme',     title: 'Light, dark, or both?', sample: 'theme' },
-  { id: 'colours',   title: 'Your colours',   sample: 'palette' },
+  { id: 'theme',     title: 'Light, Dark, or Both?', sample: 'theme' },
+  { id: 'colours',   title: 'Your Colours',   sample: 'palette' },
   { id: 'palette',   title: 'Palette',        sample: 'palette' },
   { id: 'type',      title: 'Type',           sample: 'type' },
   { id: 'tightness', title: 'Tightness',      sample: 'tightness' },
-  { id: 'more',      title: 'More choices',   sample: 'more' },
-  { id: 'prompt',    title: 'Your prompt',    sample: null },
+  { id: 'more',      title: 'More Choices',   sample: 'more' },
+  { id: 'prompt',    title: 'Your Prompt',    sample: null },
 ]
 
 const find = (list, id) => list.find(x => x.id === id) ?? list[0]
