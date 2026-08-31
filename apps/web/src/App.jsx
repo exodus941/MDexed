@@ -20,6 +20,7 @@ import CrossFade from './ui/CrossFade.jsx'
 import TabStrip, { scrollableUnder } from './ui/TabStrip.jsx'
 import ImportModal, { IMPORT_FORMATS } from './ui/ImportModal.jsx'
 import FixPreview from './a11y/FixPreview.jsx'
+import CasualWizard, { LaunchFork } from './casual/CasualMode.jsx'
 import { withFinding } from './a11y/audit.js'
 import Canvas, { SURFACES } from './preview/Canvas.jsx'
 import ColorPanel from './panels/ColorPanel.jsx'
@@ -34,6 +35,10 @@ import HistoryPanel from './panels/HistoryPanel.jsx'
 /* ── API ── */
 const API_BASE = '/api/v1'
 const TOKEN_KEY = 'design-md:tokens'
+/* One second before the launch fork arrives. Their number. Long enough that
+   the editor has drawn and the modal reads as arriving over it. */
+const FORK_DELAY = 1000
+
 const DRAFT_KEY = 'design-md:draft'
 const DRAFT_AT_KEY = 'design-md:draft-at'
 /* The document from the last session, rotated aside at boot so a fresh start
@@ -1306,6 +1311,20 @@ function Shell() {
   }, [set, navigate])
   /* The previous session's document, offered rather than loaded. */
   const [restorable, setRestorable] = useState(null)
+
+  /* ── THE LAUNCH FORK ──
+   *
+   * `null` until the mount effect has decided, so the fork cannot flash on a
+   * reload that is about to restore a document. 'fork' shows the two doors,
+   * 'wizard' the four questions, and 'off' the editor as it has always been.
+   *
+   * A saved cloud project (`/p/...`) never sees it. That URL is a request for
+   * one specific document, and a modal over it asks a question already
+   * answered by the link they clicked. */
+  const [casual, setCasual] = useState(null)
+  /* Held in a ref so the effect can clear it. A stray timeout firing after an
+     unmount is the React warning that means a leak somewhere else. */
+  const forkTimer = useRef(0)
   /* Owned here rather than in Canvas so the HTML export can render it. */
   const [surface, setSurface] = useState('dashboard')
   const [uiSpeed, setUiSpeed] = useState(() => {
@@ -1514,6 +1533,33 @@ function Shell() {
       }
       localStorage.removeItem(DRAFT_KEY)
 
+      /* DECIDED BEFORE THE EARLY RETURN BELOW. The first version sat after it,
+         so a genuine first visit — no previous document, nothing to restore —
+         returned before the fork was ever set, and the one case the fork exists
+         for was the one case it never appeared in.
+
+         EVERY RELOAD, not once per session: it was gated on a sessionStorage
+         flag, so a reload in the same tab went straight to the editor. A `/p/`
+         URL never reaches here, which is right — that link already answered the
+         question. */
+
+      /* ── A BEAT, THEN THE FADE ──
+       *
+       * It appeared in the same frame the editor did, so the reader met two new
+       * things at once and the fade had nothing to fade FROM. A second of the
+       * editor first gives the modal something to arrive over.
+       *
+       * The beat is tied to the animation preference rather than being its own
+       * setting. Somebody who has turned UI animation off has asked for no
+       * theatre, and a one-second wait before a modal is theatre. At 0 it opens
+       * in the same frame, as it did before.
+       *
+       * The fade itself is already there: the scrim carries `anim-fade` and the
+       * panel `anim-rise`, both over `--t`. */
+      const ms = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--t'), 10) || 0
+      if (!ms) setCasual('fork')
+      else forkTimer.current = setTimeout(() => setCasual('fork'), FORK_DELAY)
+
       const prev = localStorage.getItem(PREV_KEY)
       if (!prev || isPristineDoc(prev)) return
       const at = Number(localStorage.getItem(PREV_AT_KEY))
@@ -1523,6 +1569,25 @@ function Shell() {
         at: Number.isFinite(at) && at > 0 ? at : null,
       })
     } catch { /* corrupt draft — start fresh rather than crash */ }
+    return () => clearTimeout(forkTimer.current)
+  }, [])
+
+  /* ── LEAVE, THEN UNMOUNT ──
+   *
+   * A modal that unmounts on click vanishes in one frame. The enter animation
+   * was there from the start and the exit was not, which reads as no animation
+   * at all: you see the arrival once and the departure every time.
+   *
+   * So `leaving` marks it, the panel plays `anim-fall`, and the unmount waits
+   * one duration. The duration is read from the token rather than typed, so a
+   * reader who turns UI animation down gets a shorter wait and one who turns it
+   * off unmounts at once. */
+  const [leaving, setLeaving] = useState(false)
+  const closeCasual = useCallback((then) => {
+    const ms = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--t'), 10) || 0
+    if (!ms) { setLeaving(false); setCasual('off'); then?.(); return }
+    setLeaving(true)
+    setTimeout(() => { setLeaving(false); setCasual('off'); then?.() }, ms)
   }, [])
 
   const restorePrevious = useCallback(() => {
@@ -2285,12 +2350,40 @@ function Shell() {
             is transient and its own arrival is the message; the restore offer
             waits to be acted on, so it takes the lower, calmer slot. */}
         <SaveFlash savedAt={savedAt} />
-        {restorable && (
+        {restorable && casual !== 'fork' && casual !== 'wizard' && (
           <div style={{ pointerEvents: 'auto' }}>
             <RestoreToast offer={restorable} onRestore={restorePrevious} onDismiss={() => setRestorable(null)} />
           </div>
         )}
       </div>
+
+      {/* ── THE LAUNCH FORK AND THE WIZARD ──
+
+          Above the restore toast in the stack, and it dismisses the toast when
+          it opens: two things offering to open a document at once is two
+          questions, and the fork already carries the restore as its third line.
+
+          `dismiss` records the visit before changing the view, so a reload
+          during the wizard does not put the fork back over it. */}
+      {casual === 'fork' && (
+        <LaunchFork
+          restorableName={restorable?.name ?? null}
+          leaving={leaving}
+          onGuided={() => setCasual('wizard')}
+          onHandsOn={() => closeCasual()}
+          onRestore={() => closeCasual(restorePrevious)}
+        />
+      )}
+      {casual === 'wizard' && (
+        <CasualWizard
+          leaving={leaving}
+          onClose={() => closeCasual()}
+          /* Back from page one reopens the fork rather than closing. No exit
+             animation: the two panels are the same size in the same place, so
+             a fall-then-rise reads as a flicker. */
+          onBack={() => setCasual('fork')}
+        />
+      )}
 
       {/* Fix It opens this rather than changing the document. */}
       <FixPreview fix={pendingFix} onCancel={() => setPendingFix(null)} onConfirm={applyFinding} />

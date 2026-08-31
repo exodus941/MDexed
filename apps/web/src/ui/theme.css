@@ -655,6 +655,22 @@ label.check input[type=checkbox]:not(.dmd *){flex-shrink:0;margin:0}
 .close-x{opacity:.55;min-width:24px;min-height:24px;display:flex;align-items:center;justify-content:center;transition:opacity var(--t) var(--ease),background var(--t-hover) var(--ease)}
 .close-x:hover{opacity:1;background:var(--grey-wash)}
 .close-x:focus-visible{opacity:1;outline:2px solid var(--accent);outline-offset:1px}
+/* ── A FINGER NEEDS 40px, AND THE MARK STAYS 9 ──
+
+   Measured at a coarse pointer: 24 by 24 against the 40px floor, on every
+   modal that carries one. Grow the BOX, never the glyph.
+
+   Asked of the POINTER, because a narrow window on a desktop is not a finger.
+   In CSS rather than a JS `matchMedia` read, so it cannot go stale when a
+   device switches input.
+
+   The first attempt wrapped the button in a 40px span. The target measured 40
+   and the sweep still reported 24, correctly: a span has no click handler, so
+   a tap 8px outside the button did nothing. The floor belongs on the pressable
+   element. */
+@media (pointer: coarse) {
+  .close-x { min-width: 40px; min-height: 40px; }
+}
 
 /* Inline delete confirmation: red tick commits, grey cross backs out. */
 .btn-confirm{background:none;border:none;cursor:pointer;border-radius:4px;display:flex;align-items:center;justify-content:center;padding:4px;transition:color var(--t-hover) var(--ease),background var(--t-hover) var(--ease)}
