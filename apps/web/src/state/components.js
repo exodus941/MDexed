@@ -45,10 +45,20 @@ export const COMPONENT_LIBRARY = [
     /* Each size carries its own gap. A 28px button wants less space between
        icon and label than a 44px one; the icon-gap token is the default, and
        these override it per size. */
+    /* NO `iconSize` PER SIZE, because the mark is one size at every button
+       size and the base above states it.
+
+       These three carried `{icons.sm}`, `{icons.md}` and `{icons.lg}`, so the
+       payload published 14px, 16px and 20px for a mark that renders at 14
+       everywhere. preview.css reads `--cmp-button-icon-size` for all three
+       classes and nothing in this codebase reads the per-size tokens at all,
+       so the app was right and the tokens beside it were teaching a reader to
+       build three sizes. Absent, only the base token is emitted, and the file
+       then says structurally what the rule says in prose. */
     sizes: {
-      sm: { height: '28px', padding: '0 {spacing.sm}',  typography: 'caption',  gap: '{spacing.3xs}', iconSize: '{icons.sm}' },
-      md: { height: '36px', padding: '0 {spacing.md}',  typography: 'button',   gap: '{spacing.2xs}', iconSize: '{icons.md}' },
-      lg: { height: '44px', padding: '0 {spacing.lg}',  typography: 'body-md',  gap: '{spacing.xs}',  iconSize: '{icons.lg}' },
+      sm: { height: '28px', padding: '0 {spacing.sm}',  typography: 'caption',  gap: '{spacing.3xs}' },
+      md: { height: '36px', padding: '0 {spacing.md}',  typography: 'button',   gap: '{spacing.2xs}' },
+      lg: { height: '44px', padding: '0 {spacing.lg}',  typography: 'body-md',  gap: '{spacing.xs}' },
     },
     states: {
       hover:    { primary: { backgroundColor: '{colors.accent-hover}' }, secondary: { backgroundColor: '{colors.bg-subtle}' }, ghost: { backgroundColor: '{colors.accent-subtle}', textColor: '{colors.accent}' }, danger: { backgroundColor: '{colors.danger-hover}' }, 'danger-ghost': { backgroundColor: '{colors.danger-subtle}', textColor: '{colors.danger}' } },
@@ -165,16 +175,19 @@ export const COMPONENT_LIBRARY = [
      * inside 6px of padding. The mark read as stuck to the word, and the fault
      * was ours: nothing said what the distance should be.
      *
-     * `2xs` against the `xs` padding. Measured on a live chip: 4px between the
-     * dot and the word against 6px to the chip's edge, which reads as a mark
-     * belonging to a label rather than as a smudge.
+     * `xs`, which is the step `--icon-gap` already resolves to. The preview
+     * reads `var(--cmp-badge-gap, var(--icon-gap, 8px))`, so before this line
+     * existed the fallback painted 8px here and the generated build painted 2.
+     * Publishing `2xs` would have closed the hole and moved this app's own
+     * chips from 8px to 4px, which nobody asked for. `xs` closes the hole and
+     * changes no rendered pixel.
      *
      * No `iconSize`. A badge's ornament is a dot, and the icon scale starts at
      * 14px, which is larger than the caption this chip is set in.
      *
      * The vertical padding was a raw `2px`. It is `3xs` exactly, and a literal
      * in this file is the same defect the payload tells its reader to avoid. */
-    base: { rounded: '{rounded.full}', padding: '{spacing.3xs} {spacing.xs}', typography: 'caption', gap: '{spacing.2xs}' },
+    base: { rounded: '{rounded.full}', padding: '{spacing.3xs} {spacing.xs}', typography: 'caption', gap: '{spacing.xs}' },
     variants: {
       /* Outlined, not filled, and the palette leaves no choice.
        *
