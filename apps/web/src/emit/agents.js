@@ -17,11 +17,39 @@
  * build.
  */
 
+/* ── THE CHECKLIST IS GENERATED, AND THAT IS THE POINT ──
+ *
+ * It used to be fourteen hand-written lines, and every one of them was
+ * something a grep can see: a colour, a number, a token name, a font. Three
+ * arrangement faults in one generated build each had a precise rule in
+ * DESIGN.md and no line here, so the builder read past all three.
+ *
+ * The lines now come from `checks.js`, which also writes the two verifiers the
+ * payload ships. A rule cannot be worded one way for the reader and coded
+ * another way for the tool, and a rule added to the tool cannot fail to reach
+ * the reader.
+ */
+import { SOURCE_CHECKS, RENDER_CHECKS, MANUAL_CHECKS } from './checks.js'
+import { VERIFY_NODE, VERIFY_BROWSER } from './verify.js'
+
+const bullets = checks => checks.map(c => '- ' + c.line).join('\n')
+
 /* Ceilings, enforced in test/pipeline.mjs. Chosen from the generated output
    plus about 25% headroom, so ordinary edits pass and a runaway section does
-   not. */
-export const CONTRACT_MAX_LINES = 150
-export const CONTRACT_MAX_BYTES = 9000
+   not.
+
+   THE LINE CAP MOVED AND THE BYTE CAP TIGHTENED, on the same edit. The
+   checklist became one generated bullet per rule, and a bullet is one long
+   line where the prose it replaced was three wrapped ones. Worst case went
+   from 137 lines to 159 while the BYTES fell from 7056 to 7033: the contract
+   is shorter to read and taller on screen.
+
+   So the line cap is now 175 and the byte cap comes down from 9000 to 8000.
+   Raising a ceiling to fit is how a document bloats, and the guard against
+   that is the cap that measures length rather than wrapping. At 7033 the byte
+   cap still holds 12% headroom and still bites first on real growth. */
+export const CONTRACT_MAX_LINES = 175
+export const CONTRACT_MAX_BYTES = 8000
 
 /* Only two things vary in length: the project name and the theme list. The
    name is bounded here so a pathological one cannot blow the byte ceiling. */
@@ -110,10 +138,13 @@ Do not resolve silence by importing a convention from another design system.
 | \`tailwind.config.js\` | Tailwind v3 only. A preset to merge, never to replace. |
 | \`_tokens.scss\` | Sass variables and maps. |
 | \`tokens.json\` | W3C Design Tokens, for Style Dictionary and Figma. |
+| \`${VERIFY_NODE}\` | Run it on your source before you report. Not optional. |
+| \`${VERIFY_BROWSER}\` | Paste into the console of the page you built. Not optional. |
 | \`EXAMPLE-<theme>-<surface>.html\` | Style reference only. Never a template. |
 
 Take \`tokens.css\` plus the one file matching the stack you were asked for.
 Ignore the rest. Shipping both Tailwind files is not an invitation to use both.
+The two \`VERIFY\` files are not part of that choice; both run whatever you build.
 
 ## Theme switching
 
@@ -127,64 +158,53 @@ system preference decides. Do not write a separate dark stylesheet.`
 
 Tokens are the easy half. What separates a screen that looks made from one that
 looks generated is alignment, and it is all in DESIGN.md under **Typography**
-and **Layout**. Read those two before you write a component. The short version:
+and **Layout**. Read those two before you write a component.
 
-- **Text on one line shares one baseline.** A control beside a label matches
-  that label's box AND its baseline. Two different font sizes cannot give you
-  both, so pick one size.
-- **An icon aligns to its label, never to the button.** The two are read as one
-  object. \`vertical-align: middle\` sits on the x-height, which is below the cap
-  centre, so lift it about \`0.12em\`. Do that only for an inline icon — an icon
-  centred by flexbox is already correct, and the lift becomes the error.
-- **State a control's \`height\` and its \`line-height\` together**, and take the
-  line height from the CONTENT box: the height minus its borders. Add
-  \`align-items: center\` when it holds an icon.
+The checklist below measures most of it for you. These three it cannot, because
+each depends on content it has no way to vary:
+
 - **A control beside a label centres on the label's FIRST line**, not on the
   label as a block. Centring the row is right for one line and wrong the moment
-  it wraps.
+  it wraps, so build it against a label that actually wraps.
 - **Proximity is a ratio.** The gap between two groups must clearly beat the gap
   inside one, or they read as a single block.
 - **A narrow layout collapses, it never reflows.** Actions beside a heading move
-  BELOW the heading and its description, as one full-width row. Navigation goes
-  behind a single menu button. A nav that folds into two columns reads as broken.
+  BELOW the heading and its description. Navigation goes behind one menu button.
   Ask the container, not the window — a rail takes its width off everything else.
 
 ## Before you say you are done
 
-Check each of these against the code you wrote.
+Two of these run. Run them; do not read them and agree with yourself.
 
-- No literal colour appears anywhere.
-- No number appears where a scale token exists.
-- Every token name you used exists in \`tokens.css\`.
-- Nothing from an \`EXAMPLE-*.html\` page was copied as markup.
-- Every judgement call is listed under its own heading.
-- Every icon sits on its label's optical middle, not the button's centre.
-- Every control states its height and its line height together.
-- No two controls on one line have different heights.
-- No action row wraps. Below its fitting width it sits under its heading.
-- No navigation list reflows. A rail has two states, full or menu button, and
-  never a horizontal strip in between. Set \`flex-wrap: nowrap\` on the list.
-- Every breakpoint moved a whole row, not one object in it. Check each
-  responsive rule at BOTH widths — a fix verified at one is half tested, and the
-  untested half is where the object you forgot is sitting.
-- No stylesheet is built from a JavaScript template literal. Put CSS in a
-  \`.css\` file. A backtick in a comment there is an ordinary character; inside a
-  template literal it ends the string, and the CSS after it parses as
-  JavaScript — which can still build clean and render nothing.
+\`\`\`
+node ${VERIFY_NODE} <your source directory>
+\`\`\`
+
+${bullets(SOURCE_CHECKS)}
+
+Then open the page you built and paste \`${VERIFY_BROWSER}\` into the console:
+
+\`\`\`
+await verify()
+\`\`\`
+
+${bullets(RENDER_CHECKS)}
+
+These ${MANUAL_CHECKS.length} no tool can answer. Check them yourself.
+
+${bullets(MANUAL_CHECKS)}
 
 If any check fails, fix it before you report. Do not report the failure as a
 limitation of the design system.
 
-## Re-measure the row you just changed, at both widths
+## Run it again after the last edit
 
-Applying these to the row you edited two minutes ago is the hard part. Measure
-THAT row again — not the page — narrow and wide. Three failures it catches:
+The hard part is applying this to the row you changed two minutes ago. Two
+failures survive everything above:
 
-- Every box kept its height while the words inside moved onto different lines.
-- A control was promoted at a breakpoint and the mark beside it was not.
-- A correct rule lost to an inline style, so nothing changed at all. Measure
-  the computed result, never the stylesheet.
 - A check was silenced to keep the output tidy. A command sent to \`/dev/null\`
   prints nothing when it fails, and that silence reads exactly like success.
+- A run that reported nothing was never a pass if it measured nothing. Read the
+  file count and the width it printed, not the absence of findings.
 `
 }

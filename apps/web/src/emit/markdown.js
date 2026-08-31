@@ -90,6 +90,15 @@ function overviewBody(state) {
       hasThemeToggle(state)
         ? 'Build a **theme toggle** into the page, as a visible icon button carrying a lightbulb. It is a real control that a reader has to be able to find, so give it a label, a place in the tab order and the same target size as any other button in its row — not a hover-only affordance and not a hidden keyboard shortcut. Set `data-theme="light"` or `data-theme="dark"` on the root element; every token reassigns itself and no variable name changes. Persist the choice, and default to the operating system setting via `prefers-color-scheme` on first load.'
         : 'This system ships one theme. Do not build a theme toggle, and do not invent the other palette to fill one.',
+
+      /* THE HALF THAT WAS MISSING, AND WHAT IT COST.
+         The rule above asks for the operating system default and never says
+         what defeats it. A generated dashboard wrote data-theme="light" onto
+         its own <html>, copying the shape of the example pages beside it, and
+         the toggle then had no visible effect for a reader whose script did
+         not run. They clicked it several times before reporting it. */
+      hasThemeToggle(state) &&
+        'WRITE NO `data-theme` INTO YOUR OWN MARKUP. The absence of that attribute IS the follow-the-system state, and it is the only state a page can be in before a single line of script has run. Hardcode it and the application is pinned to whichever value you typed: the operating system preference is ignored, and a toggle whose script fails to load looks broken, because the attribute underneath it never moves. The `EXAMPLE-*.html` pages here are the one exception and they say so in their own source. Each is one half of a light and dark pair, so it pins its own theme deliberately and carries a working control anyway.',
       /* WHERE the button goes, because the rule above says only that it exists.
          Placement was the whole cost of building it here: the toggle went
          through three arrangements before it aligned, and every one of them

@@ -10,6 +10,7 @@
  */
 import { generateFile } from './designmd.js'
 import { agentContract } from './agents.js'
+import { verifyNodeFile, verifyBrowserFile, VERIFY_NODE, VERIFY_BROWSER } from './verify.js'
 import * as tokens from './tokens.js'
 
 /* Every file a payload must contain, checked by the suite. A rename that
@@ -19,6 +20,12 @@ export const REQUIRED_FILES = [
   'AGENTS.md', 'CLAUDE.md', 'README.md', 'DESIGN.md',
   'tokens.css', 'tokens.ts', 'tailwind.css', 'tailwind.config.js',
   '_tokens.scss', 'tokens.json',
+  /* THE TWO FILES THAT CAN RUN. Everything above is read; a reader with 700
+     lines of prose in front of it obeys the first fifty. Three arrangement
+     faults in one generated build each had a precise rule in DESIGN.md and no
+     way to check it. These two answer the rules rather than restating them,
+     and `checks.js` writes both of them and the contract's checklist. */
+  VERIFY_NODE, VERIFY_BROWSER,
 ]
 
 /* The sample pages, named in the contract prose and built in the exporter.
@@ -54,5 +61,7 @@ export function payloadTextFiles (state, derived) {
     'tailwind.config.js': tokens.tailwindPreset(state, derived),
     '_tokens.scss': tokens.tokensScss(state, derived),
     'tokens.json': tokens.tokensJson(state, derived),
+    [VERIFY_NODE]: verifyNodeFile(),
+    [VERIFY_BROWSER]: verifyBrowserFile(),
   }
 }

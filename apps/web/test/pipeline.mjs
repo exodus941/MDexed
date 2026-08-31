@@ -1780,5 +1780,112 @@ line('\n- project file -')
     `filename is slugged and sortable (${projectFilename('My Design System!!', new Date(2026, 7, 8, 3, 4))})`)
 }
 
+/* ── THE SHIPPED VERIFIERS ────────────────────────────────────────────────
+ *
+ * A guard nobody broke on purpose is a guard nobody has tested. Every source
+ * check below is pointed at a file carrying exactly the fault it exists to
+ * find, and the run has to name it. Then the same run is pointed at a clean
+ * file, because a check that fires on correct code costs more than the miss it
+ * prevents — and one of these did exactly that on its first outing, faulting
+ * a thousand token declarations as literal colours.
+ */
+{
+  line('\n- the verifiers the payload ships -')
+  const { CHECKS, SOURCE_CHECKS, RENDER_CHECKS, MANUAL_CHECKS } = await import('../src/emit/checks.js')
+  const { verifyNodeFile, verifyBrowserFile, VERIFY_NODE, VERIFY_BROWSER } = await import('../src/emit/verify.js')
+  const { execFileSync } = await import('node:child_process')
+  const os = await import('node:os')
+  const path = await import('node:path')
+
+  const BACKTICK = String.fromCharCode(96)
+  const withBacktick = CHECKS.filter(c => (c.body || []).some(l => l.includes(BACKTICK)))
+  assert(withBacktick.length === 0,
+    `no check body holds a backtick${withBacktick.length ? ` — ${withBacktick.map(c => c.id).join(', ')}` : ''}`)
+
+  const ids = CHECKS.map(c => c.id)
+  assert(new Set(ids).size === ids.length, `every check id is unique (${ids.length})`)
+  assert(CHECKS.every(c => c.line && c.line.trim()), 'every check carries a checklist line')
+  assert([...SOURCE_CHECKS, ...RENDER_CHECKS].every(c => Array.isArray(c.body) && c.body.length),
+    `every runnable check carries a body (${SOURCE_CHECKS.length + RENDER_CHECKS.length})`)
+  assert(MANUAL_CHECKS.every(c => !c.body), 'a manual check carries no body it cannot run')
+
+  const nodeSrc = verifyNodeFile(), browserSrc = verifyBrowserFile()
+  let browserParses = true
+  try { new Function(browserSrc) } catch { browserParses = false }
+  assert(browserParses, `${VERIFY_BROWSER} parses`)
+  assert(SOURCE_CHECKS.every(c => nodeSrc.includes(c.id)), `${VERIFY_NODE} carries every source check`)
+  assert(RENDER_CHECKS.every(c => browserSrc.includes(c.id)), `${VERIFY_BROWSER} carries every render check`)
+
+  /* ONE RULE LIST, THREE CONSUMERS. The contract's checklist is generated from
+     the same array, so a rule cannot reach the tool and miss the reader. */
+  const contract = agentContract(state, derived)
+  const absent = CHECKS.filter(c => !contract.includes(c.line))
+  assert(absent.length === 0,
+    `every check reaches the contract checklist${absent.length ? ` — missing ${absent.map(c => c.id).join(', ')}` : ` (${CHECKS.length})`}`)
+
+  /* ── POINT IT AT A FAULT, ONE PER CHECK ── */
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'verify-'))
+  const write = (n, t) => fs.writeFileSync(path.join(dir, n), t)
+  const runVerify = where => {
+    fs.writeFileSync(path.join(where, 'VERIFY.mjs'), nodeSrc)
+    try {
+      /* Return the OUTPUT, never the empty string. A clean run exits zero and
+         prints PASS, and swallowing that made the quiet-on-correct-code
+         assertion fail against nothing at all. */
+      return execFileSync(process.execPath, [path.join(where, 'VERIFY.mjs'), where], { encoding: 'utf8' })
+    } catch (err) { return String(err.stdout || '') + String(err.stderr || '') }
+  }
+
+  write('tokens.css', ':root { --c-text: #111; --space-md: 16px; --font-body-md-family: system-ui; }')
+  write('broken.css', [
+    '.a { color: #ff0000; }',                    /* literal-colour */
+    '.b { padding: 13px; }',                     /* off-scale-number */
+    '.c { color: var(--c-invented); }',          /* unknown-token */
+    '.d { color: var(--c-text, #999); }',        /* fallback-hides-a-token */
+    '.e { font-family: Helvetica, sans-serif; }' /* named-font-only */,
+  ].join('\n'))
+  write('broken.html', [
+    '<html data-theme="light">',                 /* hardcoded-theme */
+    '<button id="t" onclick="root.dataset.theme=1"><svg></svg></button>',
+    '</html>',                                   /* toggle-states-itself + icon-only-is-named */
+  ].join('\n'))
+  write('broken.js', 'const css = ' + BACKTICK + '.x { color: red; }' + BACKTICK)
+
+  const dirty = runVerify(dir)
+  for (const c of SOURCE_CHECKS) {
+    assert(dirty.includes(c.id), `${c.id} fires on the fault it exists for`)
+  }
+
+  /* ── AND STAYS QUIET ON CORRECT CODE ── */
+  const clean = fs.mkdtempSync(path.join(os.tmpdir(), 'verify-ok-'))
+  fs.writeFileSync(path.join(clean, 'tokens.css'),
+    ':root { --c-text: #111; --space-md: 16px; --font-body-md-family: system-ui; }')
+  fs.writeFileSync(path.join(clean, 'good.css'), [
+    '/* A comment naming 13px and #ff0000 is prose, not code. */',
+    '.a { color: var(--c-text); padding: var(--space-md); }',
+    '.b { border: 1px solid var(--c-text); }',
+    '.c { font-family: var(--font-body-md-family); }',
+    '@media (min-width: 640px) { .a { padding: var(--space-md); } }',
+  ].join('\n'))
+  fs.writeFileSync(path.join(clean, 'good.html'), [
+    '<html>',
+    '<button id="t" aria-pressed="false" aria-label="Light theme is on. Switch to dark.">',
+    '<svg></svg></button>',
+    '<script>document.documentElement.dataset.theme = "dark"</' + 'script>',
+    '</html>',
+  ].join('\n'))
+  const quiet = runVerify(clean)
+  assert(/\bPASS\b/.test(quiet) && !/FAIL/.test(quiet),
+    `no check fires on correct code${/FAIL/.test(quiet) ? ` — ${quiet.split('\n').filter(l => l.trim()).slice(1, 4).join(' | ')}` : ''}`)
+
+  /* A run that measured nothing is not a pass, and must say so. */
+  const empty = fs.mkdtempSync(path.join(os.tmpdir(), 'verify-empty-'))
+  fs.writeFileSync(path.join(empty, 'tokens.css'), ':root { --c-text: #111; }')
+  assert(/no source files/.test(runVerify(empty)),
+    'an empty run reports that it checked nothing rather than printing PASS')
+
+  for (const d of [dir, clean, empty]) fs.rmSync(d, { recursive: true, force: true })
+}
+
 line(`\n${failures === 0 ? 'ALL PASS' : `${failures} FAILURE(S)`}\n`)
 process.exit(failures ? 1 : 0)

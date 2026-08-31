@@ -68,7 +68,10 @@ export const COMPONENT_LIBRARY = [
          (worst case 4.57 light, 4.83 dark). Unspecified, an agent reaches for
          whichever muted role it saw last. */
       placeholderColor: '{colors.text-muted}',
+      /* A field holds a leading mark often enough that the distance has to be
+         published. Left unstated, the builder invents one per field. */
       rounded: '{rounded.md}', height: '36px', padding: '0 {spacing.sm}', typography: 'body-sm',
+      gap: '{spacing.2xs}', iconSize: '{icons.md}',
     },
     states: {
       focus:    { _: { borderColor: '{colors.ring}', outline: '{focus.width} solid {colors.ring}', outlineOffset: '{focus.offset}' } },
@@ -89,11 +92,16 @@ export const COMPONENT_LIBRARY = [
     base: {
       backgroundColor: '{colors.surface}', textColor: '{colors.text}', borderColor: '{colors.border}',
       rounded: '{rounded.md}', height: '36px', padding: '0 {spacing.sm}', typography: 'body-sm',
+      /* The chevron sits at the far end of the value, and its distance is a
+         decision. Unpublished, every select in a build picks its own. */
+      gap: '{spacing.2xs}', iconSize: '{icons.md}',
     },
   },
   {
     name: 'checkbox', label: 'Checkbox', group: 'Forms', on: true,
-    base: { size: '16px', rounded: '{rounded.sm}', borderColor: '{colors.border}', backgroundColor: '{colors.surface}' },
+    /* The gap is the distance from the box to the words beside it, which every
+       checkbox in a form has and nothing here stated. */
+    base: { size: '16px', rounded: '{rounded.sm}', borderColor: '{colors.border}', backgroundColor: '{colors.surface}', gap: '{spacing.xs}' },
     states: {
       checked: { _: { backgroundColor: '{colors.accent}', borderColor: '{colors.accent}', textColor: '{colors.accent-fg}' } },
       /* A checkbox has THREE states, not two.
@@ -114,7 +122,8 @@ export const COMPONENT_LIBRARY = [
   },
   {
     name: 'switch', label: 'Switch', group: 'Forms', on: true,
-    base: { width: '36px', height: '20px', rounded: '{rounded.full}', backgroundColor: '{colors.border}' },
+    /* Same as the checkbox: the track to the words beside it. */
+    base: { width: '36px', height: '20px', rounded: '{rounded.full}', backgroundColor: '{colors.border}', gap: '{spacing.xs}' },
     states: { checked: { _: { backgroundColor: '{colors.accent}' } } },
   },
   {
@@ -148,7 +157,24 @@ export const COMPONENT_LIBRARY = [
   },
   {
     name: 'badge', label: 'Badge', group: 'Feedback', on: true,
-    base: { rounded: '{rounded.full}', padding: '2px {spacing.xs}', typography: 'caption' },
+    /* ── THE GAP, AND WHY IT WAS MISSING ──
+     *
+     * A badge carries a status dot or a tick beside its word, and this spec
+     * published no gap for it. A generated dashboard reached for the smallest
+     * step on the spacing scale and put 2px between a 6px dot and the label,
+     * inside 6px of padding. The mark read as stuck to the word, and the fault
+     * was ours: nothing said what the distance should be.
+     *
+     * `2xs` against the `xs` padding. Measured on a live chip: 4px between the
+     * dot and the word against 6px to the chip's edge, which reads as a mark
+     * belonging to a label rather than as a smudge.
+     *
+     * No `iconSize`. A badge's ornament is a dot, and the icon scale starts at
+     * 14px, which is larger than the caption this chip is set in.
+     *
+     * The vertical padding was a raw `2px`. It is `3xs` exactly, and a literal
+     * in this file is the same defect the payload tells its reader to avoid. */
+    base: { rounded: '{rounded.full}', padding: '{spacing.3xs} {spacing.xs}', typography: 'caption', gap: '{spacing.2xs}' },
     variants: {
       /* Outlined, not filled, and the palette leaves no choice.
        *

@@ -77,8 +77,20 @@ export function previewHtml({ state, derived, markup, surface, mode }) {
   moves everywhere it is used, exactly as it does in the real system — nothing
   in the rules below hard-codes a colour, size or radius.
 
-  This page is showing the ${esc(mode)} theme. Set data-theme="${other}" on the
-  <html> element to see the other one; both palettes are defined below.
+  ── THE THEME ATTRIBUTE ON THIS PAGE IS A PROPERTY OF THE PAGE, NOT A PATTERN ──
+
+  This file is one half of a pair. Its twin shows the ${esc(other)} theme, so
+  this one pins itself to ${esc(mode)} and cannot follow your operating system.
+
+  DO NOT COPY THAT INTO AN APPLICATION. With no data-theme on <html>, the
+  system preference decides and a page whose script never runs still opens in
+  the right theme. Hardcode it and you have pinned the app to one theme with no
+  way out; a build that did exactly that shipped a lightbulb button that looked
+  broken because the attribute below it never moved.
+
+  The control in the corner is the mechanism the DESIGN.md asks for, working.
+  Read its markup and its handler at the foot of this file. It is page chrome,
+  not part of the system, so it uses no component class.
 -->
 ${href ? `<link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -100,6 +112,26 @@ body { background: var(--c-bg, #fff); }
 .dmd { min-height: 100vh; }
 /* The editor makes every element clickable for inspection; here they are not. */
 .dmd [data-cmp] { cursor: auto; }
+
+/* The theme control. Chrome, so it carries no component class and borrows only
+   the tokens it needs to be legible on either palette. Square because it holds
+   no words, and floored at the published target because a finger has to hit
+   it. It is a real button in the tab order, not a hover affordance. */
+.page-theme {
+  position: fixed; inset-block-start: 12px; inset-inline-end: 12px; z-index: 9;
+  display: inline-flex; align-items: center; justify-content: center;
+  inline-size: var(--target-min, 44px); block-size: var(--target-min, 44px);
+  aspect-ratio: 1; padding: 0;
+  border: var(--border-hairline, 1px) solid var(--c-border);
+  border-radius: var(--radius-full, 999px);
+  background: var(--c-surface); color: var(--c-text); cursor: pointer;
+}
+.page-theme:hover { background: var(--c-bg-subtle); }
+.page-theme:focus-visible {
+  outline: var(--focus-width, 2px) var(--focus-style, solid) var(--c-ring);
+  outline-offset: var(--focus-offset, 2px);
+}
+.page-theme svg { inline-size: 20px; block-size: 20px; }
 
 /* ── The system ────────────────────────────────────────────────────────── */
 ${withRealFallbacks(PREVIEW_CSS.trim(), mode === 'dark' ? dark : light)}
@@ -123,7 +155,45 @@ ${responsiveCss(state.layout?.breakpoints ?? [], 'media').trim()}
 </style>
 </head>
 <body>
+<button class="page-theme" type="button" id="page-theme"
+        aria-pressed="${mode === 'dark'}"
+        aria-label="${mode === 'dark' ? 'Dark theme is on. Switch to light.' : 'Light theme is on. Switch to dark.'}">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+       stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/>
+  </svg>
+</button>
 ${markup}
+<script>
+/* ── THE WHOLE MECHANISM ──
+ *
+ * One attribute on the root element. Every token reassigns itself and no
+ * variable name changes anywhere, which is why there is no second stylesheet
+ * and no class to toggle.
+ *
+ * ONE MARK IN BOTH STATES, never a sun swapped for a moon. Two marks force the
+ * button to decide which of them means "now" and which means "next", and
+ * readers split evenly on that. The state is carried by aria-pressed and said
+ * in the label, where a screen reader can reach it.
+ *
+ * In an application: set no data-theme in the markup, read the stored choice
+ * on load, and write it back on each press. This page pins its theme instead,
+ * because it is one half of a pair, and persisting here would make its twin
+ * open in the wrong one.
+ */
+(function () {
+  var root = document.documentElement
+  var btn = document.getElementById('page-theme')
+  btn.addEventListener('click', function () {
+    var dark = root.dataset.theme !== 'dark'
+    root.dataset.theme = dark ? 'dark' : 'light'
+    btn.setAttribute('aria-pressed', String(dark))
+    btn.setAttribute('aria-label', dark
+      ? 'Dark theme is on. Switch to light.'
+      : 'Light theme is on. Switch to dark.')
+  })
+})()
+</script>
 </body>
 </html>
 `
