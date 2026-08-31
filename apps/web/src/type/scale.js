@@ -33,7 +33,28 @@ export const TYPE_ROLES = [
   { name: 'body-sm',  step: -0.5,  family: 'body',    weight: 400 },
   { name: 'caption',  step: -1,    family: 'body',    weight: 400 },
   { name: 'overline', step: -1,    family: 'body',    weight: 500, tracking: 0.08 },
-  { name: 'button',   step: -0.25, family: 'body',    weight: 500 },
+  /* ── THE MIDDLE BUTTON HAD THE SAME LABEL AS THE LARGE ONE ──
+   *
+   * At -0.25 this role snapped to 16px, which is `body-md` exactly. So the
+   * three button steps read 12 / 16 / 16: sm from `caption`, md from here, lg
+   * from `body-md`. Two of the three were the same size, and the 36px step and
+   * the 44px step were distinguishable only by their box.
+   *
+   * -0.5 puts it on 14px, so the steps are 12 / 14 / 16 and each takes its own
+   * place on the scale. It shares that size with `body-sm` and keeps weight
+   * 500, which is the distinction the role exists for: a button's label is the
+   * body-small size, set one weight heavier.
+   *
+   * IT ALSO PUTS A BUTTON ON ITS FIELD'S BASELINE. A field is 36px tall with a
+   * 14px label, and the medium button beside it was 36px with a 16px one. Two
+   * sizes on one line cannot share a baseline, and the rule says a button
+   * beside a field matches the field's box AND its text. Now both are 14.
+   *
+   * The mark does not move. It is 14px at every button size, and the alignment
+   * rule centres it between the label's cap line and its baseline at whatever
+   * the label is. Measured across eleven surfaces before and after: the
+   * overhang stays equal above and below, which is what centred means. */
+  { name: 'button',   step: -0.5,  family: 'body',    weight: 500 },
   { name: 'code',     step: -0.25, family: 'mono',    weight: 400 },
 ]
 

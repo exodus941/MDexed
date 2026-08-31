@@ -1314,7 +1314,7 @@
   height: var(--cmp-button-md-height, 36px);
   line-height: calc(var(--cmp-button-md-height, 36px) - 2px);
   padding: 0 var(--cmp-button-md-padding-x, var(--space-md, 16px));
-  font-size: var(--cmp-button-md-font-size, var(--font-button-size, 16px));
+  font-size: var(--cmp-button-md-font-size, var(--font-button-size, 14px));
 }
 
 /* The fold runs on the document's own motion tokens.
