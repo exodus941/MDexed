@@ -1994,16 +1994,28 @@ line('\n- depth intensity -')
     assert(frac.length === 0, `${i.id} ships no fractional pixel (${frac.join(', ')})`)
   }
 
-  /* MEDIUM IS THE DEFAULT SO NOTHING MOVES. Whatever the two answers rendered
-     before this control existed, they must still render. */
-  assert(BLANK.intensity === 'medium', `the default is medium (${BLANK.intensity})`)
+  /* ── THE DEFAULT IS BORDERS AT LIGHT, AND THE ORDER SAYS SO ──
+   *
+   * `find` falls back to the head of each list, so the listed order and the
+   * default are one decision. Pinning both means a reorder cannot silently
+   * move what a fresh document renders. */
+  assert(DEPTHS[0].id === 'border', `borders are listed first (${DEPTHS.map(d => d.id).join()})`)
+  assert(BLANK.depth === 'border', `the default separator is borders (${BLANK.depth})`)
+  assert(BLANK.intensity === 'light', `the default intensity is light (${BLANK.intensity})`)
   {
-    const sh = applyAnswers(base, { ...BLANK, depth: 'shadow' })
-    const bd = applyAnswers(base, { ...BLANK, depth: 'border' })
+    const d = applyAnswers(base, { ...BLANK })
+    assert(d.macros.depth === 0, `a fresh document draws no shadow (${d.macros.depth})`)
+    assert(d.components.overrides['card.borderColor'] === '{colors.border-subtle}',
+      `a fresh document draws a hairline edge (${d.components.overrides['card.borderColor']})`)
+
+    /* And what the two answers rendered BEFORE this control existed is still
+       reachable, one step away, rather than gone. */
+    const sh = applyAnswers(base, { ...BLANK, depth: 'shadow', intensity: 'medium' })
+    const bd = applyAnswers(base, { ...BLANK, depth: 'border', intensity: 'medium' })
     assert(sh.macros.depth === 2 && sh.components.overrides['card.borderColor'] === '{colors.border-subtle}',
-      `the shadow answer is unchanged at the default (${sh.macros.depth}, ${sh.components.overrides['card.borderColor']})`)
+      `shadows at medium still render what the shadow answer used to (${sh.macros.depth}, ${sh.components.overrides['card.borderColor']})`)
     assert(bd.macros.depth === 0 && bd.components.overrides['card.borderColor'] === '{colors.border}',
-      `the border answer is unchanged at the default (${bd.macros.depth}, ${bd.components.overrides['card.borderColor']})`)
+      `borders at medium still render what the border answer used to (${bd.macros.depth}, ${bd.components.overrides['card.borderColor']})`)
   }
 
   /* THE CONTROL HAS TO MOVE SOMETHING, or it is a setting that proves itself.

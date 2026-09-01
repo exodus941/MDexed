@@ -49,17 +49,19 @@ export const SHAPES = [
 ]
 
 /* Two ways to separate a surface from what is behind it, and a system should
-   commit to one. Shadows read as physical, borders as drawn. */
-/* Two ways to separate a surface from what is behind it, and a system should
    commit to one. Shadows read as physical, borders as drawn.
 
    THE BORDER ANSWER ALSO STRENGTHENS THE EDGE. Depth 0 on its own removes a
    `0 1px 2px rgba(...,0.06)` shadow, and nobody can see that leave: the two
    choices rendered as the same card. A system that draws its surfaces by their
-   edge draws that edge in the border token, not the subtle one. */
+   edge draws that edge in the border token, not the subtle one.
+
+   BORDERS FIRST, AND FIRST IS THE DEFAULT. `find` falls back to the head of
+   the list, so the order and the default are one decision rather than two that
+   can disagree. */
 export const DEPTHS = [
-  { id: 'shadow', label: 'Shadows', cardBorder: '{colors.border-subtle}', note: 'Cards lift off the page on a shadow.' },
   { id: 'border', label: 'Borders', note: 'No shadows. Cards are drawn by a visible edge.' },
+  { id: 'shadow', label: 'Shadows', cardBorder: '{colors.border-subtle}', note: 'Cards lift off the page on a shadow.' },
 ]
 
 /* ── HOW MUCH OF IT, AND THE SCALE IS FOUR WHOLE STEPS ──
@@ -74,9 +76,10 @@ export const DEPTHS = [
  * multipliers survive, which fixes the maximum at 3 and makes the four steps
  * 0, 1, 2 and 3 — exactly the 0, 33, 66 and 100 per cent asked for.
  *
- * MEDIUM IS THE DEFAULT SO NOTHING MOVES. Depth 2 and `{colors.border}` are
- * what the two answers shipped before this control existed, so a document that
- * never touches it renders byte-identically.
+ * LIGHT IS THE DEFAULT, WITH BORDERS. So a fresh document draws its cards on a
+ * `border-subtle` hairline and no shadow. Medium is what the two answers
+ * shipped before this control existed — depth 2 and `{colors.border}` — and it
+ * is still one step away rather than gone.
  *
  * A BORDER HAS NO MACRO, so its intensity is a STEP ON THE NEUTRAL RAMP rather
  * than an opacity. Fading an edge to 33% invents a colour the system never
@@ -111,8 +114,8 @@ export const BLANK = {
   tightness: 'balanced',
   brand: [],
   shape: 'soft',
-  depth: 'shadow',
-  intensity: 'medium',
+  depth: 'border',
+  intensity: 'light',
   theme: 'both',
 }
 
