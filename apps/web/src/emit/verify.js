@@ -280,6 +280,51 @@ function padded (el) {
   return null
 }
 
+/* ── WHAT A TOKEN ACTUALLY PAINTS, IN THE FORM THE ENGINE REPORTS IT ──
+ *
+ * getPropertyValue hands back the AUTHORED string, so a token written as a
+ * hex can never be compared against a computed background-color, which the
+ * engine always reports as an rgb triple. Paint the token on a probe and read
+ * the engine's own answer, so both sides of every comparison come from one
+ * place.
+ *
+ * A missing token is not an error here. A var() naming nothing is invalid at
+ * computed-value time, and background-color does not inherit, so it resolves
+ * to transparent. That is reported as null rather than compared. */
+/* Read the ALPHA rather than pattern-matching one spelling of transparent.
+   A ground at 2% opacity is still a ground, and a regex looking for a zero
+   would have to know how the engine punctuates its own output. */
+function opaque (v) {
+  if (!v || v === 'transparent') return false
+  const open = v.indexOf('('); if (open < 0) return true
+  const parts = v.slice(open + 1, v.lastIndexOf(')')).split(',')
+  return parts.length < 4 || parseFloat(parts[3]) > 0
+}
+
+/* THE PROBE COMES BACK OUT, and leaving it in cost a false positive. Cached
+   between calls it is a bare div painted --c-selected, sitting in the body
+   with the page's own cards as siblings. The selection check then measured
+   the instrument and reported a fault on a correct page. */
+function paints (token) {
+  const p = document.body.appendChild(document.createElement('div'))
+  p.style.cssText = 'position:absolute;left:-9999px;top:0;width:1px;height:1px;pointer-events:none'
+  p.style.backgroundColor = 'var(' + token + ')'
+  const v = getComputedStyle(p).backgroundColor
+  p.remove()
+  return opaque(v) ? v : null
+}
+
+/* The nearest ancestor that actually paints something behind this element. */
+function ground (el) {
+  let n = el.parentElement
+  while (n) {
+    const bg = getComputedStyle(n).backgroundColor
+    if (opaque(bg)) return { el: n, bg }
+    n = n.parentElement
+  }
+  return null
+}
+
 /* A cell's own content edges. */
 function inner (cell) {
   const cs = getComputedStyle(cell), r = cell.getBoundingClientRect()

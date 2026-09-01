@@ -1892,6 +1892,44 @@ line('\n- project file -')
   let browserParses = true
   try { new Function(browserSrc) } catch { browserParses = false }
   assert(browserParses, `${VERIFY_BROWSER} parses`)
+
+  /* ── A BACKSLASH INSIDE THE TEMPLATE LITERAL IS EATEN BEFORE IT SHIPS ──
+   *
+   * Both verifiers are written as template literals, so JS resolves every
+   * escape at parse time. A regex typed as \s reaches the emitted file as a
+   * bare s. That has two outcomes and only one of them is loud. Writing
+   * `/,\s*0\)/` produced an unmatched paren, which the parse assertion above
+   * caught. Writing `/,\s*0/` would have produced `/,s*0/`: valid, wrong, and
+   * silent for as long as nobody measured what it matched.
+   *
+   * Every intended backslash in those two regions is doubled, so an ODD run
+   * is always a mistake. Scoped to the literals, because ordinary code above
+   * and below them writes single backslashes correctly. */
+  {
+    const src = fs.readFileSync(new URL("../src/emit/verify.js", import.meta.url), "utf8")
+    const bt = String.fromCharCode(96)
+    /* TOGGLE ON PARITY, because neither delimiter has a reliable shape. The
+       opener carries content after it and the closer stands alone, so two
+       earlier attempts each opened the region in the wrong place: once on a
+       comment that names a file, and once on the FIRST literal's closing
+       delimiter. A line holding an odd number of delimiters crosses the
+       boundary, and that is true of both ends and of neither comment.
+       A toggling line is not scanned, so a backslash sharing a line with a
+       delimiter is out of scope. The two files have none. */
+    let inLit = false
+    const odd = []
+    src.split(/\r?\n/).forEach((l, i) => {
+      const delims = l.split(bt).length - 1
+      if (delims % 2) { inLit = !inLit; return }
+      if (!inLit) return
+      for (const run of l.match(/\\+/g) || []) {
+        if (run.length % 2) odd.push(`line ${i + 1}: ${l.trim().slice(0, 60)}`)
+      }
+    })
+    assert(!inLit, 'the literal scan closed every region it opened')
+    assert(odd.length === 0,
+      `every backslash in the emitted verifiers is doubled${odd.length ? ` — ${odd[0]}` : ''}`)
+  }
   assert(SOURCE_CHECKS.every(c => nodeSrc.includes(c.id)), `${VERIFY_NODE} carries every source check`)
   assert(RENDER_CHECKS.every(c => browserSrc.includes(c.id)), `${VERIFY_BROWSER} carries every render check`)
 

@@ -180,7 +180,13 @@ export const ROLE_GROUPS = [
        * separation: the selection still reads 1.27:1 against the surface and
        * about 1.14 against the stripe, with the edge and the box carrying the
        * rest. */
-      { name: 'selected',        desc: 'Selected row or item',       light: 'neutral.100', dark: 'neutral.950' },
+      /* THE DESCRIPTION NAMES THE GROUND, because this role resolves to the
+         same hex as `bg` in both modes. That is deliberate and the plane check
+         exempts the pair: a selected row sits on a CARD, where it is a step
+         clear. Put that list straight on the page and the row is invisible at
+         1.00:1. "Selected row or item" said nothing about where, so nothing
+         warned the reader. */
+      { name: 'selected',        desc: 'Selected row, on a card',    light: 'neutral.100', dark: 'neutral.950' },
     ],
   },
   {

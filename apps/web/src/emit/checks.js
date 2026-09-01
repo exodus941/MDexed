@@ -230,6 +230,40 @@ export const CHECKS = [
   },
 
   {
+    id: 'selection-stands-on-its-own-ground',
+    where: 'render',
+    line: 'A selected row sits on a card, where its fill is a step clear of the ground.',
+    /* ── THE ROLE IS THE SAME HEX AS THE PAGE, AND THAT IS DELIBERATE ──
+     *
+     * `selected` is designed one step off the CARD. It resolves to the same
+     * colour as `bg` in both modes, and the plane check exempts that pair for
+     * exactly that reason. Put the list straight on the page instead and the
+     * chosen row is invisible at 1.00:1, with no error and nothing to see.
+     *
+     * The discriminator is a PROPERTY, not a class name. A selected row is one
+     * of several same-tag siblings, and at least one of those siblings paints
+     * differently. That is what a selection IS, whatever the builder called
+     * it, and it cannot match the page itself: `body` has no such sibling.
+     * An explicit selection attribute is accepted too, so a single chosen item
+     * with no unchosen neighbour is still reached. */
+    body: [
+      "const sel = paints('--c-selected')",
+      "if (sel) for (const el of all('*')) {",
+      "  if (getComputedStyle(el).backgroundColor !== sel) continue",
+      "  const p = el.parentElement; if (!p) continue",
+      "  const marked = el.matches('[aria-selected=true], [aria-current], .selected, .is-selected')",
+      "  if (!marked) {",
+      "    const sibs = Array.prototype.slice.call(p.children).filter(s => s !== el && s.tagName === el.tagName)",
+      "    if (!sibs.length) continue",
+      "    if (!sibs.some(s => getComputedStyle(s).backgroundColor !== sel)) continue",
+      "  }",
+      "  const g = ground(el); if (!g || g.bg !== sel) continue",
+      "  fail(name(el), 'a selected row painted ' + sel + ' stands on a ground of the same colour, so nobody can see it is chosen. This role is a step off the CARD, not off the page. Put the list on a surface, or mark the selection some other way.')",
+      "}",
+    ],
+  },
+
+  {
     id: 'lone-mark-centres-on-its-box',
     where: 'render',
     line: 'A control with a mark and no words centres that mark on its own box, both axes.',
