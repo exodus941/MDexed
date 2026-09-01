@@ -17,7 +17,7 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { PAD, BTN, MODAL_BTN, CloseButton, Collapsible } from '../ui/controls.jsx'
-import { PALETTES, TYPE_PAIRINGS, TIGHTNESS, SHAPES, DEPTHS, THEMES, BLANK, STEPS, BRAND_MAX } from './answers.js'
+import { PALETTES, TYPE_PAIRINGS, TIGHTNESS, SHAPES, DEPTHS, INTENSITIES, THEMES, BLANK, STEPS, BRAND_MAX } from './answers.js'
 import { buildPrompt, promptFilename, MDEXED_URL } from './prompt.js'
 import { IconSend, IconUser, IconFolder, IconPlus } from '../preview/icons.jsx'
 import CrossFade from '../ui/CrossFade.jsx'
@@ -323,6 +323,20 @@ export default function CasualWizard({ onClose, onBack, leaving }) {
               </Field>
               <Field label="Depth">
                 <Choices options={DEPTHS} value={a.depth} onChange={v => set('depth', v)} columns={2} />
+              </Field>
+              {/* DIRECTLY UNDER THE PAIR IT MODIFIES, because it is the second
+                  half of one decision rather than a decision of its own. The
+                  note names whichever half the reader is actually setting: a
+                  shadow's strength is a macro and an edge's is a ramp step, and
+                  a label saying "shadow" over a border control teaches the
+                  wrong mechanism. */}
+              <Field
+                label="Intensity"
+                note={a.depth === 'border'
+                  ? 'How strongly the edge is drawn. Each step is a weight the palette already publishes.'
+                  : 'How far the card lifts. Each step multiplies every offset, blur and tint.'}
+              >
+                <Choices options={INTENSITIES} value={a.intensity} onChange={v => set('intensity', v)} columns={4} />
               </Field>
             </>
           )}

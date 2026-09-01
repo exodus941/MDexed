@@ -1575,7 +1575,21 @@ line('\n- prompt construction -')
     ['a loading state holds its own shape', ['aria-busy="true"', 'nothing moves when the data lands', 'opacity only']],
     ['loading is the fourth empty state', ['fourth** empty state']],
     ['aria-disabled and disabled are not interchangeable', ['removes the control from the tab order', 'keeps it reachable']],
-    ['the theme toggle is a visible lightbulb button', ['visible icon button carrying a lightbulb', 'same target size as any other button in its row']],
+    ['the theme toggle is a visible lightbulb control', ['visible icon control carrying a lightbulb', 'same target size as any other control in its row']],
+    /* ── THE MECHANISM, AND WHY THIS ASSERTION EXISTS AT ALL ──
+     *
+     * `tokens.css` has shipped a script-free toggle for months and DESIGN.md
+     * told the builder to move `data-theme` with a script. Two answers to one
+     * decision, in two files, and AGENTS.md sends the reader to DESIGN.md
+     * first — so every generated build took the fragile one. Three
+     * simulations reported the toggle dead, each on a page that measured
+     * correct when served and did nothing when opened somewhere its inline
+     * script could not run.
+     *
+     * The wording above changed from "button" to "control" for the same
+     * reason: the mechanism is a `<label for>`, and a rule that says "button"
+     * walks the reader straight back to the version that breaks. */
+    ['the theme toggle works with no script', ['works with no javascript at all', 'id="dmd-dark"', 'label for="dmd-dark"', 'only for the two things css cannot do']],
     /* Placement, alignment and naming, learned by building it. Three
        arrangements measured as defects before this one held. */
     ['the theme toggle sits before the navigation menu', ['header action group', 'before the navigation menu']],
@@ -1950,6 +1964,91 @@ line('\n- project file -')
     'an empty run reports that it checked nothing rather than printing PASS')
 
   for (const d of [dir, clean, empty]) fs.rmSync(d, { recursive: true, force: true })
+}
+
+/* ── HOW STRONGLY THE CARD IS SEPARATED ──
+ *
+ * The wizard asked WHICH separator and never HOW MUCH, so a system wanting a
+ * whisper and one wanting a slab got the same card. Four levels now, and the
+ * three things that could go wrong with them are each asserted.
+ */
+line('\n- depth intensity -')
+{
+  const { BLANK, INTENSITIES, DEPTHS, applyAnswers, resolve, cardEdge } =
+    await import('../src/casual/answers.js')
+  const { buildPrompt } = await import('../src/casual/prompt.js')
+  const base = createInitialState()
+  const depthLine = a => buildPrompt(a).split('\n').find(l => l.startsWith('- Depth'))
+
+  assert(INTENSITIES.length === 4, `four levels (${INTENSITIES.length})`)
+  assert(INTENSITIES.map(i => i.pct).join() === '0,33,66,100',
+    `the levels are 0, 33, 66 and 100 per cent (${INTENSITIES.map(i => i.pct).join()})`)
+
+  /* A SHADOW IS A LENGTH, so a fractional macro ships a fractional pixel. The
+     base geometry carries a 1px offset, so only whole multipliers survive. */
+  for (const i of INTENSITIES) {
+    assert(Number.isInteger(i.depth), `${i.id} multiplies by a whole number (${i.depth})`)
+    const st = applyAnswers(base, { ...BLANK, depth: 'shadow', intensity: i.id })
+    const e = derive(st).elevation
+    const frac = [...`${e.raised} ${e.overlay} ${e.modal}`.matchAll(/(\d+\.\d+)px/g)].map(m => m[1])
+    assert(frac.length === 0, `${i.id} ships no fractional pixel (${frac.join(', ')})`)
+  }
+
+  /* MEDIUM IS THE DEFAULT SO NOTHING MOVES. Whatever the two answers rendered
+     before this control existed, they must still render. */
+  assert(BLANK.intensity === 'medium', `the default is medium (${BLANK.intensity})`)
+  {
+    const sh = applyAnswers(base, { ...BLANK, depth: 'shadow' })
+    const bd = applyAnswers(base, { ...BLANK, depth: 'border' })
+    assert(sh.macros.depth === 2 && sh.components.overrides['card.borderColor'] === '{colors.border-subtle}',
+      `the shadow answer is unchanged at the default (${sh.macros.depth}, ${sh.components.overrides['card.borderColor']})`)
+    assert(bd.macros.depth === 0 && bd.components.overrides['card.borderColor'] === '{colors.border}',
+      `the border answer is unchanged at the default (${bd.macros.depth}, ${bd.components.overrides['card.borderColor']})`)
+  }
+
+  /* THE CONTROL HAS TO MOVE SOMETHING, or it is a setting that proves itself.
+     Every level of each answer must differ from every other. */
+  for (const sep of DEPTHS.map(d => d.id)) {
+    const seen = new Set()
+    for (const i of INTENSITIES) {
+      const st = applyAnswers(base, { ...BLANK, depth: sep, intensity: i.id })
+      const painted = `${derive(st).elevation.raised}|${st.components.overrides['card.borderColor']}`
+      assert(!seen.has(painted), `${sep} at ${i.id} paints something no other level does`)
+      seen.add(painted)
+    }
+  }
+
+  /* ONE WRITER. The prompt must ask for exactly what `applyAnswers` painted,
+     or the picture promises a card the agent will not build. */
+  for (const sep of DEPTHS.map(d => d.id)) {
+    for (const i of INTENSITIES) {
+      const a = { ...BLANK, depth: sep, intensity: i.id }
+      const st = applyAnswers(base, a)
+      const l = depthLine(a)
+      assert(l.includes(`depth macro to ${st.macros.depth}`),
+        `${sep}/${i.id}: the prompt names the macro the preview used (${l})`)
+      assert(l.includes(st.components.overrides['card.borderColor']),
+        `${sep}/${i.id}: the prompt names the edge the preview used (${l})`)
+      assert(l.includes(`${i.pct}%`), `${sep}/${i.id}: the prompt states the percentage`)
+    }
+  }
+
+  /* An edge is a STEP ON THE RAMP, never a faded colour: a 33% border invents
+     a value between two published weights. */
+  for (const i of INTENSITIES) {
+    const edge = cardEdge(resolve({ ...BLANK, depth: 'border', intensity: i.id }))
+    assert(edge === 'transparent' || /^\{colors\.border(-subtle|-strong)?\}$/.test(edge),
+      `the ${i.id} edge is a published token, not a fade (${edge})`)
+  }
+
+  /* And every combination still audits clean. */
+  for (const sep of DEPTHS.map(d => d.id)) {
+    for (const i of INTENSITIES) {
+      const st = applyAnswers(base, { ...BLANK, depth: sep, intensity: i.id })
+      const f = audit(st, derive(st))
+      assert(f.length === 0, `${sep}/${i.id} audits clean (${f.map(x => x.id).join(', ')})`)
+    }
+  }
 }
 
 line(`\n${failures === 0 ? 'ALL PASS' : `${failures} FAILURE(S)`}\n`)

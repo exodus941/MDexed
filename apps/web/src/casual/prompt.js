@@ -36,7 +36,7 @@
  * Every number and label below was read out of the running app rather than
  * remembered. See `readInterface` at the foot of this file.
  */
-import { resolve } from './answers.js'
+import { resolve, cardEdge } from './answers.js'
 
 export const MDEXED_URL = 'https://mdexed.vercel.app'
 
@@ -103,7 +103,12 @@ export function buildPrompt(answers) {
     bullet(`Type: ${a.type.label}. ${a.type.display} for display, ${a.type.body} for body, ${a.type.mono} for mono.`),
     bullet(`Tightness: ${a.tightness.label}. Set the density macro to ${a.tightness.density}.`),
     bullet(`Shape: ${a.shape.label}. Set the roundness macro to ${a.shape.roundness}.`),
-    bullet(`Depth: ${a.depth.label}. Set the depth macro to ${a.depth.depth}, and the card's border colour to ${a.depth.cardBorder}.`),
+    /* ONE BULLET, BOTH ANSWERS. The separator and its strength are one
+       decision to a reader, and splitting them into two lines invites an agent
+       to set the macro from one and the edge from the other. Every number here
+       comes from `applyAnswers`, so the prompt cannot ask for a card the
+       preview did not paint. */
+    bullet(`Depth: ${a.depth.label}, intensity ${a.intensity.label.toLowerCase()} (${a.intensity.pct}%). Set the depth macro to ${a.depth.id === 'shadow' ? a.intensity.depth : 0}, and the card's border colour to ${cardEdge(a)}.`),
     bullet(`Theme: ${a.theme.label}.`),
     '',
     '## The screen',

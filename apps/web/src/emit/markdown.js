@@ -87,8 +87,25 @@ function overviewBody(state) {
          say the same forbidding sentence. A system with one theme that reads as
          though it might have two is how an agent ends up inventing the palette
          it was never given. */
+      /* ── THE MECHANISM, NOT ONLY THE CONTROL ──
+       *
+       * This bullet used to say "set `data-theme` on the root element", and
+       * `tokens.css` has shipped a script-free mechanism for months. Two
+       * answers to one decision, in two files, and AGENTS.md sends the reader
+       * to DESIGN.md first — so every build took the one that needs a script.
+       *
+       * It was reported dead three times across three simulations. Each build
+       * measured correct when served and looked broken when opened: a
+       * sandboxed preview, a strict policy, a file from disk. A control that
+       * works only where scripts run is a control that intermittently does
+       * nothing, and intermittent is worse than absent.
+       *
+       * So the primary instruction is now the checkbox, and the script is
+       * named for the two things CSS cannot do. Proven on a rebuilt page with
+       * every script stripped out: the label repainted the body from
+       * rgb(214,221,222) to rgb(20,22,23) and back. */
       hasThemeToggle(state)
-        ? 'Build a **theme toggle** into the page, as a visible icon button carrying a lightbulb. It is a real control that a reader has to be able to find, so give it a label, a place in the tab order and the same target size as any other button in its row — not a hover-only affordance and not a hidden keyboard shortcut. Set `data-theme="light"` or `data-theme="dark"` on the root element; every token reassigns itself and no variable name changes. Persist the choice, and default to the operating system setting via `prefers-color-scheme` on first load.'
+        ? 'Build a **theme toggle** into the page, as a visible icon control carrying a lightbulb. It is a real control a reader has to find, so give it a label, a place in the tab order and the same target size as any other control in its row. **Build it so it works with no JavaScript at all.** `tokens.css` opens its dark block on a checkbox as well as on the attribute, so a hidden `<input type="checkbox" id="dmd-dark">` anywhere on the page plus a `<label for="dmd-dark">` carrying your lightbulb IS the whole control. Add a script only for the two things CSS cannot do: set the checkbox from `prefers-color-scheme` on first load, and persist the reader\'s choice. A toggle that needs a script does nothing wherever scripts do not run, and it was reported broken three times before this sentence existed.'
         : 'This system ships one theme. Do not build a theme toggle, and do not invent the other palette to fill one.',
 
       /* THE HALF THAT WAS MISSING, AND WHAT IT COST.

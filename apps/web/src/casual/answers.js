@@ -58,8 +58,40 @@ export const SHAPES = [
    choices rendered as the same card. A system that draws its surfaces by their
    edge draws that edge in the border token, not the subtle one. */
 export const DEPTHS = [
-  { id: 'shadow', label: 'Shadows', depth: 2, cardBorder: '{colors.border-subtle}', note: 'Cards lift off the page on a clear shadow.' },
-  { id: 'border', label: 'Borders', depth: 0, cardBorder: '{colors.border}', note: 'No shadows. Cards are drawn by a visible edge.' },
+  { id: 'shadow', label: 'Shadows', cardBorder: '{colors.border-subtle}', note: 'Cards lift off the page on a shadow.' },
+  { id: 'border', label: 'Borders', note: 'No shadows. Cards are drawn by a visible edge.' },
+]
+
+/* ── HOW MUCH OF IT, AND THE SCALE IS FOUR WHOLE STEPS ──
+ *
+ * The separator answers WHICH, and nothing answered HOW MUCH. So a system that
+ * wanted a whisper of a shadow and one that wanted a slab got the same card.
+ *
+ * THE STEPS ARE INTEGERS BECAUSE A SHADOW IS A LENGTH. `deriveElevation`
+ * multiplies every offset and blur by the depth macro, and the base geometry
+ * includes a 1px offset — so any fractional macro ships a fractional pixel.
+ * Measured at 0.66: `0px 0.7px 1.3px`. At 1.32: `0px 1.3px 2.6px`. Only whole
+ * multipliers survive, which fixes the maximum at 3 and makes the four steps
+ * 0, 1, 2 and 3 — exactly the 0, 33, 66 and 100 per cent asked for.
+ *
+ * MEDIUM IS THE DEFAULT SO NOTHING MOVES. Depth 2 and `{colors.border}` are
+ * what the two answers shipped before this control existed, so a document that
+ * never touches it renders byte-identically.
+ *
+ * A BORDER HAS NO MACRO, so its intensity is a STEP ON THE NEUTRAL RAMP rather
+ * than an opacity. Fading an edge to 33% invents a colour the system never
+ * published and lands it between two ramp steps; `border-subtle`, `border` and
+ * `border-strong` are three weights the palette already states and the audit
+ * already measures. */
+export const INTENSITIES = [
+  { id: 'none',   label: 'None',   pct: 0,   depth: 0, border: 'transparent',
+    note: 'Off. The surface is separated by its fill alone.' },
+  { id: 'light',  label: 'Light',  pct: 33,  depth: 1, border: '{colors.border-subtle}',
+    note: 'The quietest step the system publishes.' },
+  { id: 'medium', label: 'Medium', pct: 66,  depth: 2, border: '{colors.border}',
+    note: 'The designed baseline.' },
+  { id: 'heavy',  label: 'Heavy',  pct: 100, depth: 3, border: '{colors.border-strong}',
+    note: 'Unmistakable. Every card announces itself.' },
 ]
 
 export const THEMES = [
@@ -80,6 +112,7 @@ export const BLANK = {
   brand: [],
   shape: 'soft',
   depth: 'shadow',
+  intensity: 'medium',
   theme: 'both',
 }
 
@@ -119,9 +152,26 @@ export function resolve(a) {
     tightness: find(TIGHTNESS, a.tightness),
     shape: find(SHAPES, a.shape),
     depth: find(DEPTHS, a.depth),
+    intensity: find(INTENSITIES, a.intensity),
     theme: find(THEMES, a.theme),
     brand: (a.brand || []).filter(Boolean).slice(0, BRAND_MAX),
   }
+}
+
+/* THE CARD'S EDGE, FROM BOTH ANSWERS AT ONCE.
+ *
+ * Chosen SHADOWS, the shadow does the separating and the edge stays the
+ * hairline it always was — turning it up as well would say the same thing
+ * twice, and the intensity is already in the shadow.
+ *
+ * Chosen BORDERS, the edge IS the separator, so it takes the step. `none` then
+ * leaves the card with no shadow and no edge, separated by its fill: legal,
+ * because the plane check already guarantees `surface` differs from `bg`, and
+ * it is a real design somebody may want.
+ *
+ * One writer, so the preview cannot paint an edge the prompt does not ask for. */
+export function cardEdge (r) {
+  return r.depth.id === 'shadow' ? r.depth.cardBorder : r.intensity.border
 }
 
 /* ── THE ANSWERS AS A DOCUMENT ──
@@ -171,13 +221,17 @@ export function applyAnswers(base, a) {
       ...base.macros,
       density: r.tightness.density,
       roundness: r.shape.roundness,
-      depth: r.depth.depth,
+      /* THE INTENSITY MEANS DIFFERENT THINGS TO THE TWO ANSWERS, because the
+         two are separated by different machinery. A shadow has a macro that
+         scales it. A border does not, so its strength is a step on the ramp.
+         One control, read twice — see `cardEdge` below. */
+      depth: r.depth.id === 'shadow' ? r.intensity.depth : 0,
     },
     components: {
       ...base.components,
       overrides: {
         ...base.components?.overrides,
-        'card.borderColor': r.depth.cardBorder,
+        'card.borderColor': cardEdge(r),
         /* Only when the shape answer caps it. Spreading `undefined` would
            write the key and blank the radius. */
         ...(r.shape.cardRounded ? { 'card.rounded': r.shape.cardRounded } : {}),
