@@ -514,7 +514,21 @@ function layoutBody(state, derived) {
 /* ── Elevation ── */
 function elevationBody(state, derived) {
   const e = state.elevation
-  const rows = Object.entries(derived.elevation).map(([name, val]) => [`\`${name}\``, val === 'none' ? 'none' : `\`${val}\``])
+  /* ── AT DEPTH ZERO A SHADOW IS A STRING OF ZEROES, AND `none` IS THE TRUTH ──
+   *
+   * `deriveElevation` multiplies the geometry and the alpha by the macro, so
+   * at 0 every level came out as `0px 0px 0px 0px rgba(20,22,23,0)` — four
+   * rows of a shadow that paints nothing, printed under a heading that says
+   * shadows, two lines above prose saying to treat every surface as flat. A
+   * reader can paste one and wonder why it does nothing.
+   *
+   * Read the VALUE, never the macro. A layer whose colour is fully
+   * transparent paints nothing whatever produced it, which also covers a
+   * scrim opacity of zero and any future strategy that zeroes a layer. */
+  const paintsNothing = v => typeof v === 'string' &&
+    v.split('),').every(layer => /rgba?\([^)]*,\s*0\s*\)?\s*$/.test(layer.trim() + (layer.includes(')') ? '' : ')')))
+  const rows = Object.entries(derived.elevation).map(([name, val]) =>
+    [`\`${name}\``, (val === 'none' || paintsNothing(val)) ? 'none' : `\`${val}\``])
 
   const strategyNote = {
     shadow: 'Depth is expressed with shadows.',
@@ -611,9 +625,22 @@ function componentsBody(state, derived) {
      goes out as rules. The heights are the exception: `height` is legal, so the
      numbers below are already in the frontmatter. Restating them as a set is
      what turns three equal literals into a stated relationship. */
+  /* A MARK'S BAR IS NOT A CONTROL'S BOX, and the schema makes them share a
+     key. `nav-burger` publishes `size` for its bar LENGTH and `height` for its
+     THICKNESS, because the spec allows eight property names and no ninth. It
+     then landed in this table under the heading "Controls that share a row
+     must share a height", reading `nav-burger  2px`. A reader building a menu
+     button from that has a 2px control.
+
+     Ask the property, never a list of names. An entry publishing `size` as
+     well is describing a mark it draws, so its height is a thickness.
+     Enumerated on the shipped set: every real control publishes one or the
+     other, and the burger is the only entry that publishes both. */
   const heights = derived.components
-    .map(c => [c.name, (c.properties ?? []).find(p => p.key === 'height')?.value])
-    .filter(([, v]) => v)
+    .map(c => [c.name, (c.properties ?? []).find(p => p.key === 'height')?.value,
+      (c.properties ?? []).some(p => p.key === 'size')])
+    .filter(([, v, drawsAMark]) => v && !drawsAMark)
+    .map(([n, v]) => [n, v])
 
   /* Only the ones a finger has to hit. A switch is a 24px control inside a
      44px row, and calling it a short target every time would be noise. */
@@ -629,7 +656,19 @@ function componentsBody(state, derived) {
     '**Controls shorter than the minimum target**',
     `${short.map(([n, v]) => `\`${n}\` (${v})`).join(', ')} ${short.length === 1 ? 'is' : 'are'} below the ${target}px minimum. That is deliberate — a dense control should look dense. It is not permission to ship a ${target}px-shy hit area.`,
     bullets([
-      `Give the control ${target}px of hit area without changing how it looks: pad the wrapper, or stretch a pseudo-element over it.`,
+      /* ── "PAD THE WRAPPER" IS THE ADVICE A BUILDER TAKES, AND IT DOES NOT
+       *    WORK ──
+       *
+       * A `<span>` around an input does not forward its clicks, so a 44px
+       * padded span leaves the reader with the same 16px box and the render
+       * check rightly still fails it. Measured on a build from this package:
+       * five row checkboxes at 16x16 under a 44px floor, every one already
+       * inside a padded wrapper.
+       *
+       * Two shapes actually work, and the difference is whether the thing
+       * being padded can receive the press on the control's behalf. Name
+       * both, and name the one that looks right and is not. */
+      `Give the control ${target}px of hit area without changing how it looks, and there are exactly two ways. Stretch the CONTROL itself over the target — transparent, positioned, on top — and let a sibling paint the small box under it. Or make the wrapper a \`<label>\`, which does forward its clicks, and visually hide the input inside it. Padding a \`<span>\` wrapper is neither: a span cannot receive a press for the control inside it, so the reader still has only the small box to hit and nothing about the markup says so.`,
       `Or use a taller size for anything standing on its own. Reserve the short ones for rows and toolbars, where neighbours supply the clear space.`,
     ]),
   ] : []
@@ -902,6 +941,19 @@ function componentsBody(state, derived) {
     '**Iconography**',
     bullets([
       `Library: **${icons.library}**. Do not mix icon sets.`,
+      /* ── A COMPONENT WITH A GAP AND NO ICON SIZE IS NOT AN OVERSIGHT ──
+       *
+       * The badge publishes a `gap` and deliberately no `iconSize`, and the
+       * reason lived only in a source comment: its ornament is a shape, and
+       * the smallest icon on the scale is larger than the caption the chip is
+       * set in. A builder cannot read that comment. It finds a gap, infers a
+       * mark is expected, finds no size, and invents one — which is the hole
+       * the gaps guard was built to close, arriving from the other side.
+       *
+       * Measured while building from this package: the first attempt sized a
+       * badge's mark at `var(--space-sm)`, a spacing step standing in for an
+       * icon size, because nothing said not to. */
+      'A component that publishes a `gap` but no `iconSize` wants a SHAPE, not an icon, and the badge is the case. Its ornament is a dot, a bar or a square built from the spacing scale — the smallest size on the icon scale is larger than the caption a chip is set in, so a glyph in one is always too big. Do not reach for a spacing step as an icon size to get around it. Three shapes also carry meaning better than three hues: a reader who cannot separate the colours still sees a circle, a dash and a square.',
       `**TAKE THE GLYPH FROM ${icons.library.toUpperCase()}. DO NOT DRAW ONE.** This package names a library and ships no marks, which leaves a builder with no path data and a mark to place. What it does then is draw its own, and a hand-drawn glyph is wrong in a way that is hard to name and easy to see: a generated dashboard invented a lightbulb whose ink filled 20 of its 24 units, so it rendered as a tall thin shape crammed into a box every other mark sat comfortably inside. Install the package, or copy the exact path data from the library's own file. An icon set spans its glyphs deliberately, and that balance is the reason to name a set at all.`,
       /* The number alone was ambiguous, and the ambiguity cost real weight
          drift here: one token painted six different marks across the surfaces,
