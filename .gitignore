@@ -34,3 +34,6 @@ npm-debug.log*
 .claude/
 .vercel
 apps/web/public/layout-tools.js
+
+# Simulation scaffolding served from the dev server. Never part of the app.
+apps/web/public/sim*/
