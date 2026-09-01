@@ -419,6 +419,7 @@ function layoutBody(state, derived) {
         Object.entries(l.fixedWidths).map(([k, v]) => `**${k}** ${v}px`).join(', ')
       }. These are starting points, not constraints. A rail that cannot hold its longest label, or a field that crowds the control beside it, should change. Change the token rather than the one page, and keep every other width on the spacing scale.`,
       'Mobile first — treat each breakpoint as a min-width.',
+      '**RESET `box-sizing` TO `border-box` BEFORE ANYTHING ELSE.** Every height in this file is the whole box, and every stated line height is that height minus its borders. Both are only true under `border-box`, and the browser default is `content-box`, where a height and its padding ADD. Measured on a generated dashboard: a nav item asked for the 44px target floor, carried 6px of padding above and below, and rendered a 56px box with its label pinned to the top. Put `*, *::before, *::after { box-sizing: border-box }` at the top of your stylesheet. This package does not ship a reset, because a reset belongs to the application rather than to a token file.',
       'Use `minmax(0, 1fr)` for equal grid columns, never a bare `1fr`. A bare `1fr` carries a min-content floor, so the column holding the longest word grows and the "equal" columns come out different widths.',
       'Anything left alone on its own line takes the whole line. A wrap, a fold or a hidden label orphans an element often. The orphan almost never resizes itself. A 150px field floating in a 351px row then reads as an accident, not a decision.',
       'Sideways scrolling is a last resort, not a layout tool. Ask what genuinely cannot stack: a table of real columns cannot, so it scrolls. A run of buttons can, so it stacks. A pane that scrolls down, inside a page that scrolls down, around a group that scrolls sideways, is three scrollbars for four controls.',
@@ -883,6 +884,7 @@ function componentsBody(state, derived) {
     '**Iconography**',
     bullets([
       `Library: **${icons.library}**. Do not mix icon sets.`,
+      `**TAKE THE GLYPH FROM ${icons.library.toUpperCase()}. DO NOT DRAW ONE.** This package names a library and ships no marks, which leaves a builder with no path data and a mark to place. What it does then is draw its own, and a hand-drawn glyph is wrong in a way that is hard to name and easy to see: a generated dashboard invented a lightbulb whose ink filled 20 of its 24 units, so it rendered as a tall thin shape crammed into a box every other mark sat comfortably inside. Install the package, or copy the exact path data from the library's own file. An icon set spans its glyphs deliberately, and that balance is the reason to name a set at all.`,
       /* The number alone was ambiguous, and the ambiguity cost real weight
          drift here: one token painted six different marks across the surfaces,
          from 0.73px to 2.33px, because an SVG scales its stroke with its box. */

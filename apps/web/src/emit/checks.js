@@ -118,13 +118,19 @@ export const CHECKS = [
   {
     id: 'toggle-states-itself',
     where: 'source',
-    line: 'The theme toggle carries `aria-pressed` and a label naming the current theme and the next.',
+    line: 'The theme control says which theme is on: `aria-pressed` on a button, or a checkbox, and a label naming the current theme and the next.',
+    /* A NATIVE CHECKBOX ALREADY STATES ITS STATE, and demanding `aria-pressed`
+       of one is wrong. This asked for the attribute and nothing else, so it
+       failed a build whose control was a checkbox driving a CSS-only switch,
+       which is the more robust of the two shapes. Ask the QUESTION: can a
+       reader who cannot see the mark tell which theme is on? */
     body: [
       "for (const f of files.filter(f => f.html)) {",
-      "  const hasToggle = /data-theme/.test(f.text) && /<button/i.test(f.text)",
-      "  if (!hasToggle) continue",
-      "  if (!/aria-pressed/.test(f.text))",
-      "    fail(f.path, 0, 'a theme control with no aria-pressed. An icon-only control with no state is a picture a screen reader cannot see.')",
+      "  if (!/data-theme|dmd-dark/.test(f.text)) continue",
+      "  const saysPressed = /aria-pressed/.test(f.text)",
+      "  const isCheckbox = /<input[^>]+type=[\"']checkbox[\"'][^>]*>/i.test(f.text)",
+      "  if (saysPressed || isCheckbox) continue",
+      "  fail(f.path, 0, 'a theme control that never says which theme is on. Give a button aria-pressed, or make the control a checkbox, which states it natively.')",
       "}",
     ],
   },
@@ -287,6 +293,7 @@ export const CHECKS = [
       "if (!matchMedia('(pointer: coarse)').matches) { note('skipped: this pointer is fine, not coarse'); return }",
       "const floor = px(tokenValue('--target-min') || '44px')",
       "for (const el of all('button, a[href], input, select, [role=button]')) {",
+      "  if (clippedAway(el)) continue   /* its label is the hit area */",
       "  const r = el.getBoundingClientRect(); if (!r.width) continue",
       "  if (r.height < floor - 0.5 || r.width < floor - 0.5)",
       "    fail(name(el), round(r.width) + 'x' + round(r.height) + ' under a ' + floor + 'px floor. Promote the whole row, never one control in it.')",
@@ -299,7 +306,7 @@ export const CHECKS = [
     where: 'render',
     line: 'Pressing the theme control changes the painted page. Press it and read the result.',
     body: [
-      "const btn = document.querySelector('[aria-pressed][aria-label*=heme], #theme-toggle, [data-theme-toggle]')",
+      "const btn = document.querySelector('[aria-pressed][aria-label*=heme], #dmd-dark, [data-theme-toggle], #theme-toggle')",
       "if (!btn) { fail('document', 'no theme control found. The system asks for a visible one.'); return }",
       "const before = getComputedStyle(document.body).backgroundColor",
       "btn.click(); await frame()",
@@ -307,8 +314,10 @@ export const CHECKS = [
       "btn.click(); await frame()",
       "if (before === after)",
       "  fail(name(btn), 'a press changed nothing. The page painted ' + before + ' before and after.')",
-      "if (btn.getAttribute('aria-pressed') == null)",
-      "  fail(name(btn), 'no aria-pressed, so the control never says which theme is on.')",
+      "const statesItself = btn.getAttribute('aria-pressed') != null ||",
+      "  (btn.tagName === 'INPUT' && btn.type === 'checkbox') || btn.getAttribute('aria-checked') != null",
+      "if (!statesItself)",
+      "  fail(name(btn), 'the control never says which theme is on. Give a button aria-pressed, or use a checkbox, which states it natively.')",
     ],
   },
 

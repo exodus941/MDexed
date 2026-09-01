@@ -100,6 +100,17 @@ export default function FixPreview({ fix, onCancel, onConfirm }) {
   /* The step the scorer actually chose, which may not be the one the finding
      named. Show that one, or the swatch and the title disagree. */
   const chosen = after.fix ?? fix
+  /* ── THE HEADING READS THE SAME FIELD THE SWATCH DOES ──
+   *
+   * `chosen.label` is absent on a candidate the scorer picked rather than the
+   * one the finding named, and the fallback then printed the finding's own
+   * stale text. Measured on a real run: the title read "Move danger to
+   * danger.500" above swatches reading danger.700 and danger.900.
+   *
+   * Built from `chosen.ref`, the two cannot disagree. */
+  const heading = chosen.ref
+    ? `Move ${fix.role ?? chosen.role} to ${chosen.ref}`
+    : (chosen.label ?? fix.label)
 
   const fromHex = derived.roles?.[fix.mode]?.[fix.role]
   const toHex = after.derived.roles?.[fix.mode]?.[fix.role]
@@ -118,7 +129,7 @@ export default function FixPreview({ fix, onCancel, onConfirm }) {
         }}>
         <div style={{ padding: 16, borderBottom: '1px solid var(--bdr)' }}>
           <h2 id="fixprev-title" style={{ margin: 0, fontSize: 16, fontWeight: 600, color: 'var(--text)' }}>
-            {chosen.label ?? fix.label}
+            {heading}
           </h2>
           <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--muted)' }}>
             {fix.mode} mode. Nothing changes until you apply it, and undo reverses it.

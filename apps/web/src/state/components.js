@@ -55,10 +55,16 @@ export const COMPONENT_LIBRARY = [
        so the app was right and the tokens beside it were teaching a reader to
        build three sizes. Absent, only the base token is emitted, and the file
        then says structurally what the rule says in prose. */
+    /* THE WEIGHT IS A BUTTON DECISION AND DOES NOT FOLLOW THE SIZE STEP.
+       Each size takes its own type role for the SIZE, and those roles carry
+       their own weights: caption 400, button 500, body-md 400. Taken as given
+       that shipped 400, 500, 400, so only the middle button was set in medium
+       and no rule said why. Restating the weight after the role is what makes
+       the three read as one control at three sizes. */
     sizes: {
-      sm: { height: '28px', padding: '0 {spacing.sm}',  typography: 'caption',  gap: '{spacing.3xs}' },
-      md: { height: '36px', padding: '0 {spacing.md}',  typography: 'button',   gap: '{spacing.2xs}' },
-      lg: { height: '44px', padding: '0 {spacing.lg}',  typography: 'body-md',  gap: '{spacing.xs}' },
+      sm: { height: '28px', padding: '0 {spacing.sm}',  typography: 'caption',  fontWeight: '500', gap: '{spacing.3xs}' },
+      md: { height: '36px', padding: '0 {spacing.md}',  typography: 'button',   fontWeight: '500', gap: '{spacing.2xs}' },
+      lg: { height: '44px', padding: '0 {spacing.lg}',  typography: 'body-md',  fontWeight: '500', gap: '{spacing.xs}' },
     },
     states: {
       hover:    { primary: { backgroundColor: '{colors.accent-hover}' }, secondary: { backgroundColor: '{colors.bg-subtle}' }, ghost: { backgroundColor: '{colors.accent-subtle}', textColor: '{colors.accent}' }, danger: { backgroundColor: '{colors.danger-hover}' }, 'danger-ghost': { backgroundColor: '{colors.danger-subtle}', textColor: '{colors.danger}' } },

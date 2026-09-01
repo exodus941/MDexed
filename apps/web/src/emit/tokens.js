@@ -107,6 +107,41 @@ ${decl(dark).replace(/^ {2}/gm, '    ')}
 :root[data-theme="dark"] {
 ${decl(dark)}
 }
+
+/* ── THE SAME CHOICE, WITH NO JAVASCRIPT ──
+ *
+ * The attribute above needs a script to move it, and a theme control that
+ * needs a script is a control that does nothing wherever scripts do not run:
+ * a sandboxed preview, a strict content policy, a file opened from disk. A
+ * reader then presses the lightbulb, sees no change, and reports it broken.
+ * That happened on a real build.
+ *
+ * So the dark block answers to a checkbox as well. Put a hidden checkbox with
+ * this id anywhere on the page and label it with your visible control:
+ *
+ *   <input type="checkbox" id="dmd-dark" hidden>
+ *   <label for="dmd-dark" class="…">…lightbulb…</label>
+ *
+ * The control then works with no script at all. Add the script only for what
+ * CSS cannot do: set the checkbox from the OS preference on load, persist the
+ * reader's choice, and keep aria-pressed in step. Do NOT write data-theme into
+ * your markup.
+ *
+ * THE TRADE, STATED. A page carrying this checkbox and no script opens LIGHT
+ * on a dark system, because an unchecked box means light and CSS cannot ask
+ * whether a reader has touched it. A page with the script opens on the system
+ * preference. A control that always works is worth more than a default that
+ * works only where scripts do, and both are right once the script loads. */
+:root:has(#dmd-dark:checked) {
+${decl(dark)}
+}
+
+/* And back to light, for a reader whose system is dark. */
+@media (prefers-color-scheme: dark) {
+  :root:has(#dmd-dark:not(:checked)):not([data-theme="dark"]) {
+${decl(light).replace(/^ {2}/gm, '    ')}
+  }
+}
 `
 }
 

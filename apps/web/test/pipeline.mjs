@@ -989,8 +989,38 @@ line('\n- prompt construction -')
   const collisions = s => audit(s, derive(s)).filter(f => f.id.startsWith('meaning:'))
 
   assert(collisions(fresh).length === 0, 'the shipped default has no two roles reading as one colour')
-  const total = audit(fresh, derive(fresh)).length
-  assert(total === 0, `the shipped default reports nothing at all (${total})`)
+
+  /* ── THE DEFAULT CARRIES ONE WARNING, AND IT IS TRUE ──
+   *
+   * This used to assert the default reported nothing at all. `palette:flat`
+   * now measures the SET rather than a pair, and the shipped seeds fail it:
+   * the four chromatic seeds span 3.7 points of OKLCH lightness against a
+   * floor of 10. Every hue is the same brightness, which is what a reader
+   * means when they call a screen flat or nauseating, and it is why every
+   * red-green pairing in this system reports a lightness difference near zero.
+   *
+   * It is not fixable by moving two seeds. Measured on three candidates that
+   * take danger darker and warning lighter: the spread reaches 17.5, 24.7 and
+   * 31.7, and every one of them collides success with danger in dark mode. A
+   * remedy that raises the count is not a remedy, so the warning stands until
+   * the ramp generator places lightness deliberately.
+   *
+   * The guard that matters is kept: no FAILURES, and the warning count is
+   * pinned so a second one cannot arrive unnoticed. */
+  const findings = audit(fresh, derive(fresh))
+  const fails = findings.filter(f => f.level === 'fail')
+  assert(fails.length === 0, `the shipped default has no failures (${fails.length})`)
+  assert(findings.length === 1 && findings[0].id === 'palette:flat',
+    `the shipped default carries exactly the known palette warning (${findings.map(f => f.id).join(', ') || 'none'})`)
+
+  /* And the check stays quiet on a palette that has a value structure. */
+  {
+    const structured = createInitialState()
+    const put = (n, hex) => { structured.color.seeds.find(s => s.name === n).hex = hex }
+    put('danger', '#7f1d1d'); put('warning', '#f59e0b'); put('success', '#15803d')
+    const flat = audit(structured, derive(structured)).filter(f => f.id === 'palette:flat')
+    assert(flat.length === 0, 'palette:flat stays quiet once the seeds have a value structure')
+  }
 
   /* The fault it was built for, injected. A check that cannot catch this again
      is a blindfold, and this one has already been narrowed once. */

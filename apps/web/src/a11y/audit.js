@@ -1037,8 +1037,54 @@ function meaningCollision(derived, mode) {
   return out
 }
 
+/* ── A PALETTE WITH NO VALUE STRUCTURE ──
+ *
+ * `meaningCollision` above asks about a PAIR. Nothing asked about the set, and
+ * the set is where this system's colours go wrong.
+ *
+ * Measured across the default and all six presets: every chromatic seed sits
+ * at almost one lightness. Three of the seven span 0.037 in OKLCH L, and the
+ * three STATUS seeds are identical in every preset at 0.52, 0.56 and 0.55.
+ * Success, warning and danger are the three a reader most needs to tell apart,
+ * and they are the same brightness.
+ *
+ * That is what a reader means by a palette looking flat, muddy or nauseating.
+ * Hues at one lightness have nothing to separate them but hue, so they vibrate
+ * against each other, and for anyone with reduced colour discrimination they
+ * collapse into one grey. It is also why the red-green pair check keeps
+ * reporting "their lightness differs by only 0.1%": that is true of every pair
+ * in the system, by construction.
+ *
+ * The floor is the one `meaningCollision` already uses. Below ten points, two
+ * hues read as one colour, so a set whose EXTREMES are closer than that has no
+ * pair separated by lightness at all. A warning rather than a failure: the
+ * palette is legal and every contrast pair passes. It is the whole that reads
+ * wrong, and that is a judgement the reader has to make.
+ */
+function paletteStructure (state) {
+  const seeds = state?.color?.seeds ?? []
+  const chroma = seeds
+    .map(s => ({ name: s.name, o: toOklchObj(s.hex), hex: s.hex }))
+    .filter(s => s.o && (s.o.c ?? 0) >= 0.03)
+  if (chroma.length < 3) return []
+  const L = chroma.map(s => (s.o.l ?? 0) * 100)
+  const spread = Math.max(...L) - Math.min(...L)
+  if (spread >= LIGHTNESS_MIN) return []
+  const lightest = chroma[L.indexOf(Math.max(...L))]
+  const darkest = chroma[L.indexOf(Math.min(...L))]
+  return [{
+    req: 'colour', id: 'palette:flat', level: WARN, criterion: '1.4.1 Use of colour (A)',
+    tab: 'colour', entry: 'seeds',
+    title: 'Every colour in this palette is the same brightness',
+    detail: `The ${chroma.length} chromatic seeds span ${spread.toFixed(1)} points of lightness, from ${darkest.name} at ${L[L.indexOf(Math.min(...L))].toFixed(0)} to ${lightest.name} at ${L[L.indexOf(Math.max(...L))].toFixed(0)}. Ten points is where two hues stop reading as one colour, so no pair here is separated by brightness at all. A reader sees a flat, muddy screen; a reader with reduced colour discrimination sees one grey. It is also why every red-green pairing in this document reports a lightness difference near zero.`,
+    fix: 'Give the seeds a value structure. Take one status colour darker and another lighter, so a reader can rank them without seeing hue at all. Danger darker than warning is the usual shape, because a warning should read lighter than a stop.',
+    measured: `${spread.toFixed(1)} points, floor ${LIGHTNESS_MIN}`,
+  }]
+}
+
 export function audit(state, derived) {
   const all = [
+    ...paletteStructure(state),
     ...focusChecks(state),
     ...targetSize(state, derived),
     ...textChecks(state, derived),

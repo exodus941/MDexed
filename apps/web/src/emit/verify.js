@@ -291,6 +291,25 @@ function inner (cell) {
 
 const CONTROL = 'button, input, select, textarea, a[href], [role=button], [role=tab], .btn'
 
+/* ── A CONTROL CLIPPED TO A PIXEL IS NOT THE CONTROL A PERSON SEES ──
+ *
+ * The standard way to build a switch with no script is a visually hidden
+ * checkbox and a label that draws it. The input keeps a 1x1 box so it stays
+ * focusable and nameable, and the LABEL is what the reader hits.
+ *
+ * Measured without this: a row of two 36px buttons reported "heights 36, 1,
+ * 36", and the same input reported 1x1 against a 44px touch floor. Both are
+ * the check reading the wrong element. Its label carries the size, the target
+ * and the hit area, and every one of those checks already measures the label.
+ */
+const clippedAway = el => {
+  const r = el.getBoundingClientRect()
+  if (r.width > 2 || r.height > 2) return false
+  const cs = getComputedStyle(el)
+  return cs.position === 'absolute' &&
+    (cs.clipPath !== 'none' || cs.clip !== 'auto' || cs.overflow === 'hidden')
+}
+
 function describe (el) {
   const rect = el.getBoundingClientRect()
   if (!rect.width || !rect.height) return null
@@ -301,7 +320,7 @@ function describe (el) {
     text: Boolean(band),
     lines: band ? band.lines : 0,
     baseline: band ? band.baseline : null,
-    control: el.matches(CONTROL),
+    control: el.matches(CONTROL) && !clippedAway(el),
   }
 }
 

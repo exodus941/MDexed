@@ -221,9 +221,13 @@ function ContrastChip({ onOpen }) {
  *
  * The rest need you: a judgement about size, or wording, or which of two
  * colours should move. Sending you to the control is all the app can honestly
- * do, so the button says Investigate and Repair and carries a wrench. Naming
- * the difference matters — a Fix It that only scrolls teaches people the button
- * does nothing. */
+ * do, so that button carries a wrench and says what it does. Naming the
+ * difference matters. A Fix It that only scrolls teaches people the button
+ * does nothing.
+ *
+ * IT SAID "INVESTIGATE AND REPAIR", AND IT REPAIRS NOTHING. A reader pressed
+ * it expecting the second half and got a scroll. The label now promises only
+ * the trip, which is the whole of what the press delivers. */
 const Wand = () => (
   <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}
     strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -315,7 +319,7 @@ function WarningsChip({ onJump, onApply }) {
                     onJump?.(f.tab, f.entry); setOpen(false)
                   }}>
                   {f.apply ? <Wand /> : <Wrench />}
-                  <span className="lbl">{f.apply ? 'Fix It' : 'Investigate and Repair'}</span>
+                  <span className="lbl">{f.apply ? 'Fix It' : 'Take Me There'}</span>
                 </button>
               )} />
             ))}
