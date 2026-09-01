@@ -755,8 +755,19 @@ export function chooseFix(state, derived, fix, derive) {
     return { state: st, derived: d, findings, ...c, total: c.fail + c.warn, fix: f }
   }
 
+  /* A CANDIDATE MAY NAME ITS OWN ROLE.
+   *
+   * `stepThatSeparates` repairs one named pair, so every step it offers is on
+   * one ramp and the role never varies. `stepThatSpreadsThePalette` is not
+   * about a pair — any role with room can widen the spread — so its list
+   * crosses ramps, and dropping `c.role` here scored the wrong document.
+   *
+   * Measured on a flat light palette: success.500 and warning.900 tie at two
+   * steps out, success is enumerated first, and filtering the list to that one
+   * role reported "none improves" while warning.900 was clean. Both roles in
+   * one list, each carrying its own name, and the search finds it. */
   const list = fix.candidates?.length ? fix.candidates : [fix]
-  const scored = list.map(c => score({ ...fix, ref: c.ref, from: c.from }))
+  const scored = list.map(c => score({ ...fix, role: c.role ?? fix.role, ref: c.ref, from: c.from }))
   const win = scored.find(x => x.total < total0)
   return { before, ...(win ?? { ...scored[0], noImprovement: true }) }
 }
@@ -1061,23 +1072,108 @@ function meaningCollision(derived, mode) {
  * palette is legal and every contrast pair passes. It is the whole that reads
  * wrong, and that is a judgement the reader has to make.
  */
-function paletteStructure (state) {
-  const seeds = state?.color?.seeds ?? []
-  const chroma = seeds
-    .map(s => ({ name: s.name, o: toOklchObj(s.hex), hex: s.hex }))
-    .filter(s => s.o && (s.o.c ?? 0) >= 0.03)
+/* ── IT MEASURES THE ROLES, BECAUSE THE SEEDS NEVER REACH A SCREEN ──
+ *
+ * The first version read the seed hexes, and that was the wrong input. A seed
+ * sets hue and chroma; `buildRamp` then places all eleven steps between
+ * `lightMin` and `lightMax` on one ladder shared by every ramp, so the seed's
+ * own lightness is discarded. Measured: at step 400 every ramp is L 0.66, at
+ * 700 every ramp is 0.43, and the spread ACROSS ramps at any step is 0.00.
+ *
+ * So no choice of seed can fix a flat palette, and reading the seeds reports a
+ * number nobody sees. The shipped seeds span 3.7 points while the ROLES they
+ * generate span 0.2 — flatter than the thing being measured.
+ *
+ * The roles are what renders, and the remedy is at the role: pick a different
+ * STEP for one of them. That is the only lever the ramp leaves. */
+const MEANING_ROLES = ['accent', 'success', 'warning', 'danger']
+
+/* ── WHICH ROLE CAN AFFORD TO MOVE ──
+ *
+ * All four are candidates on the arithmetic and only some of them are in
+ * practice, because a role used as a `backgroundColor` paints a control.
+ * Enumerated on the shipped default: `accent` has eleven uses and `danger`
+ * seven, and both include a button fill, so a step that widens the spread
+ * turns Delete into a near-black slab. `success` and `warning` have three
+ * uses each and not one is a background.
+ *
+ * So ask the components, never a list of role names. A document that fills a
+ * badge from `success` gets a different answer, and it should.
+ *
+ * The candidates are ranked nearest-first and handed up exactly as
+ * `stepThatSeparates` does. `chooseFix` scores them against the WHOLE audit
+ * and takes the first whose total falls, so a step that widens the spread and
+ * breaks a contrast pair is rejected there rather than offered here. */
+function stepThatSpreadsThePalette (derived, mode, chroma, floor) {
+  const fills = new Set()
+  for (const c of derived.components ?? [])
+    for (const p of c.properties ?? []) {
+      const m = /^\{colors\.([a-z0-9-]+)\}$/i.exec(String(p.value ?? '').trim())
+      if (m && p.key === 'backgroundColor') fills.add(m[1])
+    }
+
+  const others = name => chroma.filter(s => s.name !== name).map(s => (s.o.l ?? 0) * 100)
+  const best = []
+  for (const role of chroma.map(s => s.name)) {
+    if (fills.has(role)) continue
+    let found = null
+    for (const [name, ramp] of Object.entries(derived.ramps ?? {}))
+      for (const [step, hex] of Object.entries(ramp.steps ?? {}))
+        if (String(hex).toLowerCase() === String(derived.roles[mode][role]).toLowerCase())
+          found = { name, step: Number(step), ramp }
+    if (!found) continue
+
+    const steps = Object.keys(found.ramp.steps ?? {}).map(Number).sort((x, y) => x - y)
+    const from = steps.indexOf(found.step)
+    if (from < 0) continue
+    const rest = others(role)
+
+    for (let d = 1; d < steps.length; d++)
+      for (const i of [from - d, from + d]) {
+        if (i < 0 || i >= steps.length) continue
+        const hex = found.ramp.steps[steps[i]]
+        const o = toOklchObj(hex)
+        /* A step so dark it loses its hue is not a spread, it is a black. The
+           check itself skips a role under 0.03 chroma, so a candidate below
+           that would clear the finding by leaving the set. Measured: warning
+           at 950 reads 23.2 points of spread and still reports flat. */
+        if (!o || (o.c ?? 0) < 0.03) continue
+        const L = [...rest, (o.l ?? 0) * 100]
+        if (Math.max(...L) - Math.min(...L) < floor) continue
+        best.push({ d, role, ref: `${found.name}.${steps[i]}`, hex, from: `${found.name}.${found.step}` })
+      }
+  }
+  if (!best.length) return null
+  /* Nearest first, and every eligible role in the one list. Each candidate
+     carries its own `role`, which `chooseFix` reads, so the search is not
+     confined to whichever ramp happened to be enumerated first. */
+  best.sort((a, b) => a.d - b.d)
+  return { ...best[0], candidates: best }
+}
+
+function paletteStructure (derived, mode) {
+  const R = derived.roles?.[mode] ?? {}
+  const chroma = MEANING_ROLES
+    .map(name => ({ name, o: toOklchObj(R[name]), hex: R[name] }))
+    .filter(s => s.hex && s.o && (s.o.c ?? 0) >= 0.03)
   if (chroma.length < 3) return []
   const L = chroma.map(s => (s.o.l ?? 0) * 100)
   const spread = Math.max(...L) - Math.min(...L)
   if (spread >= LIGHTNESS_MIN) return []
   const lightest = chroma[L.indexOf(Math.max(...L))]
   const darkest = chroma[L.indexOf(Math.min(...L))]
+  const step = stepThatSpreadsThePalette(derived, mode, chroma, LIGHTNESS_MIN)
   return [{
-    req: 'colour', id: 'palette:flat', level: WARN, criterion: '1.4.1 Use of colour (A)',
-    tab: 'colour', entry: 'seeds',
-    title: 'Every colour in this palette is the same brightness',
-    detail: `The ${chroma.length} chromatic seeds span ${spread.toFixed(1)} points of lightness, from ${darkest.name} at ${L[L.indexOf(Math.min(...L))].toFixed(0)} to ${lightest.name} at ${L[L.indexOf(Math.max(...L))].toFixed(0)}. Ten points is where two hues stop reading as one colour, so no pair here is separated by brightness at all. A reader sees a flat, muddy screen; a reader with reduced colour discrimination sees one grey. It is also why every red-green pairing in this document reports a lightness difference near zero.`,
-    fix: 'Give the seeds a value structure. Take one status colour darker and another lighter, so a reader can rank them without seeing hue at all. Danger darker than warning is the usual shape, because a warning should read lighter than a stop.',
+    req: 'colour', id: `palette:flat:${mode}`, level: WARN, criterion: '1.4.1 Use of colour (A)',
+    tab: 'roles', entry: 'warning', mode,
+    title: `Every meaning colour is the same brightness in ${mode}`,
+    detail: `The ${chroma.length} of them span ${spread.toFixed(1)} points of lightness, from ${darkest.name} at ${Math.min(...L).toFixed(0)} to ${lightest.name} at ${Math.max(...L).toFixed(0)}. Ten points is where two hues stop reading as one colour, so no pair here is separated by brightness at all. A reader sees a flat screen; a reader with reduced colour discrimination sees one grey. It is also why every red-green pairing reports a lightness difference near zero.`,
+    fix: 'Move one of these roles to a different STEP on its own ramp. Every ramp shares one lightness ladder, so the step is the only thing that changes a role\'s brightness — the seed cannot. Prefer a role that is not a control fill, so the palette gains a value structure without repainting a button.',
+    /* Absent when no step widens the spread without losing the hue, which is
+       the honest answer for a palette pinned on every side. A button that
+       adds work is worse than no button. */
+    apply: step && { kind: 'role-step', role: step.role, mode, ref: step.ref, from: step.from,
+      candidates: step.candidates, label: `Move ${step.role} to ${step.ref}` },
     measured: `${spread.toFixed(1)} points, floor ${LIGHTNESS_MIN}`,
   }]
 }
@@ -1168,7 +1264,6 @@ function fillSitsOnItsGround (derived, mode) {
 
 export function audit(state, derived) {
   const all = [
-    ...paletteStructure(state),
     ...focusChecks(state),
     ...targetSize(state, derived),
     ...textChecks(state, derived),
@@ -1185,6 +1280,7 @@ export function audit(state, derived) {
       ...meaningCollision(derived, mode),
       ...planeCollision(derived, mode),
       ...fillSitsOnItsGround(derived, mode),
+      ...paletteStructure(derived, mode),
     ]),
   ]
   const rank = { fail: 0, warn: 1, note: 2 }

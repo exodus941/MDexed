@@ -200,7 +200,39 @@ export const ROLE_GROUPS = [
       { name: 'success',         desc: 'Success fill',               light: 'success.700', dark: 'success.400' },
       { name: 'success-subtle',  desc: 'Success background',         light: 'success.100', dark: 'success.900~950@0.5' },
       { name: 'success-fg',      desc: 'Content on success fill',    light: 'neutral.50',  dark: 'neutral.950' },
-      { name: 'warning',         desc: 'Warning fill',               light: 'warning.700', dark: 'warning.400' },
+      /* ── THE ONE ROLE THAT GIVES THIS PALETTE A VALUE STRUCTURE ──
+       *
+       * Every ramp shares one lightness ladder: `buildRamp` spaces all eleven
+       * steps between `lightMin` and `lightMax` identically for each hue, so
+       * `accent.400`, `success.400`, `warning.400` and `danger.400` are all at
+       * L 0.66. Measured, the spread ACROSS ramps at any step is 0.00. Four
+       * meaning colours at one brightness read as a flat screen, and as one
+       * grey to a reader with reduced colour discrimination.
+       *
+       * A seed cannot fix it. A seed sets hue and chroma and the ramp discards
+       * its lightness, which is why the shipped seeds span 3.7 points while
+       * the roles they generate span 0.2. The STEP is the only lever.
+       *
+       * WARNING TAKES THE STEP IN BOTH MODES, and it is the only role that
+       * can. `accent` and `danger` are FILLS — `button-primary` and
+       * `button-danger` — so moving either paints a near-black button. Enumerated:
+       * accent has eleven uses and danger seven, against three each for
+       * success and warning, and neither of those three is a background.
+       *
+       * `success` was tried and rejected on measurement, not on taste. At 900
+       * in light it collides with danger under deuteranopia, which is a worse
+       * finding than the one it clears.
+       *
+       * The direction is whatever the mode's contrast floor allows, and the two
+       * are opposite. In light every meaning role is TEXT on its own pale chip,
+       * so it must stay dark: searched all 1331 combinations of the three, and
+       * only 16 come back clean, every one of them by DARKENING. In dark the
+       * same roles are text on a dark chip, so warning goes light and reads as
+       * the amber a caution should be.
+       *
+       * Measured: light 0.2 to 15.4 points, dark 0.2 to 15.5, no failure and no
+       * warning in either. Warning on its own chip reads 10.69:1 in light. */
+      { name: 'warning',         desc: 'Warning fill',               light: 'warning.900', dark: 'warning.200' },
       { name: 'warning-subtle',  desc: 'Warning background',         light: 'warning.100', dark: 'warning.900~950@0.5' },
       { name: 'warning-fg',      desc: 'Content on warning fill',    light: 'neutral.50',  dark: 'neutral.950' },
       { name: 'danger',          desc: 'Destructive fill',           light: 'danger.700',  dark: 'danger.400'  },

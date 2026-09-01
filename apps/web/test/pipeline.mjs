@@ -9,7 +9,8 @@ import { migrate } from '../src/state/migrate.js'
 import { isOnTypeGrid, isOnSpaceGrid } from '../src/state/grid.js'
 import { applyPreset, PRESETS } from '../src/state/presets.js'
 import { TAB_STYLES } from '../src/state/components.js'
-import { audit } from '../src/a11y/audit.js'
+import { audit, chooseFix } from '../src/a11y/audit.js'
+import { toOklchObj } from '../src/color/convert.js'
 import { check } from '../src/color/contrast.js'
 import { TYPE_ROLES } from '../src/type/scale.js'
 import { generateFile, validate } from '../src/emit/designmd.js'
@@ -990,36 +991,70 @@ line('\n- prompt construction -')
 
   assert(collisions(fresh).length === 0, 'the shipped default has no two roles reading as one colour')
 
-  /* ── THE DEFAULT CARRIES ONE WARNING, AND IT IS TRUE ──
+  /* ── THE DEFAULT AUDITS CLEAN, AND IT TOOK TWO FIXES TO GET THERE ──
    *
-   * This used to assert the default reported nothing at all. `palette:flat`
-   * now measures the SET rather than a pair, and the shipped seeds fail it:
-   * the four chromatic seeds span 3.7 points of OKLCH lightness against a
-   * floor of 10. Every hue is the same brightness, which is what a reader
-   * means when they call a screen flat or nauseating, and it is why every
-   * red-green pairing in this system reports a lightness difference near zero.
+   * This asserted for a while that the default carried exactly one warning,
+   * `palette:flat`, and that it was unfixable. Both halves were wrong, and the
+   * first one was why the second looked true.
    *
-   * It is not fixable by moving two seeds. Measured on three candidates that
-   * take danger darker and warning lighter: the spread reaches 17.5, 24.7 and
-   * 31.7, and every one of them collides success with danger in dark mode. A
-   * remedy that raises the count is not a remedy, so the warning stands until
-   * the ramp generator places lightness deliberately.
+   * The check read the SEEDS. A seed sets hue and chroma and `buildRamp`
+   * discards its lightness, spacing all eleven steps between `lightMin` and
+   * `lightMax` identically for every hue. So the seeds span 3.7 points, the
+   * roles they generate span 0.2, and no seed edit could ever move the number
+   * the reader sees. Measured across ramps at every step: 0.00.
    *
-   * The guard that matters is kept: no FAILURES, and the warning count is
-   * pinned so a second one cannot arrive unnoticed. */
+   * Pointed at the roles, the remedy is a STEP, and there is one in each mode.
+   * `warning` takes it because it is the only meaning role that is not a
+   * control fill — see the note beside it in `schema.js`.
+   *
+   * Nothing left to allow for: no failures and no warnings, in either mode. */
   const findings = audit(fresh, derive(fresh))
   const fails = findings.filter(f => f.level === 'fail')
   assert(fails.length === 0, `the shipped default has no failures (${fails.length})`)
-  assert(findings.length === 1 && findings[0].id === 'palette:flat',
-    `the shipped default carries exactly the known palette warning (${findings.map(f => f.id).join(', ') || 'none'})`)
+  assert(findings.length === 0,
+    `the shipped default audits clean (${findings.map(f => `${f.level}:${f.id}`).join(', ') || 'none'})`)
 
-  /* And the check stays quiet on a palette that has a value structure. */
+  /* ── THE STRUCTURE IS IN THE ROLES, SO MEASURE IT THERE ── */
   {
-    const structured = createInitialState()
-    const put = (n, hex) => { structured.color.seeds.find(s => s.name === n).hex = hex }
-    put('danger', '#7f1d1d'); put('warning', '#f59e0b'); put('success', '#15803d')
-    const flat = audit(structured, derive(structured)).filter(f => f.id === 'palette:flat')
-    assert(flat.length === 0, 'palette:flat stays quiet once the seeds have a value structure')
+    const spread = (d, mode) => {
+      const L = ['accent', 'success', 'warning', 'danger']
+        .map(r => toOklchObj(d.roles[mode][r]).l * 100)
+      return Math.max(...L) - Math.min(...L)
+    }
+    const d = derive(fresh)
+    for (const mode of ['light', 'dark']) {
+      const v = spread(d, mode)
+      assert(v >= 10, `the ${mode} meaning roles have a value structure (${v.toFixed(1)} points)`)
+    }
+  }
+
+  /* ── AND THE CHECK STILL FIRES ON A FLAT ONE ──
+   *
+   * Injected by putting `warning` back on the step every other role sits on,
+   * which is the exact state that shipped. Both modes must report it, or the
+   * fix above is a blindfold rather than a repair. */
+  {
+    const flatDoc = createInitialState()
+    flatDoc.color.roles.warning.light = 'warning.700'
+    flatDoc.color.roles.warning.dark = 'warning.400'
+    const fd = derive(flatDoc)
+    const flat = audit(flatDoc, fd).filter(f => f.id.startsWith('palette:flat'))
+    assert(flat.length === 2,
+      `a flat palette is reported in both modes (${flat.map(f => f.id).join(', ') || 'none'})`)
+
+    /* ── EVERY REMEDY IT OFFERS MUST LOWER THE COUNT ──
+     *
+     * The candidate list crosses ramps, because any role with room can widen
+     * the spread. Confined to one role it reported "none improves" on the
+     * light mode while `warning.900` sat two steps away and clean: `success`
+     * tied at the same distance and was enumerated first. */
+    for (const f of flat) {
+      const c = chooseFix(flatDoc, fd, f.apply, derive)
+      assert(c && !c.noImprovement,
+        `${f.id} offers a remedy that lowers the total (${c?.before.fail + c?.before.warn} -> ${c?.total})`)
+      assert(c.fix.role && c.fix.ref.startsWith(c.fix.role + '.'),
+        `${f.id} names the role its chosen step belongs to (${c.fix.role} -> ${c.fix.ref})`)
+    }
   }
 
   /* The fault it was built for, injected. A check that cannot catch this again

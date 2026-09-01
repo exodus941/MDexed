@@ -108,12 +108,17 @@ export default function FixPreview({ fix, onCancel, onConfirm }) {
    * danger.500" above swatches reading danger.700 and danger.900.
    *
    * Built from `chosen.ref`, the two cannot disagree. */
+  /* THE CHOSEN CANDIDATE NAMES THE ROLE, not the finding. A palette-spread
+     remedy ranks steps across every eligible ramp, so the step the scorer
+     picks is often on a different role from the one the finding pointed at.
+     Reading `fix.role` first printed "Move success to warning.900". */
+  const role = chosen.role ?? fix.role
   const heading = chosen.ref
-    ? `Move ${fix.role ?? chosen.role} to ${chosen.ref}`
+    ? `Move ${role} to ${chosen.ref}`
     : (chosen.label ?? fix.label)
 
-  const fromHex = derived.roles?.[fix.mode]?.[fix.role]
-  const toHex = after.derived.roles?.[fix.mode]?.[fix.role]
+  const fromHex = derived.roles?.[fix.mode]?.[role]
+  const toHex = after.derived.roles?.[fix.mode]?.[role]
 
   return createPortal(
     <div onClick={onCancel} role="presentation" style={{

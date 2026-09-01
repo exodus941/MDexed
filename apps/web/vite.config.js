@@ -192,8 +192,11 @@ export default defineConfig(({ command }) => ({
     /* Just above the largest chunk, so it fires on growth and never on every
        build. The wizard took the app chunk from 774 to 800.43 kB, which crossed
        the old limit by 0.43. Silencing the warning entirely is the other
-       option, and then nothing reports the next 200 kB. */
-    chunkSizeWarningLimit: 820,
+       option, and then nothing reports the next 200 kB.
+       Raised to 830 at 827.55 kB. A stale limit is the same defect as a
+       silenced one: it had been firing on every build at 826.33, before the
+       change that noticed it, so it had stopped meaning growth. */
+    chunkSizeWarningLimit: 830,
   },
 
   server: {
