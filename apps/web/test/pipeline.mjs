@@ -1869,6 +1869,30 @@ line('\n- project file -')
  * a thousand token declarations as literal colours.
  */
 {
+  line('\n- the colour picker s numeric fields -')
+  {
+    const picker = fs.readFileSync(new URL('../src/ui/ColorPicker.jsx', import.meta.url), 'utf8')
+    const controls = fs.readFileSync(new URL('../src/ui/controls.jsx', import.meta.url), 'utf8')
+
+    /* Their order, and the head of the list is the default. One decision, so a
+       reorder cannot leave a separately-named default pointing elsewhere. */
+    const models = picker.match(/const MODELS = \[([^\]]+)\]/)?.[1].match(/'([A-Z]+)'/g)?.map(s => s.slice(1, -1))
+    assert(String(models) === 'HSB,HSL,RGB,OKLCH', `the models read HSB, HSL, RGB, OKLCH (${models})`)
+    assert(/useState\(MODELS\[0\]\)/.test(picker), 'the default model is the head of the list, not a second name')
+
+    /* ── THE FIELD KEEPS WHAT YOU TYPED ──
+     *
+     * Fully controlled and committing every keystroke, the value flowed back
+     * through a hex round trip and replaced the digits under the caret. Typing
+     * 208 into a hue field produced a run of colours nobody asked for. */
+    assert(/value=\{editing \? draft : value\}/.test(controls),
+      'a focused field shows its own draft rather than the value flowing back')
+    assert(!/Number\.isFinite\(n\) \? n : 0/.test(controls),
+      'an empty field no longer commits zero')
+    assert(/onBlur=\{\(\) => setDraft\(null\)\}/.test(controls),
+      'blurring returns the field to the canonical value')
+  }
+
   line('\n- the verifiers the payload ships -')
   const { CHECKS, SOURCE_CHECKS, RENDER_CHECKS, MANUAL_CHECKS } = await import('../src/emit/checks.js')
   const { verifyNodeFile, verifyBrowserFile, VERIFY_NODE, VERIFY_BROWSER } = await import('../src/emit/verify.js')

@@ -489,15 +489,55 @@ export function ConfirmDelete({ onConfirm, title = 'Delete', size = 13 }) {
   )
 }
 
+/* ── A FIELD YOU CAN TYPE INTO KEEPS WHAT YOU TYPED ──
+ *
+ * This was fully controlled by the value flowing back in, and it committed on
+ * every keystroke. In a colour picker that value has been round-tripped
+ * through a hex, so the digits under the caret were REPLACED between
+ * keystrokes. Typing 208 into a hue field gave a run of colours nobody asked
+ * for, and often not 208 at the end of it.
+ *
+ * While the field has focus the DRAFT is what shows. The prop is ignored for
+ * display, so nothing downstream can rewrite the caret's line. It still emits
+ * on every keystroke that parses, so a swatch keeps following along live.
+ * On blur the draft goes and the canonical value comes back, which is where a
+ * lossy round trip is allowed to show itself.
+ *
+ * AN EMPTY FIELD IS NOT ZERO. Clearing it used to commit 0 at once, and the
+ * field then snapped to "0" before a replacement digit arrived. An empty draft
+ * now commits nothing and blurs back to the value it had.
+ *
+ * The emitted number is clamped and the draft is not. Typing 208 where the
+ * ceiling is 100 emits 100 and still shows 208, so the keystrokes on the way
+ * to a legal number are never eaten. */
 export function NumField({ label, value, onChange, min, max, step = 1, suffix, width }) {
+  const [draft, setDraft] = useState(null)
+  const editing = draft !== null
+
+  const commit = text => {
+    if (text.trim() === '') return
+    const n = parseFloat(text)
+    if (!Number.isFinite(n)) return
+    let v = n
+    if (min != null) v = Math.max(min, v)
+    if (max != null) v = Math.min(max, v)
+    onChange(v)
+  }
+
   return (
     <div style={{ minWidth: 0, width }}>
       {label && <label>{label}</label>}
       <div style={{ position: 'relative' }}>
-        <input className="num" type="number" min={min} max={max} step={step} value={value}
-          onChange={e => {
-            const n = parseFloat(e.target.value)
-            onChange(Number.isFinite(n) ? n : 0)
+        <input className="num" type="number" min={min} max={max} step={step}
+          value={editing ? draft : value}
+          onFocus={e => { setDraft(String(value)); e.target.select() }}
+          onChange={e => { setDraft(e.target.value); commit(e.target.value) }}
+          onBlur={() => setDraft(null)}
+          onKeyDown={e => {
+            if (e.key === 'Enter') e.currentTarget.blur()
+            /* Escape abandons the edit rather than committing it. The last
+               emitted value stands, because every keystroke already emitted. */
+            if (e.key === 'Escape') { setDraft(null); e.currentTarget.blur() }
           }}
           style={suffix ? { paddingRight: 24 } : undefined} />
         {suffix && <span style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', fontSize: 10, color: 'var(--dim)', pointerEvents: 'none', fontFamily: 'var(--mono)' }}>{suffix}</span>}

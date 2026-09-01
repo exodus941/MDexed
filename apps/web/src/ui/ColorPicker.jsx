@@ -17,7 +17,14 @@ import { NumField, Segmented } from './controls.jsx'
    leaving whatever model you were working in, and the value you were adjusting
    went off screen to do it. It is now a field that is present in every model:
    always readable, always copyable, always editable. */
-const MODELS = ['RGB', 'HSL', 'HSB', 'OKLCH']
+/* HSB LEADS, AND THE HEAD OF THE LIST IS THE DEFAULT. Their choice. It is also
+   the only model here whose numbers survive a round trip: the picker holds HSB
+   in state, so a hue typed as 208 reads back as 208. Every other model is
+   re-derived from the hex, where 8 bits per channel cannot hold it.
+
+   One decision, not two. A default named separately from the order can
+   disagree with it. */
+const MODELS = ['HSB', 'HSL', 'RGB', 'OKLCH']
 const clamp01 = v => Math.max(0, Math.min(1, v))
 
 function useDragArea(onMove) {
@@ -44,7 +51,7 @@ function useDragArea(onMove) {
  * digits off. Folding them into one flag put the hex on its own line in a
  * container with 613px of room. */
 export default function ColorPicker({ value, onChange, alpha: allowAlpha = false, compact = false, stackHex = false }) {
-  const [model, setModel] = useState('HSL')
+  const [model, setModel] = useState(MODELS[0])
   const [hexDraft, setHexDraft] = useState(value)
   const parsed = parseColor(value)
   const valid = parsed != null
