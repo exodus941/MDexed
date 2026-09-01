@@ -2,8 +2,8 @@
  *
  * A first visit opens on an editor with 116 controls in it, and the person who
  * came to get a design system has to become a design-system editor first. This
- * is the other door: four questions, then a prompt they paste into an agent that
- * drives the app for them.
+ * is the other door: seven question pages, then a prompt they paste into an
+ * agent that drives the app for them.
  *
  * THE THIRD LINE IS NOT A THIRD DOOR. Restoring the last document already
  * works, through a toast that appears on its own. It is offered here as a quiet
@@ -25,6 +25,15 @@ import ColorPicker from '../ui/ColorPicker.jsx'
 import Sample from './Sample.jsx'
 
 const PANEL_X = 24
+
+/* The prompt page is the OUTPUT, not a question, so it comes out of the count
+   the door advertises. Spelled as a word, because a digit in a line of body
+   copy reads as data rather than as prose. Falls back to the numeral above
+   twelve, where the word is longer than the thing it says. */
+const ASKED = STEPS.filter(s => s.id !== 'prompt').length
+const WORDS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven',
+  'eight', 'nine', 'ten', 'eleven', 'twelve']
+const SAY = n => WORDS[n] ?? String(n)
 const PANEL_Y = 16
 
 /* A row of choices where each one carries a note. `Segmented` is right for
@@ -137,8 +146,12 @@ export function LaunchFork({ onGuided, onHandsOn, onRestore, restorableName, lea
           {/* Side by side, sharing the width equally: two doors, one decision.
               Stacked, the second one read as an afterthought. */}
           <div style={{ display: 'flex', gap: PAD.gap, alignItems: 'stretch' }}>
+            {/* COUNT THE PAGES, NEVER TYPE THE NUMBER. This said "Four" for as
+                long as the wizard had four, and the one-aspect-per-page split
+                took it to seven without touching the sentence. A number typed
+                into copy is a second source of truth that nothing updates. */}
             <Door primary icon={IconSend} title="Guided" onClick={onGuided}
-              note="Four questions, then a prompt for an AI agent to build it." />
+              note={`${SAY(ASKED).replace(/^./, c => c.toUpperCase())} questions, then a prompt for an AI agent to build it.`} />
             <Door icon={IconUser} title="Hands-on" onClick={onHandsOn}
               note="The editor. Every value, yours to set." />
           </div>

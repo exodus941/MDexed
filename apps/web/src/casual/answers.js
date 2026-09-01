@@ -1,9 +1,10 @@
 /* ── THE WIZARD'S QUESTIONS, AND WHAT EACH ANSWER IS ──
  *
- * Four questions everybody answers, four behind a disclosure. Every answer maps
- * onto a field the schema already has, so the prompt can name a real value
- * instead of a mood. That mapping is the whole reason the wizard can be this
- * short: the agent is told "density 0.85", not "fairly tight".
+ * Seven pages, one aspect each, and the last of them carries the three that
+ * used to hide behind a disclosure. Every answer maps onto a field the schema
+ * already has, so the prompt can name a real value instead of a mood. That
+ * mapping is the whole reason the wizard stays this short: the agent is told
+ * "density 0.85", not "fairly tight".
  *
  * A word, not a swatch. The palette question offers hue RANGES, because a
  * person choosing "warm" has not chosen #b8422e, and offering them the hex

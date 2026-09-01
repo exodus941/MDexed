@@ -2012,8 +2012,25 @@ line('\n- project file -')
  */
 line('\n- depth intensity -')
 {
-  const { BLANK, INTENSITIES, DEPTHS, applyAnswers, resolve, cardEdge } =
+  const { BLANK, INTENSITIES, DEPTHS, STEPS, applyAnswers, resolve, cardEdge } =
     await import('../src/casual/answers.js')
+
+  /* ── THE DOOR ADVERTISES A COUNT, SO NOTHING MAY TYPE IT ──
+   *
+   * The Guided door said "Four questions" from the day it shipped. The
+   * one-aspect-per-page split took the wizard to seven and never touched the
+   * sentence, so the app under-sold itself by three for as long as that lasted.
+   * A number typed into copy is a second source of truth that nothing updates.
+   * The note counts STEPS now, and this pins what the count means: every page
+   * except the one that hands back the prompt. */
+  {
+    const asked = STEPS.filter(s => s.id !== 'prompt')
+    assert(STEPS.at(-1).id === 'prompt', `the prompt is the last page (${STEPS.at(-1).id})`)
+    assert(asked.length === STEPS.length - 1, `exactly one page is not a question (${asked.length} of ${STEPS.length})`)
+    const src = fs.readFileSync(new URL('../src/casual/CasualMode.jsx', import.meta.url), 'utf8')
+    const typed = src.match(/(One|Two|Three|Four|Five|Six|Seven|Eight|Nine|\d+) questions/i)
+    assert(!typed, `the door counts its pages rather than naming a number${typed ? ` — "${typed[0]}"` : ''}`)
+  }
   const { buildPrompt } = await import('../src/casual/prompt.js')
   const base = createInitialState()
   const depthLine = a => buildPrompt(a).split('\n').find(l => l.startsWith('- Depth'))

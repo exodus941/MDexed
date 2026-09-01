@@ -1316,7 +1316,7 @@ function Shell() {
    *
    * `null` until the mount effect has decided, so the fork cannot flash on a
    * reload that is about to restore a document. 'fork' shows the two doors,
-   * 'wizard' the four questions, and 'off' the editor as it has always been.
+   * 'wizard' the seven question pages, and 'off' the editor as it has always been.
    *
    * A saved cloud project (`/p/...`) never sees it. That URL is a request for
    * one specific document, and a modal over it asks a question already
