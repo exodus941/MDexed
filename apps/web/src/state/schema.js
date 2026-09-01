@@ -20,9 +20,28 @@ export const ROLE_GROUPS = [
   {
     id: 'surface', label: 'Surfaces', desc: 'Page and container backgrounds',
     roles: [
+      /* ── FOUR PLANES, FOUR COLOURS ──
+       *
+       * Two of these used to resolve to one hex, and nothing measured it.
+       * `surface` and `surface-raised` were both neutral.50 in light, so a
+       * popover on a card had no edge. `bg-subtle` and `surface` were both
+       * neutral.900 in dark, so a card on a recessed band had none either.
+       * Both were invisible while a shadow covered for them; at depth zero
+       * they are simply gone, and a reader called the result unattractive.
+       *
+       * Light could not fix itself by lifting the raised plane, because
+       * neutral.50 is already the lightest step. So the CARD steps down to a
+       * point between 50 and 100 and the popover keeps the top, which is the
+       * conventional light-mode order: higher is lighter. Dark had room below
+       * its card, so the recessed band takes the midpoint under it.
+       *
+       * A ref between two steps rather than a new step: the ramp is placed by
+       * index, so inserting one slides every existing colour along the curve
+       * and repaints the palette. Measured after: the audit falls from three
+       * findings to one, and no new failure appears. */
       { name: 'bg',              desc: 'Page background',            light: 'neutral.100', dark: 'neutral.950' },
-      { name: 'bg-subtle',       desc: 'Recessed page areas',        light: 'neutral.200', dark: 'neutral.900' },
-      { name: 'surface',         desc: 'Cards, panels, sheets',      light: 'neutral.50',  dark: 'neutral.900' },
+      { name: 'bg-subtle',       desc: 'Recessed page areas',        light: 'neutral.200', dark: 'neutral.950~900@0.5' },
+      { name: 'surface',         desc: 'Cards, panels, sheets',      light: 'neutral.50~100@0.4', dark: 'neutral.900' },
       { name: 'surface-raised',  desc: 'Popovers, menus, modals',    light: 'neutral.50',  dark: 'neutral.800' },
       { name: 'surface-sunken',  desc: 'Wells, inset fields',        light: 'neutral.200', dark: 'neutral.950' },
       /* Striping a long list is a readability aid, not decoration: the eye
@@ -112,7 +131,19 @@ export const ROLE_GROUPS = [
       { name: 'accent',          desc: 'Primary action fill',        light: 'accent.700',  dark: 'accent.400'  },
       { name: 'accent-hover',    desc: 'Hover state',                light: 'accent.800',  dark: 'accent.300'  },
       { name: 'accent-active',   desc: 'Pressed state',              light: 'accent.900',  dark: 'accent.200'  },
-      { name: 'accent-subtle',   desc: 'Tinted background',          light: 'accent.100',  dark: 'accent.900'  },
+      /* ── A TINTED FILL RECEDES, IN BOTH MODES, BY THE SAME AMOUNT ──
+       *
+       * These four sat on step 900 in dark, and so did `surface`. A quiet fill
+       * was therefore at EXACTLY its card's lightness, separated from it by hue
+       * alone. A reader called the result solarized, and that is the right
+       * word: a patch of colour with no luminance relationship to what
+       * surrounds it reads as a stain rather than as a surface.
+       *
+       * Measured. In light each fill sits 0.04 of OKLCH lightness BELOW its
+       * card, so it recedes. In dark it sat at +0.00. The midpoint between 900
+       * and 950 puts it 0.04 below the card as well, which mirrors light
+       * exactly, and the text on it goes from 4.6-4.9 to 5.1-5.5. */
+      { name: 'accent-subtle',   desc: 'Tinted background',          light: 'accent.100',  dark: 'accent.900~950@0.5'  },
       { name: 'accent-fg',       desc: 'Content on accent fill',     light: 'neutral.50',  dark: 'neutral.950' },
       /* A SELECTED row, and `accent-subtle` cannot do this job.
        *
@@ -167,10 +198,10 @@ export const ROLE_GROUPS = [
          document reports every surface where the colour is too low for body
          text. The limit is stated rather than designed away. */
       { name: 'success',         desc: 'Success fill',               light: 'success.700', dark: 'success.400' },
-      { name: 'success-subtle',  desc: 'Success background',         light: 'success.100', dark: 'success.900' },
+      { name: 'success-subtle',  desc: 'Success background',         light: 'success.100', dark: 'success.900~950@0.5' },
       { name: 'success-fg',      desc: 'Content on success fill',    light: 'neutral.50',  dark: 'neutral.950' },
       { name: 'warning',         desc: 'Warning fill',               light: 'warning.700', dark: 'warning.400' },
-      { name: 'warning-subtle',  desc: 'Warning background',         light: 'warning.100', dark: 'warning.900' },
+      { name: 'warning-subtle',  desc: 'Warning background',         light: 'warning.100', dark: 'warning.900~950@0.5' },
       { name: 'warning-fg',      desc: 'Content on warning fill',    light: 'neutral.50',  dark: 'neutral.950' },
       { name: 'danger',          desc: 'Destructive fill',           light: 'danger.700',  dark: 'danger.400'  },
       /* Accent has had a hover role since the start; danger never did, so a
@@ -180,7 +211,7 @@ export const ROLE_GROUPS = [
          does: darker on paper, lighter in the dark, because a hover has to
          move away from the page rather than always down. */
       { name: 'danger-hover',    desc: 'Destructive hover',          light: 'danger.800',  dark: 'danger.300'  },
-      { name: 'danger-subtle',   desc: 'Destructive background',     light: 'danger.100',  dark: 'danger.900'  },
+      { name: 'danger-subtle',   desc: 'Destructive background',     light: 'danger.100',  dark: 'danger.900~950@0.5'  },
       { name: 'danger-fg',       desc: 'Content on destructive fill',light: 'neutral.50',  dark: 'neutral.950' },
     ],
   },

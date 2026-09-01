@@ -102,12 +102,38 @@ export function derive(state) {
      every position: 0.93 turns a 12px step into 11.16px. Snap the DERIVED
      pixel, never the macro — snapping the macro and then multiplying by the
      step just moves the fraction downstream. See state/grid.js. */
-  const spacing = state.space.steps.map(s => ({
-    id: `sp-${s.name}`,
-    name: s.name,
-    value: state.space.overrides?.[s.name] ?? `${snapSpace(state.space.base * s.mult * m.density)}px`,
-    overridden: state.space.overrides?.[s.name] != null,
-  }))
+  /* ── A SCALE MUST BE STRICTLY INCREASING, OR "TAKE THE NEXT STEP" MEANS
+       NOTHING ──
+
+     Snapping each step on its own lets two of them land on the same pixel.
+     Measured across the four densities the app offers, three of them collapse
+     a pair: at 0.85 `sm` and `md` are both 12, at 0.70 `3xs` and `2xs` are both
+     2, and at 0.60 both pairs go. Only 1.00 comes out clean.
+
+     It is silent and it reaches the screen. A generated dashboard asked its nav
+     item for `2xs`, one step above the smallest, and got the smallest: 2px
+     between a mark and its label inside a 44px pill. Every rule in the payload
+     that says to take a different step is inert wherever two steps agree.
+
+     So the snapped values get one monotonic pass. Where a step has not cleared
+     the one below it, it moves up by the smallest legal increment: 2px below
+     the 8px line, 4px above it, which is the grid this system publishes. An
+     overridden step is left exactly as written, because an override is a
+     decision rather than a derivation. */
+  const GRID_FINE = 2, GRID = 4, GRID_FROM = 8
+  const stepUp = v => v + (v < GRID_FROM ? GRID_FINE : GRID)
+  let floorPx = -Infinity
+  const spacing = state.space.steps.map(s => {
+    const override = state.space.overrides?.[s.name]
+    if (override != null) {
+      floorPx = parseFloat(override) || floorPx
+      return { id: `sp-${s.name}`, name: s.name, value: override, overridden: true }
+    }
+    let px = snapSpace(state.space.base * s.mult * m.density)
+    while (px <= floorPx) px = stepUp(floorPx)
+    floorPx = px
+    return { id: `sp-${s.name}`, name: s.name, value: `${px}px`, overridden: false }
+  })
 
   /* ── Radius ── */
   const rounded = state.radius.steps.map(r => ({

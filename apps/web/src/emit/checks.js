@@ -230,6 +230,29 @@ export const CHECKS = [
   },
 
   {
+    id: 'lone-mark-centres-on-its-box',
+    where: 'render',
+    line: 'A control with a mark and no words centres that mark on its own box, both axes.',
+    /* THE CAP-BAND RULE DOES NOT REACH A CONTROL WITH NO LABEL, and applying
+       it anyway is the commonest way to break one. There is no cap line and no
+       baseline to sit between, so the transform simply pushes the mark out of
+       its box. Measured on a generated dashboard: a lightbulb sat 8.25px above
+       the centre of its 36px square button. */
+    body: [
+      "for (const el of all('button, a[href], label, [role=button]')) {",
+      "  if (textRect(el)) continue   /* it has a label; the cap band rule owns it */",
+      "  const mark = el.querySelector('svg, img'); if (!mark) continue",
+      "  const b = el.getBoundingClientRect(), m = mark.getBoundingClientRect()",
+      "  if (!b.width || !m.width) continue",
+      "  const dy = ((m.top + m.bottom) / 2) - ((b.top + b.bottom) / 2)",
+      "  const dx = ((m.left + m.right) / 2) - ((b.left + b.right) / 2)",
+      "  if (Math.abs(dy) > 0.75 || Math.abs(dx) > 0.75)",
+      "    fail(name(el), 'a mark with no label sits ' + round(dx) + ', ' + round(dy) + ' off its own box centre. With no label there is no cap band to sit in, so it centres on the box.')",
+      "}",
+    ],
+  },
+
+  {
     id: 'outer-cell-on-the-heading-margin',
     where: 'render',
     line: 'A table’s first column starts on the same margin as the headings above it.',

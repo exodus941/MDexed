@@ -1082,6 +1082,90 @@ function paletteStructure (state) {
   }]
 }
 
+/* ── TWO PLANES THAT STACK MUST NOT BE ONE COLOUR ──
+ *
+ * `paletteStructure` asks about the seeds. This asks about the SURFACES, and
+ * they fail differently: a plane is not too close to the one under it, it IS
+ * the one under it, resolved to the same hex.
+ *
+ * Measured on the shipped default. In light, `surface` and `surface-raised`
+ * are both #f3f6f6, so a popover on a card has no edge at all. In dark,
+ * `bg-subtle` and `surface` are both #24292a, so a card on a recessed band
+ * has none either. Depth zero removes the shadow that used to hide it.
+ *
+ * Only pairs that genuinely STACK are asked. `bg` and `selected` resolve to
+ * one colour too, and that is not a fault: a selected row sits on a card, not
+ * on the page, and against `surface` it is a step clear. A check that lists
+ * every equal pair reports the layout it has, not the layout it is in.
+ */
+const STACKED_PLANES = [
+  ['bg', 'bg-subtle', 'a recessed band on the page'],
+  ['bg', 'surface', 'a card on the page'],
+  ['bg-subtle', 'surface', 'a card on a recessed band'],
+  ['surface', 'surface-raised', 'a popover on a card'],
+  ['surface', 'row-stripe', 'a striped row on a card'],
+  ['surface', 'selected', 'a selected row on a card'],
+]
+
+function planeCollision (derived, mode) {
+  const R = derived.roles?.[mode] ?? {}
+  const out = []
+  for (const [a, b, what] of STACKED_PLANES) {
+    if (!R[a] || !R[b]) continue
+    if (R[a].toLowerCase() !== R[b].toLowerCase()) continue
+    out.push({
+      req: 'colour', id: `plane:${mode}:${a}:${b}`, level: WARN, criterion: '1.4.11 Non-text contrast (AA)',
+      tab: 'roles', entry: b, mode,
+      title: `${a} and ${b} are the same colour in ${mode}`,
+      detail: `Both resolve to ${R[a]}, so ${what} has no edge at all. Nothing separates the two planes, and with depth at zero there is no shadow to stand in for one.`,
+      fix: `Move ${b} one step along the neutral ramp. One step is enough to read as a different plane and small enough to keep every text role on it above AA.`,
+      measured: `${R[a]} on both`,
+    })
+  }
+  return out
+}
+
+/* ── A TINTED FILL MUST RECEDE, AND BY THE SAME AMOUNT IN BOTH MODES ──
+ *
+ * A reader called the dark theme solarized, and that is the right word for
+ * what was measured. Every `-subtle` fill sat at EXACTLY its card's lightness
+ * in dark, separated from it by hue alone: +0.00 of OKLCH L, against −0.04 in
+ * light. A patch of colour with no luminance relationship to its ground reads
+ * as a stain rather than as a surface, which is what solarising a photograph
+ * does to its midtones.
+ *
+ * The floor is small on purpose. This is not a contrast requirement — the fill
+ * is meant to be quiet — it is the difference between quiet and absent. Two
+ * hundredths of lightness is the least that reads as a plane at all, and the
+ * shipped light mode carries twice that.
+ */
+const SUBTLE_FILLS = ['accent-subtle', 'success-subtle', 'warning-subtle', 'danger-subtle']
+const FILL_LIFT_MIN = 0.02
+
+function fillSitsOnItsGround (derived, mode) {
+  const R = derived.roles?.[mode] ?? {}
+  if (!R.surface) return []
+  const ground = toOklchObj(R.surface)
+  if (!ground) return []
+  const out = []
+  for (const role of SUBTLE_FILLS) {
+    if (!R[role]) continue
+    const fill = toOklchObj(R[role])
+    if (!fill) continue
+    const lift = Math.abs((fill.l ?? 0) - (ground.l ?? 0))
+    if (lift >= FILL_LIFT_MIN) continue
+    out.push({
+      req: 'colour', id: `fill-flat:${mode}:${role}`, level: WARN, criterion: '1.4.11 Non-text contrast (AA)',
+      tab: 'roles', entry: role, mode,
+      title: `${role} sits at the same brightness as the surface in ${mode}`,
+      detail: `${R[role]} against a ${R.surface} card differs by ${(lift * 100).toFixed(1)} points of lightness. Hue is the only thing separating the two, so the fill reads as a stain on the card rather than as a quiet plane laid over it. It is the effect solarising a photograph has on its midtones.`,
+      fix: `Step ${role} away from the surface, in the same direction the other mode does. A fill recedes: darker than its card in dark, darker than its card in light.`,
+      measured: `${(lift * 100).toFixed(1)} points, floor ${FILL_LIFT_MIN * 100}`,
+    })
+  }
+  return out
+}
+
 export function audit(state, derived) {
   const all = [
     ...paletteStructure(state),
@@ -1099,6 +1183,8 @@ export function audit(state, derived) {
       /* roleSweep is deliberately NOT here. See the note on the function. */
       ...hairlineChecks(derived, mode),
       ...meaningCollision(derived, mode),
+      ...planeCollision(derived, mode),
+      ...fillSitsOnItsGround(derived, mode),
     ]),
   ]
   const rank = { fail: 0, warn: 1, note: 2 }
