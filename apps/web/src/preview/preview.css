@@ -1685,8 +1685,12 @@
 .dmd .avatar {
   width: var(--cmp-avatar-size, 32px); height: var(--cmp-avatar-size, 32px);
   border-radius: var(--cmp-avatar-rounded, var(--radius-full, 9999px));
-  background: var(--cmp-avatar-background-color, var(--c-accent-subtle, #f6e9e6));
-  color: var(--cmp-avatar-text-color, var(--c-accent, #b8422e));
+  /* The fallbacks name `accent-raised` and `text`, which is what the component
+     publishes. A disc is a SHAPE, so its own fill is the whole signal:
+     `accent-subtle` measured 1.13:1 against the card in light and 1.11 in
+     dark, and the circle vanished in both modes. */
+  background: var(--cmp-avatar-background-color, var(--c-accent-raised, #b7d4ec));
+  color: var(--cmp-avatar-text-color, var(--c-text, #1a1a1a));
   line-height: var(--cmp-avatar-size, 32px); text-align: center;
   display: inline-block;
   font-size: var(--cmp-avatar-font-size, var(--font-caption-size, 12px)); font-weight: 600; flex-shrink: 0;

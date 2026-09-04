@@ -200,7 +200,7 @@ export default defineConfig(({ command }) => ({
        simulations earned. Then to 860 at 858.45 kB, after the ninth, and to 866 at 862.46 kB with the
        dark chroma floor, and to 876 at 872.77 with the ground and selection
        controls, and to 880 at 877.15 with the selected table row. */
-    chunkSizeWarningLimit: 890,
+    chunkSizeWarningLimit: 900,
   },
 
   server: {

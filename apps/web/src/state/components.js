@@ -295,7 +295,19 @@ export const COMPONENT_LIBRARY = [
   },
   {
     name: 'avatar', label: 'Avatar', group: 'Data', on: true,
-    base: { size: '32px', rounded: '{rounded.full}', backgroundColor: '{colors.accent-subtle}', textColor: '{colors.accent}', typography: 'caption' },
+    /* ── A DISC IS A SHAPE, SO IT TAKES `accent-raised` ──
+     *
+     * This was `accent-subtle`, which is a ground for accent-coloured TEXT and
+     * is quiet on purpose. A disc has no words to carry it, so its fill is the
+     * whole signal. Measured against the card: 1.13:1 in light and 1.11:1 in
+     * dark, both under the 1.2 a shape needs. The circle vanished in both
+     * modes and only the initials floated.
+     *
+     * `accent-raised` mixes the accent into the raised surface, so it steps UP
+     * off the card in both modes. Worst case across the shipped presets: 1.29
+     * light, 1.79 dark. The initials take `text` rather than `accent`, because
+     * an accent on an accent tint is a second signal doing the first one's job. */
+    base: { size: '32px', rounded: '{rounded.full}', backgroundColor: '{colors.accent-raised}', textColor: '{colors.text}', typography: 'caption' },
   },
 ]
 

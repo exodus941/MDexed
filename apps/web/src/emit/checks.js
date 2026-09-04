@@ -588,6 +588,17 @@ export const CHECKS = [
       "  if (!head) continue",
       "  const first = table.querySelector('tr > *:first-child')",
       "  if (!first) continue",
+      /* ── THE SELECTION COLUMN IS THE DOCUMENTED EXCEPTION ──
+       *
+       * A column that carries the selected row's accent bar cannot also sit
+       * flush, because the bar would paint over whatever is in the cell. That
+       * column reserves the bar plus a step, on every row, and DESIGN.md says
+       * so under `table-selection-cell`.
+       *
+       * This check did not know, so a build that obeyed both rules was
+       * faulted for a 24px inset it was told to have. A rule with an exception
+       * the checker has not been taught is a rule that fails on correct code. */
+      "  if (table.querySelector('tbody td:first-child input[type=\"checkbox\"], tbody td:first-child [role=\"checkbox\"]')) continue",
       /* THE CELL WAS ON THE MARGIN AND THE PAINTED MARK WAS NOT.
          *
          * This measured the cell's content edge, which is what CSS positions.
@@ -800,8 +811,14 @@ export const CHECKS = [
       "  const cs = getComputedStyle(el)",
       "  const own = hexOf(cs.backgroundColor)",
       "  if (!own) continue",
+      /* WALK TO THE ROOT. A six-level cap gave up inside a table, and the
+         check then approved the element, which is "no answer" read as "no".
+         Measured: an avatar on an unselected row had a transparent td, tr,
+         tbody, table and scroller above it, so the card was the seventh
+         ancestor and the walk returned nothing. The fault was worst on exactly
+         those rows. A page always has a painted root, so this always answers. */
       "  let node = el.parentElement, ground = null",
-      "  for (let up = 0; node && up < 6; up++, node = node.parentElement) {",
+      "  for (; node; node = node.parentElement) {",
       "    const g = hexOf(getComputedStyle(node).backgroundColor)",
       "    if (g) { ground = g; break }",
       "  }",
@@ -894,6 +911,184 @@ export const CHECKS = [
       "    jog(el, mark, plain, mark.bar)",
       "    break",
       "  }",
+      "}",
+    ],
+  },
+
+  {
+    id: 'no-tint-out-saturates-its-ground',
+    where: 'render',
+    line: 'A tinted panel keeps its ground\'s chroma neighbourhood. No fill carries far more colour than what it sits on.',
+    /* ── WHAT "SOLARIZED" ACTUALLY MEASURES ──
+     *
+     * Chroma, not lightness. A saturated patch on a near-neutral ground reads
+     * as a stain, and no contrast check has an opinion about it: a ratio
+     * measures lightness only, so both colours can be perfectly legal and the
+     * pair still looks wrong.
+     *
+     * Measured on one dark build, against a card at OKLCH chroma 0.026:
+     *   alert          0.049   1.9x
+     *   badge-success  0.041   1.6x
+     *   badge-warning  0.049   1.9x
+     *   badge-danger   0.095   3.7x
+     * and across the shipped presets the same roles ran to 0.1544. They named
+     * it twice, about two different components, before anything measured it.
+     *
+     * A RATIO IS THE WRONG METRIC WHEN THE GROUND IS ACHROMATIC. One preset
+     * ships a pure neutral, so dividing by its chroma gave ratios in the
+     * millions and the first version of this check was unusable. Ask the
+     * ABSOLUTE chroma of the fill, and let the ground raise the allowance
+     * where the ground is itself tinted.
+     *
+     * The allowance is generous on purpose: this is for a stain, not for a
+     * saturated fill somebody chose. A solid accent button is excluded by the
+     * text on it, which is inverse rather than the accent. */
+    body: [
+      "const OK = 0.04",
+      "const cv = document.createElement('canvas'); cv.width = cv.height = 1",
+      "const ctx = cv.getContext('2d', { willReadFrequently: true })",
+      "const oklch = css => { if (!css) return null",
+      "  ctx.clearRect(0, 0, 1, 1); ctx.fillStyle = '#000'; ctx.fillStyle = css",
+      "  ctx.fillRect(0, 0, 1, 1)",
+      "  const d = ctx.getImageData(0, 0, 1, 1).data",
+      "  if (d[3] === 0) return null",
+      "  const f = v => { v = v / 255; return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4) }",
+      "  const R = f(d[0]), G = f(d[1]), B = f(d[2])",
+      "  const l = Math.cbrt(0.4122214708 * R + 0.5363325363 * G + 0.0514459929 * B)",
+      "  const m = Math.cbrt(0.2119034982 * R + 0.6806995451 * G + 0.1073969566 * B)",
+      "  const s = Math.cbrt(0.0883024619 * R + 0.2817188376 * G + 0.6299787005 * B)",
+      "  const A = 1.9779984951 * l - 2.4285922050 * m + 0.4505937099 * s",
+      "  const Bb = 0.0259040371 * l + 0.7827717662 * m - 0.8086757660 * s",
+      "  return { L: 0.2104542553 * l + 0.7936177850 * m - 0.0040720468 * s, C: Math.sqrt(A * A + Bb * Bb) } }",
+      /* ── A STAIN IS A PANEL. A MARK IS NOT ──
+       *
+       * The first size gate was 16 by 12, and a 16px checked checkbox passed
+       * it. That box is filled with the solid accent at chroma 0.133 on a
+       * 0.026 ground, which is the whole point of it: a checked box is a mark,
+       * and its colour IS the state. Two findings, both correct code.
+       *
+       * Judge on AREA as well as on sides. A checkbox is 256px square; the
+       * smallest badge here is 800. */
+      "for (const el of all('*')) {",
+      "  const r = el.getBoundingClientRect()",
+      "  if (r.width < 20 || r.height < 20) continue",
+      "  if (r.width * r.height < 500) continue",
+      "  const cs = getComputedStyle(el)",
+      "  const own = oklch(cs.backgroundColor)",
+      "  if (!own) continue",
+      "  let node = el.parentElement, ground = null",
+      "  for (; node; node = node.parentElement) {",
+      "    const g = oklch(getComputedStyle(node).backgroundColor)",
+      "    if (g) { ground = g; break }",
+      "  }",
+      "  if (!ground) continue",
+      /* ── A TINT SITS NEAR ITS GROUND. A SOLID DOES NOT ──
+       *
+       * Two earlier gates tried to separate the two by looking at the TEXT,
+       * and both failed. `own.L > 0.6 && fg.L < 0.4` only ever described a
+       * light fill with dark text, so a dark-mode solid accent slipped past.
+       * Replacing it with the lightness DISTANCE to the text was worse: a dark
+       * tint always carries light text, so it excused every tint and the check
+       * went silent on the exact fault it was written for.
+       *
+       * Ask the GROUND. A tint is a background the eye passes over and sits
+       * within a step of what it lies on. A solid is an object and sits far
+       * from it. Measured: these tints are 0.04 from the card and a checked
+       * accent box is 0.32. */
+      "  if (Math.abs(own.L - ground.L) > 0.15) continue",
+      /* ── A SHAPE IS NOT A PANEL, AND THE OTHER CHECK OWNS IT ──
+       *
+       * An avatar disc is tinted on purpose and judged on whether it SEPARATES
+       * from its ground, which `a-filled-shape-separates-from-its-ground` asks
+       * at the same floor. Asking it for chroma restraint as well faulted five
+       * correct discs, and the two demands pull opposite ways: separation wants
+       * more colour and restraint wants less.
+       *
+       * So one object is either a shape or a panel, never both. The definition
+       * is the same one that check uses: square-ish, and carrying initials
+       * rather than a sentence. */
+      "  const chars = (el.textContent || '').trim().length",
+      "  if (Math.abs(r.width - r.height) <= 2 && chars <= 3) continue",
+      /* The allowance rises with the ground's own colour: a tinted ground can
+         carry a tinted panel without either reading as a stain. Both numbers
+         are measured rather than picked. Across all seven presets, the mixed
+         tints top out at chroma 0.0373 and the raw meaning-ramp steps they
+         replaced start at 0.0413, so 1.5x with a floor of 0.04 fires on none
+         of the good ones and catches 28 of 28 bad ones. The bar sits inside a
+         real gap instead of between two samples. */
+      "  const allow = Math.max(OK, ground.C * 1.5)",
+      "  if (own.C > allow)",
+      "    fail(name(el), 'this fill carries OKLCH chroma ' + own.C.toFixed(3) + ' on a ground at ' + ground.C.toFixed(3) + ', so it reads as a stain rather than a tint. No contrast check sees this, because a ratio measures lightness and both colours can be legal. Mix the meaning colour INTO the ground instead of taking a step off its own ramp.')",
+      "}",
+    ],
+  },
+
+  {
+    id: 'a-filled-shape-separates-from-its-ground',
+    where: 'render',
+    line: 'A filled shape with no text of its own reads at least 1.2:1 against what is behind it.',
+    /* ── THE AVATAR DISC WAS INVISIBLE AND NOTHING MEASURED IT ──
+     *
+     * A ground may be quiet, because the text on it carries the contrast. A
+     * SHAPE has no words to carry it, so its fill is the whole signal.
+     * Measured on one build: an avatar drawn in `accent-subtle` read 1.13:1
+     * against the card in light and 1.11 in dark, so the circle vanished and
+     * only its initials floated. They saw it in a screenshot.
+     *
+     * The selection check next door asks the same question at the same floor
+     * and only about a MARKED ROW. This one asks about any small filled shape.
+     *
+     * ASKS ONLY WHAT IS UNAMBIGUOUS. It looks at a box that is round or
+     * square, small, painted, and holding no more than a couple of characters.
+     * A card, a band and a button are all excluded by size or by their text,
+     * and a shape with a visible EDGE is excluded because the edge is the
+     * other legitimate way to draw one. */
+    body: [
+      "const lum = hex => { const c = hex.match(/[0-9a-f]{2}/gi)",
+      "  if (!c || c.length < 3) return null",
+      "  const v = c.slice(0, 3).map(h => { const s = parseInt(h, 16) / 255",
+      "    return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4) })",
+      "  return 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2] }",
+      "const hexOf = rgb => { const m = /rgba?\\(([^)]*)\\)/.exec(rgb || '')",
+      "  if (!m) return null",
+      "  const p = m[1].split(',').map(s => parseFloat(s))",
+      "  if (p.length < 3 || p.some(n => !isFinite(n))) return null",
+      "  if (p.length > 3 && p[3] === 0) return null",
+      "  return '#' + p.slice(0, 3).map(n => Math.round(n).toString(16).padStart(2, '0')).join('') }",
+      "for (const el of all('*')) {",
+      "  const r = el.getBoundingClientRect()",
+      "  if (r.width < 8 || r.height < 8 || r.width > 64 || r.height > 64) continue",
+      "  if (Math.abs(r.width - r.height) > 2) continue",
+      "  const cs = getComputedStyle(el)",
+      "  const own = hexOf(cs.backgroundColor)",
+      "  if (!own) continue",
+      /* An edge is the other honest way to draw a shape, so a shape that has
+         one is not asked about its fill. */
+      "  const edge = hexOf(cs.borderColor)",
+      "  if (edge && parseFloat(cs.borderTopWidth) > 0 && edge !== own) continue",
+      "  if (parseFloat(cs.outlineWidth) > 0 && cs.outlineStyle !== 'none') continue",
+      /* Words of its own mean it is a ground, not a shape. Initials are not
+         words: two or three characters inside a disc are ornament. */
+      "  const txt = (el.textContent || '').trim()",
+      "  if (txt.length > 3) continue",
+      "  if (el.querySelector('svg, img, input, button, a')) continue",
+      /* WALK TO THE ROOT. A six-level cap gave up inside a table, and the
+         check then approved the element, which is "no answer" read as "no".
+         Measured: an avatar on an unselected row had a transparent td, tr,
+         tbody, table and scroller above it, so the card was the seventh
+         ancestor and the walk returned nothing. The fault was worst on exactly
+         those rows. A page always has a painted root, so this always answers. */
+      "  let node = el.parentElement, ground = null",
+      "  for (; node; node = node.parentElement) {",
+      "    const g = hexOf(getComputedStyle(node).backgroundColor)",
+      "    if (g) { ground = g; break }",
+      "  }",
+      "  if (!ground || ground === own) continue",
+      "  const a = lum(own), b = lum(ground)",
+      "  if (a == null || b == null) continue",
+      "  const ratio = (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05)",
+      "  if (ratio < 1.2)",
+      "    fail(name(el), 'this shape is drawn by its fill and reads ' + ratio.toFixed(2) + ':1 against the ground behind it, so it is absent rather than subtle. A ground may be quiet because the text on it carries the contrast. A shape has no words to carry it. Give it a role that steps off the surface in BOTH modes, or draw it with a visible edge instead.')",
       "}",
     ],
   },

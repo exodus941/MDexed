@@ -17,7 +17,7 @@ import { generateFile, validate } from '../src/emit/designmd.js'
 import { parseFile } from '../src/emit/parse.js'
 import { collectComponents } from '../src/emit/yaml.js'
 import { tokensCss } from '../src/emit/tokens.js'
-import { agentContract, checklistBytes, CONTRACT_MAX_LINES, CONTRACT_MAX_BYTES } from '../src/emit/agents.js'
+import { agentContract, checklistBytes, checklistLines, CONTRACT_MAX_LINES, CONTRACT_MAX_BYTES } from '../src/emit/agents.js'
 import { payloadTextFiles, REQUIRED_FILES, EXAMPLE_PREFIX, HTML_EXAMPLES_MODES, exampleFilename } from '../src/emit/payload.js'
 import { serializeProject, parseProject, projectFilename } from '../src/emit/project.js'
 import { diffWords, diffStats } from '../src/ai/diff.js'
@@ -57,8 +57,44 @@ assert(derived.ramps.accent.anchor != null, `seed anchored at step ${derived.ram
 /* 30 since `row-stripe` and `selected` joined. Both exist because drawing a
    selectable, striped list found that neither had a role: the stripe was being
    improvised from `bg-subtle` and the selection from `accent-subtle`, and each
-   was wrong for a measured reason. */
-assert(Object.keys(derived.roles.light).length === 30, `30 light roles (got ${Object.keys(derived.roles.light).length})`)
+   was wrong for a measured reason.
+ *
+ * 31 since `accent-raised`. An avatar disc was drawn in `accent-subtle`, which
+ * is a ground for accent TEXT and quiet on purpose: measured 1.13:1 against
+ * the card in light and 1.11:1 in dark, so the circle vanished in both modes.
+ * A shape has no words to carry it, which is a different requirement, so it is
+ * a different role. */
+assert(Object.keys(derived.roles.light).length === 31, `31 light roles (got ${Object.keys(derived.roles.light).length})`)
+
+/* ── A SHAPE ROLE HOLDS ON EVERY PRESET, IN BOTH MODES ──
+ *
+ * `accent-raised` exists to draw a filled shape, so its own fill against the
+ * card IS the requirement. Measure it on the WORST preset rather than the one
+ * it was tuned against: a role checked on its best ground is a report that the
+ * role is fine. 1.2 is the floor a shape needs, and `accent-subtle` measured
+ * 1.13 light and 1.11 dark, which is what put an invisible avatar on screen. */
+{
+  const worst = { light: 99, dark: 99, text: 99, where: '' }
+  for (const p of [null, ...PRESETS]) {
+    const s = p ? applyPreset(p.id, createInitialState()) : createInitialState()
+    for (const mode of ['light', 'dark']) {
+      const r = derive(s, {}).roles[mode]
+      const fill = r['accent-raised'], card = r.surface, text = r.text
+      assert(!!fill, `accent-raised resolves in ${mode} (${fill})`)
+      const vsCard = check(fill, card).ratio
+      const onIt = check(text, fill).ratio
+      if (vsCard < worst[mode]) { worst[mode] = vsCard; worst.where = p?.name ?? 'default' }
+      worst.text = Math.min(worst.text, onIt)
+    }
+  }
+  assert(worst.light >= 1.2, `a shape drawn in accent-raised is visible in light on every preset (worst ${worst.light.toFixed(2)} on ${worst.where})`)
+  assert(worst.dark >= 1.2, `and in dark (worst ${worst.dark.toFixed(2)})`)
+  assert(worst.text >= 4.5, `and its initials clear AA on it (worst ${worst.text.toFixed(2)})`)
+  /* The fault it replaces, kept as a measurement so nobody reinstates it. */
+  const sub = derived.roles.light['accent-subtle']
+  assert(check(sub, derived.roles.light.surface).ratio < 1.2,
+    `accent-subtle is still a GROUND, not a shape (${check(sub, derived.roles.light.surface).ratio.toFixed(2)})`)
+}
 assert(derived.roles.light.bg !== derived.roles.dark.bg, 'light and dark bg differ')
 
 line('\n- generated scales -')
@@ -622,12 +658,18 @@ line('\n- prompt construction -')
     const d = derive(c.state)
     for (const filename of ['AGENTS.md', 'CLAUDE.md']) {
       const text = agentContract(c.state, d, { filename })
-      const lines = text.split('\n').length
-      /* The PROSE, with the generated checklist subtracted. The cap exists
-         because a long contract competes with the DESIGN.md it introduces,
-         and the prose is the half that gets skimmed. The checklist grows with
-         the rule set on purpose, so it must not have to buy its place by
-         shaving an unrelated sentence. */
+      /* The PROSE, with the generated checklist subtracted. BOTH caps measure
+         it. The cap exists because a long contract competes with the DESIGN.md
+         it introduces, and the prose is the half that gets skimmed. The
+         checklist grows with the rule set on purpose, so it must not have to
+         buy its place by shaving an unrelated sentence.
+       *
+         The line cap was left measuring the whole file for one argument
+         longer, and then two new checks in a session took it over: the fix on
+         offer was to delete a sentence somewhere unrelated. A bullet is one
+         line per rule by construction, so the checklist's height needs no
+         policing either. */
+      const lines = text.split('\n').length - checklistLines()
       const bytes = Buffer.byteLength(text, 'utf8') - checklistBytes()
       if (lines > worstLines) { worstLines = lines; worstLabel = c.label }
       worstBytes = Math.max(worstBytes, bytes)

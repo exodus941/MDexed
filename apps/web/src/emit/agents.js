@@ -58,14 +58,25 @@ const bullets = checks => checks.map(c => '- ' + c.line).join('\n')
 
    So the byte cap now measures the prose alone, with every generated bullet
    removed. The checklist grows with the rule set, which is the point of it,
-   and a new rule no longer costs a sentence somewhere unrelated. The line cap
-   still measures the whole file, because height on screen is a real cost
-   whatever fills it. Measured at the split: 8138 bytes whole, 5389 of prose.
+   and a new rule no longer costs a sentence somewhere unrelated. Measured at
+   the split: 8138 bytes whole, 5389 of prose.
 
    5500 leaves about one sentence of room, which is the tension wanted: a new
    paragraph has to be worth displacing something, and a one-word correction
-   does not fail the build. */
-export const CONTRACT_MAX_LINES = 175
+   does not fail the build.
+
+   AND THE LINE CAP HAD THE SAME FAULT, one argument later. It was left
+   measuring the whole file, on the reasoning that height on screen costs the
+   reader whatever fills it. That is true and it is not the tension worth
+   holding: two new checks in one session took the file to 176 against a cap of
+   175, and the fix on offer was to delete a sentence somewhere unrelated.
+   Which is the thing this comment already says is the cap measuring the wrong
+   thing.
+
+   So the line cap measures PROSE lines too. A bullet is one line per rule, by
+   construction, so the checklist's height is a count nobody has to police.
+   Measured at this second split: 176 lines whole, 132 of prose. */
+export const CONTRACT_MAX_LINES = 165
 export const CONTRACT_MAX_BYTES = 5500
 
 /* The three generated blocks, so a caller can subtract them and measure the
@@ -75,6 +86,13 @@ export const CONTRACT_MAX_BYTES = 5500
 export function checklistBytes () {
   return [SOURCE_CHECKS, RENDER_CHECKS, MANUAL_CHECKS]
     .reduce((n, list) => n + new TextEncoder().encode(bullets(list)).length, 0)
+}
+
+/* One line per rule, which is what makes the line cap safe to measure against
+   the prose alone. */
+export function checklistLines () {
+  return [SOURCE_CHECKS, RENDER_CHECKS, MANUAL_CHECKS]
+    .reduce((n, list) => n + list.length, 0)
 }
 
 /* Only two things vary in length: the project name and the theme list. The

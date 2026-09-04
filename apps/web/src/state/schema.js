@@ -143,7 +143,61 @@ export const ROLE_GROUPS = [
        * card, so it recedes. In dark it sat at +0.00. The midpoint between 900
        * and 950 puts it 0.04 below the card as well, which mirrors light
        * exactly, and the text on it goes from 4.6-4.9 to 5.1-5.5. */
-      { name: 'accent-subtle',   desc: 'Tinted background',          light: 'accent.100',  dark: 'accent.900~950@0.5'  },
+      /* ── A DARK TINT MIXES INTO THE GROUND, AND THE FAULT IS CHROMA ──
+       *
+       * Every `*-subtle` took a step off its own meaning ramp in dark, which
+       * puts a saturated patch on a near-neutral surface. They called it
+       * solarized, twice, about two different components.
+       *
+       * Measured across all seven presets, worst case, against the dark card:
+       *   before   absolute chroma 0.1544, lift -0.040
+       *   after    absolute chroma 0.0373, lift -0.043
+       *
+       * THE LIGHTNESS WAS NEVER THE PROBLEM. The alert sat 0.038 below the
+       * card, which is the conventional band, and its chroma was 1.9x the
+       * ground's while danger ran to 3.7x. So the tint is mixed INTO the page
+       * step: the result is mostly ground, so it stays in the ground's chroma
+       * neighbourhood, and it keeps the downward step a band should have.
+       *
+       * LIFTING IT WAS THE FIRST ATTEMPT AND IT BROKE THE THIRD PAIR. Mixing
+       * into `neutral.800` raised the tint by +0.111, and a lifted ground in
+       * dark cannot carry a light meaning colour: the suite reported seven
+       * failures per preset, every one being the meaning colour on its own
+       * tint. No weight rescued it, because the best pair at any weight was
+       * 3.19 against a 4.5 bar. A lifted tint in dark is a LIGHT surface and
+       * needs dark text, which is not what an inline badge should be.
+       *
+       * At 0.1 on the page step the pair reads 4.97 and the band still
+       * separates from the card at 1.11:1.
+       *
+       * LIGHT IS UNCHANGED and stays a step off the meaning ramp. Measured
+       * there: lift -0.0473 at chroma 0.0799. At high lightness the eye takes
+       * far more chroma before it reads as a stain, which is why one value
+       * cannot serve both modes. */
+      { name: 'accent-subtle',   desc: 'Tinted background',          light: 'accent.100',  dark: 'neutral.950~accent.500@0.1'  },
+      /* ── A FILLED SHAPE, AND `accent-subtle` CANNOT DRAW ONE ──
+       *
+       * `accent-subtle` is a GROUND: text sits on it and the words carry the
+       * contrast, so it is allowed to be quiet. A SHAPE has no words to carry
+       * it. Its own fill is the whole signal, and under about 1.2:1 against
+       * what is behind it the shape is absent rather than subtle.
+       *
+       * Measured on the shipped palette, `accent-subtle` against the card:
+       * 1.13:1 in light and 1.11:1 in dark. So an avatar disc vanished in both
+       * modes and only its initials floated. They saw it in a screenshot.
+       *
+       * NO ACCENT STEP FIXES IT, so the step was never the answer. Every role
+       * in that palette was measured against the card and only neutrals
+       * cleared 1.2 in both modes. An accent step near the middle carries the
+       * ramp's full chroma, which is a solid button rather than a tint.
+       *
+       * So mix the accent INTO the raised surface. The result steps UP off the
+       * card in both modes, which is the other half of the fault: a subtle
+       * tint that steps down in dark reads as a hole. Measured across all
+       * seven shipped presets at 0.3, worst case: 1.29 against the card in
+       * light, 1.79 in dark, and 6.01 for text on it. 0.25 also clears, at
+       * 1.22 in light, which leaves no margin for a seed we have not seen. */
+      { name: 'accent-raised',   desc: 'Accent-tinted shape',        light: 'neutral.50~accent.500@0.3', dark: 'neutral.800~accent.500@0.3' },
       { name: 'accent-fg',       desc: 'Content on accent fill',     light: 'neutral.50',  dark: 'neutral.950' },
       /* A SELECTED row, and `accent-subtle` cannot do this job.
        *
@@ -204,7 +258,7 @@ export const ROLE_GROUPS = [
          document reports every surface where the colour is too low for body
          text. The limit is stated rather than designed away. */
       { name: 'success',         desc: 'Success fill',               light: 'success.700', dark: 'success.400' },
-      { name: 'success-subtle',  desc: 'Success background',         light: 'success.100', dark: 'success.900~950@0.5' },
+      { name: 'success-subtle',  desc: 'Success background',         light: 'success.100', dark: 'neutral.950~success.500@0.1' } /* mixes into the ground, see accent-subtle */,
       { name: 'success-fg',      desc: 'Content on success fill',    light: 'neutral.50',  dark: 'neutral.950' },
       /* ── THE ONE ROLE THAT GIVES THIS PALETTE A VALUE STRUCTURE ──
        *
@@ -239,7 +293,7 @@ export const ROLE_GROUPS = [
        * Measured: light 0.2 to 15.4 points, dark 0.2 to 15.5, no failure and no
        * warning in either. Warning on its own chip reads 10.69:1 in light. */
       { name: 'warning',         desc: 'Warning fill',               light: 'warning.900', dark: 'warning.200' },
-      { name: 'warning-subtle',  desc: 'Warning background',         light: 'warning.100', dark: 'warning.900~950@0.5' },
+      { name: 'warning-subtle',  desc: 'Warning background',         light: 'warning.100', dark: 'neutral.950~warning.500@0.1' } /* mixes into the ground, see accent-subtle */,
       { name: 'warning-fg',      desc: 'Content on warning fill',    light: 'neutral.50',  dark: 'neutral.950' },
       { name: 'danger',          desc: 'Destructive fill',           light: 'danger.700',  dark: 'danger.400'  },
       /* Accent has had a hover role since the start; danger never did, so a
@@ -249,7 +303,7 @@ export const ROLE_GROUPS = [
          does: darker on paper, lighter in the dark, because a hover has to
          move away from the page rather than always down. */
       { name: 'danger-hover',    desc: 'Destructive hover',          light: 'danger.800',  dark: 'danger.300'  },
-      { name: 'danger-subtle',   desc: 'Destructive background',     light: 'danger.100',  dark: 'danger.900~950@0.5'  },
+      { name: 'danger-subtle',   desc: 'Destructive background',     light: 'danger.100',  dark: 'neutral.950~danger.500@0.1'  } /* mixes into the ground, see accent-subtle */,
       { name: 'danger-fg',       desc: 'Content on destructive fill',light: 'neutral.50',  dark: 'neutral.950' },
     ],
   },

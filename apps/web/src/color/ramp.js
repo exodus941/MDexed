@@ -119,7 +119,27 @@ export function buildRamps(seeds, shape, opts = {}) {
  * A constraint that blocks a value somebody can justify is not discipline.
  * What guards against nudging is the measurement, not the syntax. */
 function mixSteps (ramp, a, b, t = 0.5) {
-  const A = parseColor(ramp?.steps?.[a]), B = parseColor(ramp?.steps?.[b])
+  return mixHex(ramp?.steps?.[a], ramp?.steps?.[b], t)
+}
+
+/* ── AND A REF MAY MIX ACROSS TWO RAMPS ──
+ *
+ * `mixSteps` walks one ramp, which covers a point between two of its own
+ * steps. It cannot reach a tint that is mostly neutral with some accent in it,
+ * and no single accent step is that: an accent step near the middle carries
+ * the ramp's full chroma.
+ *
+ * A filled accent SHAPE needs exactly that colour. `accent-subtle` measured
+ * 1.13:1 against the card in light and 1.11 in dark, both under the 1.2 a
+ * shape needs, so an avatar disc vanished and only its initials showed. No
+ * accent-tinted role in the palette clears 1.2 in both modes, so the step was
+ * never the fix. Mixing the accent into the raised surface is, and it still
+ * follows the seed.
+ *
+ * Written `neutral.800~accent.500@0.2`: the left ref is the ground and the
+ * weight is how much of the right one goes in. */
+function mixHex (aHex, bHex, t = 0.5) {
+  const A = parseColor(aHex), B = parseColor(bHex)
   if (!A || !B) return null
   const oa = toOklchObj(A), ob = toOklchObj(B)
   const mid = (x, y) => x + (y - x) * t
@@ -141,6 +161,18 @@ export function resolveRef(ref, ramps) {
      resolved to nothing, and the stripe painted BLACK. A separator chosen when
      the grammar had one shape stops working the moment it gains another. */
   const [body, weight] = ref.split('@')
+  /* CROSS-RAMP FIRST. `neutral.800~accent.500` names two whole refs, and the
+     same-ramp form `neutral.50~100` names one ramp and two of its steps. The
+     tell is a dot on the RIGHT of the tilde. Testing the left side cannot
+     separate them, because both have one. */
+  if (body.includes('~')) {
+    const [left, right] = body.split('~')
+    if (right.includes('.')) {
+      const t = weight === undefined ? 0.5 : Number(weight)
+      if (!Number.isFinite(t) || t < 0 || t > 1) return null
+      return mixHex(resolveRef(left, ramps), resolveRef(right, ramps), t)
+    }
+  }
   const dot = body.lastIndexOf('.')
   if (dot < 0) return null
   const ramp = ramps[body.slice(0, dot)]
