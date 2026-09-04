@@ -414,6 +414,16 @@ export const ANTI_PATTERNS = [
   { id: 'control-height', text: 'Never let a button beside a field differ in height from that field.', on: true },
   { id: 'icon-baseline', text: 'Never let an icon decide a button\'s baseline. The label decides it.', on: true },
   { id: 'baseline-in-fixed-box', text: 'Never baseline-align the contents of a fixed-height control. Centre them — baseline pins the label to the top of the box.', on: true },
+  /* ── TWO WAYS TO WRITE A RULE THAT CAN NEVER TAKE EFFECT ──
+   *
+   * Both were found in a generated dashboard, both were silent, and each one
+   * broke a control completely. An inline `style="opacity:0"` outranked the
+   * stylesheet rule meant to switch it, so a select-all box rendered as a
+   * solid block with no mark. And a component padding token already carries
+   * two values, so putting it in a shorthand beside another value expanded to
+   * three and a bar came out 8px on top against 12px underneath. */
+  { id: 'inline-state', text: 'Never put a state in an inline style. An inline style outranks every rule in your stylesheet, so the rule meant to switch it can never reach it.', on: true },
+  { id: 'token-in-shorthand', text: 'Never put a component padding or margin token inside a shorthand beside another value. Those tokens already carry two values, so the shorthand expands to three and reads them as separate edges.', on: true },
 ]
 
 export const FRAMEWORKS = ['React + Tailwind', 'React + CSS variables', 'Plain HTML + CSS', 'Vue + Tailwind', 'Svelte', 'Unspecified']

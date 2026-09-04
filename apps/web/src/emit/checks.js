@@ -166,6 +166,155 @@ export const CHECKS = [
   },
 
   {
+    id: 'align-content-needs-a-line-to-align',
+    where: 'source',
+    line: 'align-content does nothing on a flex row that cannot wrap. Give it wrap, or centre the items.',
+    /* ── A DECLARATION THAT LOOKS LIKE THE FIX AND DOES NOTHING ──
+     *
+     * `align-content` positions flex LINES, and a container with the default
+     * `nowrap` has one line that always fills the container. So the property
+     * is ignored, silently, and the items stay packed where `align-items`
+     * put them.
+     *
+     * Measured on a generated dashboard: a nav item held the 44px touch floor
+     * with `align-items: baseline` and `align-content: center`. Its label sat
+     * 13.08px from the top against 13.92 from the bottom only AFTER wrap was
+     * added; before it, the content was packed to the top of a 44px box and
+     * read as a tall selection with its contents in a corner. That is the
+     * exact fault a reader reports as "the nav items are broken".
+     *
+     * A grid is exempt: `align-content` is meaningful there with no wrap. */
+    body: [
+      "for (const f of files.filter(f => /\\.css$/.test(f.path))) {",
+      "  const rules = f.bare.split('}')",
+      "  let at = 1",
+      "  for (const r of rules) {",
+      "    const line = at; at += (r.match(/\\n/g) || []).length",
+      "    if (!/align-content\\s*:/.test(r)) continue",
+      "    if (/display\\s*:\\s*(inline-)?grid/.test(r)) continue",
+      "    if (!/display\\s*:\\s*(inline-)?flex/.test(r)) continue",
+      "    if (/flex-wrap\\s*:\\s*wrap/.test(r) || /flex-flow\\s*:[^;]*wrap/.test(r)) continue",
+      "    fail(f.path, line, 'align-content on a flex container that cannot wrap. One line always fills its container, so this is ignored and the items stay where align-items put them. Add flex-wrap: wrap, or centre the items instead.')",
+      "  }",
+      "}",
+    ],
+  },
+
+  {
+    id: 'a-container-query-cannot-style-its-container',
+    where: 'source',
+    line: 'A container query styles descendants of the container, never the container itself.',
+    /* ── THE HALF THAT APPLIES HIDES THE HALF THAT DOES NOT ──
+     *
+     * `@container` matches inside the containment context, so a rule for the
+     * element that declares `container-type` never applies. A collapse
+     * written that way half-works, which is worse than not working: the
+     * descendant rules fire and the container's own rule does not.
+     *
+     * Measured on a generated dashboard. The shell declared `container-type`
+     * and the query held both `.shell { grid-template-columns }` and
+     * `.rail { display: none }`. The rail hid, its 224px column stayed with
+     * nothing in it, the content column came out 96px wide, and the page
+     * overflowed by 177px at a 320px viewport. Put the containment on a
+     * WRAPPER and leave the shell a descendant. */
+    body: [
+      "for (const f of files.filter(f => /\\.css$/.test(f.path))) {",
+      /* BLANK THE COMMENTS, never skip them. A selector capture reaches back
+         to the previous brace, so a comment EXPLAINING the rule was read as
+         part of it: a note naming .shell above a .app rule made the check
+         report .shell as its own container. Blanking keeps every newline, so
+         the line numbers below still point at the real declaration. */
+      "  const text = f.bare",
+      "  const named = {}",
+      "  const declRe = /([^{}]+)\\{([^{}]*container-type[^{}]*)\\}/g",
+      "  let d",
+      "  while ((d = declRe.exec(text))) {",
+      "    for (const sel of d[1].split(',')) {",
+      "      const cls = sel.trim().match(/\\.[A-Za-z0-9_-]+/g)",
+      "      if (cls) for (const c of cls) named[c] = true",
+      "    }",
+      "  }",
+      "  if (!Object.keys(named).length) continue",
+      "  const blockRe = /@container[^{]*\\{/g",
+      "  let m",
+      "  while ((m = blockRe.exec(text))) {",
+      "    let depth = 1, i = m.index + m[0].length",
+      "    while (i < text.length && depth > 0) { if (text[i] === '{') depth++; else if (text[i] === '}') depth--; i++ }",
+      "    const inner = text.slice(m.index + m[0].length, i - 1)",
+      "    const line = f.text.slice(0, m.index).split('\\n').length",
+      "    for (const sel of inner.split('{').map(s => s.split('}').pop().trim()).filter(Boolean)) {",
+      "      const bare = sel.replace(/\\s+/g, ' ').trim()",
+      "      for (const c of Object.keys(named)) {",
+      "        if (bare === c || bare.split(',').map(x => x.trim()).indexOf(c) >= 0)",
+      "          fail(f.path, line, 'this container query targets ' + c + ', which is the element that declares container-type. A container query never matches its own container, so this rule is inert while the rules for its descendants fire. Move the containment to a wrapper.')",
+      "      }",
+      "    }",
+      "  }",
+      "}",
+    ],
+  },
+
+  {
+    id: 'state-is-not-an-inline-style',
+    where: 'source',
+    line: 'A state belongs in the stylesheet. An inline style beats every rule you write.',
+    /* ── I WROTE THE THING THAT MADE MY OWN RULE UNREACHABLE ──
+     *
+     * An inline `style` attribute outranks any stylesheet selector, so a
+     * state the stylesheet is meant to switch can never switch. Measured on a
+     * a generated dashboard: the indeterminate dash carried
+     * `style="opacity:0"` in the markup, the rule for
+     * `input:indeterminate + .box .dash` was correct, and the select-all box
+     * rendered as a solid block with no mark for as long as that attribute
+     * existed. One writer per property.
+     *
+     * A layout VALUE is a different thing. A meter's own percentage is data
+     * and has nowhere else to live, so only `opacity`, `display` and
+     * `visibility` are faulted. */
+    body: [
+      "for (const f of files.filter(f => /\\.(html|jsx|tsx|vue|svelte)$/.test(f.path))) {",
+      "  const re = /style\\s*=\\s*[\"']([^\"']*)[\"']/g",
+      "  let m",
+      "  while ((m = re.exec(f.bare))) {",
+      "    const prop = m[1].match(/\\b(opacity|display|visibility)\\s*:/)",
+      "    if (!prop) continue",
+      "    const line = f.text.slice(0, m.index).split('\\n').length",
+      "    fail(f.path, line, 'an inline style sets ' + prop[1] + ', which is a STATE. An inline style outranks every rule in your stylesheet, so the rule meant to switch this can never reach it. Move it to a class.')",
+      "  }",
+      "}",
+    ],
+  },
+
+  {
+    id: 'no-multi-value-token-inside-a-shorthand',
+    where: 'source',
+    line: 'A token holding two values cannot go inside a shorthand beside another value.',
+    /* Component padding ships as a pair, such as `8px 12px`. Interpolated
+       into `padding: <one value> var(--that)` it expands to THREE values, and
+       the shorthand then reads them as top / sides / bottom. Measured: a
+       selection bar came out 8px on top against 12px underneath, from a
+       declaration that looked symmetrical. */
+    body: [
+      "const PAIR = /--cmp-[a-z0-9-]*-(padding|margin)\\b/",
+      "for (const f of files.filter(f => /\\.css$/.test(f.path))) {",
+      "  const lines = f.text.split('\\n')",
+      "  lines.forEach((l, i) => {",
+      /* Anchored on a declaration boundary rather than the line start, so a
+         rule written on one line is still seen. The boundary also keeps it
+         off `padding-inline`, which is a longhand and takes one value. */
+      "    const m = l.match(/(?:^|[;{])\\s*(padding|margin)\\s*:\\s*([^;}]+)/)",
+      "    if (!m) return",
+      "    const val = m[2]",
+      "    if (!PAIR.test(val)) return",
+      "    const parts = val.trim().split(/\\s+(?![^(]*\\))/)",
+      "    if (parts.length < 2) return",
+      "    fail(f.path, i + 1, 'this ' + m[1] + ' shorthand holds a component token that itself carries two values, beside ' + (parts.length - 1) + ' more. It expands to three or four values and the shorthand reads them as separate edges. Use the token alone, or name the longhands.')",
+      "  })",
+      "}",
+    ],
+  },
+
+  {
     id: 'css-not-in-a-literal',
     where: 'source',
     line: 'No stylesheet is built from a JavaScript template literal.',
@@ -405,10 +554,73 @@ export const CHECKS = [
     id: 'the-page-never-scrolls-sideways',
     where: 'render',
     line: 'The page never scrolls sideways, down to the narrowest width you ship.',
+    /* ── THE INSTRUMENT GREW WITH THE FAULT IT WAS LOOKING FOR ──
+     *
+     * This compared `scrollWidth` against `innerWidth`, and `innerWidth`
+     * COUNTS the sideways overflow. So the two rose together and the test was
+     * 497 > 497, which is false. Measured on a generated dashboard at a 320px
+     * viewport: a table rendered 572px wide, the document came to 497, and
+     * this check reported clean.
+     *
+     * `documentElement.clientWidth` is the viewport itself and does not move.
+     * That is the number a person sees. Also report BOTH, so a reader can see
+     * the overflow rather than a bare verdict. */
     body: [
       "const d = document.documentElement",
-      "if (d.scrollWidth > innerWidth + 1)",
-      "  fail('document', 'the page scrolls sideways: ' + d.scrollWidth + ' in a ' + innerWidth + ' viewport. A table may scroll inside its own box. The page may not.')",
+      "const vw = d.clientWidth",
+      "if (d.scrollWidth > vw + 1)",
+      "  fail('document', 'the page scrolls sideways: ' + d.scrollWidth + ' of content in a ' + vw + 'px viewport, over by ' + (d.scrollWidth - vw) + '. A table may scroll inside its own box. The page may not. A scroller cannot clamp until every ancestor between it and the page carries min-width: 0.')",
+    ],
+  },
+
+  {
+    id: 'a-mark-stays-inside-its-control',
+    where: 'render',
+    line: 'A control that draws its own mark keeps that mark inside its box.',
+    /* ── HIDING ONE MARK DOES NOT RECLAIM THE SPACE IT TOOK ──
+     *
+     * A checkbox has three states and two of them draw a mark. Put both in a
+     * flex or flow box and they are laid out SIDE BY SIDE: measured, two 14px
+     * marks in a 14px content box overflowed by 6px and 8px, and each was
+     * clipped by the box. The checked box then showed the right-hand half of
+     * its tick, which is the long diagonal, and read as a slash.
+     *
+     * `opacity: 0` on the other mark changes nothing, because an invisible
+     * flex item still takes its share of the line. The states have to share
+     * ONE cell. Nothing else caught this: the box measured 16x16, the mark
+     * measured 14x14, and both numbers were right. */
+    body: [
+      "for (const box of all('.checkbox, .switch, [class*=checkbox], [class*=switch], [class*=box]')) {",
+      "  const b = box.getBoundingClientRect(); if (!b.width || b.width > 64) continue",
+      "  const marks = Array.prototype.slice.call(box.querySelectorAll('svg, img'))",
+      "  if (marks.length < 2) continue",
+      "  for (const m of marks) {",
+      "    const r = m.getBoundingClientRect(); if (!r.width) continue",
+      "    const out = Math.max(b.left - r.left, r.right - b.right, b.top - r.top, r.bottom - b.bottom)",
+      "    if (out > 1)",
+      "      fail(name(box), 'a mark sits ' + round(out) + 'px outside the control that draws it, so the engine clips it. ' + marks.length + ' marks share this box, and in normal flow they lay out side by side. Put every state in ONE cell.')",
+      "  }",
+      "}",
+    ],
+  },
+
+  {
+    id: 'a-date-with-a-month-name-is-text',
+    where: 'render',
+    line: 'A date carrying a month name stays in the body face. Only an all-figure date takes the mono one.',
+    /* The mono rule is stated in the Colors and Typography prose and it still
+       gets over-applied, because "figures take the mono face" is the half a
+       builder remembers. A date a person READS is not a figure they compare. */
+    body: [
+      "const MONTHS = /\\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\\b/i",
+      "for (const el of all('*')) {",
+      "  if (el.children.length) continue",
+      "  const t = (el.textContent || '').trim()",
+      "  if (!t || t.length > 40 || !MONTHS.test(t)) continue",
+      "  const fam = getComputedStyle(el).fontFamily",
+      "  if (!/mono|courier|consolas/i.test(fam)) continue",
+      "  fail(name(el), 'the text ' + JSON.stringify(t.slice(0, 24)) + ' carries a month name and is set in ' + fam.split(',')[0] + '. A date with a month name is read rather than compared, so it takes the body face. Only an all-figure date takes the mono one.')",
+      "}",
     ],
   },
 

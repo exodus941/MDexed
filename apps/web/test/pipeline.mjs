@@ -1984,10 +1984,21 @@ line('\n- project file -')
     '.c { color: var(--c-invented); }',          /* unknown-token */
     '.d { color: var(--c-text, #999); }',        /* fallback-hides-a-token */
     '.e { font-family: Helvetica, sans-serif; }' /* named-font-only */,
+    /* align-content-needs-a-line-to-align: a flex row that cannot wrap. */
+    '.f { display: flex; align-items: baseline; align-content: center; }',
+    /* a-container-query-cannot-style-its-container: the shell declares the
+       containment and the query then tries to restyle the shell. */
+    '.shell { container-type: inline-size; display: grid; }',
+    '@container (max-width: 800px) {\n  .shell { grid-template-columns: 1fr; }\n}',
+    /* no-multi-value-token-inside-a-shorthand: a component padding token
+       already carries two values, so this expands to three. */
+    '.h { padding: var(--space-md) var(--cmp-table-cell-padding); }',
   ].join('\n'))
   write('broken.html', [
     '<html data-theme="light">',                 /* hardcoded-theme */
     '<button id="t" onclick="root.dataset.theme=1"><svg></svg></button>',
+    /* state-is-not-an-inline-style: an inline style beats every rule. */
+    '<svg class="dash" style="opacity:0"></svg>',
     '</html>',                                   /* toggle-states-itself + icon-only-is-named */
   ].join('\n'))
   write('broken.js', 'const css = ' + BACKTICK + '.x { color: red; }' + BACKTICK)
