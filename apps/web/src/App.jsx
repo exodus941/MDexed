@@ -15,7 +15,7 @@ import { serializeProject, parseProject, projectFilename, PROJECT_EXT } from './
 import { isValidColor } from './color/convert.js'
 import { APP_CSS } from './ui/theme.js'
 import { loadDocumentFonts } from './type/fonts.js'
-import { Banner, ResetButton, CloseButton, SectionHeader, SectionBreak, Collapsible, Strut, PAD, BTN, MODAL_BTN } from './ui/controls.jsx'
+import { Banner, ResetButton, CloseButton, SectionHeader, SectionBreak, Collapsible, Strut, numberFromText, PAD, BTN, MODAL_BTN } from './ui/controls.jsx'
 import CrossFade from './ui/CrossFade.jsx'
 import TabStrip, { scrollableUnder } from './ui/TabStrip.jsx'
 import ImportModal, { IMPORT_FORMATS } from './ui/ImportModal.jsx'
@@ -268,6 +268,7 @@ function MacroControl({ macro, value, resolved, onChange }) {
   const base = DEFAULT_MACROS[macro.key]
   const changed = Math.abs(value - base) > 1e-9
   const [draft, setDraft] = useState(null)
+  const [mulDraft, setMulDraft] = useState(null)
 
   /* Dragging within 3% of the range lands exactly on the default — getting
      back to baseline shouldn't need a steady hand. */
@@ -287,8 +288,26 @@ function MacroControl({ macro, value, resolved, onChange }) {
         <ResetButton onClick={() => onChange(base)} disabled={!changed} />
       </div>
       <div style={{ display: 'flex', gap: 4, marginBottom: 4 }}>
-        <input className="num" type="number" min={macro.min} max={macro.max} step={0.01} value={value.toFixed(2)}
-          onChange={e => { const n = parseFloat(e.target.value); if (Number.isFinite(n)) onChange(Math.max(macro.min, Math.min(macro.max, n))) }}
+        {/* ── ITS OWN INPUT, AND IT HAD ITS OWN BUGS ──
+             This was a raw input beside the shared NumField rather than one of
+             them, so it missed both of that component's repairs. Fully
+             controlled, it re-formatted the digits under the caret between
+             keystrokes. And it committed whatever parseFloat returned, so a
+             value landed off the 0.01 step this control publishes: a density
+             of 0.825 read as 0.82 here and 0.83 on the slider beside it, and
+             neither was the number stored.
+
+             The arithmetic now comes from one place. */}
+        <input className="num" type="number" min={macro.min} max={macro.max} step={0.01}
+          value={mulDraft ?? value.toFixed(2)}
+          onFocus={e => { setMulDraft(value.toFixed(2)); e.target.select() }}
+          onChange={e => {
+            setMulDraft(e.target.value)
+            const v = numberFromText(e.target.value, { min: macro.min, max: macro.max, step: 0.01 })
+            if (v != null) onChange(v)
+          }}
+          onBlur={() => setMulDraft(null)}
+          onKeyDown={e => { if (e.key === 'Enter' || e.key === 'Escape') e.currentTarget.blur() }}
           title="Multiplier"
           style={{ width: 56, padding: '4px 6px', fontSize: 10, color: changed ? 'var(--accent)' : 'var(--muted)' }} />
         <input

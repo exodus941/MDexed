@@ -489,6 +489,37 @@ export function ConfirmDelete({ onConfirm, title = 'Delete', size = 13 }) {
   )
 }
 
+/* Clamp and snap one typed number, or return null when the text is not one.
+ *
+ * A VALUE OFF THE STEP MAKES TWO CONTROLS DISAGREE. A field and the slider
+ * beside it read one stored value and round it for display differently. A
+ * density of 0.825 showed as 0.82 in the field and 0.83 on the slider, so a
+ * reader had two answers and neither was the number stored. A control that
+ * publishes a step commits onto it, measured from `min` the way a native
+ * input steps.
+ *
+ * ROUND ONCE, AT THE END. Dividing by a fractional step manufactures its own
+ * error: 0.825 / 0.01 is 82.49999999999999 in one direction and 82.5 in
+ * another, which rounds to two different answers. Scale by the step's own
+ * decimal places instead, work in whole units, and trim once. */
+export function numberFromText (text, { min, max, step } = {}) {
+  if (String(text).trim() === '') return null
+  const n = parseFloat(text)
+  if (!Number.isFinite(n)) return null
+  let v = n
+  const s = parseFloat(step)
+  if (Number.isFinite(s) && s > 0) {
+    const places = (String(step).split('.')[1] || '').length
+    const unit = Math.pow(10, places)
+    const origin = Number.isFinite(parseFloat(min)) ? parseFloat(min) : 0
+    const steps = Math.round((Math.round(v * unit) - Math.round(origin * unit)) / Math.round(s * unit))
+    v = (Math.round(origin * unit) + steps * Math.round(s * unit)) / unit
+  }
+  if (min != null) v = Math.max(parseFloat(min), v)
+  if (max != null) v = Math.min(parseFloat(max), v)
+  return v
+}
+
 /* ── A FIELD YOU CAN TYPE INTO KEEPS WHAT YOU TYPED ──
  *
  * This was fully controlled by the value flowing back in, and it committed on
@@ -514,14 +545,20 @@ export function NumField({ label, value, onChange, min, max, step = 1, suffix, w
   const [draft, setDraft] = useState(null)
   const editing = draft !== null
 
+  /* ── A VALUE OFF THE STEP MAKES TWO CONTROLS DISAGREE ──
+   *
+   * The field and the slider beside it read one state value and round it for
+   * display in different ways. A density of 0.825 showed as 0.82 in the field
+   * and 0.83 on the slider, so a reader had two answers and neither was the
+   * number stored. The field publishes a step, so a committed value belongs
+   * on it, measured from `min` the way a native input steps.
+   *
+   * Rounded at the END, on the derived value. A fractional step multiplied
+   * back out manufactures its own error, so the arithmetic is done once and
+   * then trimmed to the step's own precision. */
   const commit = text => {
-    if (text.trim() === '') return
-    const n = parseFloat(text)
-    if (!Number.isFinite(n)) return
-    let v = n
-    if (min != null) v = Math.max(min, v)
-    if (max != null) v = Math.min(max, v)
-    onChange(v)
+    const v = numberFromText(text, { min, max, step })
+    if (v != null) onChange(v)
   }
 
   return (
