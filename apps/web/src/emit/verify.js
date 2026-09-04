@@ -130,6 +130,19 @@ if (!tokens.size) {
   } catch { /* reported below */ }
 }
 
+/* Custom properties the SOURCE declares for itself.
+ *
+ * DESIGN.md tells the builder to name a value that changes at a breakpoint
+ * rather than compile it in, because a media query can reach a property and
+ * cannot reach a constant. Following that instruction and then reporting the
+ * new name as an unknown token faults the document's own advice. Read the
+ * declarations instead of asking for a naming convention: a typo is still
+ * declared nowhere, so it still fails. */
+const declared = new Set()
+for (const f of files) {
+  for (const m of f.bare.matchAll(/(--[\\w-]+)\\s*:/g)) declared.add(m[1])
+}
+
 const findings = []
 let current = ''
 const fail = (path, line, msg) => findings.push({ check: current, path, line, msg })

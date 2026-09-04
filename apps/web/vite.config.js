@@ -197,8 +197,8 @@ export default defineConfig(({ command }) => ({
        silenced one: it had been firing on every build at 826.33, before the
        change that noticed it, so it had stopped meaning growth.
        Raised to 856 at 854.13 kB, after the checks and the prose the last two
-       simulations earned. */
-    chunkSizeWarningLimit: 856,
+       simulations earned. Then to 860 at 858.45 kB, after the ninth. */
+    chunkSizeWarningLimit: 860,
   },
 
   server: {

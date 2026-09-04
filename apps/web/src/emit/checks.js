@@ -74,13 +74,26 @@ export const CHECKS = [
   {
     id: 'unknown-token',
     where: 'source',
-    line: 'Every token name you used exists in `tokens.css`.',
+    line: 'Every name you read with `var()` is a published token or one your own source declares.',
+    /* ── IT FAULTED THE DOCUMENT'S OWN INSTRUCTION ──
+     *
+     * Layout tells the builder that a value which changes at a breakpoint
+     * belongs in a custom property rather than in a constant, because a media
+     * query can reach a property and cannot reach a compiled value. A build
+     * that obeyed that got three findings for the two names it had just been
+     * told to create.
+     *
+     * The `--local-` prefix was the escape hatch and NOTHING IN THE PAYLOAD
+     * SAYS SO. A convention that lives only in a checker's source is a rule
+     * the reader cannot follow. Read the DECLARATIONS instead: a typo is
+     * declared nowhere, so it still fails, and no convention has to be
+     * remembered. The prefix keeps working for anyone already using it. */
     body: [
       "for (const f of files) {",
       "  for (const [i, line] of f.bareLines.entries()) {",
       "    for (const m of line.matchAll(/var\\(\\s*(--[\\w-]+)/g)) {",
-      "      if (!tokens.has(m[1]) && !m[1].startsWith('--local-'))",
-      "        fail(f.path, i + 1, m[1] + ' is in no token file. A fallback would have hidden this.')",
+      "      if (!tokens.has(m[1]) && !declared.has(m[1]) && !m[1].startsWith('--local-'))",
+      "        fail(f.path, i + 1, m[1] + ' is in no token file and your source never declares it. A fallback would have hidden this.')",
       "    }",
       "  }",
       "}",
@@ -674,12 +687,79 @@ export const CHECKS = [
      *
      * `documentElement.clientWidth` is the viewport itself and does not move.
      * That is the number a person sees. Also report BOTH, so a reader can see
-     * the overflow rather than a bare verdict. */
+     * the overflow rather than a bare verdict.
+     *
+     * ── AND THE ROOT'S OWN scrollWidth OVER-REPORTS A CLIPPED TABLE ──
+     *
+     * Read the content box, `body.scrollWidth`, not the root's. A table inside
+     * an `overflow-x: auto` box keeps its full laid-out rect, and the ROOT
+     * counts that rect even though the scroller clips it. So a correctly
+     * clamped table reported the page as scrolling by 448px at a 320px
+     * viewport, while `scrollLeft` refused to move off zero and every box from
+     * the card upward measured exactly 320.
+     *
+     * Measured on the two builds that separate the cases, both at 320px:
+     *
+     *   a real fault, a pair of buttons nothing clipped
+     *     root 362   body 361   viewport 320   -> both fire
+     *   a table correctly clamped inside its own scroller
+     *     root 768   body 320   viewport 320   -> only the root fires
+     *
+     * The body respects the intermediate clip, which is the whole question.
+     * Content clipped with no way to reach it is a different check and owns
+     * that case; this one asks whether the PAGE moves. */
     body: [
       "const d = document.documentElement",
       "const vw = d.clientWidth",
-      "if (d.scrollWidth > vw + 1)",
-      "  fail('document', 'the page scrolls sideways: ' + d.scrollWidth + ' of content in a ' + vw + 'px viewport, over by ' + (d.scrollWidth - vw) + '. A table may scroll inside its own box. The page may not. A scroller cannot clamp until every ancestor between it and the page carries min-width: 0.')",
+      "const page = document.body ? document.body.scrollWidth : d.scrollWidth",
+      "if (page > vw + 1)",
+      "  fail('document', 'the page scrolls sideways: ' + page + ' of content in a ' + vw + 'px viewport, over by ' + (page - vw) + '. A table may scroll inside its own box. The page may not. A scroller cannot clamp until every ancestor between it and the page carries min-width: 0.')",
+    ],
+  },
+
+  {
+    id: 'an-inline-box-has-no-size',
+    where: 'render',
+    line: 'Anything that paints a box states a display. An inline box has no width or height.',
+    /* ── FOUR DATA BARS RENDERED 0 BY 0 AND EVERY CHECK PASSED ──
+     *
+     * A `<span>` is inline, and `width`, `height`, `inline-size` and
+     * `overflow` do not apply to an inline box. Measured on a generated
+     * dashboard's ageing panel: four fills carrying 20%, 28%, 33% and 19%
+     * each rendered 0 by 0. The bars were the whole point of the panel and
+     * the reader saw four empty tracks.
+     *
+     * NOTHING REPORTED IT. The declarations were all present and computed
+     * style agreed with every one of them. A geometric check reads a 0-width
+     * box as an absent one rather than a broken one, and the alignment checks
+     * skip anything with no area. So the panel measured healthy.
+     *
+     * The tell is not the size. It is a box that PAINTS asking to be inline:
+     * a fill, an image or an edge, on an element the engine lays out as text.
+     * Two shapes, and both are always a mistake.
+     *
+     * A grid or flex item is blockified, so the TRACK in that same panel came
+     * out a correct 404 by 6 while its child did not. That is why this asks
+     * the computed display rather than the tag. */
+    body: [
+      "for (const el of all('*')) {",
+      "  const cs = getComputedStyle(el)",
+      "  if (cs.display !== 'inline') continue",
+      "  const bg = cs.backgroundColor",
+      "  const open = bg ? bg.indexOf('(') : -1",
+      "  const parts = open < 0 ? [] : bg.slice(open + 1, bg.lastIndexOf(')')).split(',')",
+      "  const filled = !!bg && bg !== 'transparent' && (parts.length < 4 || parseFloat(parts[3]) > 0)",
+      "  const edged = ['Top', 'Right', 'Bottom', 'Left'].some(s => parseFloat(cs['border' + s + 'Width']) > 0)",
+      "  const paints = filled || edged || cs.backgroundImage !== 'none'",
+      "  if (!paints) continue",
+      "  const own = el.style",
+      "  const asked = own.width || own.height || own.inlineSize || own.blockSize",
+      "  const box = el.getBoundingClientRect()",
+      "  if (asked)",
+      "    fail(name(el), 'this paints a box and asks for ' + asked + ', and it computes to display: inline, which ignores every width and height. It rendered ' + round(box.width) + ' by ' + round(box.height) + '. Give it display: block, or make it a grid or flex item, which are blockified for you.')",
+      "  else if (!box.width || !box.height)",
+      "    fail(name(el), 'this paints a box and rendered ' + round(box.width) + ' by ' + round(box.height) + ', because display: inline takes its size from text it does not have. Give it a display that can hold a box.')",
+      "}",
     ],
   },
 

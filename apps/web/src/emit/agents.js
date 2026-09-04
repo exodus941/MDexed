@@ -196,8 +196,7 @@ limitation of the design system.
 
 ## Run it again after the last edit
 
-The hard part is applying this to the row you changed two minutes ago. Two
-failures survive everything above:
+Two failures survive everything above:
 
 - A check was silenced to keep the output tidy. A command sent to \`/dev/null\`
   prints nothing when it fails, and that silence reads exactly like success.
