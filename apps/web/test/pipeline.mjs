@@ -1019,6 +1019,35 @@ line('\n- prompt construction -')
   assert(findings.length === 0,
     `the shipped default audits clean (${findings.map(f => `${f.level}:${f.id}`).join(', ') || 'none'})`)
 
+  /* ── THE DARK GROUND CARRIES HUE, AND THE LIGHT ONE DID NOT MOVE ──
+   *
+   * The chroma envelope tapered symmetrically while sRGB does not, so every
+   * generated dark ground came out a dead grey under a saturated accent. The
+   * fix is a dark-only floor, so both halves need pinning: the dark ground
+   * has to gain chroma, and no light role may change by a single byte. */
+  {
+    const d = derive(fresh)
+    const L = d.roles.light, D = d.roles.dark
+    const cOf = hex => toOklchObj(hex).c
+
+    /* Measured before the floor: bg 0.0040, surface 0.0070. After: 0.0130 and
+       0.0140. The floor sits under both, well clear of the old values, so a
+       regression to the symmetric envelope fails here rather than shipping. */
+    assert(cOf(D.bg) >= 0.010, `the dark page ground carries hue (chroma ${cOf(D.bg).toFixed(4)})`)
+    assert(cOf(D.surface) >= 0.010, `the dark card ground carries hue (chroma ${cOf(D.surface).toFixed(4)})`)
+
+    /* The read the whole change exists to fix. 19.0x before, 9.5x after. */
+    const jump = cOf(D.accent) / cOf(D.surface)
+    assert(jump <= 12, `the dark accent is not a foreign hue on a grey ground (${jump.toFixed(1)}x chroma jump)`)
+
+    /* And the light theme is untouched. Rebuilt with the floor removed, every
+       light role must come back identical. */
+    const flat = derive(fresh, { darkFloor: 0.2 })
+    const moved = Object.keys(L).filter(k => flat.roles.light[k] !== L[k])
+    assert(moved.length === 0,
+      `no light role moved when dark gained its floor${moved.length ? ` — ${moved.slice(0, 4).join(', ')}` : ''}`)
+  }
+
   /* ── THE STRUCTURE IS IN THE ROLES, SO MEASURE IT THERE ── */
   {
     const spread = (d, mode) => {

@@ -1,7 +1,7 @@
 /* The single source of truth for concrete token values.
    Pure: state in, resolved tokens out. Both the preview and the file emitter
    read from here, which is what guarantees that what you see is what exports. */
-import { buildRamps, resolveRef, RAMP_STEPS } from '../color/ramp.js'
+import { buildRamps, resolveRef, RAMP_STEPS, DARK_FLOOR } from '../color/ramp.js'
 import { gradientCss } from '../color/modes.js'
 import { parseColor, toRgb255 } from '../color/convert.js'
 import { buildTypeScale } from '../type/scale.js'
@@ -62,7 +62,11 @@ function deriveElevation(cfg, shadowHex, depth) {
   return out
 }
 
-export function derive(state) {
+/* `opts.darkFloor` overrides the dark ramp's chroma floor. It exists so a
+   caller can rebuild the same document with the floor removed and prove that
+   no LIGHT role moved, which is the half of the change that has to be inert.
+   Nothing in the app passes it. */
+export function derive(state, opts = {}) {
   const { color, macros } = state
   const m = { scale: 1, density: 1, roundness: 1, depth: 1, speed: 1, ...macros }
 
@@ -74,12 +78,32 @@ export function derive(state) {
     if (ramps[rampName]?.steps?.[step] != null) ramps[rampName].steps[step] = hex
   }
 
+  /* ── DARK RESOLVES AGAINST ITS OWN RAMP SET ──
+   *
+   * Both modes used to pick steps out of one ramp, so both inherited one
+   * chroma envelope. That envelope tapers symmetrically and sRGB does not:
+   * see DARK_FLOOR in color/ramp.js for the measurement. The result was a
+   * dark ground at chroma 0.004 under an accent at 0.133, which is the
+   * solarized read.
+   *
+   * A second ramp set, built with the dark floor, keeps the fix where it was
+   * asked for. Every light role still resolves against `ramps`, so no light
+   * theme moves by a single byte. A step override lands on both, because it
+   * is a value the designer typed and outranks either envelope. */
+  const rampsDark = buildRamps(color.seeds, color.shape, { darkFloor: opts.darkFloor ?? DARK_FLOOR })
+  for (const [ref, hex] of Object.entries(color.stepOverrides ?? {})) {
+    const dot = ref.lastIndexOf('.')
+    const rampName = ref.slice(0, dot), step = ref.slice(dot + 1)
+    if (rampsDark[rampName]?.steps?.[step] != null) rampsDark[rampName].steps[step] = hex
+  }
+
   const roles = { light: {}, dark: {} }
   for (const role of ALL_ROLES) {
     for (const mode of ['light', 'dark']) {
       const override = color.roleOverrides?.[`${role.name}:${mode}`]
       const ref = color.roles?.[role.name]?.[mode] ?? role[mode]
-      roles[mode][role.name] = override ?? resolveRef(ref, ramps) ?? '#000000'
+      const set = mode === 'dark' ? rampsDark : ramps
+      roles[mode][role.name] = override ?? resolveRef(ref, set) ?? '#000000'
     }
   }
 

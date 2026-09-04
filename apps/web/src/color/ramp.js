@@ -22,18 +22,43 @@ const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v))
 const easeCurve = (t, bias) => (bias ? Math.pow(t, Math.pow(2, bias * 2)) : t)
 
 /* Chroma can't hold up at the extremes — near-white and near-black simply
-   can't carry saturation — so taper it toward both ends of the ramp. */
-const chromaEnvelope = (t, peak) => {
+   can't carry saturation — so taper it toward both ends of the ramp.
+ *
+ * ── THE TAPER IS SYMMETRIC AND sRGB IS NOT ──
+ *
+ * That premise is true at the white end and false at the black end, and the
+ * gap is what made every generated dark ground a dead grey. Measured by
+ * bisecting `inGamut` at each end:
+ *
+ *   L 97.0   sRGB holds chroma 0.0148   the 0.2 taper spends 23% of it
+ *   L 20.0   sRGB holds chroma 0.0567   the 0.2 taper spends  6% of it
+ *
+ * sRGB carries 3.83x more chroma at L 20 than at L 97. So the dark end has
+ * room the envelope never used, and a neutral seed's whisper of hue vanished
+ * exactly where the dark theme needed it: `bg` came out at chroma 0.004 and
+ * `surface` at 0.007, against an accent at 0.133. A 19x chroma jump onto an
+ * achromatic ground is what reads as solarized.
+ *
+ * DARK_FLOOR is that measured ratio applied to the same 0.2, not a number
+ * picked to taste. The light end keeps 0.2, because there the premise holds.
+ *
+ * It is opt-in per ramp set. The light roles resolve against a ramp built the
+ * old way, so nothing in a light theme moves. */
+export const DARK_FLOOR = 0.2 * 3.83
+
+const chromaEnvelope = (t, peak, darkFloor = 0.2) => {
   const p = clamp(peak, 0.01, 0.99)
   const d = t <= p ? t / p : (1 - t) / (1 - p)
-  return 0.2 + 0.8 * Math.pow(clamp(d, 0, 1), 0.7)
+  const floor = t <= p ? 0.2 : clamp(darkFloor, 0.2, 1)
+  return floor + (1 - floor) * Math.pow(clamp(d, 0, 1), 0.7)
 }
 
 /**
  * @returns {{ steps: Record<number,string>, anchor: number|null }}
  */
-export function buildRamp(seedHex, shape = DEFAULT_SHAPE) {
+export function buildRamp(seedHex, shape = DEFAULT_SHAPE, opts = {}) {
   const s = { ...DEFAULT_SHAPE, ...shape }
+  const darkFloor = opts.darkFloor ?? 0.2
   const parsed = parseColor(seedHex)
   if (!parsed) return { steps: Object.fromEntries(RAMP_STEPS.map(k => [k, '#000000'])), anchor: null }
 
@@ -44,7 +69,7 @@ export function buildRamp(seedHex, shape = DEFAULT_SHAPE) {
   RAMP_STEPS.forEach((step, i) => {
     const t = i / (n - 1)
     const l = s.lightMax + (s.lightMin - s.lightMax) * easeCurve(t, s.curve)
-    const c = seed.c * s.chromaScale * chromaEnvelope(t, s.chromaPeak)
+    const c = seed.c * s.chromaScale * chromaEnvelope(t, s.chromaPeak, darkFloor)
     const h = seed.h + s.hueShift * (t - 0.5) * 2
     steps[step] = toHex(toGamut(fromOklch({ l, c, h })))
   })
@@ -67,9 +92,9 @@ export function buildRamp(seedHex, shape = DEFAULT_SHAPE) {
 }
 
 /** Ramps for every seed, keyed by seed name. */
-export function buildRamps(seeds, shape) {
+export function buildRamps(seeds, shape, opts = {}) {
   const out = {}
-  for (const seed of seeds) out[seed.name] = buildRamp(seed.hex, shape)
+  for (const seed of seeds) out[seed.name] = buildRamp(seed.hex, shape, opts)
   return out
 }
 
