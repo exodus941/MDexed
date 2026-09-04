@@ -415,12 +415,18 @@ export function selectionEdge(name) {
   return SELECTION_EDGES[name] ? name : DEFAULT_SELECTION_EDGE
 }
 
-/* The selected state for a nav item, with the edge and its padding folded in.
+/* The selected state, with the edge and its padding folded in.
+ *
+ * ONE WRITER, TWO COMPONENTS. A nav item and a table row are both a selected
+ * row, and the treatment is one decision for the system rather than one per
+ * component: a nav marked by a lifted surface beside a table marked by an
+ * accent wash reads as two products. Each caller passes its OWN base padding,
+ * because a nav item is inset by `sm` and a table cell by `md`.
  *
  * The bar is an inset box-shadow, never a border. A border makes the row wider
  * by its own width and pushes every label in the list across by it, so only
  * the selected row would line up differently from its neighbours. */
-export function navSelectedState(styleName, edgeName, basePadding) {
+export function selectedState(styleName, edgeName, basePadding) {
   const style = SELECTION_STYLES[selectionStyle(styleName)]
   const props = { ...style.states.selected._ }
   if (!style.edge) return props
@@ -485,8 +491,9 @@ export function expandComponents(cfg = {}) {
     if (rawDef.name === 'tab') {
       def = { ...rawDef, states: (TAB_STYLES[tabStyle] ?? TAB_STYLES[DEFAULT_TAB_STYLE]).states }
     }
-    /* Same for the nav item's selected state, which carries the chosen
-       treatment plus the edge padding that goes with it. */
+    /* Same for the two components that mark a selected ROW. One treatment for
+       both, and each takes its own base inset: a nav item is padded by `sm`
+       and a table cell by `md`, so the edge compensation differs. */
     if (rawDef.name === 'nav-item') {
       const chosen = SELECTION_STYLES[selectionStyle(selection)]
       def = {
@@ -494,7 +501,19 @@ export function expandComponents(cfg = {}) {
         states: {
           ...rawDef.states,
           hover: chosen.states.hover,
-          selected: { _: navSelectedState(selection, selectionEdgeWeight, rawDef.base?.padding) },
+          selected: { _: selectedState(selection, selectionEdgeWeight, rawDef.base?.padding) },
+        },
+      }
+    }
+    if (rawDef.name === 'table') {
+      const chosen = SELECTION_STYLES[selectionStyle(selection)]
+      const cellPad = rawDef.variants?.cell?.padding
+      def = {
+        ...rawDef,
+        states: {
+          ...rawDef.states,
+          hover: { row: chosen.states.hover._ },
+          selected: { row: selectedState(selection, selectionEdgeWeight, cellPad) },
         },
       }
     }

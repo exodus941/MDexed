@@ -126,6 +126,10 @@ const Save = () => (
 const I = p => <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">{p}</svg>
 const FilePlus = () => I(<><path d="M15 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V7Z" /><path d="M14 2v4a2 2 0 002 2h4" /><path d="M9 15h6" /><path d="M12 18v-6" /></>)
 const FolderOpen = () => I(<path d="m6 14 1.5-2.9A2 2 0 019.24 10H20a2 2 0 011.94 2.5l-1.54 6a2 2 0 01-1.95 1.5H4a2 2 0 01-2-2V5a2 2 0 012-2h3.9a2 2 0 011.69.9l.81 1.2a2 2 0 001.67.9H18a2 2 0 012 2v2" />)
+/* A wand, for the guided entry. The shaft runs corner to corner and the three
+   sparks sit off it, so the glyph reads at 14px without the star colliding
+   with the stick. */
+const Wand = () => I(<><path d="M15 4V2" /><path d="M15 16v-2" /><path d="M8 9h2" /><path d="M20 9h2" /><path d="M17.8 11.8 19 13" /><path d="M15 9h0" /><path d="M17.8 6.2 19 5" /><path d="m3 21 9-9" /><path d="M12.2 6.2 11 5" /></>)
 const DriveDown = () => I(<><path d="M12 2v8" /><path d="m16 6-4 4-4-4" /><rect width="20" height="8" x="2" y="14" rx="2" /><path d="M6 18h.01" /><path d="M10 18h.01" /></>)
 const CloudUp = () => I(<><path d="M12 13v8" /><path d="M4 14.9A7 7 0 1115.71 8h1.79a4.5 4.5 0 012.5 8.24" /><path d="m8 17 4-4 4 4" /></>)
 const Eye = () => I(<><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></>)
@@ -155,8 +159,15 @@ const BAR_CTRL = 36
  * renders them as rows. Two call sites, one list, so the order and the wording
  * cannot drift apart between the two layouts. */
 const PROJECT_ACTIONS = [
-  { id: 'newProject', label: 'New Project', Icon: FilePlus, hint: 'Start a new document from a preset' },
-  { id: 'loadProject', label: 'Load Project', Icon: FolderOpen, hint: 'Open a DESIGN.md you saved earlier' },
+  /* "New" and "Load", not "New Project" and "Load Project". The word Project
+     is the same in both and in the menu that holds them, so it named nothing
+     and spent width the guided entry needed. */
+  { id: 'newProject', label: 'New', Icon: FilePlus, hint: 'Start a new document from a preset' },
+  /* The wizard was reachable only from the launch fork, which appears once on
+     a first visit. Somebody who dismissed it had no way back to the guided
+     path at all. */
+  { id: 'newGuided', label: 'New (Guided)', Icon: Wand, hint: 'Answer eight questions and get a prompt for an agent' },
+  { id: 'loadProject', label: 'Load', Icon: FolderOpen, hint: 'Open a DESIGN.md you saved earlier' },
   { id: 'saveToDevice', label: 'Save to Device', Icon: DriveDown, hint: 'Download a dated copy of this document' },
   { id: 'saveToCloud', label: 'Save to Cloud', Icon: CloudUp, hint: 'Save online and get a shareable link' },
 ]
@@ -653,13 +664,29 @@ const MOBILE_Q = '(max-width: 767px)'
  * result was the mark, the wordmark, the name field and the swatches printed
  * on top of each other.
  *
- * BAR_FULL_Q: the run of six action buttons plus the left block needs 1570px,
+ * BAR_FULL_Q: the run of action buttons plus the left block needs 1621px,
  * measured. Below that they fold into the Project menu.
+ *
+ * IT MOVED WITH THE ROW, AND THE MOVE IS A SUM OF TWO THINGS. The guided
+ * entry is a seventh button, and "New Project" and "Load Project" lost the
+ * word they shared. Measured on the rendered buttons:
+ *
+ *   New (Guided)   144.7   plus one 8px gap   = +152.7
+ *   New Project 135.0 -> New   84.1           =  -50.9
+ *   Load Project 138.9 -> Load  88.0          =  -50.9
+ *                                               ------
+ *                                               +50.9
+ *
+ * So 1570 becomes 1621. Stated as the sum and the widths it came from, not as
+ * a constant, because the number is true of these labels and no others. The
+ * row's own min-content reads 1469, and that is the wrong measure here: it
+ * lets the project-name field collapse to nothing, which is the state this
+ * threshold exists to prevent.
  *
  * BAR_TRIM_Q: below this the wordmark, the build chip and the palette go too.
  * They are decoration next to a name you can edit and an action you can press.
  */
-const BAR_FULL_Q = '(max-width: 1569px)'
+const BAR_FULL_Q = '(max-width: 1620px)'
 const BAR_TRIM_Q = '(max-width: 1099px)'
 
 function useMedia (query) {
@@ -1681,7 +1708,7 @@ function Shell() {
     const stamped = stampBuild()
     const filename = projectFilename(stamped.meta.name)
     saveAs(serializeProject(stamped, { build: stamped.meta.version }), filename, 'application/json')
-    setNotice({ tone: 'success', text: `Saved ${filename}. Open it with Load Project.` })
+    setNotice({ tone: 'success', text: `Saved ${filename}. Open it with Load.` })
   }
 
   /* Accepts either format and tells them apart by content, not by extension.
@@ -1729,6 +1756,9 @@ function Shell() {
      these are declared further down the component. */
   const runProjectAction = id => ({
     newProject: () => setShowNew(true),
+    /* Straight to the questions, not to the fork. Somebody who picked this
+       has already chosen the guided path, and the fork would ask again. */
+    newGuided: () => setCasual('wizard'),
     loadProject: () => fileInput.current?.click(),
     saveToDevice,
     saveToCloud: projectId ? copyShareUrl : saveToCloud,

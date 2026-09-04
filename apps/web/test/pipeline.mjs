@@ -2183,13 +2183,13 @@ line('\n- depth intensity -')
   /* Three treatments, and the edge weight only reaches the one that draws an
      edge. The padding has to state the SUM, or the label sits under the bar. */
   {
-    const { SELECTION_STYLES, SELECTION_EDGES, navSelectedState } =
+    const { SELECTION_STYLES, SELECTION_EDGES, selectedState } =
       await import('../src/state/components.js')
     assert(Object.keys(SELECTION_STYLES).length === 3,
       `three selection treatments (${Object.keys(SELECTION_STYLES).join()})`)
     const pad = '{spacing.xs} {spacing.sm}'
     for (const [name, spec] of Object.entries(SELECTION_STYLES)) {
-      const props = navSelectedState(name, 'thin', pad)
+      const props = selectedState(name, 'thin', pad)
       assert(!!props.boxShadow === !!spec.edge, `${name} draws an edge only when it says it does`)
       assert(!!props.padding === !!spec.edge, `${name} moves its label only when it draws an edge`)
       /* The fill must never be the accent-subtle hole in dark. */
@@ -2199,10 +2199,38 @@ line('\n- depth intensity -')
       }
     }
     for (const [weight, spec] of Object.entries(SELECTION_EDGES)) {
-      const props = navSelectedState('lift-edge', weight, pad)
+      const props = selectedState('lift-edge', weight, pad)
       assert(props.boxShadow.includes(spec.width), `the ${weight} edge is ${spec.px}px (${props.boxShadow})`)
       assert(props.padding.includes(`calc({spacing.sm} + ${spec.width})`),
         `and the label clears it (${props.padding})`)
+    }
+
+    /* ── ONE TREATMENT, TWO COMPONENTS, TWO INSETS ──
+     *
+     * The nav item and the table row are both a selected row, so the fill and
+     * the label must match. Their PADDING must not: a nav item is inset by
+     * `sm` and a table cell by `md`, so the edge compensation differs. A
+     * shared constant here would put the table's label 4px out. */
+    for (const style of Object.keys(SELECTION_STYLES)) {
+      const s = createInitialState()
+      s.components.selection = style
+      const d = derive(s)
+      const nav = d.components.find(c => c.name === 'nav-item-selected')
+      const row = d.components.find(c => c.name === 'table-row-selected')
+      assert(!!row, `the table publishes a selected row under ${style}`)
+      const get = (e, k) => e.properties.find(p => p.key === k)?.value
+      for (const k of ['backgroundColor', 'textColor']) {
+        assert(get(nav, k) === get(row, k),
+          `${style}: the two selected rows share their ${k} (${get(nav, k)} / ${get(row, k)})`)
+      }
+      if (SELECTION_STYLES[style].edge) {
+        assert(get(nav, 'padding') !== get(row, 'padding'),
+          `${style}: each row compensates from its OWN inset (${get(row, 'padding')})`)
+        assert(get(row, 'padding').includes('{spacing.md}'),
+          `${style}: the table row compensates from the cell's md inset (${get(row, 'padding')})`)
+      }
+      const hov = d.components.find(c => c.name === 'table-row-hover')
+      assert(!!hov, `the table publishes a row hover under ${style}`)
     }
   }
 

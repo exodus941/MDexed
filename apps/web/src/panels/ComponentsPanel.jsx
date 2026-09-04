@@ -7,7 +7,7 @@
    at export. */
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { useStore } from '../state/store.jsx'
-import { COMPONENT_LIBRARY, COMPONENT_GROUPS, TAB_STYLES, DEFAULT_TAB_STYLE } from '../state/components.js'
+import { COMPONENT_LIBRARY, COMPONENT_GROUPS, TAB_STYLES, DEFAULT_TAB_STYLE, SELECTION_STYLES, SELECTION_EDGES, selectionStyle, selectionEdge } from '../state/components.js'
 import { SPEC_COMPONENT_PROPS } from '../emit/yaml.js'
 import { LAYOUT_BY_NAME, fieldActive } from '../state/componentLayout.js'
 import { SectionHeader, Toggle, ResetButton, Banner, Collapsible, Expand, FilterField, Segmented, PAD, SnapSlider, ChoiceCard } from '../ui/controls.jsx'
@@ -395,7 +395,7 @@ function LayoutBlock({ def, values, onSet }) {
   )
 }
 
-function ComponentBlock({ def, cfg, layout, onSetLayout, onToggle, onSet, onReset, derived, mode, inspect, colorGroups, sampleVars, onSetTabStyle }) {
+function ComponentBlock({ def, cfg, layout, onSetLayout, onToggle, onSet, onReset, derived, mode, inspect, colorGroups, sampleVars, onSetTabStyle, onSetSelection, onSetSelectionEdge }) {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const enabled = cfg.enabled[def.name] ?? def.on
@@ -510,6 +510,58 @@ function ComponentBlock({ def, cfg, layout, onSetLayout, onToggle, onSet, onRese
               </div>
             </div>
           )}
+          {/* ── THE SELECTED-ROW TREATMENT, BESIDE THE ENTRY IT WRITES ──
+           *
+           * It began in the Colour panel, next to the ground tint that was
+           * decided in the same sitting. It writes `nav-item-*` and
+           * `table-row-*` and nothing else, and its state already lived under
+           * `components`, so it belongs where a reader hunting for a nav
+           * item's states will find it.
+           *
+           * ONE SETTING, TWO COMPONENTS. A nav marked by a lifted surface
+           * beside a table marked by an accent wash reads as two products, so
+           * the table row follows this control rather than carrying its own.
+           * The Table entry says where it lives. */}
+          {def.name === 'nav-item' && !query && (
+            <div className="entry-block" style={{ marginBottom: PAD.gap }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 8 }}>
+                <span style={{ fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--text-dim)' }}>selected</span>
+                <span style={{ fontSize: 12, color: 'var(--muted)' }}>treatment</span>
+                <span style={{ flex: 1 }} />
+                <span className="chip">{SELECTION_STYLES[selectionStyle(cfg.selection)]?.label}</span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {Object.entries(SELECTION_STYLES).map(([key, spec]) => (
+                  <SelectionChoice key={key} id={key} spec={spec} roles={derived.roles[mode]}
+                    edge={SELECTION_EDGES[selectionEdge(cfg.selectionEdge)]}
+                    selected={selectionStyle(cfg.selection) === key}
+                    onPick={() => onSetSelection(key)} />
+                ))}
+              </div>
+              {SELECTION_STYLES[selectionStyle(cfg.selection)]?.edge && (
+                <div style={{ marginTop: PAD.row }}>
+                  <Segmented value={selectionEdge(cfg.selectionEdge)} onChange={onSetSelectionEdge} full
+                    options={Object.entries(SELECTION_EDGES).map(([key, spec]) => ({ value: key, label: `${spec.label} ${spec.px}px` }))} />
+                </div>
+              )}
+              <div className="panel-note" style={{ marginTop: 8 }}>
+                Sets <code>nav-item-selected</code>, <code>nav-item-hover</code>,{' '}
+                <code>table-row-selected</code> and <code>table-row-hover</code> together.
+                {SELECTION_STYLES[selectionStyle(cfg.selection)]?.edge &&
+                  ' The label moves clear of the bar, so each one states its own inset as a sum.'}
+              </div>
+            </div>
+          )}
+          {/* The table row follows the nav item's control, so the entry says so
+              rather than offering a second one that could disagree. */}
+          {def.name === 'table' && !query && (
+            <div className="panel-note" style={{ marginBottom: PAD.gap }}>
+              <code>table-row-selected</code> takes the selected-row treatment set under{' '}
+              <strong>Navigation &rarr; Nav item</strong>, currently{' '}
+              <strong>{SELECTION_STYLES[selectionStyle(cfg.selection)]?.label}</strong>. One
+              treatment for every selected row in the system.
+            </div>
+          )}
           {def.base && <EntryBlock entryName={def.name} title="base" props={def.base} overrides={overrides} onSet={onSet} onReset={onReset} derived={derived} mode={mode} inspect={inspect} query={query} colorGroups={colorGroups} def={def} sampleVars={sampleVars} tabStyle={cfg.tabStyle} />}
           {!query && LAYOUT_BY_NAME[def.name] && (
             <LayoutBlock def={LAYOUT_BY_NAME[def.name]} values={layout[def.name]} onSet={onSetLayout} />
@@ -573,6 +625,43 @@ function TabStyleChoice({ id, spec, roles, selected, onPick }) {
           borderBottom: pill ? '1px solid transparent' : `1px solid ${roles.border}`,
         }}>
           {tab('Meta', 'idle')}{tab('Colour', 'on')}{tab('Type', 'off')}
+        </span>
+      } />
+  )
+}
+
+/* ── A selected row, drawn under whichever treatment is offered ──
+ *
+ * Two rows, because a selection is only legible against an unselected
+ * neighbour. The fill, the label colour and the edge all come from the spec
+ * rather than from a branch per treatment, so a fourth option would need no
+ * change here. */
+function SelectionChoice({ id, spec, roles, edge, selected, onPick }) {
+  const tint = id === 'tint'
+  const row = (label, on) => (
+    <span key={label} style={{
+      display: 'block', lineHeight: '18px', fontSize: 11, borderRadius: 4,
+      whiteSpace: 'nowrap', overflow: 'hidden',
+      fontWeight: on ? 500 : 400,
+      background: on ? (tint ? roles['accent-subtle'] : roles['surface-raised']) : 'transparent',
+      color: on ? (tint ? roles.accent : roles.text) : roles['text-muted'],
+      boxShadow: on && spec.edge ? `inset ${edge.px}px 0 0 ${roles.accent}` : 'none',
+      paddingLeft: on && spec.edge ? 6 + edge.px : 6,
+      paddingRight: 6,
+    }}>{label}</span>
+  )
+
+  return (
+    <ChoiceCard label={spec.label} desc={spec.desc} selected={selected} onPick={onPick}
+      sample={
+        /* On the document's own card, not the editor's, or the fill is
+           measured against the wrong ground. */
+        <span style={{
+          display: 'flex', flexDirection: 'column', gap: 2, flexShrink: 0,
+          width: 86, padding: 4, borderRadius: 6,
+          background: roles.surface, border: `1px solid ${roles['border-subtle']}`,
+        }}>
+          {row('Overview', true)}{row('Accounts', false)}
         </span>
       } />
   )
@@ -735,7 +824,7 @@ export default function ComponentsPanel({ inspect }) {
             openSignal={targetGroup === group ? inspect.at : null}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: PAD.gap }}>
               {defs.map(def => (
-                <ComponentBlock key={def.name} def={def} cfg={cfg} onSetTabStyle={v => upd(c => ({ ...c, tabStyle: v }))} onToggle={onToggle} onSet={onSet} onReset={onReset}
+                <ComponentBlock key={def.name} def={def} cfg={cfg} onSetTabStyle={v => upd(c => ({ ...c, tabStyle: v }))} onSetSelection={v => upd(c => ({ ...c, selection: v }))} onSetSelectionEdge={v => upd(c => ({ ...c, selectionEdge: v }))} onToggle={onToggle} onSet={onSet} onReset={onReset}
                   layout={derived.componentLayout} onSetLayout={onSetLayout}
                   derived={derived} mode={state.color.mode} inspect={inspect} colorGroups={colorGroups}
                   sampleVars={sampleVars} />
