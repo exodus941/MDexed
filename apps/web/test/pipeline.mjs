@@ -17,7 +17,7 @@ import { generateFile, validate } from '../src/emit/designmd.js'
 import { parseFile } from '../src/emit/parse.js'
 import { collectComponents } from '../src/emit/yaml.js'
 import { tokensCss } from '../src/emit/tokens.js'
-import { agentContract, CONTRACT_MAX_LINES, CONTRACT_MAX_BYTES } from '../src/emit/agents.js'
+import { agentContract, checklistBytes, CONTRACT_MAX_LINES, CONTRACT_MAX_BYTES } from '../src/emit/agents.js'
 import { payloadTextFiles, REQUIRED_FILES, EXAMPLE_PREFIX, HTML_EXAMPLES_MODES, exampleFilename } from '../src/emit/payload.js'
 import { serializeProject, parseProject, projectFilename } from '../src/emit/project.js'
 import { diffWords, diffStats } from '../src/ai/diff.js'
@@ -623,7 +623,12 @@ line('\n- prompt construction -')
     for (const filename of ['AGENTS.md', 'CLAUDE.md']) {
       const text = agentContract(c.state, d, { filename })
       const lines = text.split('\n').length
-      const bytes = Buffer.byteLength(text, 'utf8')
+      /* The PROSE, with the generated checklist subtracted. The cap exists
+         because a long contract competes with the DESIGN.md it introduces,
+         and the prose is the half that gets skimmed. The checklist grows with
+         the rule set on purpose, so it must not have to buy its place by
+         shaving an unrelated sentence. */
+      const bytes = Buffer.byteLength(text, 'utf8') - checklistBytes()
       if (lines > worstLines) { worstLines = lines; worstLabel = c.label }
       worstBytes = Math.max(worstBytes, bytes)
       /* Each copy must point at its twin, never at itself, or an agent that

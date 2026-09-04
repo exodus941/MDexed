@@ -718,6 +718,115 @@ export const CHECKS = [
   },
 
   {
+    id: 'a-split-collapses-before-its-table-scrolls',
+    where: 'render',
+    line: 'A scroller never clips while its row still holds two columns and the whole row would fit it.',
+    /* ── A SCROLLBAR UNDER A TABLE ON A WIDE DESKTOP ──
+     *
+     * A table scrolling at 320px is the documented answer. A table scrolling
+     * at 1400px, with a rail still on screen and a context column beside it,
+     * is a split whose collapse threshold is set too low. Measured on a
+     * generated dashboard: a seven-column table needing 774px was given three
+     * fifths of the content column, came out 628px, and cut 146px off its
+     * last two columns.
+     *
+     * NO THRESHOLD IS GUESSED HERE, and that is the whole design of the
+     * check. It asks three questions, all geometry:
+     *
+     *   is this scroller actually clipping on x
+     *   does its row still lay two children side by side
+     *   would the table fit if it had the row to itself
+     *
+     * The third is what keeps it honest. A table too wide for the full row
+     * cannot be helped by collapsing, so it is not this finding. And at a
+     * width where the split has already stacked there is no second column, so
+     * the check goes quiet on its own with no width to tune. */
+    body: [
+      "for (const sc of all('*')) {",
+      "  const cs = getComputedStyle(sc)",
+      "  if (!/auto|scroll/.test(cs.overflowX)) continue",
+      "  const need = sc.scrollWidth",
+      "  if (need <= sc.clientWidth + 1) continue",
+      "  let row = sc.parentElement, kid = sc",
+      "  let found = null",
+      "  for (let up = 0; row && up < 8; up++) {",
+      "    const rs = getComputedStyle(row)",
+      "    if (/flex|grid/.test(rs.display)) {",
+      "      const mine = kid.getBoundingClientRect()",
+      "      for (const other of row.children) {",
+      "        if (other === kid) continue",
+      "        const os = getComputedStyle(other)",
+      "        if (os.display === 'none' || os.position === 'absolute' || os.position === 'fixed') continue",
+      "        const o = other.getBoundingClientRect()",
+      "        if (!o.width || !o.height) continue",
+      "        const sameBand = o.bottom > mine.top + 1 && o.top < mine.bottom - 1",
+      "        const beside = o.left >= mine.right - 1 || o.right <= mine.left + 1",
+      "        if (sameBand && beside) { found = { row, other, o } ; break }",
+      "      }",
+      "      if (found) break",
+      "    }",
+      "    kid = row",
+      "    row = row.parentElement",
+      "  }",
+      "  if (!found) continue",
+      "  const rs2 = getComputedStyle(found.row)",
+      "  const rb = found.row.getBoundingClientRect()",
+      "  const inner = rb.width - (parseFloat(rs2.paddingLeft) || 0) - (parseFloat(rs2.paddingRight) || 0)",
+      "  if (need > inner) continue",
+      "  fail(name(sc), 'this clips ' + (need - sc.clientWidth) + 'px on a row that still holds two columns, and its ' + need + 'px of content would fit the row own ' + round(inner) + 'px. ' + name(found.other) + ' sits beside it at ' + round(found.o.width) + 'px. Collapse the split at this width, or size the table side from the table min-content instead of a share.')",
+      "}",
+    ],
+  },
+
+  {
+    id: 'a-label-owns-its-gap',
+    where: 'render',
+    line: 'A group label states the distance to what it names. Two bare blocks carry no gap.',
+    /* ── A LABEL WITH NO GAP READS AS A DEAD FIRST ROW ──
+     *
+     * An overline above a list is two block siblings, and a block carries no
+     * gap of its own. Measured on a generated rail: a section label sat
+     * 0.00px above the first navigation item, so it read as a row of the list
+     * rather than as the list's name. Nothing reported it. Both boxes were
+     * where the engine put them and every alignment check agreed.
+     *
+     * ASK THE PROPERTY, NOT THE TAG. A label is small, uppercase and
+     * positively tracked, which is what the `overline` type role publishes
+     * and what nothing else on a page looks like. A heading is neither
+     * uppercase nor tracked out, and body copy is neither.
+     *
+     * Fire only at a gap this small, because that is the case with no reading
+     * at all. Anything at or above the smallest space step is a decision.
+     *
+     * AND THE NAMED THING HAS TO BE BELOW. A column heading is uppercase and
+     * tracked out, so it IS a label, and its next sibling is the heading
+     * BESIDE it. Subtracting a bottom from a top then gives a negative
+     * number, and the first version reported seven table headers at -35.22px
+     * on a correct table. Require the sibling to start at or below the
+     * label's own bottom edge, which excludes a row of cells outright. */
+    body: [
+      "for (const el of all('*')) {",
+      "  if (el.children.length) continue",
+      "  const cs = getComputedStyle(el)",
+      "  if (cs.textTransform !== 'uppercase') continue",
+      "  if (parseFloat(cs.letterSpacing) <= 0) continue",
+      "  if (!el.textContent.trim()) continue",
+      "  const next = el.nextElementSibling",
+      "  if (!next) continue",
+      "  const ns = getComputedStyle(next)",
+      "  if (ns.display === 'none' || ns.position === 'absolute' || ns.position === 'fixed') continue",
+      "  if (!next.textContent.trim()) continue",
+      "  const a = el.getBoundingClientRect(), b = next.getBoundingClientRect()",
+      "  if (!a.height || !b.height) continue",
+      "  if (b.top < a.bottom - 1) continue",
+      "  const gap = b.top - a.bottom",
+      "  if (gap <= 2)",
+      "    fail(name(el), 'this label sits ' + round(gap) + 'px above ' + name(next) + ', which it names. A label with no gap reads as the first row of the group rather than its title. Blocks carry no gap, so state one: a flex parent with a gap fixes the whole group, a margin fixes only this instance.')",
+      "}",
+    ],
+  },
+
+  {
     id: 'an-inline-box-has-no-size',
     where: 'render',
     line: 'Anything that paints a box states a display. An inline box has no width or height.',

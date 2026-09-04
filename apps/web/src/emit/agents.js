@@ -47,9 +47,35 @@ const bullets = checks => checks.map(c => '- ' + c.line).join('\n')
    So the line cap is now 175 and the byte cap comes down from 9000 to 8000.
    Raising a ceiling to fit is how a document bloats, and the guard against
    that is the cap that measures length rather than wrapping. At 7033 the byte
-   cap still holds 12% headroom and still bites first on real growth. */
+   cap still holds 12% headroom and still bites first on real growth.
+
+   THEN THE CAP STARTED FIGHTING THE RULE SET INSTEAD OF THE PROSE.
+   Three simulations in a row earned a new check, and each one had to buy its
+   place by shaving a sentence somewhere else. That is the cap measuring the
+   wrong thing. Its stated reason is that a long contract competes with the
+   DESIGN.md it introduces and agents skim: the PROSE is what gets skimmed,
+   and the checklist is the half the last three runs proved gets obeyed.
+
+   So the byte cap now measures the prose alone, with every generated bullet
+   removed. The checklist grows with the rule set, which is the point of it,
+   and a new rule no longer costs a sentence somewhere unrelated. The line cap
+   still measures the whole file, because height on screen is a real cost
+   whatever fills it. Measured at the split: 8138 bytes whole, 5389 of prose.
+
+   5500 leaves about one sentence of room, which is the tension wanted: a new
+   paragraph has to be worth displacing something, and a one-word correction
+   does not fail the build. */
 export const CONTRACT_MAX_LINES = 175
-export const CONTRACT_MAX_BYTES = 8000
+export const CONTRACT_MAX_BYTES = 5500
+
+/* The three generated blocks, so a caller can subtract them and measure the
+   prose alone. Built with the same `bullets` the contract uses, rather than by
+   pattern-matching the rendered text: the prose carries hand-written bullets
+   of its own, and a `^- ` filter would quietly count those as generated. */
+export function checklistBytes () {
+  return [SOURCE_CHECKS, RENDER_CHECKS, MANUAL_CHECKS]
+    .reduce((n, list) => n + new TextEncoder().encode(bullets(list)).length, 0)
+}
 
 /* Only two things vary in length: the project name and the theme list. The
    name is bounded here so a pathological one cannot blow the byte ceiling. */
