@@ -419,6 +419,25 @@ main{container-type:inline-size}
   .row-wrap>:first-child{flex:1 0 100%}
 }
 
+/* A SELECT WILL NOT SHRINK UNDER ITS LONGEST OPTION.
+   `min-width` on a flex item defaults to `auto`, which resolves to
+   min-content, and a select's min-content is its widest option. Both selects
+   here already carry `flex-shrink: 1` and still could not give up a pixel, so
+   above the arrangement threshold the row overflowed instead of tightening.
+
+   Measured at a 480px viewport: 374px of controls in a 340px row, Generate
+   sitting 34px past the row's right edge and cut off by an ancestor eight
+   levels up. Nothing reported it. The page did not overflow, because that
+   ancestor clips; the clip check compares a clipping box against its OWN
+   children, and the overflow was four levels deeper.
+
+   THE THRESHOLD WAS NEVER THE FAULT. It reads `main`, which sits 100px wider
+   than this row, so 430 there means 330 here. Raising it to 474 would have
+   closed this instance and gone stale the moment an option string or the type
+   scale changed. A zero floor needs no number: the selects give up 7px each
+   and truncate, which is what the grid arrangement below already does. */
+.form-stack>select{min-width:0}
+
 /* A control row that deserves better than wrapping.
    `.row-wrap` only lets items flow, which on the palette generator left the
    label alone on line one and then stranded Generate beside a select — a
