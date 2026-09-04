@@ -2310,14 +2310,27 @@ function Shell() {
             <TabStrip tabs={TABS} active={tab} onSelect={setTab} title={isMobile ? null : 'Editor'}
               actions={
                 <>
-                  <button className="btn-ghost" onClick={undo} disabled={!canUndo} title="Undo (Ctrl+Z)"
-                    style={{ padding: '4px 12px', gap: 6, color: canUndo ? 'var(--accent)' : undefined, borderColor: canUndo ? 'rgb(var(--accent-rgb) / .35)' : undefined }}>
-                    <Undo />Undo
-                  </button>
-                  <button className="btn-ghost" onClick={redo} disabled={!canRedo} title="Redo (Ctrl+Shift+Z)"
-                    style={{ padding: '4px 12px', color: canRedo ? 'var(--text-dim)' : undefined }}>
-                    <Undo flip />
-                  </button>
+                  {/* ── UNDO AND REDO ARE ONE GROUP ──
+                    *
+                    * They were four flat children with one 6px gap, so the row
+                    * read as a single run of four controls: 6px between the
+                    * groups against 6px inside them, at 1.0:1 where proximity
+                    * wants three to one. History is one thing, Save is another
+                    * and Import is a third. The pair keeps the small gap and
+                    * the row takes the larger one. */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                    <button className="btn-ghost" onClick={undo} disabled={!canUndo} title="Undo (Ctrl+Z)"
+                      style={{ padding: '4px 12px', gap: 6, color: canUndo ? 'var(--accent)' : undefined, borderColor: canUndo ? 'rgb(var(--accent-rgb) / .35)' : undefined }}>
+                      <Undo />Undo
+                    </button>
+                    {/* Icon-only, so SQUARE at the row's own control height. It
+                        measured 40x28 from a 12px horizontal padding it has no
+                        label to need. */}
+                    <button className="btn-ghost icon-only" onClick={redo} disabled={!canRedo} title="Redo (Ctrl+Shift+Z)"
+                      style={{ padding: 0, width: 28, justifyContent: 'center', color: canRedo ? 'var(--text-dim)' : undefined }}>
+                      <Undo flip />
+                    </button>
+                  </div>
                   {/* Confirms in place: fills, swaps to a tick and reads
                       "Saved" for a moment, so a manual save is unambiguous. */}
                   <button

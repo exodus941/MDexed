@@ -29,7 +29,11 @@ const TAB_FS = 12
    button itself, and the padding that keeps a tab from resting underneath it.
    Written twice, they drift, and the tab that ends up half-covered is the one
    nobody thinks to measure. */
-const CHEVRON_W = 40
+/* 44, matching the strip's own height, because a chevron is an ICON-ONLY
+   control and those are square. At 40 it measured 40x44 and read as a button
+   whose label failed to load. The strip is the only thing that sets the
+   height, so the width follows it rather than the other way round. */
+const CHEVRON_W = 44
 
 /* Pixels per 16ms tick at the inner and outer edges of a chevron, so roughly
    78 to 780 px/s. The floor is slow enough to walk a tab into place one at a
@@ -659,7 +663,10 @@ export default function TabStrip({ tabs, active, onSelect, right, title, actions
           words, never type it. */}
       {actions && (
         <div className="action-row" style={{
-          display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, flexWrap: 'wrap',
+          /* 18 between groups against 6 inside them, which is the 3:1
+             proximity wants. At 6 and 6 the row read as one run of four
+             controls rather than as history, save and import. */
+          display: 'flex', alignItems: 'center', gap: 18, flexShrink: 0, flexWrap: 'wrap',
           padding: '6px 12px', minHeight: 40, background: 'var(--surf)',
           borderBottom: '1px solid var(--bdr)', borderTop: '1px solid var(--bdr)',
         }}>
