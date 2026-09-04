@@ -56,7 +56,7 @@ const focusRing = (focus, roles) =>
 
 /* Markup per component. Each returns the element the stylesheet expects, with
    the classes that carry the entry's variant and size. */
-function markup({ base, variant, size, state, cls, style, label, tabStyle }) {
+function markup({ base, variant, size, state, cls, style, label, tabStyle, entryName }) {
   const sz = size ? ` btn-${size}` : ''
   switch (base) {
     case 'button':
@@ -121,13 +121,42 @@ function markup({ base, variant, size, state, cls, style, label, tabStyle }) {
       )
     case 'tooltip':
       return <span className={`tooltip ${cls}`} style={style}>Tooltip text</span>
-    case 'table':
+    /* ── A ROW STATE HAS TO SHOW A ROW IN THAT STATE ──
+     *
+     * This rendered a plain two-row table and put the state class on the
+     * TABLE. So `table-row-selected` showed the selection treatment on
+     * nothing: no marked row, and no selection column for the accent edge to
+     * sit in. The one entry whose whole subject is a selected row was the one
+     * entry that could not show it.
+     *
+     * The column is present in every state, because the edge is drawn in the
+     * gutter that column reserves. Its own row carries the class. */
+    case 'table': {
+      /* Read the NAME, not the parsed variant. `row` is the key under each
+         state rather than a declared variant, so `parseEntry` finds it in
+         neither list and returns nulls for both. The sample then rendered a
+         plain table for the one entry whose subject is a marked row. */
+      const rowState = /-row-(selected|hover)$/.exec(entryName)?.[1] ?? null
+      const rowCls = rowState === 'selected' ? 'is-selected' : rowState === 'hover' ? 'is-hover' : ''
       return (
-        <table className={`table ${cls}`} style={{ maxWidth: 280, ...style }}>
-          <thead><tr><th>Name</th><th>Value</th></tr></thead>
-          <tbody><tr><td>First row</td><td>12</td></tr><tr><td>Second row</td><td>34</td></tr></tbody>
+        <table className={`table ${rowState ? '' : cls}`} style={{ maxWidth: 280, ...style }}>
+          <thead><tr>
+            <th className="sel-col"><Check mixed label="Select all" /></th>
+            <th>Name</th><th>Value</th>
+          </tr></thead>
+          <tbody>
+            <tr className={rowCls}>
+              <td className="sel-col"><Check on={rowState === 'selected'} label="Select first row" /></td>
+              <td>First row</td><td>12</td>
+            </tr>
+            <tr>
+              <td className="sel-col"><Check label="Select second row" /></td>
+              <td>Second row</td><td>34</td>
+            </tr>
+          </tbody>
         </table>
       )
+    }
     case 'nav-item':
       return <span className={`nav-item ${state === 'selected' ? 'is-active' : ''} ${cls}`} style={style}>Navigation</span>
     /* A tab is shown inside a strip, because half of what the entry does is
@@ -189,7 +218,7 @@ export default function EntrySample({ def, entryName, focus, roles, tabStyle }) 
   const { variant, size, state } = parseEntry(entryName, def)
   const cls = STATE_CLASS[state] ?? ''
   const style = state === 'focus' ? focusRing(focus, roles) : undefined
-  const el = markup({ base: def.name, variant, size, state, cls, style, tabStyle })
+  const el = markup({ base: def.name, variant, size, state, cls, style, tabStyle, entryName })
   if (!el) return null
 
   /* Inert. These are pictures of a state, not controls.

@@ -580,11 +580,35 @@ function ComponentBlock({ def, cfg, layout, onSetLayout, onToggle, onSet, onRese
                  other scale in this panel is driven the same way. */
               const edgeSlider = entryName === 'nav-item-selected' && SELECTION_STYLES[selectionStyle(cfg.selection)]?.edge
                 ? (
+                  /* `edge` alone did not say what it sets, and "Edge weight"
+                     was only a tooltip. Someone looking for the SELECTED ROW
+                     in a table searched Components for "table" and found
+                     nothing, because this control is filed under the nav item.
+                     The name is visible now and the note says where else it
+                     lands. */
                   <div style={{ display: 'grid', gridTemplateColumns: '112px minmax(0, 1fr)', gap: PAD.sub, alignItems: 'center', minWidth: 0 }}>
-                    <code className="prop-key">edge</code>
+                    <code className="prop-key" style={{ whiteSpace: 'nowrap' }}>edge weight</code>
                     <SnapSlider title="Edge weight" value={selectionEdge(cfg.selectionEdge)}
                       refFor={n => n} onChange={onSetSelectionEdge}
                       steps={Object.entries(SELECTION_EDGES).map(([key, spec]) => ({ name: key, value: `${spec.px}px` }))} />
+                    <div style={{ gridColumn: '1 / -1', fontSize: 11, lineHeight: 1.5, color: 'var(--muted)', marginTop: 4 }}>
+                      Also drives the selected row in every table.
+                    </div>
+                    {/* ── AND IT SHOWS THAT ROW, NOT ONLY THE SENTENCE ──
+                      *
+                      * The Table entry publishes a base, a header and a cell,
+                      * and no row state, so a selected row had nowhere of its
+                      * own to appear. Saying it in words and showing it only on
+                      * a nav item leaves the reader to picture the thing they
+                      * are setting. It goes beside the control that sets it.
+                      *
+                      * Rendered through EntrySample rather than hand-built, so
+                      * the sample and the real component cannot drift. */}
+                    <div style={{ gridColumn: '1 / -1', marginTop: 6 }}>
+                      <EntrySample def={COMPONENT_LIBRARY.find(c => c.name === 'table')}
+                        entryName="table-row-selected" tabStyle={cfg.tabStyle}
+                        focus={derived.focus} roles={derived.roles[mode]} />
+                    </div>
                   </div>
                 )
                 : null
