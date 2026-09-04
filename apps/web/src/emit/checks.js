@@ -58,14 +58,36 @@ export const CHECKS = [
   {
     id: 'off-scale-number',
     where: 'source',
-    line: 'No number appears where a scale token exists.',
+    line: 'No number appears where a scale token exists. A measured length goes in a custom property, on the space grid.',
+    /* ── A MEASURED THRESHOLD IS NOT A TOKEN, AND CANNOT BE ──
+     *
+     * Layout tells the builder to derive a threshold by shrinking the real row,
+     * and to floor a split at the table's own min-content. Those numbers come
+     * out of a measurement, so no token can hold them. A build that obeyed got
+     * faulted for the one it had just been told to compute: `minmax(660px, 3fr)`
+     * on a grid whose table needs 660.
+     *
+     * A media or container condition was already skipped, which is why the
+     * thresholds passed and the grid floor did not.
+     *
+     * The document's own answer is the fix: give the value a name of your own.
+     * So a CUSTOM PROPERTY DECLARATION is where a measured length lives, and
+     * it still has to sit on the published space grid — multiples of 4, or of
+     * 2 below 8, plus 1 for a hairline. 660 passes. A 13px invented at the
+     * moment of the problem does not, whatever it is called. */
     body: [
       "const SKIP = /@media|@container|@supports|viewBox|stroke-width|aspect-ratio|z-index|flex|opacity|line-height:\\s*[\\d.]+\\s*;/",
+      "const onGrid = n => n === 1 || (n < 8 ? n % 2 === 0 : n % 4 === 0)",
       "for (const f of files.filter(f => f.css)) {",
       "  for (const [i, line] of f.bareLines.entries()) {",
       "    if (SKIP.test(line)) continue",
       "    const hit = line.match(/(?<![\\w.-])(?!0px|1px)\\d+(\\.\\d+)?(px|rem)\\b/)",
-      "    if (hit) fail(f.path, i + 1, hit[0] + ' is not a token. Every length has a name.')",
+      "    if (!hit) continue",
+      "    const own = /^\\s*--[\\w-]+\\s*:/.test(line)",
+      "    const n = parseFloat(hit[0])",
+      "    if (own && hit[0].endsWith('px') && Number.isInteger(n) && onGrid(n)) continue",
+      "    if (own) fail(f.path, i + 1, hit[0] + ' is off the space grid, so naming it does not make it a decision. Multiples of 4, or of 2 below 8.')",
+      "    else fail(f.path, i + 1, hit[0] + ' is not a token. Every length has a name. A measured length goes in a custom property your own source declares.')",
       "  }",
       "}",
     ],
@@ -637,10 +659,27 @@ export const CHECKS = [
     body: [
       "const btn = document.querySelector('[aria-pressed][aria-label*=heme], #dmd-dark, [data-theme-toggle], #theme-toggle')",
       "if (!btn) { fail('document', 'no theme control found. The system asks for a visible one.'); return }",
+      /* ── THIS READ ONE FRAME INTO A TRANSITION, AND CALLED IT DEAD ──
+       *
+       * `frame()` is a 60ms guess and a theme transition runs longer, so
+       * `getComputedStyle` returned the INTERPOLATED colour barely off its
+       * start. Compared against the start it read equal, and the check
+       * reported a toggle that works as broken.
+       *
+       * That is the worst shape a finding can have. It is intermittent, so a
+       * slower machine passes by luck, nothing reproduces, and every
+       * investigation ends in a clean result. Measured on one sweep: the same
+       * build reported dead at 320 and 536 and clean at 296, 308 and 535.
+       * Three earlier simulation runs reported this toggle dead and each one
+       * measured correct when a person served it.
+       *
+       * `settle()` asks the browser which animations are running and waits
+       * for them, so it costs nothing when the switch is instant and cannot
+       * be short when it is not. Never lengthen the guess instead. */
       "const before = getComputedStyle(document.body).backgroundColor",
-      "btn.click(); await frame()",
+      "btn.click(); await settle(1200)",
       "const after = getComputedStyle(document.body).backgroundColor",
-      "btn.click(); await frame()",
+      "btn.click(); await settle(1200)",
       "if (before === after)",
       "  fail(name(btn), 'a press changed nothing. The page painted ' + before + ' before and after.')",
       "const statesItself = btn.getAttribute('aria-pressed') != null ||",
@@ -772,6 +811,156 @@ export const CHECKS = [
       "  const ratio = (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05)",
       "  if (ratio < 1.06)",
       "    fail(name(el), 'this row is marked and its fill reads ' + ratio.toFixed(2) + ':1 against the ground behind it, so nothing shows. A selection has to be found rather than noticed once you are already looking. Step the fill off the surface, and give the mark a second channel: an edge, or a full-strength label.')",
+      "}",
+    ],
+  },
+
+  {
+    id: 'a-selection-edge-costs-only-its-own-width',
+    where: 'render',
+    line: 'A selection edge moves the label by its own width, and by nothing else.',
+    /* ── THE READY-MADE SUM ASSUMED A PADDING THE CELL NO LONGER HAD ──
+     *
+     * The selected padding is published as a whole shorthand, and it adds the
+     * bar's width to the component's OWN inset. That is the right answer for a
+     * cell that kept that inset. A build flushed a table's first column to the
+     * card's content edge, which the margin rule pushes toward, and then took
+     * the shorthand anyway. Measured: selected rows started 16px in and their
+     * unselected neighbours at 0, for a bar 4px wide. A 16px jog down the first
+     * column, and the render verifier had no opinion about it.
+     *
+     * Both halves were the document's own rules, so the fix was to publish the
+     * INGREDIENT beside the sum. `edge-width` is one value and assumes nothing.
+     *
+     * ASKS ONLY WHAT IS UNAMBIGUOUS. The bar's own width is read off what is
+     * PAINTED, so the check needs no token and no guessed base. It compares a
+     * marked row against a bar-less one in the same column, and the difference
+     * between their content edges must be the bar and nothing more.
+     *
+     * The same-left guard is what keeps it quiet on a TAB STRIP. Siblings in a
+     * horizontal run sit at different left edges by design, so their content
+     * insets differ by the whole layout. A vertical list shares one left edge,
+     * which reduces the comparison to the padding. */
+    body: [
+      "const barPx = s => { if (!s || s === 'none' || !/inset/.test(s)) return 0",
+      "  const m = s.replace(/rgba?\\([^)]*\\)/g, '').match(/(-?[\\d.]+)px/)",
+      "  return m ? Math.abs(parseFloat(m[1])) : 0 }",
+      "const edgeOf = el => { const cs = getComputedStyle(el)",
+      "  const r = el.getBoundingClientRect()",
+      "  return { left: r.left, inset: r.left + (parseFloat(cs.paddingLeft) || 0), bar: barPx(cs.boxShadow) } }",
+      "const jog = (el, mark, plain, w) => {",
+      "  if (Math.abs(mark.left - plain.left) > 1) return",
+      "  const cost = mark.inset - plain.inset",
+      "  if (cost <= w + 1) return",
+      "  fail(name(el), 'this row carries a ' + w + 'px selection edge and its label starts ' + cost.toFixed(1) + 'px further in than the row beside it, so the marked row jogs out of the column. The published padding adds the bar to the component OWN inset, and a cell whose padding you changed no longer has that inset. Add the edge-width token to your own value rather than taking the ready-made sum.')",
+      "}",
+      "for (const tb of all('table')) {",
+      "  let mark = null, plain = null, w = 0, cell = null",
+      "  for (const r of tb.querySelectorAll('tr')) {",
+      "    const td = r.querySelector('td')",
+      "    if (!td) continue",
+      "    const m = edgeOf(td)",
+      "    const bar = Math.max(m.bar, barPx(getComputedStyle(r).boxShadow))",
+      "    if (bar > 1) { if (!mark) { mark = m; w = bar; cell = td } }",
+      "    else if (!plain) plain = m",
+      "  }",
+      "  if (mark && plain) jog(cell, mark, plain, w)",
+      "}",
+      "for (const el of all('[aria-current], [aria-selected=\"true\"]')) {",
+      "  const mark = edgeOf(el)",
+      "  if (mark.bar < 2) continue",
+      "  const p = el.parentElement",
+      "  if (!p) continue",
+      "  for (const sib of p.children) {",
+      "    if (sib === el || sib.tagName !== el.tagName) continue",
+      "    const plain = edgeOf(sib)",
+      "    if (plain.bar > 0) continue",
+      "    jog(el, mark, plain, mark.bar)",
+      "    break",
+      "  }",
+      "}",
+    ],
+  },
+
+  {
+    id: 'one-token-is-not-one-weight',
+    where: 'render',
+    line: 'An icon that declares a stroke also declares vector-effect: non-scaling-stroke.',
+    /* ── THE DOCUMENT STATED THIS AND NOTHING MEASURED IT ──
+     *
+     * An SVG scales its stroke with its viewBox, so one `stroke-width` token
+     * paints a different weight at every size. Measured across eleven
+     * surfaces of one system: 0.73px, 1.02, 1.17, 1.33, 1.75 and 2.33, all
+     * from a single declaration, with the icons getting heavier as they grew.
+     *
+     * `non-scaling-stroke` takes the stroke out of that transform, so the
+     * number becomes the painted width and cannot drift. DESIGN.md has said
+     * so for a while and shipped no check, which is the failure this file
+     * exists to close: a rule the reader cannot run does not land.
+     *
+     * ASKS A DECLARATION, so it cannot be ambiguous. A mark drawn with a fill
+     * and no stroke has no weight to keep, and is not asked about. */
+    body: [
+      "for (const s of all('svg')) {",
+      "  const r = s.getBoundingClientRect()",
+      "  if (r.width < 1 || r.height < 1) continue",
+      "  const cs = getComputedStyle(s)",
+      "  const kid = s.querySelector('path, circle, rect, line, polyline, polygon, ellipse')",
+      "  const kcs = kid ? getComputedStyle(kid) : null",
+      "  const stroked = el => el && el.stroke && el.stroke !== 'none' && parseFloat(el.strokeWidth) > 0",
+      "  const src = stroked(kcs) ? kcs : (stroked(cs) ? cs : null)",
+      "  if (!src) continue",
+      "  if (src.vectorEffect === 'non-scaling-stroke') continue",
+      "  const vb = (s.getAttribute('viewBox') || '').split(/[\\s,]+/).map(Number)",
+      "  if (vb.length !== 4 || !vb[2]) continue",
+      "  const scale = r.width / vb[2]",
+      "  const sw = parseFloat(src.strokeWidth)",
+      "  if (Math.abs(scale - 1) < 0.02) continue",
+      "  fail(name(s), 'this icon declares stroke-width ' + sw + ' and paints it at ' + (sw * scale).toFixed(2) + 'px, because an SVG scales its stroke with its viewBox. One token is then a different weight at every size. Add vector-effect: non-scaling-stroke, which makes the number the painted width.')",
+      "}",
+    ],
+  },
+
+  {
+    id: 'an-overlay-says-it-is-one',
+    where: 'render',
+    line: 'An overlay declares role="dialog" and aria-modal, and takes its name from its own heading.',
+    /* ── ANOTHER RULE THE DOCUMENT STATED AND NOTHING MEASURED ──
+     *
+     * One surface existed to demonstrate an overlay and carried zero `aria-*`
+     * and no `role`. An overlay is not a card in a page: the reader cannot
+     * see that the page behind it is out of play, and a screen reader is
+     * never told.
+     *
+     * READ THE DECLARATION, NOT THE NAME. A first version matched on a class
+     * holding `sheet`, and faulted a dashboard's main content wrapper — named
+     * `.sheet` because it is the page's paper, sitting in normal flow, and
+     * covering nothing. A name list faults whatever shares a word. So a
+     * candidate must be OUT OF FLOW before its name counts, or already claim
+     * a dialog role by its own statement.
+     *
+     * `popover` is deliberately absent. A popover is not modal, so demanding
+     * `aria-modal` of one would fault correct code. */
+    body: [
+      "const NAMED = '[class*=\"modal\"], [class*=\"dialog\"], [class*=\"drawer\"], [class*=\"overlay\"], [class*=\"sheet\"]'",
+      "for (const el of all(NAMED + ', [role=\"dialog\"], [role=\"alertdialog\"], dialog')) {",
+      "  const cs = getComputedStyle(el)",
+      "  const claims = el.tagName === 'DIALOG' || el.matches('[role=\"dialog\"], [role=\"alertdialog\"]')",
+      "  const outOfFlow = cs.position === 'fixed' || cs.position === 'absolute'",
+      "  if (!claims && !outOfFlow) continue",
+      "  const r = el.getBoundingClientRect()",
+      "  if (r.width < 1 || r.height < 1) continue",
+      "  if (!(el.textContent || '').trim() && !el.querySelector('input, button, a, img, svg')) continue",
+      "  const dlg = claims ? el : el.querySelector('[role=\"dialog\"], [role=\"alertdialog\"], dialog')",
+      "  if (!dlg) {",
+      "    fail(name(el), 'this paints over the page and never declares itself a dialog: no role=\"dialog\" and no <dialog>. Nothing tells a reader the page behind it is out of play. Put the role on the panel, not on the scrim.')",
+      "    continue",
+      "  }",
+      "  if (dlg.tagName !== 'DIALOG' && dlg.getAttribute('aria-modal') !== 'true')",
+      "    fail(name(dlg), 'a dialog that holds the page needs aria-modal=\"true\". Without it a screen reader keeps offering everything behind it.')",
+      "  const named = dlg.getAttribute('aria-labelledby') || dlg.getAttribute('aria-label')",
+      "  if (!named)",
+      "    fail(name(dlg), 'this dialog has no name. Point aria-labelledby at its OWN heading rather than repeating the words in an aria-label, which is how the two drift apart.')",
       "}",
     ],
   },
@@ -1007,11 +1196,33 @@ export const CHECKS = [
       "    node = node.parentElement",
       "  }",
       "  if (reachable) continue",
+      /* ── `display: contents` IS NOT A CHILD, ITS CHILDREN ARE ──
+       *
+       * A dissolved wrapper generates no box, so it measured zero width, hit
+       * the `!k.width` skip, and took its two real buttons out of the count
+       * with it. The row then had fewer than two children and the check bailed.
+       *
+       * Measured on one build: a card's action row 157px wide holding 251px of
+       * buttons, 53px of it past the page's own edge, and this check reported
+       * clean. Forcing the same wrapper to `display: flex` and changing nothing
+       * else made it fire at once. That is the whole fault: the pair-wrap
+       * pattern DEPENDS on dissolving a wrapper, so the shape this check was
+       * blind to is the shape the layout rules ask for.
+       *
+       * Walk through such a wrapper to whatever really lays out. */
+      "  const layoutKids = parent => {",
+      "    const out = []",
+      "    for (const kid of parent.children) {",
+      "      const ks = getComputedStyle(kid)",
+      "      if (ks.position === 'absolute' || ks.position === 'fixed') continue",
+      "      if (ks.display === 'none') continue",
+      "      if (ks.display === 'contents') { out.push(...layoutKids(kid)); continue }",
+      "      out.push(kid)",
+      "    }",
+      "    return out",
+      "  }",
       "  let lo = Infinity, hi = -Infinity, kids = 0",
-      "  for (const kid of el.children) {",
-      "    const ks = getComputedStyle(kid)",
-      "    if (ks.position === 'absolute' || ks.position === 'fixed') continue",
-      "    if (ks.display === 'none') continue",
+      "  for (const kid of layoutKids(el)) {",
       "    const k = kid.getBoundingClientRect()",
       "    if (!k.width) continue",
       "    lo = Math.min(lo, k.left)",
@@ -1119,8 +1330,18 @@ export const CHECKS = [
       "  const box = h.getBoundingClientRect()",
       "  if (t.rects > words)",
       "    fail(name(h), (h.textContent || '').trim().slice(0, 24) + ' is set over ' + t.rects + ' lines for ' + words + ' word' + (words === 1 ? '' : 's') + ', so a word broke mid-way. A heading keeps every word and takes the lines it needs. Remove any overflow-wrap that allows a break inside a word.')",
-      "  else if (box.width + 1 < t.right - t.left)",
-      "    fail(name(h), 'the heading box is ' + round(box.width) + 'px wide around ' + round(t.right - t.left) + 'px of text. A track declared minmax(0, 1fr) has a ZERO floor, so it collapses rather than letting the row break. Floor the title track, or move the actions to their own row.')",
+      "  else if (box.width + 1 < t.right - t.left) {",
+      /* ── NAME THE MECHANISM YOU CAN SEE, NOT THE ONE YOU EXPECTED ──
+       *
+       * This named `minmax(0, 1fr)` only. The fault then turned up on a FLEX
+       * row, where `min-width: 0` is the same zero floor, and the message sent
+       * the reader hunting a grid track that does not exist in that file. So
+       * the finding reports the parent's own display and names the floor that
+       * belongs to it. */
+      "    const par = h.parentElement ? getComputedStyle(h.parentElement).display : ''",
+      "    const floor = /grid/.test(par) ? 'A track declared minmax(0, 1fr) has a ZERO floor' : 'A flex child declaring min-width: 0 has a ZERO floor'",
+      "    fail(name(h), 'the heading box is ' + round(box.width) + 'px wide around ' + round(t.right - t.left) + 'px of text, so a word is cut. ' + floor + ', so the title collapses rather than letting the row break. Floor the title at max-content and let the row wrap, or move the actions to their own row.')",
+      "  }",
       "}",
     ],
   },

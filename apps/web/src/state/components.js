@@ -447,6 +447,19 @@ export function selectedState(styleName, edgeName, basePadding) {
   const edge = SELECTION_EDGES[selectionEdge(edgeName)]
   const w = `${edge.px}px`
   props.boxShadow = `inset ${w} 0 0 {colors.accent}`
+  /* ── THE BAR'S OWN WIDTH, PUBLISHED SEPARATELY ──
+   *
+   * The shorthand below is the ready-made answer, and it ASSUMES the cell
+   * still carries its own base inset. A build that flushed a table's first
+   * column to the card's edge — which the margin rule pushes toward — took
+   * that shorthand anyway and got a 16px jog where the bar is 4: measured,
+   * selected rows at 16px from the card's content edge and unselected at 0.
+   *
+   * Both rules were the document's, and they collided. So the INGREDIENT is
+   * published too. A builder who changed the cell's inset adds this to their
+   * own value rather than taking a sum computed from a padding they no longer
+   * use. */
+  props.edgeWidth = w
   /* The base inset, moved clear of the bar. `basePadding` arrives as the
      component's own shorthand, so the vertical half is kept verbatim, and the
      horizontal half stays a TOKEN. Only the bar's own width is literal. */

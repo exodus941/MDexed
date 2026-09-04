@@ -818,5 +818,20 @@ input[type=range].hue-slider:not(.dmd *)::-moz-range-thumb{width:16px;height:16p
 .dmd-chrome-icons svg,
 body svg:not(.dmd svg):not(.entry-sample svg) {
   stroke-width: 1.5;
+}
+/* ── AND THE EFFECT HAS TO REACH THE SHAPES ──
+ *
+ * `vector-effect` applies to drawn geometry and is NOT inherited, so the rule
+ * above carried it on the `<svg>` and every `path` inside computed `none`.
+ * The comment above claimed the weight could not drift again. It drifted the
+ * whole time: measured across this chrome, 49 of 49 icons scaling their
+ * stroke, painting at 0.58, 0.63, 0.67, 0.75, 0.81, 0.88, 1, 1.13 and 1.25px
+ * from one declaration of 1.5.
+ *
+ * It read as done, which is why it survived. The declaration was in the
+ * stylesheet and computed style on the icon itself agreed with it. */
+.dmd-chrome-icons svg, .dmd-chrome-icons svg *,
+body svg:not(.dmd svg):not(.entry-sample svg),
+body svg:not(.dmd svg):not(.entry-sample svg) * {
   vector-effect: non-scaling-stroke;
 }

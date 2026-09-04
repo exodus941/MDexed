@@ -2213,6 +2213,16 @@ line('\n- depth intensity -')
       /* The horizontal inset stays a token, so only the bar is literal. */
       assert(props.padding.includes('{spacing.sm}'),
         `the ${weight} inset is still a token (${props.padding})`)
+      /* ── THE INGREDIENT, BESIDE THE SUM ──
+       *
+       * The padding above is the ready-made answer and it ASSUMES the
+       * component kept its own inset. A build flushed a table's first column
+       * to the card's content edge, which another rule in the same document
+       * pushes toward, then took the sum anyway. Measured: selected rows
+       * starting 16px in against 0 for their neighbours, for a 4px bar. Both
+       * rules were ours, so the width is published on its own. */
+      assert(props.edgeWidth === `${spec.px}px`,
+        `the ${weight} edge publishes its own width (${props.edgeWidth})`)
     }
     for (const dens of [1, 0.82]) {
       const s = createInitialState()
@@ -2251,6 +2261,48 @@ line('\n- depth intensity -')
       }
       const hov = d.components.find(c => c.name === 'table-row-hover')
       assert(!!hov, `the table publishes a row hover under ${style}`)
+      /* Both rows publish the ingredient, or the escape hatch reaches only
+         whichever component somebody remembered. */
+      if (SELECTION_STYLES[style].edge) {
+        for (const [label, e] of [['nav item', nav], ['table row', row]]) {
+          assert(/^\d+px$/.test(get(e, 'edgeWidth') || ''),
+            `${style}: the ${label} publishes its edge width (${get(e, 'edgeWidth')})`)
+        }
+      }
+    }
+    /* And it reaches CSS under a name the builder can read. */
+    {
+      const s = createInitialState()
+      s.components.selection = 'lift-edge'
+      s.components.selectionEdge = 'wide'
+      const css = payloadTextFiles(s, derive(s))['tokens.css']
+      for (const c of ['nav-item', 'table-row']) {
+        assert(css.includes(`--cmp-${c}-selected-edge-width: 12px`),
+          `tokens.css publishes --cmp-${c}-selected-edge-width`)
+      }
+    }
+    /* The render check that catches a build which took the sum anyway. */
+    {
+      const { CHECKS } = await import('../src/emit/checks.js')
+      const c = CHECKS.find(x => x.id === 'a-selection-edge-costs-only-its-own-width')
+      assert(!!c && c.where === 'render', `the jog check ships and runs on the render (${c?.where})`)
+      const src = c.body.join('\n')
+      assert(src.includes('mark.left - plain.left'),
+        'it compares rows in ONE column, so a horizontal tab strip cannot trip it')
+
+      /* ── NO CHECK MEASURES ONE FRAME AFTER A CLICK ──
+       *
+       * `frame()` is a 60ms guess. The toggle check pressed the control and
+       * read the body's colour a frame later, which is the INTERPOLATED value
+       * of a transition still in flight, so a working toggle read as dead —
+       * intermittently, which is worse than always. Every check that presses
+       * something waits for the browser to say it has finished. */
+      for (const chk of CHECKS) {
+        const body = (chk.body || []).join('\n')
+        if (!/\.click\(\)/.test(body)) continue
+        assert(/settle\(/.test(body) && !/\bframe\(\)/.test(body),
+          `${chk.id} settles after pressing, rather than guessing a frame`)
+      }
     }
   }
 

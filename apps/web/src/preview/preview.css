@@ -724,7 +724,12 @@
  *
  * It also makes the number honest. `--icon-stroke` is now the px the mark
  * paints, not a figure that has to be multiplied by a scale to mean anything. */
-.dmd svg { stroke-width: var(--icon-stroke, 1); vector-effect: non-scaling-stroke; }
+.dmd svg { stroke-width: var(--icon-stroke, 1); }
+/* The effect must reach the SHAPES: `vector-effect` applies to drawn geometry
+   and does not inherit, so declaring it on the `<svg>` alone left every path
+   at `none` and the stroke scaling with the box. See the same repair in
+   theme.css, where 49 of 49 chrome icons were measured drifting. */
+.dmd svg, .dmd svg * { vector-effect: non-scaling-stroke; }
 /* An icon-only button is a button. This used to be its own component with a
    hardcoded 36px box, so it stood 8px taller than the small buttons it sat
    beside in the dashboard header — while being tagged button-secondary for
