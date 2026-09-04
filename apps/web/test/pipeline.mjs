@@ -2183,7 +2183,7 @@ line('\n- depth intensity -')
   /* Three treatments, and the edge weight only reaches the one that draws an
      edge. The padding has to state the SUM, or the label sits under the bar. */
   {
-    const { SELECTION_STYLES, SELECTION_EDGES, selectedState } =
+    const { SELECTION_STYLES, SELECTION_EDGES, selectedState, gutterFor } =
       await import('../src/state/components.js')
     assert(Object.keys(SELECTION_STYLES).length === 3,
       `three selection treatments (${Object.keys(SELECTION_STYLES).join()})`)
@@ -2191,7 +2191,18 @@ line('\n- depth intensity -')
     for (const [name, spec] of Object.entries(SELECTION_STYLES)) {
       const props = selectedState(name, 'thin', pad)
       assert(!!props.boxShadow === !!spec.edge, `${name} draws an edge only when it says it does`)
-      assert(!!props.padding === !!spec.edge, `${name} moves its label only when it draws an edge`)
+      /* ── THE SELECTED STATE NEVER RESTATES PADDING ──
+       *
+       * It used to state the SUM of the base inset and the bar, which is
+       * arithmetically right and staggers the column. Measured in the app's
+       * own preview: the selected nav label at 693 against 689 for its four
+       * siblings. The gutter belongs to the base, where every row takes it. */
+      assert(props.padding === undefined,
+        `${name} leaves padding to the base, so no row staggers (${props.padding})`)
+      /* And the gutter carries the bar, on every row of the set. */
+      const base = gutterFor(name, 'thin', pad)
+      assert(spec.edge ? base.includes('4px') : base === pad,
+        `${name} reserves the bar in its BASE padding (${base})`)
       /* The fill must never be the accent-subtle hole in dark. */
       if (spec.edge || name === 'lift') {
         assert(props.backgroundColor === '{colors.surface-raised}',
@@ -2208,11 +2219,19 @@ line('\n- depth intensity -')
     for (const [weight, spec] of Object.entries(SELECTION_EDGES)) {
       const props = selectedState('lift-edge', weight, pad)
       assert(props.boxShadow.includes(`${spec.px}px`), `the ${weight} edge is ${spec.px}px (${props.boxShadow})`)
-      assert(props.padding.includes(`calc({spacing.sm} + ${spec.px}px)`),
-        `and the label clears it (${props.padding})`)
+      /* The BASE reserves the gutter, so the content clears the bar and every
+         row in the set sits on one inset. */
+      const base = gutterFor('lift-edge', weight, pad)
+      assert(base.includes(`calc(${spec.px}px + {spacing.sm})`),
+        `the ${weight} gutter clears the bar (${base})`)
       /* The horizontal inset stays a token, so only the bar is literal. */
-      assert(props.padding.includes('{spacing.sm}'),
-        `the ${weight} inset is still a token (${props.padding})`)
+      assert(base.includes('{spacing.sm}'),
+        `the ${weight} inset is still a token (${base})`)
+      /* The table's selection column takes a bigger step, because its content
+         is a 16px checkbox rather than a label. */
+      const cell = gutterFor('lift-edge', weight, '{spacing.sm} {spacing.md}', '{spacing.lg}')
+      assert(cell.includes(`calc(${spec.px}px + {spacing.lg})`),
+        `the ${weight} selection column clears it by the lg step (${cell})`)
       /* ── THE INGREDIENT, BESIDE THE SUM ──
        *
        * The padding above is the ready-made answer and it ASSUMES the
@@ -2254,10 +2273,22 @@ line('\n- depth intensity -')
           `${style}: the two selected rows share their ${k} (${get(nav, k)} / ${get(row, k)})`)
       }
       if (SELECTION_STYLES[style].edge) {
-        assert(get(nav, 'padding') !== get(row, 'padding'),
-          `${style}: each row compensates from its OWN inset (${get(row, 'padding')})`)
-        assert(get(row, 'padding').includes('{spacing.md}'),
-          `${style}: the table row compensates from the cell's md inset (${get(row, 'padding')})`)
+        /* ── NEITHER SELECTED STATE RESTATES PADDING ──
+         *
+         * The gutter is on each component's BASE, so the selected row paints
+         * into space every row already has. Restating it here is what
+         * staggered the column by the bar's width. */
+        for (const [label, e] of [['nav item', nav], ['table row', row]]) {
+          assert(get(e, 'padding') === undefined,
+            `${style}: the ${label} selected state leaves padding alone (${get(e, 'padding')})`)
+        }
+        /* The gutter lands on the base entries instead, one per component. */
+        const navBase = d.components.find(c => c.name === 'nav-item')
+        const cellBase = d.components.find(c => c.name === 'table-selection-cell')
+        assert(get(navBase, 'padding')?.includes('calc('),
+          `${style}: the nav item's base reserves the bar (${get(navBase, 'padding')})`)
+        assert(get(cellBase, 'padding')?.includes('{spacing.lg}'),
+          `${style}: the selection column clears the bar by the lg step (${get(cellBase, 'padding')})`)
       }
       const hov = d.components.find(c => c.name === 'table-row-hover')
       assert(!!hov, `the table publishes a row hover under ${style}`)

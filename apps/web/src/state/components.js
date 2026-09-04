@@ -460,13 +460,48 @@ export function selectedState(styleName, edgeName, basePadding) {
    * own value rather than taking a sum computed from a padding they no longer
    * use. */
   props.edgeWidth = w
-  /* The base inset, moved clear of the bar. `basePadding` arrives as the
-     component's own shorthand, so the vertical half is kept verbatim, and the
-     horizontal half stays a TOKEN. Only the bar's own width is literal. */
+  /* ── THE SELECTED STATE DOES NOT RESTATE PADDING ──
+   *
+   * It used to, as a SUM of the base inset and the bar. That is arithmetically
+   * right and it staggers the column: the selected row's label sits the bar's
+   * width further in than every unselected row beside it. Measured in this
+   * app's own preview, on a 4px bar, a nav list of five: the selected label at
+   * 693 and its four siblings at 689.
+   *
+   * Worse where the first thing in the row is an ORNAMENT rather than a label.
+   * A table's selection column holds a 16px checkbox, and staggering it breaks
+   * the one thing a column of checkboxes has to do. They caught it in a
+   * screenshot: the bar and the checked box are both the accent, and with the
+   * inset collapsed they touched and fused into one green shape.
+   *
+   * So the GUTTER belongs to the base, where every row in the set reserves it.
+   * The selected row then paints the bar into space that is already there, and
+   * no row moves. `gutterFor` below builds that base padding. */
+  return props
+}
+
+/**
+ * The base padding a selectable row needs, with the bar's gutter reserved.
+ *
+ * Every row in the set takes this, selected or not, so the column cannot
+ * stagger. The gap after the bar is a STEP on the scale rather than whatever
+ * the inset happens to leave: at the `sm` step a 16px checkbox read as
+ * touching a 4px bar, and they asked for double.
+ *
+ * @param {string} styleName  the chosen selection treatment
+ * @param {string} edgeName   the chosen edge weight
+ * @param {string} basePadding the component's own padding shorthand
+ * @param {string} gapToken   the step to leave between the bar and the content
+ */
+export function gutterFor(styleName, edgeName, basePadding, gapToken) {
   const parts = String(basePadding ?? '{spacing.xs} {spacing.sm}').trim().split(/\s+/)
   const y = parts[0], x = parts[1] ?? parts[0]
-  props.padding = `${y} ${x} ${y} calc(${x} + ${w})`
-  return props
+  const style = SELECTION_STYLES[selectionStyle(styleName)]
+  if (!style.edge) return basePadding ?? `${y} ${x}`
+  const w = `${SELECTION_EDGES[selectionEdge(edgeName)].px}px`
+  /* The bar, then a real step, then the content. The horizontal inset stays a
+     TOKEN so a density change still carries; only the bar is literal. */
+  return `${y} ${x} ${y} calc(${w} + ${gapToken ?? x})`
 }
 
 /* The document's treatment, or the default when the name is unknown.
@@ -523,14 +558,22 @@ export function expandComponents(cfg = {}) {
     /* Same for the two components that mark a selected ROW. One treatment for
        both, and each takes its own base inset: a nav item is padded by `sm`
        and a table cell by `md`, so the edge compensation differs. */
+    /* ── THE GUTTER GOES ON THE BASE, NOT ON THE SELECTED STATE ──
+     *
+     * Both components reserve the bar's space on EVERY row, so the selected
+     * one paints into it and the column never staggers. A nav item's content
+     * is a label, so it keeps its own `sm` inset after the bar. A table's
+     * selection column holds a 16px checkbox, and at that inset the box read
+     * as touching the bar, so it takes the `lg` step. */
     if (rawDef.name === 'nav-item') {
       const chosen = SELECTION_STYLES[selectionStyle(selection)]
       def = {
         ...rawDef,
+        base: { ...rawDef.base, padding: gutterFor(selection, selectionEdgeWeight, rawDef.base?.padding) },
         states: {
           ...rawDef.states,
           hover: chosen.states.hover,
-          selected: { _: selectedState(selection, selectionEdgeWeight, rawDef.base?.padding) },
+          selected: { _: selectedState(selection, selectionEdgeWeight) },
         },
       }
     }
@@ -539,10 +582,16 @@ export function expandComponents(cfg = {}) {
       const cellPad = rawDef.variants?.cell?.padding
       def = {
         ...rawDef,
+        variants: {
+          ...rawDef.variants,
+          /* The column that carries the bar, published separately from the
+             ordinary cell so a builder cannot apply it to every column. */
+          'selection-cell': { padding: gutterFor(selection, selectionEdgeWeight, cellPad, '{spacing.lg}') },
+        },
         states: {
           ...rawDef.states,
           hover: { row: chosen.states.hover._ },
-          selected: { row: selectedState(selection, selectionEdgeWeight, cellPad) },
+          selected: { row: selectedState(selection, selectionEdgeWeight) },
         },
       }
     }

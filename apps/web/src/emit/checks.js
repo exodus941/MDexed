@@ -848,11 +848,27 @@ export const CHECKS = [
       "const edgeOf = el => { const cs = getComputedStyle(el)",
       "  const r = el.getBoundingClientRect()",
       "  return { left: r.left, inset: r.left + (parseFloat(cs.paddingLeft) || 0), bar: barPx(cs.boxShadow) } }",
+      /* ── TWO QUESTIONS, AND THE FIRST ONE ALLOWS NOTHING ──
+       *
+       * A first version let the marked row sit up to the bar's width further
+       * in, on the reasoning that the published padding stated that sum. The
+       * sum was the fault. Adding the bar to the selected row alone staggers
+       * the column by the bar's width, every time: measured on a nav list of
+       * five, the selected label at 693 and its four siblings at 689.
+       *
+       * So the gutter belongs to the BASE, every row reserves it, and the
+       * insets must match exactly. Then ask the second question: does the bar
+       * have clear space after it? A build with the gutter collapsed put a
+       * 4px bar against a 16px checked box, both in the accent, and the two
+       * fused into one shape. */
       "const jog = (el, mark, plain, w) => {",
       "  if (Math.abs(mark.left - plain.left) > 1) return",
       "  const cost = mark.inset - plain.inset",
-      "  if (cost <= w + 1) return",
-      "  fail(name(el), 'this row carries a ' + w + 'px selection edge and its label starts ' + cost.toFixed(1) + 'px further in than the row beside it, so the marked row jogs out of the column. The published padding adds the bar to the component OWN inset, and a cell whose padding you changed no longer has that inset. Add the edge-width token to your own value rather than taking the ready-made sum.')",
+      "  if (Math.abs(cost) > 1)",
+      "    fail(name(el), 'this row carries a ' + w + 'px selection edge and its content starts ' + cost.toFixed(1) + 'px further in than the row beside it, so the column staggers. Reserve the bar gutter in the BASE padding, which every row of the column takes, rather than adding the bar to the selected row alone.')",
+      "  const clear = mark.inset - (mark.left + w)",
+      "  if (clear < 4)",
+      "    fail(name(el), 'a ' + w + 'px selection edge sits ' + clear.toFixed(1) + 'px from the first thing in the row, so the two read as one shape. That is worst where the content is an ornament in the accent colour, such as a checked box. Give the gutter the bar plus a step off the spacing scale.')",
       "}",
       "for (const tb of all('table')) {",
       "  let mark = null, plain = null, w = 0, cell = null",

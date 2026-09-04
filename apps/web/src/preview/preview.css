@@ -1550,9 +1550,22 @@
   background: var(--cmp-table-row-selected-background-color, var(--c-selected));
   color: var(--cmp-table-row-selected-text-color, inherit);
 }
+/* THE GUTTER IS RESERVED ON THE WHOLE COLUMN, so every row shares one inset
+   and the selected one paints into space that is already there. Restating the
+   padding on the selected row staggered the column by the bar's width, and
+   with the inset collapsed the bar touched the checked box: both are the
+   accent, so they fused into one shape.
+ *
+ * ONLY A COLUMN THAT CARRIES THE BAR. A first version put the gutter on every
+ * table's first cell, which gave a column of plain text a 28px inset it has
+ * no use for. The gutter exists for the bar, so ask whether this column holds
+ * a selection control. */
+.dmd .table:has(tbody td:first-child :is(input[type="checkbox"], .checkbox)) th:first-child,
+.dmd .table:has(tbody td:first-child :is(input[type="checkbox"], .checkbox)) td:first-child {
+  padding: var(--cmp-table-selection-cell-padding, var(--cmp-table-cell-padding, var(--space-sm, 12px) var(--space-md, 16px)));
+}
 .dmd .table tr.is-selected > td:first-child {
   box-shadow: var(--cmp-table-row-selected-box-shadow, none);
-  padding: var(--cmp-table-row-selected-padding, var(--cmp-table-cell-padding, var(--space-sm, 12px) var(--space-md, 16px)));
 }
 /* The selected row outranks the stripe, which is a more specific selector. */
 .dmd .table-rows-zebra tbody tr.is-selected > td,
@@ -1716,7 +1729,11 @@
   background: var(--cmp-nav-item-selected-background-color, var(--c-accent-subtle, #f6e9e6));
   color: var(--cmp-nav-item-selected-text-color, var(--c-accent, #b8422e));
   box-shadow: var(--cmp-nav-item-selected-box-shadow, none);
-  padding: var(--cmp-nav-item-selected-padding, var(--cmp-nav-item-padding, var(--space-xs, 8px) var(--space-sm, 12px)));
+  /* NO PADDING HERE. The bar's gutter is reserved in `--cmp-nav-item-padding`,
+     which every item in the list takes, so the selected one paints into space
+     that is already there. Restating it moved this item's label by the bar's
+     width and staggered the column: measured at 693 against 689 for its four
+     siblings, on a 4px bar. */
 }
 
 
