@@ -7,7 +7,7 @@
    reachable underneath, because `inspectProps` collects ancestors too. */
 import { inspectProps, text } from '../inspect.js'
 import { labeller } from '../casing.js'
-import { Ico, ThemeToggle, IconPlus, IconDownload, IconChart, IconFolder, IconBell, IconAlert, IconMore, IconSend } from '../icons.jsx'
+import { Ico, Check, ThemeToggle, IconPlus, IconDownload, IconChart, IconFolder, IconBell, IconAlert, IconMore, IconSend } from '../icons.jsx'
 
 export default function Dashboard({ onInspect, layout, casing, theme, mode, onToggleTheme }) {
   const L = labeller(casing)
@@ -15,11 +15,17 @@ export default function Dashboard({ onInspect, layout, casing, theme, mode, onTo
   const txt = (typeName, roleName = 'text') => inspectProps(text(typeName, roleName), onInspect)
   const al = layout?.alert ?? {}
   const tb = layout?.table ?? {}
+  /* ── TWO ROWS ARE SELECTED, SO THE EDGE IS ON SCREEN HERE ──
+   *
+   * The selection treatment is a setting, and until now the only surface that
+   * demonstrated it was Index. A setting the reader cannot see on the screen
+   * they judge first is a setting they will not find. The fourth field is the
+   * selected state. */
   const rows = [
-    ['Northwind Trading', 'Active',   '$12,480', 'AH'],
-    ['Meridian Labs',     'Trialing', '$3,200',  'ML'],
-    ['Halcyon Group',     'Overdue',  '$8,915',  'HG'],
-    ['Ashford & Kline',   'Active',   '$21,050', 'AK'],
+    ['Northwind Trading', 'Active',   '$12,480', 'AH', true],
+    ['Meridian Labs',     'Trialing', '$3,200',  'ML', false],
+    ['Halcyon Group',     'Overdue',  '$8,915',  'HG', true],
+    ['Ashford & Kline',   'Active',   '$21,050', 'AK', false],
   ]
   const badgeFor = s => s === 'Active' ? 'badge-success' : s === 'Overdue' ? 'badge-danger' : 'badge-warning'
 
@@ -186,11 +192,28 @@ export default function Dashboard({ onInspect, layout, casing, theme, mode, onTo
           <div className="table-scroll">
           <table className={`table table-rows-${tb.rows ?? 'lines'} table-head-${tb.header ?? 'overline'}`} {...ins('table')}>
             <thead><tr {...ins('table-header')}>
+              {/* The select-all sits at the TOP OF THE COLUMN IT CONTROLS, not
+                  in a bar above the table. Indeterminate, because some rows are
+                  chosen and some are not: unchecked would claim nothing is
+                  selected while two plainly are.
+                  This box IS the column heading, so nothing else can name it,
+                  which makes it the one positional case needing its own name. */}
+              <th className="sel-col">
+                <Check mixed label={L('Select all accounts')} {...ins('checkbox-indeterminate')} />
+              </th>
               <th>{L('Account')}</th><th>{L('Status')}</th><th className={tb.numeric === 'left' ? '' : 'num-col'}>{L('Balance')}</th>
             </tr></thead>
             <tbody>
-              {rows.map(([name, status, amount, initials]) => (
-                <tr key={name}>
+              {rows.map(([name, status, amount, initials, on]) => (
+                <tr key={name} className={on ? 'is-selected' : undefined}>
+                  {/* No visible label, and that is correct: the column heading
+                      and this row name the box between them. It still owes an
+                      accessible NAME, and the name says which record it picks
+                      rather than "Select row" four times over. */}
+                  <td className="sel-col">
+                    <Check on={on} label={`${L('Select')} ${name}`}
+                      {...ins(on ? 'checkbox-checked' : 'checkbox')} />
+                  </td>
                   <td>
                     <div className="row">
                       <span className="avatar" {...ins('avatar')}>{initials}</span>
