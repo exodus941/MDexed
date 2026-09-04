@@ -36,4 +36,10 @@ npm-debug.log*
 apps/web/public/layout-tools.js
 
 # Simulation scaffolding served from the dev server. Never part of the app.
-apps/web/public/sim*/
+#
+# ASK THE SHAPE, NOT THE NAME. This read `sim*/` and only caught the folders
+# somebody had already thought of. A run served from `public/run/` walked
+# straight past it and reached a commit. A simulation always lands in a
+# DIRECTORY here, and the app's own two files sit at the top level, so the
+# directory is the property to match.
+apps/web/public/*/
