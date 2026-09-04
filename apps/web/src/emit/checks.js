@@ -747,9 +747,45 @@ export const CHECKS = [
     line: 'Every judgement call is listed under its own heading.',
   },
   {
-    id: 'action-row-collapses',
+    id: 'a-heading-keeps-its-words',
+    where: 'render',
+    line: 'A heading keeps every word. A row never crushes it narrower than its own text.',
+    /* ── THE HALF OF THE COLLAPSE RULE A TOOL CAN ANSWER ──
+     *
+     * "An action row moves below its heading" was a MANUAL line, so nothing
+     * ran it, and the fault it prevents is exactly measurable.
+     *
+     * A heading beside an action row in a grid whose title track is
+     * minmax(0, 1fr) has a ZERO floor. So the track collapses instead of the
+     * row breaking, and the heading is left to wrap inside nothing. Measured
+     * on a generated dashboard at a 390px viewport: the title box came out
+     * 0 by 280 pixels, one word over EIGHT lines, against its own min-content
+     * width of 108. The columns read 0px and 330px.
+     *
+     * Two questions, both exact. More lines than words means a word broke, and
+     * a heading never breaks mid-word. A box narrower than the text inside it
+     * means a track with no floor took the room.
+     *
+     * Nothing else saw it. The page did not overflow, because the heading gave
+     * way instead. */
+    body: [
+      "for (const h of all('h1, h2, h3, h4, h5, h6')) {",
+      "  const t = textRect(h); if (!t) continue",
+      "  const words = (h.textContent || '').trim().split(/\\s+/).filter(Boolean).length",
+      "  if (!words) continue",
+      "  const box = h.getBoundingClientRect()",
+      "  if (t.rects > words)",
+      "    fail(name(h), (h.textContent || '').trim().slice(0, 24) + ' is set over ' + t.rects + ' lines for ' + words + ' word' + (words === 1 ? '' : 's') + ', so a word broke mid-way. A heading keeps every word and takes the lines it needs. Remove any overflow-wrap that allows a break inside a word.')",
+      "  else if (box.width + 1 < t.right - t.left)",
+      "    fail(name(h), 'the heading box is ' + round(box.width) + 'px wide around ' + round(t.right - t.left) + 'px of text. A track declared minmax(0, 1fr) has a ZERO floor, so it collapses rather than letting the row break. Floor the title track, or move the actions to their own row.')",
+      "}",
+    ],
+  },
+
+  {
+    id: 'action-row-is-ranked',
     where: 'manual',
-    line: 'No action row wraps. Below its fitting width it sits under its heading, breaking into pairs.',
+    line: 'A broken action row is ranked. The primary leads its own line, the rest pair up.',
   },
   {
     id: 'nav-folds',

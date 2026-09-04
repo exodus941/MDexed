@@ -1953,6 +1953,33 @@ line('\n- project file -')
     assert(!inLit, 'the literal scan closed every region it opened')
     assert(odd.length === 0,
       `every backslash in the emitted verifiers is doubled${odd.length ? ` — ${odd[0]}` : ''}`)
+
+    /* AND THE SAME TRAP LIVES IN THE CHECK BODIES, one level further out.
+       A body line is a JS string in the SOURCE, so a backslash there has to be
+       doubled to survive into the value. Measured: a word-count regex written
+       as one backslash reached the shipped file with none, splitting on the
+       letter s, and "Recent Invoices" counted as one word.
+
+       Scanned on the SOURCE TEXT, never on the imported value. In the value a
+       single backslash is correct, which is what the regex needs, so reading
+       the values faulted every check that had one. */
+    {
+      const src = fs.readFileSync(new URL('../src/emit/checks.js', import.meta.url), 'utf8')
+      const bad = []
+      src.split(/\r?\n/).forEach((l, i) => {
+        /* Only the body entries: a line that is a quoted string on its own. */
+        if (!/^\s*"/.test(l)) return
+        /* An escaped QUOTE is the one legitimate single backslash here: a body
+           line is double-quoted, so a quote inside it must be escaped once.
+           Blanked rather than counted. */
+        const bare = l.replace(/\\["']/g, '')
+        for (const run of bare.match(/\\+/g) || []) {
+          if (run.length % 2) bad.push(`line ${i + 1}: ${l.trim().slice(0, 60)}`)
+        }
+      })
+      assert(bad.length === 0,
+        `every backslash in a check body is doubled${bad.length ? ` — ${bad[0]}` : ''}`)
+    }
   }
   assert(SOURCE_CHECKS.every(c => nodeSrc.includes(c.id)), `${VERIFY_NODE} carries every source check`)
   assert(RENDER_CHECKS.every(c => browserSrc.includes(c.id)), `${VERIFY_BROWSER} carries every render check`)
