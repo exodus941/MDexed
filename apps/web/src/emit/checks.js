@@ -335,9 +335,45 @@ export const CHECKS = [
     id: 'one-baseline-per-row',
     where: 'render',
     line: 'Every row of text sits on one baseline.',
+    /* ── LETTERS INSIDE A CENTRED MARK ARE PART OF THE GRAPHIC ──
+     *
+     * This document holds two rules that met head on. A square taller than
+     * the words beside it takes the ROW CENTRE, which is right, and centring
+     * its box necessarily lifts its own letters off the row's baseline. So
+     * this check then faulted the correct construction.
+     *
+     * Measured on a generated dashboard: a 32px brand square centred to 9.23
+     * above the label's cap line against 9.77 below its baseline, with its
+     * initials 2.59px off that baseline. Both readings are right, and only
+     * one of them is a fault.
+     *
+     * The resolution is in the payload's own words. Initials in an avatar are
+     * text on the line when the avatar sits ON that line. A mark the row
+     * CENTRES has left the baseline set, so its letters are ornament inside a
+     * graphic rather than a run of text on the row. Ask the declaration: is
+     * this run inside a mark whose row is centring it? */
     body: [
+      "const centredMark = el => {",
+      "  let n = el",
+      "  for (let i = 0; i < 4 && n && n.parentElement; i++, n = n.parentElement) {",
+      "    const r = n.getBoundingClientRect()",
+      "    if (!r.width || !r.height) continue",
+      "    const ratio = r.width / r.height",
+      "    if (ratio < 0.7 || ratio > 1.45) continue",
+      "    const cs = getComputedStyle(n), parent = getComputedStyle(n.parentElement)",
+      "    const centred = cs.alignSelf === 'center' ||",
+      "      (parent.display.indexOf('flex') >= 0 && parent.alignItems === 'center' && cs.alignSelf === 'auto')",
+      "    if (!centred) continue",
+      "    const bg = cs.backgroundColor",
+      "    const open = bg ? bg.indexOf('(') : -1",
+      "    const parts = open < 0 ? [] : bg.slice(open + 1, bg.lastIndexOf(')')).split(',')",
+      "    const filled = !!bg && bg !== 'transparent' && (parts.length < 4 || parseFloat(parts[3]) > 0)",
+      "    if (filled || parseFloat(cs.borderTopWidth) > 0) return true",
+      "  }",
+      "  return false",
+      "}",
       "for (const row of rows()) {",
-      "  const runs = row.items.filter(i => i.text && i.lines === 1)",
+      "  const runs = row.items.filter(i => i.text && i.lines === 1 && !(i.el && centredMark(i.el)))",
       "  if (runs.length < 2) continue",
       "  const bl = runs.map(i => i.baseline)",
       "  const spread = Math.max.apply(null, bl) - Math.min.apply(null, bl)",
