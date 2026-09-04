@@ -684,6 +684,101 @@ export const CHECKS = [
   },
 
   {
+    id: 'a-row-that-cannot-wrap-must-fit',
+    where: 'render',
+    line: 'A row that cannot wrap fits its box, or it carries flex-wrap: wrap.',
+    /* ── THE CLIP CHECK NEEDS A CLIP, AND THIS ROW PUSHES INSTEAD ──
+     *
+     * A pair of buttons is meant to break onto a second line at a narrow
+     * width. The document says so, and says the two then measure 100/100. It
+     * never said the pair must WRAP, and a flex container does not wrap by
+     * default. So the two buttons stayed on one line, refused to shrink under
+     * their own labels, and pushed the page sideways.
+     *
+     * Measured on a generated record page at a 320px viewport: the pair came
+     * to 341.4px inside a 280px row, the buttons 173.4 and 162, and the
+     * document scrolled 42px with the primary cut off at the screen edge.
+     * With flex-wrap: wrap the same pair is 280px over two lines, 280 and 280,
+     * and the page does not scroll. It costs nothing wider: at 375px both
+     * labels still share one line.
+     *
+     * NEITHER EXISTING CHECK COULD SEE IT. `nothing-clipped-out-of-reach`
+     * requires the parent to clip, and this parent has visible overflow.
+     * `the-page-never-scrolls-sideways` only fires once the excess reaches the
+     * DOCUMENT: at 375px the row was already 6.4px over and the page reported
+     * zero. That is the same fault, smaller, and silent.
+     *
+     * A SCROLLER IS THE EXEMPTION, because it is the declaration that says the
+     * content is reachable. A tab strip scrolls and a table scrolls, both
+     * deliberately, and both hold more than their box. Ask the ancestors for
+     * overflow-x, never the geometry.
+     *
+     * Take the UNION of the children, not the sum. A centred row spills both
+     * ways, and `scrollWidth` counts one direction only.
+     *
+     * AND MEASURE AGAINST THE WIDTH THE PARENT CAN GIVE, NOT THE ROW'S OWN
+     * RECT. The first version compared the children against the row itself and
+     * came back clean on the very fault it was written for. A `nowrap` row
+     * GROWS to its own min-content, so its children always fit it exactly:
+     * measured 341.4px of buttons inside a 341.4px pair. The overflow is one
+     * level up, where that pair sat in a 280px container. Take the smaller of
+     * the two boxes.
+     *
+     * A ROW, NEVER A COLUMN. `nowrap` is the default, so a flex COLUMN matches
+     * it too, and there the union across vertically stacked children measures
+     * the widest child rather than a line that will not fit. Pointed at a
+     * correct app it faulted a form column 34px wide of its own box, where
+     * `flex-wrap: wrap` is not the repair at all: it would start a SECOND
+     * column. That is the clipped-content question, and another check owns it.
+     * Ask the direction. */
+    body: [
+      "for (const el of all('*')) {",
+      "  const cs = getComputedStyle(el)",
+      "  if (!/flex/.test(cs.display)) continue",
+      "  if (!/^row/.test(cs.flexDirection)) continue",
+      "  if (cs.flexWrap !== 'nowrap') continue",
+      "  if (cs.position === 'absolute' || cs.position === 'fixed') continue",
+      "  const inside = (node, style) => node.getBoundingClientRect().width",
+      "    - (parseFloat(style.paddingLeft) || 0) - (parseFloat(style.paddingRight) || 0)",
+      "    - (parseFloat(style.borderLeftWidth) || 0) - (parseFloat(style.borderRightWidth) || 0)",
+      "  let avail = inside(el, cs)",
+      "  const up = el.parentElement",
+      "  if (up) {",
+      "    const us = getComputedStyle(up)",
+      "    const room = inside(up, us)",
+      "    const bleeds = (parseFloat(cs.marginLeft) || 0) < 0 || (parseFloat(cs.marginRight) || 0) < 0",
+      "    const cut = /hidden|clip/.test(us.overflowX)",
+      "    if (bleeds || cut) continue",
+      "    if (room > 0) avail = Math.min(avail, room)",
+      "  }",
+      "  if (avail <= 0) continue",
+      "  let reachable = false",
+      "  let node = el",
+      "  for (let step = 0; node && step < 12; step++) {",
+      "    if (/auto|scroll/.test(getComputedStyle(node).overflowX)) { reachable = true; break }",
+      "    node = node.parentElement",
+      "  }",
+      "  if (reachable) continue",
+      "  let lo = Infinity, hi = -Infinity, kids = 0",
+      "  for (const kid of el.children) {",
+      "    const ks = getComputedStyle(kid)",
+      "    if (ks.position === 'absolute' || ks.position === 'fixed') continue",
+      "    if (ks.display === 'none') continue",
+      "    const k = kid.getBoundingClientRect()",
+      "    if (!k.width) continue",
+      "    lo = Math.min(lo, k.left)",
+      "    hi = Math.max(hi, k.right)",
+      "    kids++",
+      "  }",
+      "  if (kids < 2) continue",
+      "  const used = hi - lo",
+      "  if (used > avail + 1)",
+      "    fail(name(el), 'a row that cannot wrap holds ' + round(used) + 'px of children in the ' + round(avail) + 'px it is given, over by ' + round(used - avail) + '. Nothing on this axis scrolls, so the excess pushes the page sideways and the last control is cut off at the screen edge. A control will not shrink under its own label. Give the row flex-wrap: wrap and it breaks onto a second line instead.')",
+      "}",
+    ],
+  },
+
+  {
     id: 'a-mark-stays-inside-its-control',
     where: 'render',
     line: 'A control that draws its own mark keeps that mark inside its box.',

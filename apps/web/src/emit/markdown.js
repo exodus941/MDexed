@@ -471,6 +471,25 @@ function layoutBody(state, derived) {
       '**An ODD number of actions gives the most important one a full-width line to itself.** It goes first, at the top. In a row the primary reads last because the eye ends there; in a column the top line is the one that gets pressed. That leaves an even number to pair up below it. An EVEN number needs no such line and pairs straight away.',
       '**The rest go TWO PER LINE, equal, covering the whole width.** Each takes half the line, so every line starts and ends on the same two edges as the first — a ragged line reads as a wrap that got away rather than as a decision. Where one label is longer than its half, it takes the width it needs and its partner shrinks into what is left. Where BOTH labels are too long to share, each takes its own line at full width.',
       '**Build the pair as its own container, holding two buttons.** Two per line and "one stretches, the other shrinks" cannot both come out of one flex row. Give every button in a row `flex: 1 1 0` and the count per line is decided by the labels rather than by you — five buttons come out one, then three, then one. Give them a 50% basis instead and a `min-content` floor pushes the two bases past the line, so the row wraps rather than shrinking the partner, and one long label renders the same as two. With two children in their own container, growth splits between exactly two. Each button then takes `flex: 1 1 0` and `min-width: min-content`. Measured on a 370px row: 49/49 with both short, 58/40 with one long, 100/100 on two lines with both long.',
+
+      /* ── THE THIRD CASE NEEDS ONE MORE DECLARATION, AND IT WAS MISSING ──
+       *
+       * The rule above promises "100/100 on two lines with both long" and
+       * never says how the pair reaches a second line. A flex container does
+       * not wrap by default, so with both labels too long the pair simply
+       * overflows its row.
+       *
+       * Measured on a generated record page at a 320px viewport: the pair
+       * came out 341px inside a 280px row, on one line, and pushed the page
+       * 42px sideways. The primary button was cut off at the screen edge.
+       * `flex-wrap: wrap` on the pair took it to 280px, two lines, 280 and
+       * 280, and zero overflow.
+       *
+       * It costs nothing in the other two cases, because a container only
+       * wraps once its contents genuinely do not fit. Re-measured at 370px
+       * with wrap on: 49/49 with both short and 39/60 with one long, both on
+       * one line. */
+      '**AND THE PAIR WRAPS, WHICH IS THE ONLY WAY IT REACHES A SECOND LINE.** A flex container does not wrap by default, so a pair holding two labels that are each too long for half the row overflows instead of stacking. `white-space: nowrap` on a button means neither one can shrink below its own label, so nothing else can give. Put `flex-wrap: wrap` on the pair. Measured at a 320px viewport: without it the pair came out 341px inside a 280px row and pushed the page 42px sideways, with the primary cut off at the screen edge. With it the pair is 280px over two lines at 280 and 280, and the page does not scroll. It changes nothing at a width where the two fit.',
       '**Dissolve the pairs at any width where the row fits on one line.** `display: contents` on each pair promotes every button into the single row, at natural widths. The pairing is what a row does when it breaks, not a permanent structure.',
       '**An auto margin does not create space; it takes what the line already has.** A button held against the right edge by `margin-left: auto` needs free space on its own line to consume. Put the buttons inside a box that shrink-wraps them and there is none, so the margin resolves to zero while the bar still has room — measured at 0px against 618.6px of empty bar. Nothing reports it: the margin is declared, computed style agrees it is zero, and the button simply sits in the wrong place. Give that box `flex: 1` so the slack falls inside it.',
       '**Where two or more actions carry equal top importance, each takes its own full-width line.** Ranking is what packs a line; without a ranking there is nothing to pack by.',

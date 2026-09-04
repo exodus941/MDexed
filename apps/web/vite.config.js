@@ -195,8 +195,10 @@ export default defineConfig(({ command }) => ({
        option, and then nothing reports the next 200 kB.
        Raised to 830 at 827.55 kB. A stale limit is the same defect as a
        silenced one: it had been firing on every build at 826.33, before the
-       change that noticed it, so it had stopped meaning growth. */
-    chunkSizeWarningLimit: 830,
+       change that noticed it, so it had stopped meaning growth.
+       Raised to 856 at 854.13 kB, after the checks and the prose the last two
+       simulations earned. */
+    chunkSizeWarningLimit: 856,
   },
 
   server: {

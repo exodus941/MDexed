@@ -87,9 +87,6 @@ stated in prose.
 If two files disagree, this is the order. \`DESIGN.md\` wins over everything.
 \`tokens.css\` wins over the other token formats. The HTML examples never win.
 
-They are generated from one source and cannot really disagree. This rule
-exists so that you never have to guess if you think they do.
-
 ## Hard rules
 
 Never write a literal colour. No hex, no \`rgb()\`, no named colour. Use a
