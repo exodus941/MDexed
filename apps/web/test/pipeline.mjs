@@ -2153,6 +2153,59 @@ line('\n- depth intensity -')
   assert(DEPTHS[0].id === 'border', `borders are listed first (${DEPTHS.map(d => d.id).join()})`)
   assert(BLANK.depth === 'border', `the default separator is borders (${BLANK.depth})`)
   assert(BLANK.intensity === 'light', `the default intensity is light (${BLANK.intensity})`)
+
+  /* ── THE GROUND ANSWER HAS TO MOVE THE SAMPLE ──
+   *
+   * It shipped reading `palette.neutral` and ignoring the answer entirely, so
+   * all three choices rendered one ground: measured #0e1720 under every one of
+   * them, identical to the byte. A setting whose sample cannot move is a
+   * sample that proves the setting works.
+   *
+   * Measured on the ROLE rather than the swatch, because the wizard's panes
+   * cross-fade and the outgoing layer mounts first. */
+  {
+    const groundOf = g => derive(applyAnswers(base, { ...BLANK, ground: g })).roles
+    const low = groundOf('cool-low'), vivid = groundOf('cool-vivid')
+    assert(low.dark.bg !== vivid.dark.bg,
+      `the ground answer moves the dark page (${low.dark.bg} against ${vivid.dark.bg})`)
+    assert(low.light.bg !== vivid.light.bg,
+      `and the light page too (${low.light.bg} against ${vivid.light.bg})`)
+    const c = hex => toOklchObj(hex).c
+    assert(c(vivid.dark.surface) > c(low.dark.surface),
+      `vivid carries more chroma than low (${c(vivid.dark.surface).toFixed(4)} against ${c(low.dark.surface).toFixed(4)})`)
+    /* Every tint has to clear the dead-grey case the whole change is about. */
+    for (const g of ['accent', 'cool-low', 'cool-vivid']) {
+      const r = groundOf(g)
+      assert(c(r.dark.surface) >= 0.020, `the ${g} ground is not a dead grey (chroma ${c(r.dark.surface).toFixed(4)})`)
+    }
+  }
+
+  /* Three treatments, and the edge weight only reaches the one that draws an
+     edge. The padding has to state the SUM, or the label sits under the bar. */
+  {
+    const { SELECTION_STYLES, SELECTION_EDGES, navSelectedState } =
+      await import('../src/state/components.js')
+    assert(Object.keys(SELECTION_STYLES).length === 3,
+      `three selection treatments (${Object.keys(SELECTION_STYLES).join()})`)
+    const pad = '{spacing.xs} {spacing.sm}'
+    for (const [name, spec] of Object.entries(SELECTION_STYLES)) {
+      const props = navSelectedState(name, 'thin', pad)
+      assert(!!props.boxShadow === !!spec.edge, `${name} draws an edge only when it says it does`)
+      assert(!!props.padding === !!spec.edge, `${name} moves its label only when it draws an edge`)
+      /* The fill must never be the accent-subtle hole in dark. */
+      if (spec.edge || name === 'lift') {
+        assert(props.backgroundColor === '{colors.surface-raised}',
+          `${name} steps UP off the surface (${props.backgroundColor})`)
+      }
+    }
+    for (const [weight, spec] of Object.entries(SELECTION_EDGES)) {
+      const props = navSelectedState('lift-edge', weight, pad)
+      assert(props.boxShadow.includes(spec.width), `the ${weight} edge is ${spec.px}px (${props.boxShadow})`)
+      assert(props.padding.includes(`calc({spacing.sm} + ${spec.width})`),
+        `and the label clears it (${props.padding})`)
+    }
+  }
+
   {
     const d = applyAnswers(base, { ...BLANK })
     assert(d.macros.depth === 0, `a fresh document draws no shadow (${d.macros.depth})`)

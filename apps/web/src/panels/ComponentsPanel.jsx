@@ -10,7 +10,7 @@ import { useStore } from '../state/store.jsx'
 import { COMPONENT_LIBRARY, COMPONENT_GROUPS, TAB_STYLES, DEFAULT_TAB_STYLE } from '../state/components.js'
 import { SPEC_COMPONENT_PROPS } from '../emit/yaml.js'
 import { LAYOUT_BY_NAME, fieldActive } from '../state/componentLayout.js'
-import { SectionHeader, Toggle, ResetButton, Banner, Collapsible, Expand, FilterField, Segmented, PAD, SnapSlider } from '../ui/controls.jsx'
+import { SectionHeader, Toggle, ResetButton, Banner, Collapsible, Expand, FilterField, Segmented, PAD, SnapSlider, ChoiceCard } from '../ui/controls.jsx'
 import { useRevealWithin, revealStyle } from '../ui/reveal.js'
 import TokenColorPicker, { paletteGroups } from '../ui/TokenColorPicker.jsx'
 import { RAMP_STEPS, resolveRef } from '../color/ramp.js'
@@ -559,30 +559,22 @@ function TabStyleChoice({ id, spec, roles, selected, onPick }) {
     )
   }
 
+  /* The frame, the selected edge and the name over the description belong to
+     every picker in the app equally, so they come from ChoiceCard. Only the
+     sample is this picker's own. */
   return (
-    <button type="button" onClick={onPick} aria-pressed={selected}
-      title={spec.desc}
-      style={{
-        display: 'flex', alignItems: 'center', gap: 12, width: '100%', textAlign: 'left',
-        padding: 8, cursor: 'pointer', borderRadius: 8,
-        background: selected ? 'rgb(var(--accent-rgb) / .10)' : 'var(--surf)',
-        border: '1px solid ' + (selected ? 'rgb(var(--accent-rgb) / .45)' : 'var(--bdr)'),
-        color: 'var(--text)', fontFamily: 'var(--sans)',
-      }}>
-      {/* The sample sits on the document's surface, not the editor's, or the
-          strip's own rule is measured against the wrong background. */}
-      <span style={{
-        display: 'flex', gap: 4, flexShrink: 0, padding: pill ? '4px 6px' : '0 6px',
-        background: roles.surface, borderRadius: 6,
-        borderBottom: pill ? '1px solid transparent' : `1px solid ${roles.border}`,
-      }}>
-        {tab('Meta', 'idle')}{tab('Colour', 'on')}{tab('Type', 'off')}
-      </span>
-      <span style={{ minWidth: 0 }}>
-        <span style={{ display: 'block', fontSize: 12, fontWeight: 500 }}>{spec.label}</span>
-        <span style={{ display: 'block', fontSize: 12, color: 'var(--muted)', marginTop: 1 }}>{spec.desc}</span>
-      </span>
-    </button>
+    <ChoiceCard label={spec.label} desc={spec.desc} selected={selected} onPick={onPick}
+      sample={
+        /* The sample sits on the document's surface, not the editor's, or the
+           strip's own rule is measured against the wrong background. */
+        <span style={{
+          display: 'flex', gap: 4, flexShrink: 0, padding: pill ? '4px 6px' : '0 6px',
+          background: roles.surface, borderRadius: 6,
+          borderBottom: pill ? '1px solid transparent' : `1px solid ${roles.border}`,
+        }}>
+          {tab('Meta', 'idle')}{tab('Colour', 'on')}{tab('Type', 'off')}
+        </span>
+      } />
   )
 }
 

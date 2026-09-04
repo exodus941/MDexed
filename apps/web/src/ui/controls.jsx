@@ -637,6 +637,35 @@ export function Segmented({ options, value, onChange, size = 'md', full }) {
   )
 }
 
+/* ── A choice with a live sample beside its name ──
+ *
+ * Extracted from the tab-style picker, which was the only one of these and
+ * had grown its own copy of the frame. Three pickers now share it: the tab
+ * strip, the ground tint and the selection mark. A second hand-rolled copy is
+ * how two pickers end up looking like different kinds of control.
+ *
+ * The caller supplies `sample`, because only the caller knows what its own
+ * decision looks like. Everything around it — the frame, the selected edge,
+ * the name over the description — belongs to every picker equally. */
+export function ChoiceCard({ sample, label, desc, selected, onPick, title }) {
+  return (
+    <button type="button" onClick={onPick} aria-pressed={selected} title={title ?? desc}
+      style={{
+        display: 'flex', alignItems: 'center', gap: 12, width: '100%', textAlign: 'left',
+        padding: 8, cursor: 'pointer', borderRadius: 8,
+        background: selected ? 'rgb(var(--accent-rgb) / .10)' : 'var(--surf)',
+        border: '1px solid ' + (selected ? 'rgb(var(--accent-rgb) / .45)' : 'var(--bdr)'),
+        color: 'var(--text)', fontFamily: 'var(--sans)',
+      }}>
+      {sample}
+      <span style={{ minWidth: 0 }}>
+        <span style={{ display: 'block', fontSize: 12, fontWeight: 500 }}>{label}</span>
+        {desc && <span style={{ display: 'block', fontSize: 12, color: 'var(--muted)', marginTop: 1 }}>{desc}</span>}
+      </span>
+    </button>
+  )
+}
+
 export function Toggle({ label, checked, onChange, desc }) {
   return (
     <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, cursor: 'pointer', textTransform: 'none', letterSpacing: 'normal', fontSize: 14, color: 'var(--text)', fontWeight: 400, marginBottom: 0 }}>

@@ -341,6 +341,99 @@ export const TAB_STYLES = {
 
 export const DEFAULT_TAB_STYLE = 'underline'
 
+/* ── Three ways to mark a selected row, and the edge that goes with one ──
+ *
+ * The shipped treatment was a tinted fill with accent text, and in DARK that
+ * resolves to `accent-subtle` at L 23.8 on a surface at L 27.6. The fill is
+ * DARKER than the ground it sits on, so a selected row read as a hole with a
+ * green label floating in it. The dark chroma floor fixed the ground under it
+ * and left the hole intact, because the hole is a role choice rather than a
+ * ramp problem.
+ *
+ * So the treatment is a setting now. The three differ on which channel
+ * carries the mark, which is the axis a reader actually reads:
+ *
+ *   tint       the FILL carries it, and the label goes with it
+ *   lift       the LIGHTNESS carries it, and the label goes near-white
+ *   lift-edge  the lightness carries it and an accent bar names it
+ *
+ * `lift` steps UP to `surface-raised`, never down. A selected row is nearer
+ * the reader than the rows around it, and every dark dashboard worth copying
+ * draws it that way.
+ *
+ * THE EDGE COSTS PADDING. A bar drawn inside the box eats the label's left
+ * inset, so the text has to move by the bar's own width or the two touch. The
+ * padding below is the base inset plus that width, which is why the edge
+ * thickness and the padding are one decision and one setting. */
+export const SELECTION_EDGES = {
+  thin:   { label: 'Thin',   width: '{spacing.2xs}', px: 4 },
+  medium: { label: 'Medium', width: '{spacing.sm}',  px: 8 },
+  wide:   { label: 'Wide',   width: '{spacing.md}',  px: 12 },
+}
+
+export const DEFAULT_SELECTION_EDGE = 'thin'
+
+export const SELECTION_STYLES = {
+  tint: {
+    label: 'Accent tint',
+    desc: 'The fill carries the mark. An accent wash with an accent label.',
+    edge: false,
+    states: {
+      hover:    { _: { backgroundColor: '{colors.bg-subtle}', textColor: '{colors.text}' } },
+      selected: { _: { backgroundColor: '{colors.accent-subtle}', textColor: '{colors.accent}' } },
+    },
+  },
+  lift: {
+    label: 'Lift',
+    desc: 'The lightness carries the mark. A raised surface with a full-strength label.',
+    edge: false,
+    states: {
+      hover:    { _: { backgroundColor: '{colors.bg-subtle}', textColor: '{colors.text}' } },
+      selected: { _: { backgroundColor: '{colors.surface-raised}', textColor: '{colors.text}' } },
+    },
+  },
+  'lift-edge': {
+    label: 'Lift with edge',
+    desc: 'A raised surface, a full-strength label, and an accent bar on the leading edge.',
+    edge: true,
+    states: {
+      hover:    { _: { backgroundColor: '{colors.bg-subtle}', textColor: '{colors.text}' } },
+      selected: { _: { backgroundColor: '{colors.surface-raised}', textColor: '{colors.text}' } },
+    },
+  },
+}
+
+export const DEFAULT_SELECTION_STYLE = 'lift-edge'
+
+/** The chosen selection treatment, or the default when the name is unknown. */
+export function selectionStyle(name) {
+  return SELECTION_STYLES[name] ? name : DEFAULT_SELECTION_STYLE
+}
+
+/** The chosen edge weight, or the default when the name is unknown. */
+export function selectionEdge(name) {
+  return SELECTION_EDGES[name] ? name : DEFAULT_SELECTION_EDGE
+}
+
+/* The selected state for a nav item, with the edge and its padding folded in.
+ *
+ * The bar is an inset box-shadow, never a border. A border makes the row wider
+ * by its own width and pushes every label in the list across by it, so only
+ * the selected row would line up differently from its neighbours. */
+export function navSelectedState(styleName, edgeName, basePadding) {
+  const style = SELECTION_STYLES[selectionStyle(styleName)]
+  const props = { ...style.states.selected._ }
+  if (!style.edge) return props
+  const edge = SELECTION_EDGES[selectionEdge(edgeName)]
+  props.boxShadow = `inset ${edge.width} 0 0 {colors.accent}`
+  /* The base inset, moved clear of the bar. `basePadding` arrives as the
+     component's own shorthand, so the vertical half is kept verbatim. */
+  const parts = String(basePadding ?? '{spacing.xs} {spacing.sm}').trim().split(/\s+/)
+  const y = parts[0], x = parts[1] ?? parts[0]
+  props.padding = `${y} ${x} ${y} calc(${x} + ${edge.width})`
+  return props
+}
+
 /* The document's treatment, or the default when the name is unknown.
  *
  * A promotion once lived here: a strip under a major rule was forced to the
@@ -381,15 +474,30 @@ const toProps = obj =>
  */
 export function expandComponents(cfg = {}) {
   const { enabled = {}, overrides = {}, emitStates = true, emitSizes = true,
-    tabStyle = DEFAULT_TAB_STYLE } = cfg
+    tabStyle = DEFAULT_TAB_STYLE,
+    selection = DEFAULT_SELECTION_STYLE, selectionEdgeWeight = DEFAULT_SELECTION_EDGE } = cfg
   const out = []
 
   for (const rawDef of COMPONENT_LIBRARY) {
     /* The tab's states come from the chosen style rather than the library, so
        one setting swaps the whole treatment and no entry states both. */
-    const def = rawDef.name === 'tab'
-      ? { ...rawDef, states: (TAB_STYLES[tabStyle] ?? TAB_STYLES[DEFAULT_TAB_STYLE]).states }
-      : rawDef
+    let def = rawDef
+    if (rawDef.name === 'tab') {
+      def = { ...rawDef, states: (TAB_STYLES[tabStyle] ?? TAB_STYLES[DEFAULT_TAB_STYLE]).states }
+    }
+    /* Same for the nav item's selected state, which carries the chosen
+       treatment plus the edge padding that goes with it. */
+    if (rawDef.name === 'nav-item') {
+      const chosen = SELECTION_STYLES[selectionStyle(selection)]
+      def = {
+        ...rawDef,
+        states: {
+          ...rawDef.states,
+          hover: chosen.states.hover,
+          selected: { _: navSelectedState(selection, selectionEdgeWeight, rawDef.base?.padding) },
+        },
+      }
+    }
     const isOn = enabled[def.name] ?? def.on
     if (!isOn) continue
 

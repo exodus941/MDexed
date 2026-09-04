@@ -718,6 +718,65 @@ export const CHECKS = [
   },
 
   {
+    id: 'a-selected-row-is-a-step-off-its-ground',
+    where: 'render',
+    line: 'A selected row differs from the ground it sits on by a step the eye can find.',
+    /* ── THE FILL AND THE GROUND WERE THE SAME COLOUR ──
+     *
+     * A selection has to be FOUND, not noticed once you are already looking.
+     * The failure this catches is the fill resolving to the surface it sits on,
+     * which happens whenever a role is reused for two jobs: measured 1.00:1 on
+     * one build, where the row was marked and nothing showed.
+     *
+     * ASKS ONLY WHAT IS UNAMBIGUOUS. Which DIRECTION the step goes is a
+     * treatment decision: a tinted band a little darker than the card is the
+     * conventional marked row in light, and the same step in dark reads as a
+     * hole. DESIGN.md carries that judgement with the numbers. A checker that
+     * enforced one direction would fault a treatment this system offers, and a
+     * check that fires on a shipped option is noise.
+     *
+     * 1.06 is the floor a hairline needs to be seen at all, and it is the same
+     * number the stripe and the selection were separated by when those were
+     * measured: 1.13 and 1.27 against the surface, 1.12 between them. */
+    body: [
+      "const lum = hex => { const c = hex.match(/[0-9a-f]{2}/gi)",
+      "  if (!c || c.length < 3) return null",
+      "  const v = c.slice(0, 3).map(h => { const s = parseInt(h, 16) / 255",
+      "    return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4) })",
+      "  return 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2] }",
+      /* ── A TRANSPARENT COLOUR IS NOT BLACK ──
+       *
+       * `getComputedStyle` reports no fill as `rgba(0, 0, 0, 0)`, and a regex
+       * that reads three channels and ignores the fourth returns black for it.
+       * The ground walk then stopped at the FIRST transparent parent and
+       * compared a light row against #000000, which is a huge ratio, so an
+       * injected 1.00:1 selection came back clean. Read the alpha. */
+      "const hexOf = rgb => { const m = /rgba?\\(([^)]*)\\)/.exec(rgb || '')",
+      "  if (!m) return null",
+      "  const p = m[1].split(',').map(s => parseFloat(s))",
+      "  if (p.length < 3 || p.some(n => !isFinite(n))) return null",
+      "  if (p.length > 3 && p[3] === 0) return null",
+      "  return '#' + p.slice(0, 3).map(n => Math.round(n).toString(16).padStart(2, '0')).join('') }",
+      "for (const el of all('[aria-current], [aria-selected=\"true\"]')) {",
+      "  const cs = getComputedStyle(el)",
+      "  const own = hexOf(cs.backgroundColor)",
+      "  if (!own) continue",
+      "  let node = el.parentElement, ground = null",
+      "  for (let up = 0; node && up < 6; up++, node = node.parentElement) {",
+      "    const g = hexOf(getComputedStyle(node).backgroundColor)",
+      "    if (g) { ground = g; break }",
+      "  }",
+      "  if (!ground) continue",
+      "  const a = lum(own), b = lum(ground)",
+      "  if (a == null || b == null) continue",
+      "  const ratio = (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05)",
+      "  if (ratio < 1.06)",
+      "    fail(name(el), 'this row is marked and its fill reads ' + ratio.toFixed(2) + ':1 against the ground behind it, so nothing shows. A selection has to be found rather than noticed once you are already looking. Step the fill off the surface, and give the mark a second channel: an edge, or a full-strength label.')",
+      "}",
+    ],
+  },
+
+  {
     id: 'a-split-collapses-before-its-table-scrolls',
     where: 'render',
     line: 'A scroller never clips while its row still holds two columns and the whole row would fit it.',

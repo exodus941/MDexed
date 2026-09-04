@@ -5,6 +5,7 @@
 import { useState, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useStore } from '../state/store.jsx'
+import { derive } from '../state/derive.js'
 import { uid } from '../state/schema.js'
 import { RAMP_STEPS, DEFAULT_SHAPE, resolveRef } from '../color/ramp.js'
 import { generatePalette, HARMONIES, INTENSITIES } from '../color/palette.js'
@@ -13,7 +14,9 @@ import ColorPicker from '../ui/ColorPicker.jsx'
 import TokenColorPicker, { paletteGroups } from '../ui/TokenColorPicker.jsx'
 import { viewport } from '../ui/zoom.js'
 import { GRADIENT_TYPES, GRADIENT_PURPOSES, purposeOf } from '../color/modes.js'
-import { SectionHeader, Collapsible, Expand, Slider, NumField, Toggle, OverrideBadge, ConfirmDelete, Banner, Plus, PAD, BTN } from '../ui/controls.jsx'
+import { GROUND_TINTS, groundSeedHex, groundTintOf, tintsCollide } from '../color/ground.js'
+import { SELECTION_STYLES, SELECTION_EDGES, selectionStyle, selectionEdge } from '../state/components.js'
+import { SectionHeader, Collapsible, Expand, Slider, NumField, Toggle, OverrideBadge, ConfirmDelete, Banner, Plus, PAD, BTN, ChoiceCard, Segmented } from '../ui/controls.jsx'
 import { useAi } from '../ai/ui.jsx'
 import { complete } from '../ai/client.js'
 import { systemPrompt, gradientNotePrompt } from '../ai/prompts.js'
@@ -435,6 +438,152 @@ function GradientRow({ grad, css, options, resolved, onChange, onDelete }) {
   )
 }
 
+/* ── Ground Tint ──
+ *
+ * A shortcut to the neutral seed, not a second source of truth. Picking a
+ * tint writes the seed; editing the seed by hand leaves nothing selected and
+ * the readout says Custom. So the swatch above always shows what the page
+ * renders, and there is no stored name to disagree with a stored hex. */
+function GroundTint() {
+  const { state, derived, set } = useStore()
+  const seeds = state.color.seeds
+  const neutral = seeds.find(s => s.name === 'neutral')
+  const accent = seeds.find(s => s.name === 'accent')
+  if (!neutral || !accent) return null
+
+  const current = groundTintOf(neutral.hex, accent.hex)
+  const collide = tintsCollide(accent.hex)
+  const pick = key => set(s => ({
+    ...s,
+    color: {
+      ...s.color,
+      seeds: s.color.seeds.map(sd =>
+        sd.name === 'neutral' ? { ...sd, hex: groundSeedHex(key, accent.hex) } : sd),
+    },
+  }), 'ground tint')
+
+  const dark = derived.roles.dark
+  return (
+    <Collapsible title="Ground Tint" note={GROUND_TINTS[current]?.label ?? 'Custom'}>
+      <p className="panel-note" style={{ marginBottom: 12 }}>
+        The neutral seed decides every surface and border, so it decides whether the page reads as
+        a room or as a grey slab with a colour on it. Light barely changes. Dark changes completely.
+      </p>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {Object.entries(GROUND_TINTS).map(([key, spec]) => {
+          const hex = groundSeedHex(key, accent.hex)
+          /* The sample is the ground itself, so it shows the page and a card
+             on it rather than the seed. A seed swatch at L 53 tells you
+             nothing about a surface at L 27. */
+          const probe = derive({ ...state, color: { ...state.color, seeds: state.color.seeds.map(sd => sd.name === 'neutral' ? { ...sd, hex } : sd) } })
+          const D = probe.roles.dark
+          return (
+            <ChoiceCard key={key} label={spec.label} desc={spec.desc} title={hex}
+              selected={current === key} onPick={() => pick(key)}
+              sample={
+                <span aria-hidden="true" style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  flexShrink: 0, width: 54, height: 34, borderRadius: 6,
+                  background: D.bg, border: `1px solid ${D['border-subtle']}`,
+                }}>
+                  <span style={{
+                    width: 30, height: 16, borderRadius: 4,
+                    background: D.surface, border: `1px solid ${D['border-subtle']}`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <span style={{ width: 10, height: 4, borderRadius: 2, background: D.accent }} />
+                  </span>
+                </span>
+              } />
+          )
+        })}
+      </div>
+      {collide && (
+        <p className="panel-note" style={{ marginTop: 8 }}>
+          This accent is already a cool hue, so <strong>Accent hue</strong> and{' '}
+          <strong>Cool, low chroma</strong> write the same colour.
+        </p>
+      )}
+      {current === 'custom' && (
+        <p className="panel-note" style={{ marginTop: 8 }}>
+          The neutral seed was set by hand. Pick a tint to replace it.
+        </p>
+      )}
+      <p className="panel-note" style={{ marginTop: 8 }}>
+        Dark ground now <code>{dark.bg}</code>, cards <code>{dark.surface}</code>.
+      </p>
+    </Collapsible>
+  )
+}
+
+/* ── Selection ──
+ *
+ * Which channel marks a selected row. The shipped treatment put an
+ * accent-subtle fill on a surface that is LIGHTER than it in dark, so a
+ * selected row read as a hole. Three treatments, and the edge weight only
+ * exists for the one that draws an edge. */
+function SelectionMark() {
+  const { state, derived, set } = useStore()
+  const cfg = state.components ?? {}
+  const style = selectionStyle(cfg.selection)
+  const edge = selectionEdge(cfg.selectionEdge)
+  const drawsEdge = SELECTION_STYLES[style]?.edge
+  const R = derived.roles[state.color.mode] ?? derived.roles.light
+
+  const pick = key => set(s => ({ ...s, components: { ...s.components, selection: key } }), 'selection style')
+  const pickEdge = key => set(s => ({ ...s, components: { ...s.components, selectionEdge: key } }), 'selection edge')
+
+  const fillOf = k => k === 'tint' ? R['accent-subtle'] : R['surface-raised']
+  const textOf = k => k === 'tint' ? R.accent : R.text
+
+  return (
+    <Collapsible title="Selection" note={SELECTION_STYLES[style]?.label}>
+      <p className="panel-note" style={{ marginBottom: 12 }}>
+        Sets <code>nav-item-selected</code> and <code>nav-item-hover</code> together.
+      </p>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {Object.entries(SELECTION_STYLES).map(([key, spec]) => {
+          const row = (label, on) => (
+            <span key={label} style={{
+              display: 'block', lineHeight: '18px', fontSize: 11, borderRadius: 4,
+              whiteSpace: 'nowrap', overflow: 'hidden',
+              fontWeight: on ? 500 : 400,
+              background: on ? fillOf(key) : 'transparent',
+              color: on ? textOf(key) : R['text-muted'],
+              boxShadow: on && spec.edge ? `inset ${SELECTION_EDGES[edge].px}px 0 0 ${R.accent}` : 'none',
+              paddingLeft: on && spec.edge ? 6 + SELECTION_EDGES[edge].px : 6,
+              paddingRight: 6,
+            }}>{label}</span>
+          )
+          return (
+            <ChoiceCard key={key} label={spec.label} desc={spec.desc}
+              selected={style === key} onPick={() => pick(key)}
+              sample={
+                <span aria-hidden="true" style={{
+                  display: 'flex', flexDirection: 'column', gap: 2, flexShrink: 0,
+                  width: 86, padding: 4, borderRadius: 6,
+                  background: R.surface, border: `1px solid ${R['border-subtle']}`,
+                }}>
+                  {row('Overview', true)}{row('Accounts', false)}
+                </span>
+              } />
+          )
+        })}
+      </div>
+      {drawsEdge && (
+        <div style={{ marginTop: 12 }}>
+          <Segmented value={edge} onChange={pickEdge} full
+            options={Object.entries(SELECTION_EDGES).map(([key, spec]) => ({ value: key, label: `${spec.label} ${spec.px}px` }))} />
+          <p className="panel-note" style={{ marginTop: 8 }}>
+            The label moves clear of the bar, so its inset becomes{' '}
+            <code>calc({'{spacing.sm}'} + {SELECTION_EDGES[edge].width})</code>.
+          </p>
+        </div>
+      )}
+    </Collapsible>
+  )
+}
+
 export default function ColorPanel() {
   const { state, derived, set } = useStore()
   const { color } = state
@@ -588,6 +737,9 @@ export default function ColorPanel() {
           {SEED_NAME_SUGGESTIONS.filter(n => !color.seeds.some(s => s.name === n)).map(n => <option key={n} value={n} />)}
         </datalist>
       </Collapsible>
+
+      <GroundTint />
+      <SelectionMark />
 
       <Collapsible title="Scale Shape" note="advanced">
         <p className="panel-note" style={{ marginBottom: 12 }}>

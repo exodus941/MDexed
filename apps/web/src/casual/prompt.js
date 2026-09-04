@@ -99,6 +99,10 @@ export function buildPrompt(answers) {
     '## What I chose',
     '',
     bullet(`Palette: ${a.palette.label}. Hue range ${a.palette.hue}. Start from ${a.palette.seed}.`),
+    /* The ground is a SEED, so the bullet names the control that writes it
+       rather than a hex. A hex here would go stale the moment the accent
+       moves, because the accent-hue tint reads the accent's own hue. */
+    bullet(`Ground: ${a.ground.label}. Pick it under Ground Tint in the Colour panel, which writes the neutral seed.`),
     bullet(`Brand colours: ${brand}.`),
     bullet(`Type: ${a.type.label}. ${a.type.display} for display, ${a.type.body} for body, ${a.type.mono} for mono.`),
     bullet(`Tightness: ${a.tightness.label}. Set the density macro to ${a.tightness.density}.`),

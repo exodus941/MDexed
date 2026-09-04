@@ -2,7 +2,7 @@
  *
  * A first visit opens on an editor with 116 controls in it, and the person who
  * came to get a design system has to become a design-system editor first. This
- * is the other door: seven question pages, then a prompt they paste into an
+ * is the other door: a question page each, then a prompt they paste into an
  * agent that drives the app for them.
  *
  * THE THIRD LINE IS NOT A THIRD DOOR. Restoring the last document already
@@ -17,7 +17,7 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { PAD, BTN, MODAL_BTN, CloseButton, Collapsible } from '../ui/controls.jsx'
-import { PALETTES, TYPE_PAIRINGS, TIGHTNESS, SHAPES, DEPTHS, INTENSITIES, THEMES, BLANK, STEPS, BRAND_MAX } from './answers.js'
+import { PALETTES, GROUNDS, TYPE_PAIRINGS, TIGHTNESS, SHAPES, DEPTHS, INTENSITIES, THEMES, BLANK, STEPS, BRAND_MAX } from './answers.js'
 import { buildPrompt, promptFilename, MDEXED_URL } from './prompt.js'
 import { IconSend, IconUser, IconFolder, IconPlus } from '../preview/icons.jsx'
 import CrossFade from '../ui/CrossFade.jsx'
@@ -314,6 +314,12 @@ export default function CasualWizard({ onClose, onBack, leaving }) {
           {STEPS[step].id === 'palette' && (
             <Field label="Hue Range" note="A range, not a swatch. The agent picks inside it.">
               <Choices options={PALETTES} value={a.palette} onChange={v => set('palette', v)} columns={2} />
+            </Field>
+          )}
+
+          {STEPS[step].id === 'ground' && (
+            <Field label="Ground Tint" note="What every surface and border is made of. Barely visible in light, decisive in dark.">
+              <Choices options={GROUNDS} value={a.ground} onChange={v => set('ground', v)} columns={1} />
             </Field>
           )}
 

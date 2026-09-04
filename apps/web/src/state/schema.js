@@ -6,7 +6,7 @@
    system instead of leaving stale values behind. */
 import { DEFAULT_SHAPE } from '../color/ramp.js'
 /* Safe: components.js imports nothing, so this cannot cycle back. */
-import { DEFAULT_TAB_STYLE } from './components.js'
+import { DEFAULT_TAB_STYLE, DEFAULT_SELECTION_STYLE, DEFAULT_SELECTION_EDGE } from './components.js'
 
 export const SCHEMA_VERSION = 3
 
@@ -564,7 +564,7 @@ export const createInitialState = () => ({
      costs. */
     seeds: [
       { id: 'sd-accent',  name: 'accent',  hex: '#1771bf', desc: 'Primary action and emphasis' },
-      { id: 'sd-neutral', name: 'neutral', hex: '#627072', desc: 'Surfaces, text, borders' },
+      { id: 'sd-neutral', name: 'neutral', hex: '#606f7e', desc: 'Surfaces, text, borders' },
       { id: 'sd-success', name: 'success', hex: '#007974', desc: 'Confirmation' },
       { id: 'sd-warning', name: 'warning', hex: '#966b00', desc: 'Caution' },
       { id: 'sd-danger',  name: 'danger',  hex: '#c13e2e', desc: 'Destructive and errors' },
@@ -729,7 +729,13 @@ export const createInitialState = () => ({
      through `resolveAllLayouts`, which fills the defaults. */
   /* `tabStyle` picks which treatment marks a selected tab. See TAB_STYLES:
      `underline` for a strip that sits on a rule, `pill` for one that floats. */
-  components: { enabled: {}, overrides: defaultComponentOverrides(), custom: [], emitStates: true, emitSizes: true, layout: {}, tabStyle: DEFAULT_TAB_STYLE },
+  /* `selection` picks which channel marks a selected row, and `selectionEdge`
+     the bar's weight where the treatment draws one. Both live here rather
+     than under `color`, because they are component STATE definitions exactly
+     like `tabStyle` is. Their control sits in the Colour panel, next to the
+     seed the ground tint moves, which is a question about where a person
+     looks rather than about what the value is. See SELECTION_STYLES. */
+  components: { enabled: {}, overrides: defaultComponentOverrides(), custom: [], emitStates: true, emitSizes: true, layout: {}, tabStyle: DEFAULT_TAB_STYLE, selection: DEFAULT_SELECTION_STYLE, selectionEdge: DEFAULT_SELECTION_EDGE },
 
   voice: {
     /* The single source of truth for label capitalisation.

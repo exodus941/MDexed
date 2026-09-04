@@ -1,6 +1,6 @@
 /* ── THE WIZARD'S QUESTIONS, AND WHAT EACH ANSWER IS ──
  *
- * Seven pages, one aspect each, and the last of them carries the three that
+ * One page per aspect, and the last of them carries the three that
  * used to hide behind a disclosure. Every answer maps onto a field the schema
  * already has, so the prompt can name a real value instead of a mood. That
  * mapping is the whole reason the wizard stays this short: the agent is told
@@ -15,6 +15,8 @@
 /* A hue range in OKLCH degrees, plus the seed the agent should start from. The
    seeds are lifted from the shipped presets rather than invented, so every one
    of them is a palette that already audits clean. */
+import { groundSeedHex } from '../color/ground.js'
+
 export const PALETTES = [
   { id: 'cool',    label: 'Cool',    hue: '180–260°', seed: '#1771bf', neutral: '#5c6a72', note: 'Blues and teals. The safe default for software.' },
   { id: 'warm',    label: 'Warm',    hue: '20–60°',   seed: '#b8422e', neutral: '#7a736c', note: 'Rusts and ambers. Reads editorial.' },
@@ -121,6 +123,24 @@ export const THEMES = [
   { id: 'both',  label: 'Both',       note: 'Both themes, and a visible toggle.' },
 ]
 
+/* ── The ground ──
+ *
+ * The neutral seed decides every surface and border, so it decides whether a
+ * page reads as a room with a coloured button in it or as a grey slab with a
+ * foreign hue stuck on. It hardly shows in light, where the ground sits near
+ * white and the eye cannot see the difference. It decides everything in dark.
+ *
+ * `tint` is the key `color/ground.js` knows, so the wizard names the same
+ * three the editor offers and neither can drift. */
+export const GROUNDS = [
+  { id: 'accent',     tint: 'accent',     label: 'Accent Hue',
+    note: 'The ground joins the accent’s own family. Quietest.' },
+  { id: 'cool-low',   tint: 'cool-low',   label: 'Cool, Low Chroma',
+    note: 'A cool slate under any accent. Hue without becoming a colour.' },
+  { id: 'cool-vivid', tint: 'cool-vivid', label: 'Cool, Vivid Chroma',
+    note: 'A blue room. The strongest separation from the accent.' },
+]
+
 /* Six, not three. A system with six brand colours is a choice somebody can
    defend, and refusing the sixth is us deciding for them. */
 export const BRAND_MAX = 6
@@ -128,6 +148,7 @@ export const BRAND_MAX = 6
 export const BLANK = {
   building: '',
   palette: 'cool',
+  ground: 'cool-low',
   type: 'neutral',
   tightness: 'balanced',
   brand: [],
@@ -154,6 +175,9 @@ export const STEPS = [
   { id: 'theme',     title: 'Light, Dark, or Both?', sample: 'theme' },
   { id: 'colours',   title: 'Your Colours',   sample: 'palette' },
   { id: 'palette',   title: 'Palette',        sample: 'palette' },
+  /* Right after the hue range, because the two are the same question asked of
+     the two seeds that matter: what the accent is, and what it stands on. */
+  { id: 'ground',    title: 'The Ground',     sample: 'palette' },
   { id: 'type',      title: 'Type',           sample: 'type' },
   { id: 'tightness', title: 'Tightness',      sample: 'tightness' },
   { id: 'more',      title: 'More Choices',   sample: 'more' },
@@ -169,6 +193,7 @@ export function resolve(a) {
   return {
     building: (a.building || '').trim(),
     palette: find(PALETTES, a.palette),
+    ground: find(GROUNDS, a.ground),
     type: find(TYPE_PAIRINGS, a.type),
     tightness: find(TIGHTNESS, a.tightness),
     shape: find(SHAPES, a.shape),
@@ -207,11 +232,21 @@ export function cardEdge (r) {
  */
 export function applyAnswers(base, a) {
   const r = resolve(a)
+  const accentHex = r.brand[0] || r.palette.seed
   const seeds = (base.color?.seeds ?? []).map(s => {
-    if (s.name === 'accent') return { ...s, hex: r.brand[0] || r.palette.seed }
-    /* The palette's own neutral, unless they pinned one. This is what keeps the
-       palette page alive once the brand list covers the accent. */
-    if (s.name === 'neutral') return { ...s, hex: r.palette.neutral }
+    if (s.name === 'accent') return { ...s, hex: accentHex }
+    /* ── THE GROUND ANSWER WRITES THIS, THROUGH THE SAME FUNCTION THE EDITOR
+       USES ──
+     *
+     * It used to take `r.palette.neutral`, so the Ground page had no effect on
+     * anything. Measured on the three choices: the dark pane rendered
+     * rgb(15, 23, 28) under all of them, identical to the byte. A setting whose
+     * sample cannot move is a sample that proves the setting works.
+     *
+     * `groundSeedHex` is the one writer, so the wizard's preview and the panel
+     * cannot drift into two readings of one choice. The accent hex goes in
+     * because the accent-hue tint reads the accent's own hue. */
+    if (s.name === 'neutral') return { ...s, hex: groundSeedHex(r.ground.tint, accentHex) ?? r.palette.neutral }
     /* A second and third brand colour land on the next two seeds that are not
        the neutral. The neutral carries the surfaces and taking a brand colour
        there would tint every panel. */
