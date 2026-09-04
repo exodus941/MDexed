@@ -365,15 +365,70 @@ export const CHECKS = [
   {
     id: 'icon-on-the-cap-band',
     where: 'render',
-    line: 'Every icon beside a label sits between that label’s cap line and its baseline.',
+    line: 'Every mark beside a label sits between that label’s cap line and its baseline.',
+    /* ── A MARK THAT CARRIES ITS OWN TEXT IS STILL A MARK ──
+     *
+     * This asked only for `svg, img`, so an avatar or a brand square was
+     * never measured. Those are the ones that go furthest wrong, because a
+     * box taller than the cap band it sits beside is positioned by its OWN
+     * letters rather than by the band.
+     *
+     * Measured on a generated dashboard: a 32px brand square beside an 18px
+     * name hung 6px above the cap line against 13px below the baseline, so it
+     * sat 3.5px low. Its initials were exactly on the row's baseline and the
+     * spread across the row read 0.00, which is why every baseline check
+     * passed. The BOX was the thing out of place.
+     *
+     * The container is asked too, not just a control, because a brand lockup
+     * is a plain box holding a square and a word. */
     body: [
-      "for (const el of all('button, a, label, .btn, .nav-item')) {",
-      "  const mark = el.querySelector('svg, img'), band = capBand(el)",
-      "  if (!mark || !band) continue",
+      "const HOLDERS = 'button, a, label, .btn, .nav-item, .brand, [class*=brand], [class*=lockup]'",
+      "/* A LABEL CLIPPED TO A PIXEL IS NOT A LABEL. A visually hidden name",
+      "   has a box, and comparing a 16px mark against it produced 13.5px",
+      "   above the cap against -9.5 below on a correct icon-only control. */",
+      "const readable = el => { const b = el.getBoundingClientRect()",
+      "  const cs = getComputedStyle(el)",
+      "  return b.width > 4 && b.height > 4 && cs.visibility !== 'hidden' && cs.opacity !== '0' }",
+      "for (const el of all(HOLDERS)) {",
+      "  /* ASK THE PROPERTY, NOT THE CLASS NAME. A list of names finds the",
+      "     cases somebody already thought of: a square built as .sq rather",
+      "     than .brand-mark was never measured. A mark is a DRAWING, or a",
+      "     sibling that paints its own box and is roughly square. */",
+      "  const paintsABox = n => { const cs = getComputedStyle(n), b = n.getBoundingClientRect()",
+      "    if (!b.width || !b.height) return false",
+      "    const ratio = b.width / b.height",
+      "    if (ratio < 0.7 || ratio > 1.45) return false",
+      "    const bg = cs.backgroundColor",
+      "    const open = bg ? bg.indexOf('(') : -1",
+      "    const parts = open < 0 ? [] : bg.slice(open + 1, bg.lastIndexOf(')')).split(',')",
+      "    const filled = !!bg && bg !== 'transparent' && (parts.length < 4 || parseFloat(parts[3]) > 0)",
+      "    const edged = parseFloat(cs.borderTopWidth) > 0",
+      "    return filled || edged || cs.backgroundImage !== 'none' }",
+      "  let mark = el.querySelector('svg, img')",
+      "  if (!mark) {",
+      "    for (const kid of el.children) if (paintsABox(kid)) { mark = kid; break }",
+      "  }",
+      "  if (!mark) continue",
       "  const r = boxOf(mark); if (!r) continue",
+      "  /* FIND THE MARK FIRST, THEN ITS OWN LABEL. Looking for the first",
+      "     text-bearing descendant found the MARK, because a brand square",
+      "     carries initials, and the check then compared the mark with",
+      "     itself and skipped. The label is a SIBLING of the mark: without",
+      "     that, a container holding another control reports a mark against",
+      "     a heading rows away from it. */",
+      "  let band = readable(el) ? capBand(el) : null",
+      "  if (!band) {",
+      "    for (const sib of Array.prototype.slice.call(mark.parentElement.children)) {",
+      "      if (sib === mark || sib.contains(mark)) continue",
+      "      if (!readable(sib)) continue",
+      "      const b = capBand(sib)",
+      "      if (b) { band = b; break }",
+      "    }",
+      "  }",
+      "  if (!band) continue",
       "  const above = band.cap - r.top, below = r.bottom - band.baseline",
       "  if (Math.abs(above - below) > 1)",
-      "    fail(name(el), 'mark ' + round(above) + 'px above the cap line against ' + round(below) + 'px below the baseline. Equal overhang is what centred means.')",
+      "    fail(name(el), 'mark ' + round(above) + 'px above the cap line against ' + round(below) + 'px below the baseline. Equal overhang is what centred means. A mark TALLER than the cap band centres its own BOX on that band; putting its own letters on the row baseline positions it by the wrong thing.')",
       "}",
     ],
   },
@@ -462,9 +517,28 @@ export const CHECKS = [
       "  if (!head) continue",
       "  const first = table.querySelector('tr > *:first-child')",
       "  if (!first) continue",
-      "  const d = inner(first).left - head.getBoundingClientRect().left",
+      /* THE CELL WAS ON THE MARGIN AND THE PAINTED MARK WAS NOT.
+         *
+         * This measured the cell's content edge, which is what CSS positions.
+         * A reader sees the first thing that PAINTS. A checkbox drawn at 16px
+         * and hit at the 44px floor centres its box in that area, so the
+         * visible mark lands 14px further in while the cell sits exactly on
+         * the margin.
+         *
+         * Measured from a card's own left edge: its title, its selection
+         * count and its pager range all at 13px, and the checkbox at 27px.
+         * This check passed, because the cell was at 1px. */
+      "  /* WHAT PAINTS, not the first element that matches. A visually hidden",
+      "     input fills the whole hit area, so picking it read the cell's own",
+      "     edge and the check stayed silent while the visible box sat 14px in. */",
+      "  const paints = Array.prototype.filter.call(",
+      "    first.querySelectorAll('svg, img, [class*=box], [class*=avatar], [class*=dot]'),",
+      "    n => { const cs = getComputedStyle(n), b = n.getBoundingClientRect()",
+      "           return cs.opacity !== '0' && cs.visibility !== 'hidden' && b.width > 2 && b.height > 2 })",
+      "  const edge = paints.length ? paints[0].getBoundingClientRect().left : inner(first).left",
+      "  const d = edge - head.getBoundingClientRect().left",
       "  if (Math.abs(d) > 0.5)",
-      "    fail(name(table), 'the first column starts ' + round(d) + 'px off the margin set by ' + name(head) + ' above it. Zero the outer cell padding rather than letting it add to the container own.')",
+      "    fail(name(table), 'the first column starts ' + round(d) + 'px off the margin set by ' + name(head) + ' above it. Zero the outer cell padding rather than letting it add to the container own. If a hit area wider than its mark is centring that mark, give the outer column start alignment so the area grows inward instead.')",
       "}",
     ],
   },
@@ -654,7 +728,10 @@ export const CHECKS = [
   {
     id: 'sweep-between-breakpoints',
     where: 'manual',
-    line: 'Run the render pass at every breakpoint AND at the midpoint of each adjacent pair. A fault lives where the layout changes, and no declared width sits inside that band.',
+    /* The REASON moved to DESIGN.md under Layout, where a reason belongs. A
+       checklist line is an instruction, and this one was 170 bytes of the
+       contract's 8000. */
+    line: 'Run the render pass at every breakpoint AND at the midpoint of each adjacent pair.',
   },
 ]
 

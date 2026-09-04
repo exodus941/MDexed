@@ -40,7 +40,24 @@ export const TIGHTNESS = [
   { id: 'airy',     label: 'Airy',     density: 1.25, note: 'Marketing pages, landing screens.' },
   { id: 'balanced', label: 'Balanced', density: 1,    note: 'The designed baseline.' },
   { id: 'compact',  label: 'Compact',  density: 0.85, note: 'Application screens with a lot on them.' },
-  { id: 'dense',    label: 'Dense',    density: 0.7,  note: 'Tables, dashboards, terminals.' },
+  /* ── THE FLOOR IS 0.82, AND THE VALUE WAS CHOSEN BY MEASURING THE SCALE ──
+   *
+   * At 0.70 a card came out with 16px of padding, and a stat tile holding a
+   * caption, a figure and a delta reads as cramped inside it. 0.82 takes the
+   * card to 20px.
+   *
+   * Every value between is worse than either end. `lg` snaps to 20px from
+   * 0.75 up, while `xl` stays at 24 until 0.8125, so anything in that band
+   * ships a scale whose steps go 8 then 4. A scale that NARROWS as it climbs
+   * is not a scale. Measured at 0.75: 2 4 6 8 12 20 24 36 48 72.
+   *
+   * At 0.82 both rise together and the steps never narrow:
+   * 2 4 6 8 12 20 28 40 52 80.
+   *
+   * It stays distinct from Compact at 0.85, which is the next answer up. A
+   * table cell is 8px by 12px here and 12px by 16px there, and `sm` is 8
+   * against 12, so a dense table still reads denser than a comfortable one. */
+  { id: 'dense',    label: 'Dense',    density: 0.82, note: 'Tables, dashboards, terminals.' },
 ]
 
 export const SHAPES = [
