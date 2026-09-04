@@ -1528,12 +1528,35 @@
 .dmd .amount { display: block; font-family: var(--font-code-family, ui-monospace, monospace); font-variant-numeric: tabular-nums; text-align: right; }
 
 /* ── A list you work in ──
- * Selection is marked by an EDGE and a fill, and the fill is NEUTRAL. A
- * saturated tint repeated down ten rows is fatigue rather than information,
- * which is why `accent-subtle` is wrong here however well it measures. The
- * accent appears once per row instead, in the box and the edge. */
-.dmd .table tr.is-selected > td { background: var(--c-selected); }
-.dmd .table tr.is-selected > td:first-child { box-shadow: inset 3px 0 0 var(--c-accent); }
+ *
+ * Selection is marked by an EDGE and a fill, and which channel carries it is
+ * now a setting rather than a decision baked in here. This rule read
+ * `--c-selected` and a hardcoded `inset 3px`, so it painted one treatment
+ * whatever the panel said, and 3px is on no scale the system publishes.
+ *
+ * The component tokens follow the chosen treatment, so they win. The fill goes
+ * on the CELLS: a `tr` takes a background, but an inset shadow on it is
+ * painted under the cells and never seen. The edge goes on the first cell,
+ * where its own inset compensation applies.
+ *
+ * The fallbacks are the state the two tokens are in when the treatment draws
+ * no edge, because neither is emitted for the tint or the plain lift. */
+.dmd .table tr.is-selected > td {
+  background: var(--cmp-table-row-selected-background-color, var(--c-selected));
+  color: var(--cmp-table-row-selected-text-color, inherit);
+}
+.dmd .table tr.is-selected > td:first-child {
+  box-shadow: var(--cmp-table-row-selected-box-shadow, none);
+  padding: var(--cmp-table-row-selected-padding, var(--cmp-table-cell-padding, var(--space-sm, 12px) var(--space-md, 16px)));
+}
+/* The selected row outranks the stripe, which is a more specific selector. */
+.dmd .table-rows-zebra tbody tr.is-selected > td,
+.dmd .table-rows-both tbody tr.is-selected > td {
+  background: var(--cmp-table-row-selected-background-color, var(--c-selected));
+}
+.dmd .table tbody tr:hover > td {
+  background: var(--cmp-table-row-hover-background-color, transparent);
+}
 
 /* The batch bar REPLACES the toolbar for the selected rows rather than adding
    a second one, and it is solid rather than tinted. A pale bar puts every
@@ -1666,10 +1689,29 @@
     border-color var(--duration-normal, 250ms) var(--ease-standard, ease);
 }
 .dmd .nav-item:hover { background: var(--cmp-nav-item-hover-background-color, var(--c-bg-subtle, #f4f4f4)); }
+/* ── THE SAMPLE READ TWO OF THE FOUR PROPERTIES IT SHIPS ──
+ *
+ * This rule took the fill and the text colour and stopped, so the selected
+ * treatment lifted correctly and its EDGE never appeared. Measured on the
+ * entry sample with the edge on: background rgb(242,246,249), which is
+ * `surface-raised` and correct, against `box-shadow: none` and a 12px left
+ * inset where the token ships `calc(12px + 4px)`.
+ *
+ * A sample that renders two of a component's four properties is a
+ * specification that lies, and this one is the specification: the panel beside
+ * it is where a person decides the treatment.
+ *
+ * The fallbacks equal what the tokens ship when the treatment draws no edge.
+ * Neither token is emitted for the tint or the plain lift, so `none` and the
+ * base padding are the states those two are actually in.
+ *
+ * `font-weight: 500` came out. The selected state publishes a background and a
+ * text colour and nothing else, so a weight here was a value nobody chose. */
 .dmd .nav-item.is-active {
   background: var(--cmp-nav-item-selected-background-color, var(--c-accent-subtle, #f6e9e6));
   color: var(--cmp-nav-item-selected-text-color, var(--c-accent, #b8422e));
-  font-weight: 500;
+  box-shadow: var(--cmp-nav-item-selected-box-shadow, none);
+  padding: var(--cmp-nav-item-selected-padding, var(--cmp-nav-item-padding, var(--space-xs, 8px) var(--space-sm, 12px)));
 }
 
 

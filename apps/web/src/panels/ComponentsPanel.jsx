@@ -294,7 +294,11 @@ const matches = (query, entryName, key, value) => {
   return entryName.toLowerCase().includes(q) || key.toLowerCase().includes(q) || String(value).toLowerCase().includes(q)
 }
 
-function EntryBlock({ title, entryName, props, overrides, onSet, onReset, derived, mode, inspect, query, colorGroups, def, sampleVars, tabStyle }) {
+/* `extra` renders under this entry's own property rows, for a control that
+   belongs to one entry rather than to the component. The edge weight is the
+   only one so far: it is a fact about `nav-item-selected`, so it sits with
+   that entry's rows and its sample rather than three blocks above them. */
+function EntryBlock({ title, entryName, props, overrides, onSet, onReset, derived, mode, inspect, query, colorGroups, def, sampleVars, tabStyle, extra }) {
   /* The jump targets the exact entry — clicking a small button lands on
      `button-sm`, not merely somewhere inside Button. The scrolling is the
      owning ComponentBlock's job; this only marks itself. */
@@ -341,6 +345,7 @@ function EntryBlock({ title, entryName, props, overrides, onSet, onReset, derive
               override={overrides[`${entryName}.${k}`]} onSet={onSet} onReset={onReset}
               derived={derived} mode={mode} colorGroups={colorGroups} />
           ))}
+          {!query && extra}
         </div>
         {!query && (
           <div className="entry-sample-slot">
@@ -538,17 +543,11 @@ function ComponentBlock({ def, cfg, layout, onSetLayout, onToggle, onSet, onRese
                     onPick={() => onSetSelection(key)} />
                 ))}
               </div>
-              {SELECTION_STYLES[selectionStyle(cfg.selection)]?.edge && (
-                <div style={{ marginTop: PAD.row }}>
-                  <Segmented value={selectionEdge(cfg.selectionEdge)} onChange={onSetSelectionEdge} full
-                    options={Object.entries(SELECTION_EDGES).map(([key, spec]) => ({ value: key, label: `${spec.label} ${spec.px}px` }))} />
-                </div>
-              )}
               <div className="panel-note" style={{ marginTop: 8 }}>
                 Sets <code>nav-item-selected</code>, <code>nav-item-hover</code>,{' '}
                 <code>table-row-selected</code> and <code>table-row-hover</code> together.
                 {SELECTION_STYLES[selectionStyle(cfg.selection)]?.edge &&
-                  ' The label moves clear of the bar, so each one states its own inset as a sum.'}
+                  ' The edge weight sits with nav-item-selected below, because it is a fact about that entry.'}
               </div>
             </div>
           )}
@@ -573,11 +572,29 @@ function ComponentBlock({ def, cfg, layout, onSetLayout, onToggle, onSet, onRese
             <EntryBlock key={s} entryName={`${def.name}-${s}`} title="size" props={props} overrides={overrides} onSet={onSet} onReset={onReset} derived={derived} mode={mode} inspect={inspect} query={query} colorGroups={colorGroups} def={def} sampleVars={sampleVars} tabStyle={cfg.tabStyle} />
           ))}
           {cfg.emitStates && Object.entries(def.states ?? {}).flatMap(([stateName, byVariant]) =>
-            Object.entries(byVariant).map(([variant, props]) => (
-              <EntryBlock key={`${stateName}-${variant}`}
-                entryName={variant === '_' ? `${def.name}-${stateName}` : `${def.name}-${variant}-${stateName}`}
-                title="state" props={props} overrides={overrides} onSet={onSet} onReset={onReset} derived={derived} mode={mode} inspect={inspect} query={query} colorGroups={colorGroups} def={def} sampleVars={sampleVars} tabStyle={cfg.tabStyle} />
-            ))
+            Object.entries(byVariant).map(([variant, props]) => {
+              const entryName = variant === '_' ? `${def.name}-${stateName}` : `${def.name}-${variant}-${stateName}`
+              /* The edge weight is a fact about this entry, so it rides with
+                 it. A pixel slider rather than a strip of words, because the
+                 answer is comparative: you want the next weight up, and every
+                 other scale in this panel is driven the same way. */
+              const edgeSlider = entryName === 'nav-item-selected' && SELECTION_STYLES[selectionStyle(cfg.selection)]?.edge
+                ? (
+                  <div style={{ display: 'grid', gridTemplateColumns: '112px minmax(0, 1fr)', gap: PAD.sub, alignItems: 'center', minWidth: 0 }}>
+                    <code className="prop-key">edge</code>
+                    <SnapSlider title="Edge weight" value={selectionEdge(cfg.selectionEdge)}
+                      refFor={n => n} onChange={onSetSelectionEdge}
+                      steps={Object.entries(SELECTION_EDGES).map(([key, spec]) => ({ name: key, value: `${spec.px}px` }))} />
+                  </div>
+                )
+                : null
+              return (
+                <EntryBlock key={`${stateName}-${variant}`}
+                  entryName={entryName}
+                  title="state" props={props} overrides={overrides} onSet={onSet} onReset={onReset} derived={derived} mode={mode} inspect={inspect} query={query} colorGroups={colorGroups} def={def} sampleVars={sampleVars} tabStyle={cfg.tabStyle}
+                  extra={edgeSlider} />
+              )
+            })
           )}
         </div>
       </Expand>

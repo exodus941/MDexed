@@ -365,10 +365,24 @@ export const DEFAULT_TAB_STYLE = 'underline'
  * inset, so the text has to move by the bar's own width or the two touch. The
  * padding below is the base inset plus that width, which is why the edge
  * thickness and the padding are one decision and one setting. */
+/* ── AN EDGE WEIGHT IS A WEIGHT, NOT A LAYOUT LENGTH ──
+ *
+ * These began as spacing tokens, and the tokens move with the density macro.
+ * `{spacing.2xs}`, `{spacing.sm}` and `{spacing.md}` read 4, 8 and 12 at the
+ * Dense setting and 4, 12 and 16 at the default one, so the three names meant
+ * different bars in different documents while the readout kept saying 4, 8 and
+ * 12. Measured: medium rendered a 12px bar with an 8px label beside it.
+ *
+ * The asked-for numbers are fixed, and a bar's thickness answers to the type
+ * beside it rather than to a layout grid — the same reason an icon's stroke is
+ * stated as a weight. So they are literal, and `px` is the only source, which
+ * is why the readout cannot drift from the bar again.
+ *
+ * All three are on the space grid anyway, so nothing off-scale ships. */
 export const SELECTION_EDGES = {
-  thin:   { label: 'Thin',   width: '{spacing.2xs}', px: 4 },
-  medium: { label: 'Medium', width: '{spacing.sm}',  px: 8 },
-  wide:   { label: 'Wide',   width: '{spacing.md}',  px: 12 },
+  thin:   { label: 'Thin',   px: 4 },
+  medium: { label: 'Medium', px: 8 },
+  wide:   { label: 'Wide',   px: 12 },
 }
 
 export const DEFAULT_SELECTION_EDGE = 'thin'
@@ -431,12 +445,14 @@ export function selectedState(styleName, edgeName, basePadding) {
   const props = { ...style.states.selected._ }
   if (!style.edge) return props
   const edge = SELECTION_EDGES[selectionEdge(edgeName)]
-  props.boxShadow = `inset ${edge.width} 0 0 {colors.accent}`
+  const w = `${edge.px}px`
+  props.boxShadow = `inset ${w} 0 0 {colors.accent}`
   /* The base inset, moved clear of the bar. `basePadding` arrives as the
-     component's own shorthand, so the vertical half is kept verbatim. */
+     component's own shorthand, so the vertical half is kept verbatim, and the
+     horizontal half stays a TOKEN. Only the bar's own width is literal. */
   const parts = String(basePadding ?? '{spacing.xs} {spacing.sm}').trim().split(/\s+/)
   const y = parts[0], x = parts[1] ?? parts[0]
-  props.padding = `${y} ${x} ${y} calc(${x} + ${edge.width})`
+  props.padding = `${y} ${x} ${y} calc(${x} + ${w})`
   return props
 }
 

@@ -2198,11 +2198,31 @@ line('\n- depth intensity -')
           `${name} steps UP off the surface (${props.backgroundColor})`)
       }
     }
+    /* ── THE BAR IS THE PIXEL VALUE, AT EVERY DENSITY ──
+     *
+     * These were spacing tokens, and a spacing token moves with the density
+     * macro: `{spacing.sm}` is 8px at the Dense setting and 12px at the
+     * default one. So "medium" rendered a 12px bar under a readout that said
+     * 8px. Asserted at both densities, because one density is where the bug
+     * hid. */
     for (const [weight, spec] of Object.entries(SELECTION_EDGES)) {
       const props = selectedState('lift-edge', weight, pad)
-      assert(props.boxShadow.includes(spec.width), `the ${weight} edge is ${spec.px}px (${props.boxShadow})`)
-      assert(props.padding.includes(`calc({spacing.sm} + ${spec.width})`),
+      assert(props.boxShadow.includes(`${spec.px}px`), `the ${weight} edge is ${spec.px}px (${props.boxShadow})`)
+      assert(props.padding.includes(`calc({spacing.sm} + ${spec.px}px)`),
         `and the label clears it (${props.padding})`)
+      /* The horizontal inset stays a token, so only the bar is literal. */
+      assert(props.padding.includes('{spacing.sm}'),
+        `the ${weight} inset is still a token (${props.padding})`)
+    }
+    for (const dens of [1, 0.82]) {
+      const s = createInitialState()
+      s.macros.density = dens
+      s.components.selection = 'lift-edge'
+      s.components.selectionEdge = 'medium'
+      const d = derive(s)
+      const row = d.components.find(c => c.name === 'nav-item-selected')
+      const shadow = row.properties.find(p => p.key === 'boxShadow')?.value
+      assert(shadow.includes('8px'), `at density ${dens} the medium bar is still 8px (${shadow})`)
     }
 
     /* ── ONE TREATMENT, TWO COMPONENTS, TWO INSETS ──
