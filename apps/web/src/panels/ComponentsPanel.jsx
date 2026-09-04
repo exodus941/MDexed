@@ -106,6 +106,29 @@ function entriesFor(def, cfg) {
   return out
 }
 
+/** Every property key a component definition carries, plus the words for any
+ *  control that is not a property.
+ *
+ *  `edgeWidth` reaches the panel as `extra` rather than as a property, so it
+ *  would never appear in a key list. The nav item and the table each own one,
+ *  and somebody hunting it types "edge", "selection", "row" or "table". */
+const EXTRA_KEYS = {
+  'nav-item': ['edgeWidth', 'edge', 'selection', 'selected', 'bar', 'thin', 'medium', 'wide'],
+  table: ['edgeWidth', 'edge', 'selection', 'selected', 'row', 'rows', 'bar', 'thin', 'medium', 'wide'],
+}
+
+function keysFor(def) {
+  const out = new Set(EXTRA_KEYS[def.name] ?? [])
+  const eat = obj => { for (const k of Object.keys(obj ?? {})) out.add(k) }
+  eat(def.base)
+  for (const v of Object.values(def.variants ?? {})) eat(v)
+  for (const s of Object.values(def.sizes ?? {})) eat(s)
+  for (const byVariant of Object.values(def.states ?? {})) {
+    for (const props of Object.values(byVariant ?? {})) eat(props)
+  }
+  return [...out]
+}
+
 /* Locate the spacing token a slider should drive. Padding is often compound
    ("0 {spacing.md}"), so the slider moves the last token and leaves the
    structure alone. */
@@ -298,7 +321,7 @@ const matches = (query, entryName, key, value) => {
    belongs to one entry rather than to the component. The edge weight is the
    only one so far: it is a fact about `nav-item-selected`, so it sits with
    that entry's rows and its sample rather than three blocks above them. */
-function EntryBlock({ title, entryName, props, overrides, onSet, onReset, derived, mode, inspect, query, colorGroups, def, sampleVars, tabStyle, extra }) {
+function EntryBlock({ title, entryName, props, overrides, onSet, onReset, derived, mode, inspect, query, colorGroups, def, sampleVars, tabStyle, extra, extraKeys }) {
   /* The jump targets the exact entry — clicking a small button lands on
      `button-sm`, not merely somewhere inside Button. The scrolling is the
      owning ComponentBlock's job; this only marks itself. */
@@ -307,7 +330,18 @@ function EntryBlock({ title, entryName, props, overrides, onSet, onReset, derive
   /* Filtered after the hooks — an early return above them would change the
      hook order between renders. */
   const shown = Object.entries(props).filter(([k, v]) => matches(query, entryName, k, overrides[`${entryName}.${k}`] ?? v))
-  if (!shown.length) return null
+  /* ── A CONTROL THAT IS NOT A PROPERTY IS STILL SEARCHABLE ──
+   *
+   * `matches` reads the entry name, the property key and the value. The edge
+   * weight is none of those: it arrives as `extra`, so no property could ever
+   * carry the word. Typing "edge" returned nothing, which is the one search
+   * anybody looking for that control would run.
+   *
+   * `extraKeys` is the words that control answers to. A block whose extra
+   * matches stays, even when none of its properties do. */
+  const q = (query || '').toLowerCase()
+  const extraHit = Boolean(q && extraKeys && extraKeys.toLowerCase().includes(q))
+  if (!shown.length && !extraHit) return null
 
   /* Geometry is identical whether or not this entry is the jump target: the
      highlight adds a background and a ring, never padding or margin. It used
@@ -345,9 +379,9 @@ function EntryBlock({ title, entryName, props, overrides, onSet, onReset, derive
               override={overrides[`${entryName}.${k}`]} onSet={onSet} onReset={onReset}
               derived={derived} mode={mode} colorGroups={colorGroups} />
           ))}
-          {!query && extra}
+          {(!query || extraHit) && extra}
         </div>
-        {!query && (
+        {(!query || extraHit) && (
           <div className="entry-sample-slot">
             <EntrySample def={def} entryName={entryName} tabStyle={tabStyle}
               focus={derived.focus} roles={derived.roles[mode]} />
@@ -400,7 +434,7 @@ function LayoutBlock({ def, values, onSet }) {
   )
 }
 
-function ComponentBlock({ def, cfg, layout, onSetLayout, onToggle, onSet, onReset, derived, mode, inspect, colorGroups, sampleVars, onSetTabStyle, onSetSelection, onSetSelectionEdge }) {
+function ComponentBlock({ def, cfg, layout, onSetLayout, onToggle, onSet, onReset, derived, mode, inspect, colorGroups, sampleVars, onSetTabStyle, onSetSelection, onSetSelectionEdge, onSetTableSelectionEdge }) {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const enabled = cfg.enabled[def.name] ?? def.on
@@ -578,36 +612,36 @@ function ComponentBlock({ def, cfg, layout, onSetLayout, onToggle, onSet, onRese
                  it. A pixel slider rather than a strip of words, because the
                  answer is comparative: you want the next weight up, and every
                  other scale in this panel is driven the same way. */
-              const edgeSlider = entryName === 'nav-item-selected' && SELECTION_STYLES[selectionStyle(cfg.selection)]?.edge
-                ? (
-                  /* `edge` alone did not say what it sets, and "Edge weight"
-                     was only a tooltip. Someone looking for the SELECTED ROW
-                     in a table searched Components for "table" and found
-                     nothing, because this control is filed under the nav item.
-                     The name is visible now and the note says where else it
-                     lands. */
+              /* ── `edgeWidth`, NOT "edge weight" ──
+               *
+               * Every other key in this panel is the camelCase property name:
+               * `backgroundColor`, `textColor`, `iconSize`. Measured on screen,
+               * 17 of 18 conformed and this was the exception. It is also the
+               * name the component actually publishes, so the panel, the token
+               * and the payload now read the same.
+               *
+               * ONE PER COMPONENT. A single weight drove both rows, and the two
+               * rows do not hold the same thing: a nav item starts with a label
+               * and a table's selection column starts with a 16px checkbox. */
+              const edged = SELECTION_STYLES[selectionStyle(cfg.selection)]?.edge
+              const edgeSteps = Object.entries(SELECTION_EDGES).map(([key, spec]) => ({ name: key, value: `${spec.px}px` }))
+              const edgeSlider = !edged ? null
+                : entryName === 'nav-item-selected' ? (
                   <div style={{ display: 'grid', gridTemplateColumns: '112px minmax(0, 1fr)', gap: PAD.sub, alignItems: 'center', minWidth: 0 }}>
-                    <code className="prop-key" style={{ whiteSpace: 'nowrap' }}>edge weight</code>
-                    <SnapSlider title="Edge weight" value={selectionEdge(cfg.selectionEdge)}
-                      refFor={n => n} onChange={onSetSelectionEdge}
-                      steps={Object.entries(SELECTION_EDGES).map(([key, spec]) => ({ name: key, value: `${spec.px}px` }))} />
+                    <code className="prop-key">edgeWidth</code>
+                    <SnapSlider title="Edge width" value={selectionEdge(cfg.selectionEdge)}
+                      refFor={n => n} onChange={onSetSelectionEdge} steps={edgeSteps} />
+                  </div>
+                )
+                : entryName === 'table-row-selected' ? (
+                  <div style={{ display: 'grid', gridTemplateColumns: '112px minmax(0, 1fr)', gap: PAD.sub, alignItems: 'center', minWidth: 0 }}>
+                    <code className="prop-key">edgeWidth</code>
+                    <SnapSlider title="Edge width" value={selectionEdge(cfg.tableSelectionEdge ?? cfg.selectionEdge)}
+                      refFor={n => n} onChange={onSetTableSelectionEdge} steps={edgeSteps} />
+                    {/* The bar sits in a gutter the whole column reserves, so
+                        the checkbox never moves when the weight changes. */}
                     <div style={{ gridColumn: '1 / -1', fontSize: 11, lineHeight: 1.5, color: 'var(--muted)', marginTop: 4 }}>
-                      Also drives the selected row in every table.
-                    </div>
-                    {/* ── AND IT SHOWS THAT ROW, NOT ONLY THE SENTENCE ──
-                      *
-                      * The Table entry publishes a base, a header and a cell,
-                      * and no row state, so a selected row had nowhere of its
-                      * own to appear. Saying it in words and showing it only on
-                      * a nav item leaves the reader to picture the thing they
-                      * are setting. It goes beside the control that sets it.
-                      *
-                      * Rendered through EntrySample rather than hand-built, so
-                      * the sample and the real component cannot drift. */}
-                    <div style={{ gridColumn: '1 / -1', marginTop: 6 }}>
-                      <EntrySample def={COMPONENT_LIBRARY.find(c => c.name === 'table')}
-                        entryName="table-row-selected" tabStyle={cfg.tabStyle}
-                        focus={derived.focus} roles={derived.roles[mode]} />
+                      The selection column reserves this plus a step, on every row.
                     </div>
                   </div>
                 )
@@ -616,7 +650,11 @@ function ComponentBlock({ def, cfg, layout, onSetLayout, onToggle, onSet, onRese
                 <EntryBlock key={`${stateName}-${variant}`}
                   entryName={entryName}
                   title="state" props={props} overrides={overrides} onSet={onSet} onReset={onReset} derived={derived} mode={mode} inspect={inspect} query={query} colorGroups={colorGroups} def={def} sampleVars={sampleVars} tabStyle={cfg.tabStyle}
-                  extra={edgeSlider} />
+                  extra={edgeSlider}
+                  /* The words somebody would type looking for this control. It
+                     is filed under the nav item and it sets the table's rows
+                     too, so "table" and "row" have to reach it. */
+                  extraKeys={edgeSlider ? 'edgeWidth edge selection selected row rows table bar thin medium wide' : null} />
               )
             })
           )}
@@ -739,7 +777,17 @@ export default function ComponentsPanel({ inspect }) {
     const set = new Set()
     for (const def of COMPONENT_LIBRARY) {
       if (!q) { set.add(def.name); continue }
-      const haystack = [def.name, def.label, def.group, ...entriesFor(def, cfg)]
+      /* ── IT SAYS "AND PROPERTIES", SO IT HAS TO SEARCH THEM ──
+       *
+       * The haystack was the component's name, label, group and entry names.
+       * Typing `padding` returned nothing, and `padding` is on most of these
+       * components. So did `edge`, which is the one word anybody hunting the
+       * selection bar would try. A search box whose own placeholder promises
+       * properties and matches none of them is worse than no search box.
+       *
+       * `edgeWidth` is not in `props` either. It arrives as `extra`, so the
+       * words it answers to are listed with it. */
+      const haystack = [def.name, def.label, def.group, ...entriesFor(def, cfg), ...keysFor(def)]
       if (haystack.some(s => String(s).toLowerCase().includes(q))) set.add(def.name)
     }
     return set
@@ -865,7 +913,7 @@ export default function ComponentsPanel({ inspect }) {
             openSignal={targetGroup === group ? inspect.at : null}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: PAD.gap }}>
               {defs.map(def => (
-                <ComponentBlock key={def.name} def={def} cfg={cfg} onSetTabStyle={v => upd(c => ({ ...c, tabStyle: v }))} onSetSelection={v => upd(c => ({ ...c, selection: v }))} onSetSelectionEdge={v => upd(c => ({ ...c, selectionEdge: v }))} onToggle={onToggle} onSet={onSet} onReset={onReset}
+                <ComponentBlock key={def.name} def={def} cfg={cfg} onSetTabStyle={v => upd(c => ({ ...c, tabStyle: v }))} onSetSelection={v => upd(c => ({ ...c, selection: v }))} onSetSelectionEdge={v => upd(c => ({ ...c, selectionEdge: v }))} onSetTableSelectionEdge={v => upd(c => ({ ...c, tableSelectionEdge: v }))} onToggle={onToggle} onSet={onSet} onReset={onReset}
                   layout={derived.componentLayout} onSetLayout={onSetLayout}
                   derived={derived} mode={state.color.mode} inspect={inspect} colorGroups={colorGroups}
                   sampleVars={sampleVars} />

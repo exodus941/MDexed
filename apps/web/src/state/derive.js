@@ -201,7 +201,9 @@ export function derive(state, opts = {}) {
     /* `selectionEdgeWeight` rather than `selectionEdge`, because the state
        field and the expander's own option would otherwise share a name with
        two meanings: the field holds a KEY and the expander wants a weight. */
-    ...expandComponents({ ...state.components, selectionEdgeWeight: state.components?.selectionEdge }),
+    ...expandComponents({ ...state.components,
+      selectionEdgeWeight: state.components?.selectionEdge,
+      tableSelectionEdgeWeight: state.components?.tableSelectionEdge ?? state.components?.selectionEdge }),
     ...(state.components?.custom ?? []).map(c => ({ ...c, source: 'custom' })),
   ].map(c => ({ ...c, properties: c.properties.map(p => ({ ...p, value: resolveLiterals(p.value) })) }))
 

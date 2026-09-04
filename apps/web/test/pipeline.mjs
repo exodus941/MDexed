@@ -2345,13 +2345,20 @@ line('\n- depth intensity -')
     }
     /* And it reaches CSS under a name the builder can read. */
     {
+      /* ── TWO WEIGHTS, SET INDEPENDENTLY ──
+       *
+       * One value drove both rows. A nav item's row starts with a label and a
+       * table's selection row starts with a 16px checkbox, so the same bar
+       * reads differently against each. Set them apart here, or the test
+       * cannot tell a working split from a shared value. */
       const s = createInitialState()
       s.components.selection = 'lift-edge'
       s.components.selectionEdge = 'wide'
+      s.components.tableSelectionEdge = 'medium'
       const css = payloadTextFiles(s, derive(s))['tokens.css']
-      for (const c of ['nav-item', 'table-row']) {
-        assert(css.includes(`--cmp-${c}-selected-edge-width: 12px`),
-          `tokens.css publishes --cmp-${c}-selected-edge-width`)
+      for (const [c, px] of [['nav-item', 12], ['table-row', 8]]) {
+        assert(css.includes(`--cmp-${c}-selected-edge-width: ${px}px`),
+          `tokens.css publishes --cmp-${c}-selected-edge-width at ${px}px`)
       }
     }
     /* The render check that catches a build which took the sum anyway. */

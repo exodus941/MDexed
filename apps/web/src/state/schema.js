@@ -789,7 +789,14 @@ export const createInitialState = () => ({
      like `tabStyle` is. Their control sits in the Colour panel, next to the
      seed the ground tint moves, which is a question about where a person
      looks rather than about what the value is. See SELECTION_STYLES. */
-  components: { enabled: {}, overrides: defaultComponentOverrides(), custom: [], emitStates: true, emitSizes: true, layout: {}, tabStyle: DEFAULT_TAB_STYLE, selection: DEFAULT_SELECTION_STYLE, selectionEdge: DEFAULT_SELECTION_EDGE },
+  components: { enabled: {}, overrides: defaultComponentOverrides(), custom: [], emitStates: true, emitSizes: true, layout: {}, tabStyle: DEFAULT_TAB_STYLE, selection: DEFAULT_SELECTION_STYLE,
+    /* ── TWO EDGE WEIGHTS, BECAUSE THE TWO ROWS HOLD DIFFERENT THINGS ──
+     *
+     * One value drove both. A nav item's row starts with a label and a table's
+     * selection row starts with a 16px checkbox, so the same bar reads
+     * differently against each. `selectionEdge` stays the nav item's, which
+     * costs no migration, and the table gets its own. */
+    selectionEdge: DEFAULT_SELECTION_EDGE, tableSelectionEdge: DEFAULT_SELECTION_EDGE },
 
   voice: {
     /* The single source of truth for label capitalisation.

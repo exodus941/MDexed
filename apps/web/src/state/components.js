@@ -250,6 +250,21 @@ export const COMPONENT_LIBRARY = [
          polite version of guessing. */
       cell:   { textColor: '{colors.text}', padding: '{spacing.sm} {spacing.md}' },
     },
+    /* ── THE ROW STATES ARE DECLARED HERE, NOT ONLY AT EMIT TIME ──
+     *
+     * `expandComponents` has always replaced these with the chosen selection
+     * treatment, so the emitted values do not come from this object. The
+     * PANEL reads the raw library, though, so with no states declared the
+     * table had no `table-row-selected` block at all. The one component whose
+     * selected row people ask about was the one with nowhere to show it or to
+     * set its edge.
+     *
+     * The values mirror `nav-item`, which is the point: one treatment for
+     * every selected row, and each keeps its own inset. */
+    states: {
+      hover:    { row: { backgroundColor: '{colors.bg-subtle}', textColor: '{colors.text}' } },
+      selected: { row: { backgroundColor: '{colors.surface-raised}', textColor: '{colors.text}' } },
+    },
   },
   {
     name: 'nav-item', label: 'Nav item', group: 'Navigation', on: true,
@@ -557,7 +572,10 @@ const toProps = obj =>
 export function expandComponents(cfg = {}) {
   const { enabled = {}, overrides = {}, emitStates = true, emitSizes = true,
     tabStyle = DEFAULT_TAB_STYLE,
-    selection = DEFAULT_SELECTION_STYLE, selectionEdgeWeight = DEFAULT_SELECTION_EDGE } = cfg
+    selection = DEFAULT_SELECTION_STYLE, selectionEdgeWeight = DEFAULT_SELECTION_EDGE,
+    /* The table's own weight. Falls back to the nav item's, so a document
+       saved before the split keeps one consistent bar. */
+    tableSelectionEdgeWeight = selectionEdgeWeight } = cfg
   const out = []
 
   for (const rawDef of COMPONENT_LIBRARY) {
@@ -598,12 +616,12 @@ export function expandComponents(cfg = {}) {
           ...rawDef.variants,
           /* The column that carries the bar, published separately from the
              ordinary cell so a builder cannot apply it to every column. */
-          'selection-cell': { padding: gutterFor(selection, selectionEdgeWeight, cellPad, '{spacing.lg}') },
+          'selection-cell': { padding: gutterFor(selection, tableSelectionEdgeWeight, cellPad, '{spacing.lg}') },
         },
         states: {
           ...rawDef.states,
           hover: { row: chosen.states.hover._ },
-          selected: { row: selectedState(selection, selectionEdgeWeight) },
+          selected: { row: selectedState(selection, tableSelectionEdgeWeight) },
         },
       }
     }
