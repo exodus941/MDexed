@@ -1849,7 +1849,11 @@ line('\n- prompt construction -')
        and finding the rule had nowhere to be read. A component gets a gallery
        entry; a page shape gets nothing unless the file says it. */
     ['a record page is the shape whose title wraps', ['record page** shows one thing']],
-    ['an empty state is three states', ['three states, never one']],
+    /* Was three. A generated build shipped a spinner for the waiting case and
+       a "nothing here" card for the other three, and the file had no rule to
+       break, because loading was never one of the states. */
+    ['an empty state is four states', ['four states, never one']],
+    ['loading is one of them, and it holds the shape', ['loading** is the fourth']],
     ['no results offers a way back, never forward', ['a way back', 'never a way forward']],
     ['an empty state is centred, not stretched', ['not `stretch`']],
     ['a comparison keeps its columns and stacks', ['read across, so it keeps its columns']],
@@ -2846,6 +2850,14 @@ line('\n- depth intensity -')
       'a native dialog, which answers Escape with no script'],
     ['a-widget-owes-its-keys', 'said.has(sig)',
       'a build holding both role=tablist and role=tab, which is one fault and not two'],
+    ['an-amount-lines-up-on-its-end-edge', 'MARKED',
+      'a column of bare integers, which is an order number as readily as a quantity'],
+    ['an-amount-lines-up-on-its-end-edge', 'MONO',
+      'a column of amounts in the body face, which a different rule owns'],
+    ['an-amount-lines-up-on-its-end-edge', 'vary <= 1',
+      'a column whose values differ in width, where agreeing edges mean something really aligns them'],
+    ['an-amount-lines-up-on-its-end-edge', 'endwise',
+      'a column of equal-width amounts that declares its end alignment, and so is right for a reason'],
   ]
   for (const [id, clause, why] of GUARDS) {
     assert(bodyOf(id).includes(clause),

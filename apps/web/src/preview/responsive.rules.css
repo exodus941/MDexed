@@ -35,7 +35,7 @@
   .dmd .header-nav > .nav-fold {
     background: var(--c-surface-raised, #fff);
     border: 1px solid var(--c-border-subtle, #ddd);
-    border-radius: var(--radius-md, 8px);
+    border-radius: var(--radius-md, 4px);
     box-shadow: var(--shadow-overlay, none);
   }
   /* Nothing to draw when it is shut, or a 1px line and a shadow hang under the

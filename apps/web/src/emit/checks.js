@@ -596,6 +596,91 @@ export const CHECKS = [
   },
 
   {
+    id: 'an-amount-lines-up-on-its-end-edge',
+    where: 'render',
+    line: 'Amounts in one column share an end edge. The mono face alone does not line them up.',
+    /* ── A PUBLISHED RULE WITH NO CHECK, FOUND BY A BUILD THAT PASSED ──
+     *
+     * This system states that an amount takes the mono face AND an end edge,
+     * and that the edge is the half that lines the magnitudes up. Nothing
+     * measured the edge. A generated dashboard shipped four amounts in one
+     * column whose right edges read 773, 763, 763 and 773, through a clean
+     * source pass and a clean render pass.
+     *
+     * The cause was ordinary. A single class at (0,1,0) lost to the base cell
+     * rule at (0,1,1), so the alignment it declared never applied.
+     *
+     * ASK THE COLUMN, NOT THE CELL. One cell has nothing to line up with. So
+     * the check gathers a table's body cells by index and compares the ink.
+     *
+     * AN AMOUNT IS NOT EVERY FIGURE, and getting that wrong makes the check
+     * useless. An identifier is set in the same mono face and is deliberately
+     * NOT moved to the end, because nobody compares its magnitude. A bare run
+     * of digits is ambiguous: 10023 is an order number or a quantity, and the
+     * text cannot say which. So the check asks for a MARK — a separator, a
+     * decimal, a currency symbol, a sign, or a percent. An amount carries one.
+     * An identifier does not. A column of bare integers is skipped, which is a
+     * miss rather than a false positive, and that is the safe direction.
+     *
+     * THE THRESHOLD IS ON THE MOVE. Lining a column up moves each value by the
+     * whole difference, not half of it, so 1px here is 1px of repair.
+     *
+     * THE SECOND HALF IS THE ONE THAT DOES NOT SHOW YET. A column of equal-
+     * width values lines up whatever its alignment, because every digit in a
+     * mono face is one width. It looks correct and breaks the day a value
+     * gains a digit. So when the edges agree AND every value is the same
+     * width AND nothing declares an end alignment, say so. Different widths
+     * with agreeing edges means something really is aligning them, and that
+     * case stays silent. */
+    body: [
+      "const MONO = /mono|courier|consolas|menlo|ui-monospace/i",
+      "const FIGURE = /^[^0-9A-Za-z]{0,2}[0-9](?:[0-9,.\\u00a0 ]*[0-9])?[^0-9A-Za-z]?$/",
+      "const MARKED = /[,.]|^[^0-9]|[^0-9]$/",
+      "const ENDWISE = /right|end/",
+      "for (const table of all('table')) {",
+      "  const rows = Array.prototype.filter.call(table.querySelectorAll('tbody tr'), function (r) {",
+      "    const b = r.getBoundingClientRect(); return b.width > 0 && b.height > 0",
+      "  })",
+      "  if (rows.length < 2) continue",
+      "  const cols = {}",
+      "  for (const r of rows) {",
+      "    Array.prototype.forEach.call(r.children, function (td, i) {",
+      "      (cols[i] = cols[i] || []).push(td)",
+      "    })",
+      "  }",
+      "  for (const key of Object.keys(cols)) {",
+      "    const cells = cols[key]",
+      "    if (cells.length < 2) continue",
+      "    const rights = []",
+      "    const widths = []",
+      "    let endwise = false",
+      "    let amounts = true",
+      "    for (const td of cells) {",
+      "      const holder = td.querySelector('*') || td",
+      "      const text = (td.textContent || '').replace(/\\s+/g, ' ').trim()",
+      "      if (!FIGURE.test(text) || !MARKED.test(text)) { amounts = false; break }",
+      "      if (!MONO.test(getComputedStyle(holder).fontFamily)) { amounts = false; break }",
+      "      if (ENDWISE.test(getComputedStyle(td).textAlign) || ENDWISE.test(getComputedStyle(holder).textAlign)) endwise = true",
+      "      const range = document.createRange()",
+      "      range.selectNodeContents(holder)",
+      "      const box = range.getBoundingClientRect()",
+      "      rights.push(box.right)",
+      "      widths.push(box.width)",
+      "    }",
+      "    if (!amounts || rights.length < 2) continue",
+      "    const spread = Math.max.apply(null, rights) - Math.min.apply(null, rights)",
+      "    const vary = Math.max.apply(null, widths) - Math.min.apply(null, widths)",
+      "    if (spread > 1) {",
+      "      fail(name(cells[0]), 'this column holds amounts and their end edges differ by ' + spread.toFixed(1) + 'px, so the magnitudes do not line up. The mono face gives every digit one width. The END EDGE is what stacks the digits over each other, and it is the half that was missing. A single class loses to a descendant selector, so check that whatever sets the alignment actually wins.')",
+      "    } else if (vary <= 1 && !endwise) {",
+      "      fail(name(cells[0]), 'this column of amounts lines up only because every value is the same width. Nothing here declares an end alignment, so the first value that gains a digit breaks the column. Give the cells text-align: end.')",
+      "    }",
+      "  }",
+      "}",
+    ],
+  },
+
+  {
     id: 'a-marked-item-says-so',
     where: 'render',
     line: 'The chosen item in a nav or a strip declares aria-current or aria-selected, not only a colour.',

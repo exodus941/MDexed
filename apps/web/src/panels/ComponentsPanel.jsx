@@ -640,7 +640,7 @@ function ComponentBlock({ def, cfg, layout, onSetLayout, onToggle, onSet, onRese
                       refFor={n => n} onChange={onSetTableSelectionEdge} steps={edgeSteps} />
                     {/* The bar sits in a gutter the whole column reserves, so
                         the checkbox never moves when the weight changes. */}
-                    <div style={{ gridColumn: '1 / -1', fontSize: 11, lineHeight: 1.5, color: 'var(--muted)', marginTop: 4 }}>
+                    <div style={{ gridColumn: '1 / -1', fontSize: 12, lineHeight: 1.5, color: 'var(--muted)', marginTop: 4 }}>
                       The selection column reserves this plus a step, on every row.
                     </div>
                   </div>
@@ -719,7 +719,7 @@ function SelectionChoice({ id, spec, roles, edge, selected, onPick }) {
   const tint = id === 'tint'
   const row = (label, on) => (
     <span key={label} style={{
-      display: 'block', lineHeight: '18px', fontSize: 11, borderRadius: 4,
+      display: 'block', lineHeight: '18px', fontSize: 12, borderRadius: 4,
       whiteSpace: 'nowrap', overflow: 'hidden',
       fontWeight: on ? 500 : 400,
       background: on ? (tint ? roles['accent-subtle'] : roles['surface-raised']) : 'transparent',
@@ -735,9 +735,14 @@ function SelectionChoice({ id, spec, roles, edge, selected, onPick }) {
       sample={
         /* On the document's own card, not the editor's, or the fill is
            measured against the wrong ground. */
+        /* 96, not 88. The row size went 11 to 12 to land on the type grid,
+           and "Overview" in medium measures 54.9px there. At 88 the widest
+           selection edge leaves 54.0px of text width, so the sample clipped
+           its own label — silently, because the row sets overflow: hidden.
+           96 leaves 62.0 and clears it at every edge weight. */
         <span style={{
           display: 'flex', flexDirection: 'column', gap: 2, flexShrink: 0,
-          width: 86, padding: 4, borderRadius: 6,
+          width: 96, padding: 4, borderRadius: 6,
           background: roles.surface, border: `1px solid ${roles['border-subtle']}`,
         }}>
           {row('Overview', true)}{row('Accounts', false)}

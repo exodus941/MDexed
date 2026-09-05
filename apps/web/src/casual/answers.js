@@ -64,7 +64,11 @@ export const TIGHTNESS = [
 
 export const SHAPES = [
   { id: 'square', label: 'Square', roundness: 0,   note: 'No corner radius at all.' },
-  { id: 'soft',   label: 'Soft',   roundness: 1,   note: 'The designed baseline, 8px at the base step.' },
+  /* Stated RELATIVELY, because an absolute number here drifts the moment the
+     radius base moves. It read "8px at the base step" for a day after the base
+     halved to 4, and a wizard that misstates a value is worse than one that
+     states none. Nothing else in this file names a px. */
+  { id: 'soft',   label: 'Soft',   roundness: 1,   note: 'The designed baseline. One base step, unscaled.' },
   { id: 'round',  label: 'Round',  roundness: 2.5, cardRounded: '20px', note: 'Pill buttons. Cards rounded, not blobbed.' },
 ]
 

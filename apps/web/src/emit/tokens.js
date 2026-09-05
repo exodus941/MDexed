@@ -539,6 +539,24 @@ export function tokensJson(state, derived) {
 }
 
 /** What the developer should read first. */
+/* ── THE EXAMPLE HAS TO SEPARATE THE CARD THE WAY THIS SYSTEM DOES ──
+ *
+ * It was fixed prose reading `box-shadow: var(--shadow-raised)`. In a system
+ * that separates by borders, every shadow token resolves to `none`, so the
+ * example rendered a card with no edge at all. Measured on one generated
+ * package: the card's surface read 1.15:1 against the page, under the 1.2 a
+ * filled shape needs, and its border was the only thing making it visible at
+ * 1.94. A reader copying the snippet got an invisible card and no warning.
+ *
+ * Found by simulation run 11, reading the package as a fresh agent would.
+ */
+function cardSeparator(state) {
+  const how = state?.elevation?.strategy ?? 'shadow'
+  if (how === 'border') return '  border: var(--border-hairline) solid var(--c-border-subtle);'
+  if (how === 'tonal') return '  /* Tonal: the surface role IS the separation. Nothing else to add. */'
+  return '  box-shadow: var(--shadow-raised);'
+}
+
 export function packageReadme(state) {
   const name = state.meta?.name?.trim() || 'Design system'
   return `# ${name}
@@ -594,7 +612,7 @@ token files cannot express. You then lose the usage rules, so say more.
   background: var(--c-surface);
   border-radius: var(--radius-lg);
   padding: var(--space-md);
-  box-shadow: var(--shadow-raised);
+${cardSeparator(state)}
 }
 \`\`\`
 

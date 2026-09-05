@@ -41,7 +41,7 @@
   background-color: var(--cmp-card-background-color, var(--c-surface, #fff));
   background-image: var(--cmp-card-background-image, none);
   border: 1px solid var(--cmp-card-border-color, var(--c-border-subtle, #eee));
-  border-radius: var(--cmp-card-rounded, var(--radius-lg, 16px));
+  border-radius: var(--cmp-card-rounded, var(--radius-lg, 8px));
   padding: var(--cmp-card-padding, var(--space-md, 16px));
   box-shadow: var(--cmp-card-box-shadow, var(--shadow-raised, none));
 }
@@ -52,7 +52,7 @@
 }
 .dmd .well {
   background: var(--c-surface-sunken, #f4f4f4);
-  border-radius: var(--radius-md, 8px);
+  border-radius: var(--radius-md, 4px);
   padding: var(--space-md, 16px);
 }
 
@@ -83,7 +83,7 @@
   line-height: calc(var(--cmp-button-md-height, 36px) - 2px);
   height: var(--cmp-button-md-height, auto);
   padding: var(--cmp-button-md-padding, 0 var(--space-md, 16px));
-  border-radius: var(--cmp-button-rounded, var(--radius-md, 8px));
+  border-radius: var(--cmp-button-rounded, var(--radius-md, 4px));
   border: 1px solid transparent;
   /* Every hover state fades. The document publishes a duration scale and an
      easing set, and a button that snaps between colours has demonstrated
@@ -327,7 +327,7 @@
   background: var(--cmp-input-background-color, var(--c-surface, #fff));
   color: var(--cmp-input-text-color, var(--c-text, #111));
   border: 1px solid var(--cmp-input-border-color, var(--c-border, #ccc));
-  border-radius: var(--cmp-input-rounded, var(--radius-md, 8px));
+  border-radius: var(--cmp-input-rounded, var(--radius-md, 4px));
   transition: border-color var(--duration-normal, 250ms) var(--ease-standard, ease);
 }
 /* A textarea has its own entry, and no fixed height. */
@@ -335,7 +335,7 @@
   height: auto;
   min-height: var(--cmp-textarea-min-height, 88px);
   padding: var(--cmp-textarea-padding, var(--space-xs, 8px));
-  border-radius: var(--cmp-textarea-rounded, var(--radius-md, 8px));
+  border-radius: var(--cmp-textarea-rounded, var(--radius-md, 4px));
 }
 /* A field whose content is ELEMENTS rather than a text node cannot use the
    padding to make its height.
@@ -554,7 +554,7 @@
   background: var(--cmp-tooltip-background-color, var(--c-text, #111));
   color: var(--cmp-tooltip-text-color, var(--c-text-inverse, #fff));
   padding: var(--cmp-tooltip-padding, 4px var(--space-xs, 8px));
-  border-radius: var(--cmp-tooltip-rounded, var(--radius-sm, 4px));
+  border-radius: var(--cmp-tooltip-rounded, var(--radius-sm, 2px));
   font-size: var(--cmp-tooltip-font-size, var(--font-caption-size, 12px));
   line-height: var(--cmp-tooltip-line-height, 1.4);
   white-space: nowrap;
@@ -589,7 +589,7 @@
   background-color: var(--cmp-alert-background-color, var(--c-bg-subtle, #f4f4f4));
   color: var(--cmp-alert-text-color, var(--c-text, #111));
   border: 1px solid currentColor;
-  border-radius: var(--cmp-alert-rounded, var(--radius-md, 8px));
+  border-radius: var(--cmp-alert-rounded, var(--radius-md, 4px));
   padding: var(--cmp-alert-padding, var(--space-xs, 8px) var(--space-sm, 12px));
   font-size: var(--cmp-alert-font-size, var(--font-body-sm-size, 14px));
   line-height: var(--font-body-sm-leading, 1.55);
@@ -902,7 +902,7 @@
   box-sizing: border-box;
   width: var(--cmp-checkbox-size, 16px);
   height: var(--cmp-checkbox-size, 16px);
-  border-radius: var(--cmp-checkbox-rounded, var(--radius-sm, 4px));
+  border-radius: var(--cmp-checkbox-rounded, var(--radius-sm, 2px));
   border: var(--border-hairline, 1px) solid var(--cmp-checkbox-border-color, var(--c-border, #ccc));
   background: var(--cmp-checkbox-background-color, var(--c-surface, #fff));
   color: var(--cmp-checkbox-checked-text-color, var(--c-accent-fg, #fff));
@@ -1481,7 +1481,7 @@
   display: block;
   width: var(--cmp-nav-burger-size, 16px);
   height: var(--cmp-nav-burger-height, 2px);
-  border-radius: var(--cmp-nav-burger-rounded, var(--radius-sm, 4px));
+  border-radius: var(--cmp-nav-burger-rounded, var(--radius-sm, 2px));
   background: var(--cmp-nav-burger-background-color, var(--c-text-muted, #666));
 }
 .dmd .grid { display: grid; gap: var(--space-md, 16px); }
@@ -1655,7 +1655,7 @@
   position: absolute;
   inset-block: calc(-1 * var(--border-hairline, 1px));
   inset-inline-start: 0;
-  width: var(--cmp-table-row-selected-edge-width, 0px);
+  width: var(--cmp-table-row-selected-edge-width, 4px);
   background: var(--cmp-table-row-selected-edge-color, var(--c-accent, #b8422e));
   pointer-events: none;
 }
@@ -1694,7 +1694,7 @@
   row-gap: var(--space-2xs, 4px); column-gap: var(--space-lg, 24px);
   background: var(--c-accent); color: var(--c-accent-fg);
   padding: var(--space-xs, 8px) var(--space-md, 16px);
-  border-radius: var(--radius-md, 8px) var(--radius-md, 8px) 0 0;
+  border-radius: var(--radius-md, 4px) var(--radius-md, 4px) 0 0;
 }
 .dmd .batch-bar .btn {
   background: transparent; color: var(--c-accent-fg);
@@ -1815,8 +1815,8 @@
  * mode. */
 .dmd .chart-bar {
   display: flex;
-  height: var(--space-lg, 20px);
-  border-radius: var(--radius-sm, 4px);
+  height: var(--space-lg, 24px);
+  border-radius: var(--radius-sm, 2px);
   overflow: hidden;
 }
 .dmd .chart-bar > span {
@@ -1854,7 +1854,7 @@
 }
 .dmd .nav-item {
   padding: var(--cmp-nav-item-padding, var(--space-xs, 8px) var(--space-sm, 12px));
-  border-radius: var(--cmp-nav-item-rounded, var(--radius-md, 8px));
+  border-radius: var(--cmp-nav-item-rounded, var(--radius-md, 4px));
   color: var(--cmp-nav-item-text-color, var(--c-text-muted, #666));
   font-size: var(--cmp-nav-item-font-size, var(--font-body-sm-size, 14px));
   cursor: pointer;
@@ -1974,7 +1974,7 @@
 .dmd .skeleton {
   display: inline-block;
   background: var(--c-border-subtle, #ddd);
-  border-radius: var(--radius-sm, 4px);
+  border-radius: var(--radius-sm, 2px);
   opacity: .5;
 }
 .dmd .skeleton-line { height: calc(var(--font-body-sm-size, 14px) * var(--font-body-sm-leading, 1.5)); }

@@ -199,8 +199,10 @@ export default defineConfig(({ command }) => ({
        Raised to 856 at 854.13 kB, after the checks and the prose the last two
        simulations earned. Then to 860 at 858.45 kB, after the ninth, and to 866 at 862.46 kB with the
        dark chroma floor, and to 876 at 872.77 with the ground and selection
-       controls, and to 880 at 877.15 with the selected table row. */
-    chunkSizeWarningLimit: 910,
+       controls, and to 880 at 877.15 with the selected table row. Then to 955
+       at 950.46 with the keyboard contracts, the chart palette, the dataviz
+       scales and the amount check. */
+    chunkSizeWarningLimit: 955,
   },
 
   server: {

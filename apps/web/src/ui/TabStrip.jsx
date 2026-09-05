@@ -663,10 +663,12 @@ export default function TabStrip({ tabs, active, onSelect, right, title, actions
           words, never type it. */}
       {actions && (
         <div className="action-row" style={{
-          /* 18 between groups against 6 inside them, which is the 3:1
+          /* 20 between groups against 6 inside them, which clears the 3:1
              proximity wants. At 6 and 6 the row read as one run of four
-             controls rather than as history, save and import. */
-          display: 'flex', alignItems: 'center', gap: 18, flexShrink: 0, flexWrap: 'wrap',
+             controls rather than as history, save and import. 18 said the
+             same thing and is off the space grid, which takes multiples of
+             4 from 8 up; 16 would drop the ratio to 2.67:1. */
+          display: 'flex', alignItems: 'center', gap: 20, flexShrink: 0, flexWrap: 'wrap',
           padding: '6px 12px', minHeight: 40, background: 'var(--surf)',
           borderBottom: '1px solid var(--bdr)', borderTop: '1px solid var(--bdr)',
         }}>

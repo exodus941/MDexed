@@ -483,15 +483,15 @@ function GroundTint() {
               sample={
                 <span aria-hidden="true" style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  flexShrink: 0, width: 54, height: 34, borderRadius: 6,
+                  flexShrink: 0, width: 56, height: 36, borderRadius: 6,
                   background: D.bg, border: `1px solid ${D['border-subtle']}`,
                 }}>
                   <span style={{
-                    width: 30, height: 16, borderRadius: 4,
+                    width: 32, height: 16, borderRadius: 4,
                     background: D.surface, border: `1px solid ${D['border-subtle']}`,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}>
-                    <span style={{ width: 10, height: 4, borderRadius: 2, background: D.accent }} />
+                    <span style={{ width: 12, height: 4, borderRadius: 2, background: D.accent }} />
                   </span>
                 </span>
               } />
