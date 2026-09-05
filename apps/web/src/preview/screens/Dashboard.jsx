@@ -231,6 +231,40 @@ export default function Dashboard({ onInspect, layout, casing, theme, mode, onTo
           </div>
         </div>
 
+        {/* ── THE CHART PALETTE, RENDERED ──
+         *
+         * A token nobody paints is a token nobody can trust, and this system
+         * published three chart scales and demonstrated none of them.
+         *
+         * A STACKED BAR, deliberately. Its segments touch, so it exercises the
+         * rule the scale is built around: every pair is separated, not only
+         * the pairs that sit side by side in a legend.
+         *
+         * And the legend is a DIRECT LABEL, not decoration. Measured on this
+         * palette, the worst pair of eight falls under two just-noticeable
+         * differences once red-green vision is gone. The words are what make
+         * the picture certain. */}
+        <div className="card" {...ins('card')}>
+          <h3 style={{ fontSize: 'var(--font-body-md-size, 16px)', marginBottom: 'var(--space-sm, 8px)' }} {...txt('h6')}>{L('Revenue by line')}</h3>
+          <div className="chart-bar">
+            {[['Licences', 34], ['Services', 26], ['Support', 18], ['Training', 13], ['Other', 9]].map(([, pct], i) => (
+              <span key={i} style={{ width: `${pct}%`, background: `var(--chart-${i + 1})` }} />
+            ))}
+          </div>
+          <div className="chart-key" style={{ marginTop: 'var(--space-sm, 12px)' }}>
+            {[['Licences', 34], ['Services', 26], ['Support', 18], ['Training', 13], ['Other', 9]].map(([label, pct], i) => (
+              <span key={label} {...txt('caption', 'text-muted')}>
+                <span className="dot" style={{ color: `var(--chart-${i + 1})` }} />
+                {L(label)}
+                {/* `.figure`, not `.amount`: the mono face without the right
+                    edge. These sit inline beside their own labels rather than
+                    in a column, so there is nothing to line up against. */}
+                <span className="figure">{pct}%</span>
+              </span>
+            ))}
+          </div>
+        </div>
+
         <div className="cols-2">
           <div className="card" {...ins('card')}>
             <h3 style={{ fontSize: 'var(--font-body-md-size, 16px)', marginBottom: 'var(--space-sm, 8px)' }} {...txt('h6')}>{L('Collection rate')}</h3>

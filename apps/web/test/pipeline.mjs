@@ -10,7 +10,7 @@ import { isOnTypeGrid, isOnSpaceGrid } from '../src/state/grid.js'
 import { applyPreset, PRESETS } from '../src/state/presets.js'
 import { TAB_STYLES } from '../src/state/components.js'
 import { audit, chooseFix } from '../src/a11y/audit.js'
-import { toOklchObj } from '../src/color/convert.js'
+import { toOklchObj, parseColor as parseColorFor } from '../src/color/convert.js'
 import { check } from '../src/color/contrast.js'
 import { TYPE_ROLES } from '../src/type/scale.js'
 import { generateFile, validate } from '../src/emit/designmd.js'
@@ -2578,6 +2578,80 @@ line('\n- depth intensity -')
       assert(f.length === 0, `${sep}/${i.id} audits clean (${f.map(x => x.id).join(', ')})`)
     }
   }
+}
+
+/* ── THE CHART SCALES ──
+ *
+ * Published or not, a builder charting anything picks a palette. Unpublished,
+ * it is one that does not follow the brand. */
+{
+  line('\n- the chart scales -')
+  const { buildDataviz, categorical, worstPair, withoutRedGreen, NEIGHBOUR_FLOOR, CATEGORICAL_COUNT, LIGHTNESS_LEVELS }
+    = await import('../src/color/dataviz.js')
+
+  const dv = derived.dataviz
+  assert(dv.categorical.length === CATEGORICAL_COUNT, `${CATEGORICAL_COUNT} categorical colours (${dv.categorical.length})`)
+  assert(dv.sequential.length === 9, `9 sequential steps (${dv.sequential.length})`)
+  assert(dv.diverging.length === 9, `9 diverging steps (${dv.diverging.length})`)
+  assert(dv.categorical.every(h => /^#[0-9a-f]{6}$/i.test(h)), 'every categorical colour is a hex')
+
+  /* Series one IS the brand, so the first swatch of every chart is the colour
+     the reader already associates with the system. */
+  const accent = state.color.seeds.find(s => s.name === 'accent').hex
+  const hueOf = h => toOklchObj(parseColorFor(h)).h ?? 0
+  assert(Math.abs(hueOf(dv.categorical[0]) - hueOf(accent)) < 2,
+    `series one carries the accent hue (${hueOf(dv.categorical[0]).toFixed(1)} vs ${hueOf(accent).toFixed(1)})`)
+
+  /* EVERY pair, not only the adjacent ones: two series touch anywhere in a
+     pie, and a stacked bar puts any two together when a category is empty. */
+  for (const p of [null, ...PRESETS]) {
+    const st = p ? applyPreset(p.id, createInitialState()) : createInitialState()
+    const set = buildDataviz(st.color.seeds, derive(st).ramps)
+    const w = worstPair(set.categorical)
+    assert(w.distance >= NEIGHBOUR_FLOOR,
+      `${p ? p.id : 'default'}: worst chart pair clears the floor (${w.distance.toFixed(3)} >= ${NEIGHBOUR_FLOOR}, series ${w.a + 1} v ${w.b + 1})`)
+  }
+
+  /* THE ORDER IS THE CONTRACT. The same seed must give the same palette, or
+     two charts of the same data disagree. */
+  assert(categorical(accent).join() === categorical(accent).join(),
+    'the palette is deterministic, so series one is always series one')
+  /* And it is DERIVED, not a fixed set dressed up as one. */
+  assert(categorical(accent).join() !== categorical('#c13e2e').join(),
+    'a different seed gives a different palette')
+
+  /* FOUR LIGHTNESS LEVELS, and the reason is measured. Two levels took the
+     worst pair without red-green to 0.003, which is the same colour twice. */
+  assert(LIGHTNESS_LEVELS.length === 4, `four lightness levels (${LIGHTNESS_LEVELS.length})`)
+  const cvdWorst = (() => {
+    let m = Infinity
+    for (let i = 0; i < dv.categorical.length; i++)
+      for (let j = i + 1; j < dv.categorical.length; j++)
+        m = Math.min(m, withoutRedGreen(dv.categorical[i], dv.categorical[j]))
+    return m
+  })()
+  assert(cvdWorst > 0.010,
+    `four levels beat two without red-green (${cvdWorst.toFixed(3)} against 0.003 on two)`)
+
+  /* The scales reach every consumer, and once each. They do not change with
+     the theme, so they belong outside the theme blocks. */
+  const files = payloadTextFiles(state, derived)
+  const css = files['tokens.css']
+  assert((css.match(/--chart-1\s*:/g) || []).length === 1,
+    `--chart-1 is declared once in tokens.css (${(css.match(/--chart-1\s*:/g) || []).length})`)
+  assert((css.match(/--chart-[a-z0-9-]+\s*:/g) || []).length === 26,
+    `all 26 chart tokens reach tokens.css (${(css.match(/--chart-[a-z0-9-]+\s*:/g) || []).length})`)
+  const json = JSON.parse(files['tokens.json'])
+  assert(Object.keys(json.color?.chart?.categorical ?? {}).length === CATEGORICAL_COUNT,
+    'the categorical scale reaches tokens.json')
+  assert(json.color.chart.categorical['1'].$type === 'color', 'and carries a DTCG type')
+
+  const md = files['DESIGN.md']
+  assert(/### Charts/.test(md), 'DESIGN.md carries the Charts section')
+  assert(md.includes(dv.worst.distance.toFixed(3)), 'and states the measured worst pair')
+  assert(md.includes(dv.worstWithoutRedGreen.toFixed(3)),
+    'and states the limit without red-green rather than claiming safety')
+  assert(md.includes(dv.categorical[0]), 'and lists the actual colours')
 }
 
 /* ── THE KEYBOARD CONTRACT, AND THE GUARDS ITS CHECKS EARNED ──

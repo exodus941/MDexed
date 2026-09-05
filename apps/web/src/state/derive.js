@@ -3,6 +3,7 @@
    read from here, which is what guarantees that what you see is what exports. */
 import { buildRamps, resolveRef, RAMP_STEPS, DARK_FLOOR } from '../color/ramp.js'
 import { gradientCss } from '../color/modes.js'
+import { buildDataviz } from '../color/dataviz.js'
 import { parseColor, toRgb255 } from '../color/convert.js'
 import { buildTypeScale } from '../type/scale.js'
 import { stackFor } from '../type/fonts.js'
@@ -251,9 +252,14 @@ export function derive(state, opts = {}) {
 
   const componentLayout = resolveAllLayouts(state.components?.layout)
 
+  /* Three chart scales, from the same seeds as everything else. Published or
+     not, a builder charting anything picks a palette; unpublished, it is one
+     that does not follow the brand. */
+  const dataviz = buildDataviz(color.seeds, ramps)
+
   return {
     ramps, roles, families, typography, spacing, rounded, elevation, motion, components, gradients,
-    componentLayout,
+    componentLayout, dataviz,
     shadowHex, scrimColor,
     layout: state.layout,
     icons: state.icons,
@@ -265,7 +271,7 @@ export function derive(state, opts = {}) {
        from `d.states` resolved against `undefined` and the variable was never
        emitted. Nothing reports that: the stylesheet's fallback paints, so the
        preview shows a plausible 44 whatever the document says. */
-    cssVars: buildCssVars({ roles, typography, spacing, rounded, elevation, motion, components, gradients, focus: state.focus, icons: state.icons, layout: state.layout, elevationCfg: state.elevation, states: state.states, borderWidths: state.radius?.borderWidths ?? {} }, color.mode),
+    cssVars: buildCssVars({ roles, typography, spacing, rounded, elevation, motion, components, gradients, dataviz, focus: state.focus, icons: state.icons, layout: state.layout, elevationCfg: state.elevation, states: state.states, borderWidths: state.radius?.borderWidths ?? {} }, color.mode),
   }
 }
 
@@ -396,6 +402,11 @@ export function buildCssVars(d, mode = 'light', { darkAliases = false } = {}) {
    * put a mark over a fill is ordering two siblings, not joining the global
    * order, and it needs no token. */
   for (const [name, v] of Object.entries(Z_LAYERS)) vars[`--z-${name}`] = String(v)
+  /* One set for both themes, so series three is the same colour either way and
+     a legend learned in one reads in the other. */
+  ;(d.dataviz?.categorical ?? []).forEach((hex, i) => { vars[`--chart-${i + 1}`] = hex })
+  ;(d.dataviz?.sequential ?? []).forEach((hex, i) => { vars[`--chart-seq-${i + 1}`] = hex })
+  ;(d.dataviz?.diverging ?? []).forEach((hex, i) => { vars[`--chart-div-${i + 1}`] = hex })
   if (d.layout?.maxMeasure) vars['--measure'] = `${d.layout.maxMeasure}ch`
   for (const [name, w] of Object.entries(d.layout?.fixedWidths ?? {})) vars[`--width-${name}`] = `${w}px`
   /* Fills blend with what's behind them; borders and shadows can't.

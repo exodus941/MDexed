@@ -1697,6 +1697,35 @@
 }
 .dmd .bar { height: 6px; border-radius: var(--radius-full, 9999px); background: var(--c-bg-subtle, #eee); overflow: hidden; }
 .dmd .bar > span { display: block; height: 100%; background: var(--c-accent, #b8422e); border-radius: inherit; }
+
+/* ── A STACKED BAR, WHICH IS WHERE THE CHART PALETTE IS ACTUALLY TESTED ──
+ *
+ * Its segments touch, so it exercises the rule the categorical scale is built
+ * around: every PAIR is separated, not only the pairs that sit next to each
+ * other in a legend.
+ *
+ * The hairline is an OUTLINE at a negative offset, not a border. A border
+ * would add width to a segment sized as a percentage and push the whole run
+ * past its track. Forced colors preserves outlines and disregards
+ * `background-color`, so this is also the only mark the segments keep in that
+ * mode. */
+.dmd .chart-bar {
+  display: flex;
+  height: var(--space-lg, 20px);
+  border-radius: var(--radius-sm, 4px);
+  overflow: hidden;
+}
+.dmd .chart-bar > span {
+  display: block;
+  height: 100%;
+  outline: 1px solid var(--c-border-subtle, #ddd);
+  outline-offset: -1px;
+}
+/* The legend IS the direct label. No eight-colour palette survives the loss of
+   red-green vision, so the words are not decoration. */
+.dmd .chart-key { display: flex; flex-wrap: wrap; gap: var(--space-xs, 8px) var(--space-md, 16px); }
+.dmd .chart-key > * { display: inline-flex; align-items: baseline; gap: var(--space-2xs, 6px); }
+.dmd .chart-key .dot { width: 8px; height: 8px; }
 .dmd .nav-item {
   padding: var(--cmp-nav-item-padding, var(--space-xs, 8px) var(--space-sm, 12px));
   border-radius: var(--cmp-nav-item-rounded, var(--radius-md, 8px));

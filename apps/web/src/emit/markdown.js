@@ -12,6 +12,7 @@ import { SPEC_COMPONENT_PROPS, collectComponents } from './yaml.js'
 import { LAYOUT_COMPONENTS, layoutRows, layoutSentences } from '../state/componentLayout.js'
 import { audit, REQUIREMENTS as A11Y_REQUIREMENTS } from '../a11y/audit.js'
 import { KEYBOARD_CONTRACTS, INTERACTIVE_CONTRACTS } from '../state/keyboard.js'
+import { NEIGHBOUR_FLOOR } from '../color/dataviz.js'
 import { purposeOf } from '../color/modes.js'
 
 const cell = v => String(v ?? '').replace(/\|/g, '\\|').replace(/\n+/g, ' ').trim()
@@ -243,7 +244,38 @@ function colorsBody(state, derived) {
          third pair, and that pair is in no row here. */
       'This table cannot cover a pair a component invents. A badge that takes its text from one role and its fill from another creates a combination no row above measures — check that pair yourself before you ship the component.',
       'Report any ratio you measure to two decimal places. One place turns 4.4996 into "4.5:1", which reads as a pass against a threshold of 4.5 and is not one.',
-    ])
+    ]),
+
+    datavizBody(derived)
+  )
+}
+
+/* ── Charts ──
+ *
+ * Published or not, a builder charting anything picks a palette. Unpublished,
+ * it is one that does not follow the brand. */
+function datavizBody(derived) {
+  const dv = derived.dataviz
+  if (!dv?.categorical?.length) return ''
+  const swatches = list => list.map((hex, i) => `${i + 1}. \`${hex}\``).join(' · ')
+
+  return joinBlocks(
+    '### Charts',
+    'Three scales, because a chart asks three different questions. Which series is this — no order, every colour one weight. How much of one thing — one hue, light to dark. How far either side of zero — two hues around a pale middle.',
+
+    `**Categorical** — \`--chart-1\` to \`--chart-${dv.categorical.length}\`. ${swatches(dv.categorical)}`,
+    'The ORDER is the contract. Series one is always series one, so two charts of the same data agree and a legend learned on one page still reads on the next. Never assign these by iteration order, or the picture changes every time the data is sorted. Series one is the accent hue, so the first swatch in every chart is the colour the reader already associates with this system.',
+    `Every pair is separated, not only the pairs that sit next to each other in the legend: two series touch anywhere in a pie, and a stacked bar puts any two together the moment a category is empty. Measured on this palette, the worst pair of the ${dv.categorical.length} is **${dv.worst.distance.toFixed(3)}** in OKLab, between series ${dv.worst.a + 1} and ${dv.worst.b + 1}. The floor is ${NEIGHBOUR_FLOOR}, about four just-noticeable differences, so two areas that touch read as two colours rather than as one gradient.`,
+    `**And the limit, stated.** With the red-green axis removed, that worst pair falls to **${dv.worstWithoutRedGreen.toFixed(3)}**, which is under two just-noticeable differences. No eight-colour categorical palette is safe without red-green vision, this one included. So a chart never encodes a series by colour alone: label each series directly where it sits, or give it a dash pattern or a marker shape as well. The palette makes the picture readable and the label makes it certain.`,
+    'Give every filled series a hairline in `var(--c-border-subtle)`. The palest series has only 0.11 of lightness between it and a light page, which is enough for an area and not for an edge.',
+
+    `**Sequential** — \`--chart-seq-1\` to \`--chart-seq-${dv.sequential.length}\`, light to dark. ${swatches(dv.sequential)}`,
+    'One hue, for one quantity. Take as many steps as the data has bins, from the light end. It is the accent ramp with its two extremes dropped: the lightest step is indistinguishable from the page and the darkest from the body text.',
+
+    `**Diverging** — \`--chart-div-1\` to \`--chart-div-${dv.diverging.length}\`, with the middle at \`--chart-div-5\`. ${swatches(dv.diverging)}`,
+    'Nine steps so the middle is the fifth and a reader can point at zero. The ends are the danger hue and the accent hue rather than danger and success: success at one end states that the positive direction is good, which is true of a profit and false of a temperature anomaly. Where your data really is a gain and a loss, swap the positive end for the success ramp and say so in the legend.',
+
+    'None of these is a status colour. A series that happens to be red is series two, not a failure. Where a chart shows both a series and a state, put the state in a mark or a label rather than in the fill, or the two colour languages collide in one picture.'
   )
 }
 

@@ -455,7 +455,26 @@ export function tokensJson(state, derived) {
 
   return JSON.stringify({
     $description: `${state.meta?.name ?? 'Design system'} — generated from DESIGN.md`,
-    color: { light: colour('light'), dark: colour('dark'), scale: scales },
+    color: {
+      light: colour('light'),
+      dark: colour('dark'),
+      scale: scales,
+      /* ── THE CHART SCALES ARE COLOUR, AND THEY ARE NOT A THEME ──
+       *
+       * Series three is the same colour in both modes, so these sit beside
+       * `light` and `dark` rather than inside either. Numbered, not named: the
+       * ORDER is the contract. Series one is always series one, so two charts
+       * of the same data agree and a legend learned on one page reads on the
+       * next. A name would invite a consumer to reorder them. */
+      chart: {
+        categorical: Object.fromEntries((derived.dataviz?.categorical ?? [])
+          .map((hex, i) => [String(i + 1), { $type: 'color', $value: hex }])),
+        sequential: Object.fromEntries((derived.dataviz?.sequential ?? [])
+          .map((hex, i) => [String(i + 1), { $type: 'color', $value: hex }])),
+        diverging: Object.fromEntries((derived.dataviz?.diverging ?? [])
+          .map((hex, i) => [String(i + 1), { $type: 'color', $value: hex }])),
+      },
+    },
     dimension: {
       spacing: Object.fromEntries(derived.spacing.map(s => [s.name, { $type: 'dimension', $value: s.value }])),
       radius: Object.fromEntries(derived.rounded.map(r => [r.name, { $type: 'dimension', $value: r.value }])),
