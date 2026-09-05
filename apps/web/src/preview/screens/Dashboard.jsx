@@ -282,8 +282,14 @@ export default function Dashboard({ onInspect, layout, casing, theme, mode, onTo
                     and this sits inline beside its own label. The old rule
                     said every figure took the face, so this carried it; the
                     rule was narrowed to columns and this is one of the four
-                    sites that kept the superseded answer. */}
-                {pct}%
+                    sites that kept the superseded answer.
+
+                    STILL ITS OWN ELEMENT. Dropping the span merged the figure
+                    into the label's text node, and a flex gap separates ITEMS.
+                    Two text nodes side by side are one anonymous item, so the
+                    key rendered "Licences34%" with the 6px gap intact and
+                    nothing left to apply it between. */}
+                <span>{pct}%</span>
               </span>
             ))}
           </div>
