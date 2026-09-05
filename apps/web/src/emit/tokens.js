@@ -9,7 +9,7 @@
  * All three derive from `derive()`, the same function the preview and the
  * markdown read, so none of them can disagree with the file or the screen.
  */
-import { buildCssVars } from '../state/derive.js'
+import { buildCssVars, Z_LAYERS } from '../state/derive.js'
 import { hasDark, hasLight, hasThemeToggle } from '../state/schema.js'
 import { gradientCss } from '../color/modes.js'
 import { resolveRef } from '../color/ramp.js'
@@ -454,6 +454,16 @@ export function tokensJson(state, derived) {
       .map(([k, v]) => [k, { $type: 'shadow', $value: v }])),
     duration: Object.fromEntries(Object.entries(derived.motion.durations)
       .map(([k, v]) => [k, { $type: 'duration', $value: v }])),
+    /* ── THE STACKING ORDER BELONGS IN THE INTEROP FILE TOO ──
+     *
+     * It reached tokens.css and stopped there, so a build importing the DTCG
+     * file saw no layers and would have invented its own. That is the exact
+     * hole the scale exists to close, reopened one file along.
+     *
+     * `number` rather than `dimension`, because a z-index carries no unit and
+     * a consumer that appends `px` produces a value CSS ignores. */
+    number: Object.fromEntries(Object.entries(Z_LAYERS)
+      .map(([k, v]) => [k, { $type: 'number', $value: Number(v) }])),
   }, null, 2) + '\n'
 }
 

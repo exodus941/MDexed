@@ -589,7 +589,26 @@ function elevationBody(state, derived) {
       e.strategy === 'shadow' && 'Each level stacks two layers: a tight contact shadow and a diffuse ambient one. Use the named level; do not hand-roll a shadow.',
       e.darkStrategy === 'lighten' && 'In dark mode, raise the surface colour rather than deepening the shadow — shadows barely register against a dark background.',
       state.macros.depth === 0 && 'Depth is set to zero. Treat every surface as flat.',
-    ])
+    ]),
+    '**The stacking order is published. Do not invent one.**',
+    '',
+    'A shadow says a thing is raised. `z-index` says which raised thing wins. Nine layers, on a step of 100, so something new slots between two without renumbering the rest:',
+    '',
+    '| Token | Value | What sits here |',
+    '| --- | --- | --- |',
+    '| `--z-base` | 0 | the page |',
+    '| `--z-raised` | 10 | a card that lifts off it |',
+    '| `--z-sticky` | 100 | a header that stays while the content scrolls |',
+    '| `--z-dropdown` | 200 | a menu opened from a control |',
+    '| `--z-overlay` | 300 | the scrim behind a dialog |',
+    '| `--z-modal` | 400 | the dialog on that scrim |',
+    '| `--z-popover` | 500 | a picker that has to clear a dialog |',
+    '| `--z-toast` | 600 | a message that clears everything |',
+    '| `--z-tooltip` | 700 | last |',
+    '',
+    'Read it as a sequence rather than a table of numbers. A card lifts, a header sticks, a menu opens, a scrim covers, a dialog sits on the scrim, a picker clears the dialog, a toast clears everything, and a tooltip is last. A builder reaching for "above a modal" then finds `popover` instead of adding a thousand.',
+    '',
+    '**Local stacking is not a layer.** `z-index: 1` inside a positioned card, to put a mark over a fill, orders two siblings and never joins the global order. It needs no token and it must not take one, because a card that claims `--z-modal` beats every dialog on the page.',
   )
 }
 

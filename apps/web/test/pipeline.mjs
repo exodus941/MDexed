@@ -2191,6 +2191,9 @@ line('\n- project file -')
        inset shadow, in a file carrying no forced-colors block. That mode
        ignores box-shadow, so the row would lose its only marker. */
     '.row.is-selected > td { box-shadow: inset 4px 0 0 var(--c-text); }',
+    /* a-stacking-layer-is-a-token: a hand-typed layer, which is the number
+       somebody reaches for when nothing published an order. */
+    '.j { position: fixed; z-index: 2001; }',
   ].join('\n'))
   write('broken.html', [
     '<html data-theme="light">',                 /* hardcoded-theme */
@@ -2209,7 +2212,7 @@ line('\n- project file -')
   /* ── AND STAYS QUIET ON CORRECT CODE ── */
   const clean = fs.mkdtempSync(path.join(os.tmpdir(), 'verify-ok-'))
   fs.writeFileSync(path.join(clean, 'tokens.css'),
-    ':root { --c-text: #111; --space-md: 16px; --edge-w: 4px; --font-body-md-family: system-ui; }')
+    ':root { --c-text: #111; --space-md: 16px; --edge-w: 4px; --z-modal: 400; --font-body-md-family: system-ui; }')
   fs.writeFileSync(path.join(clean, 'good.css'), [
     '/* A comment naming 13px and #ff0000 is prose, not code. */',
     '.a { color: var(--c-text); padding: var(--space-md); }',
@@ -2222,6 +2225,10 @@ line('\n- project file -')
        all, which proves nothing about the check. */
     '.row.is-selected > td { box-shadow: inset var(--edge-w) 0 0 var(--c-text); }',
     '@media (forced-colors: active) {\n  .row.is-selected > td { outline: var(--edge-w) solid Highlight; outline-offset: calc(-1 * var(--edge-w)); }\n}',
+    /* The CORRECT forms of the stacking rule: a named layer, and a local
+       stacking value that orders two siblings and joins no global order. */
+    '.k { position: fixed; z-index: var(--z-modal); }',
+    '.l { position: relative; z-index: 1; }',
   ].join('\n'))
   fs.writeFileSync(path.join(clean, 'good.html'), [
     '<html>',

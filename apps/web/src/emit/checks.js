@@ -350,6 +350,40 @@ export const CHECKS = [
   },
 
   {
+    id: 'a-stacking-layer-is-a-token',
+    where: 'source',
+    line: 'A z-index that joins the global order takes a --z-* token. A hand-typed number is an invention.',
+    /* ── A MISSING TOKEN GETS INVENTED, AND THIS IS THE ONE ──
+     *
+     * Nothing published a stacking order, so every build picked its own. This
+     * app did too, before the tokens existed: 29 declarations across 12 files
+     * at 18 distinct values, including 71, 801 and 2001. Those are not
+     * decisions. They are what someone types when they need to sit above
+     * whatever was already there.
+     *
+     * LOCAL STACKING IS NOT A LAYER, so the check has to tell them apart, and
+     * the discriminator is the VALUE rather than the selector. A single digit
+     * orders two siblings inside a positioned box and never joins the global
+     * order. Anything larger is reaching for a layer, and there is a name for
+     * every layer it could want.
+     *
+     * 10 is the boundary because `--z-raised` is 10. Below that, a number is
+     * too small to be competing with anything but its own siblings. */
+    body: [
+      "for (const f of files.filter(f => /\\.(css|jsx?|tsx?)$/.test(f.path))) {",
+      "  const lines = f.text.split('\\n')",
+      "  for (let i = 0; i < lines.length; i++) {",
+      "    const m = /(?:z-index|zIndex)\\s*:\\s*(-?\\d+)/.exec(lines[i])",
+      "    if (!m) continue",
+      "    const n = Math.abs(Number(m[1]))",
+      "    if (n < 10) continue",
+      "    fail(f.path, i + 1, 'z-index ' + m[1] + ' is a hand-typed layer. The stacking order is published as nine named tokens, so reach for the one that says what this is: raised, sticky, dropdown, overlay, modal, popover, toast, tooltip. A number invented here has to beat whatever was already on the page, which is how a codebase ends up with 2001.')",
+      "  }",
+      "}",
+    ],
+  },
+
+  {
     id: 'a-shadow-drawn-mark-survives-forced-colors',
     where: 'source',
     line: 'A state marked with box-shadow also has a forced-colors outline, or it vanishes in Windows High Contrast.',

@@ -11,6 +11,36 @@ import { resolveAllLayouts } from './componentLayout.js'
 import { ALL_ROLES } from './schema.js'
 import { snapSpace } from './grid.js'
 
+/* ── THE STACKING ORDER, ONE HOME ──
+ *
+ * Nothing published one, so every build picked its own numbers. Ours did too:
+ * 29 declarations across 12 files at 18 distinct values, including 71, 801 and
+ * 2001. Those are not decisions. They are what somebody types when they need
+ * to sit above whatever was already there.
+ *
+ * Nine layers on a step of 100, so something new slots between two without
+ * renumbering the rest. The NAMES are what stop the invention: a builder
+ * reaching for "above a modal" finds `popover` rather than adding a thousand.
+ *
+ * Read it as a sequence. A card lifts, a header sticks, a menu opens, a scrim
+ * covers, a dialog sits on the scrim, a picker clears the dialog, a toast
+ * clears everything, and a tooltip is last.
+ *
+ * EXPORTED, because tokens.css and tokens.json both publish it. Written twice
+ * they drift, and a stacking order that disagrees with itself puts a dialog
+ * under its own scrim. */
+export const Z_LAYERS = {
+  base: 0,
+  raised: 10,
+  sticky: 100,
+  dropdown: 200,
+  overlay: 300,
+  modal: 400,
+  popover: 500,
+  toast: 600,
+  tooltip: 700,
+}
+
 const UNIT_RE = /^(-?\d*\.?\d+)\s*([a-z%]*)$/i
 const round = (v, p = 1) => Math.round(v * 10 ** p) / 10 ** p
 
@@ -333,6 +363,27 @@ export function buildCssVars(d, mode = 'light', { darkAliases = false } = {}) {
      `stroke-width` wants, and it means the same number at every icon size. */
   if (d.icons?.strokeWidth != null) vars['--icon-stroke'] = String(d.icons.strokeWidth)
   if (d.icons?.gap) vars['--icon-gap'] = d.spacing?.find(s => s.name === d.icons.gap)?.value ?? '8px'
+  /* ── THE STACKING ORDER, BECAUSE A MISSING TOKEN GETS INVENTED ──
+   *
+   * Nothing here published one, so every build picked its own numbers. Ours
+   * did too: 29 declarations across 12 files, at 18 distinct values including
+   * 71, 801 and 2001. Those are not decisions. They are the result of someone
+   * needing to sit above whatever was already there.
+   *
+   * Nine named layers on a step of 100. The step leaves room to slot something
+   * between two without renumbering, and the NAMES are what stop the
+   * invention: a builder reaching for "the thing above a modal" finds
+   * `popover` rather than adding a thousand.
+   *
+   * ORDER IS THE WHOLE CONTENT, so it is stated as a sequence a reader can
+   * hold: a card lifts, a header sticks, a menu opens, a scrim covers, a
+   * dialog sits on the scrim, a picker clears the dialog, a toast clears
+   * everything, and a tooltip is last.
+   *
+   * LOCAL STACKING IS NOT A LAYER. `z-index: 1` inside a positioned card to
+   * put a mark over a fill is ordering two siblings, not joining the global
+   * order, and it needs no token. */
+  for (const [name, v] of Object.entries(Z_LAYERS)) vars[`--z-${name}`] = String(v)
   if (d.layout?.maxMeasure) vars['--measure'] = `${d.layout.maxMeasure}ch`
   for (const [name, w] of Object.entries(d.layout?.fixedWidths ?? {})) vars[`--width-${name}`] = `${w}px`
   /* Fills blend with what's behind them; borders and shadows can't.
