@@ -150,8 +150,8 @@ LAYOUT_COMPONENTS.push(
       {
         k: 'numeric', label: 'Numeric columns', default: 'right',
         options: [
-          { value: 'right', label: 'Right-aligned', sentence: 'Right-align numeric columns, including their headers, and set them in tabular figures so digits line up between rows.' },
-          { value: 'left', label: 'Left-aligned', sentence: 'Left-align every column, numeric or not.' },
+          { value: 'right', label: 'Right-aligned', sentence: 'Align numeric columns to the END edge with `text-align: end`, headers included, and set them in tabular figures so digits line up between rows. End rather than right, because an amount belongs to its column and that column flips with the writing direction.' },
+          { value: 'left', label: 'Left-aligned', sentence: 'Align every column to the START edge, numeric or not.' },
         ],
       },
       {

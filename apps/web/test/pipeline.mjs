@@ -66,6 +66,38 @@ assert(derived.ramps.accent.anchor != null, `seed anchored at step ${derived.ram
  * a different role. */
 assert(Object.keys(derived.roles.light).length === 31, `31 light roles (got ${Object.keys(derived.roles.light).length})`)
 
+/* ── RTL GUIDANCE IS OPT-IN, AND THE REST IS DIRECTION-NEUTRAL ──
+ *
+ * Two halves. The general rules are logical whether the switch is on or not,
+ * because `inline-start` costs a left-to-right build nothing. The RTL-specific
+ * half is noise for a page that will never be Arabic, so it stays out.
+ *
+ * The second assertion is the one that matters over time: a rule written in
+ * physical terms reads correctly today and cannot flip later. */
+{
+  const off = createInitialState()
+  const offMd = payloadTextFiles(off, derive(off))['DESIGN.md']
+  assert(!/## Right-to-left/.test(offMd), 'no right-to-left section by default')
+  assert(!/\bdir="rtl"/.test(offMd), 'and no rtl instruction leaks into it')
+
+  const on = createInitialState()
+  on.meta.rtl = true
+  const onMd = payloadTextFiles(on, derive(on))['DESIGN.md']
+  assert(/## Right-to-left/.test(onMd), 'the section appears when the document asks for it')
+  for (const must of ['dir="rtl"', 'clock', 'mirror']) {
+    assert(onMd.toLowerCase().includes(must.toLowerCase()), `and it covers ${must}`)
+  }
+
+  /* The general rules never name a physical side for PLACEMENT, in either
+     state. A stored setting may still be worded plainly for a person. */
+  const physical = [/margin-left:/, /margin-right:/, /padding-left:/, /padding-right:/, /text-align: *right/, /text-align: *left/]
+  for (const md of [offMd, onMd]) {
+    for (const re of physical) {
+      assert(!re.test(md), `no physical placement property in the rules (${re.source})`)
+    }
+  }
+}
+
 /* ── A SHAPE ROLE HOLDS ON EVERY PRESET, IN BOTH MODES ──
  *
  * `accent-raised` exists to draw a filled shape, so its own fill against the

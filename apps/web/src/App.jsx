@@ -15,7 +15,7 @@ import { serializeProject, parseProject, projectFilename, PROJECT_EXT } from './
 import { isValidColor } from './color/convert.js'
 import { APP_CSS } from './ui/theme.js'
 import { loadDocumentFonts } from './type/fonts.js'
-import { Banner, ResetButton, CloseButton, SectionHeader, SectionBreak, Collapsible, Strut, numberFromText, PAD, BTN, MODAL_BTN } from './ui/controls.jsx'
+import { Banner, Toggle, ResetButton, CloseButton, SectionHeader, SectionBreak, Collapsible, Strut, numberFromText, PAD, BTN, MODAL_BTN } from './ui/controls.jsx'
 import CrossFade from './ui/CrossFade.jsx'
 import TabStrip, { scrollableUnder } from './ui/TabStrip.jsx'
 import ImportModal, { IMPORT_FORMATS } from './ui/ImportModal.jsx'
@@ -1221,6 +1221,46 @@ function NewDocModal({ onClose, onCreate }) {
  *
  * A divider rather than a second card, because the macro block already
  * carries its own heading and nesting it would be three borders deep. */
+/* ── RTL, LAST AND OFF ──
+ *
+ * Every rule the payload states is already written in logical terms, so a
+ * left-to-right build loses nothing by leaving this alone. What the switch
+ * adds is the RTL-SPECIFIC half: what mirrors, what must not, and how
+ * bidirectional text behaves. That is noise for a page that will never be
+ * Arabic, Persian, Urdu or Hebrew, and a reader should not have to decide
+ * whether it applies to them. So it ships out of the payload by default.
+ *
+ * Last in the tab, because it is the narrowest decision here. */
+function RtlSection() {
+  const { state, set } = useStore()
+  const on = Boolean(state.meta?.rtl)
+  return (
+    <Collapsible title="RTL Optimizations" note={on ? 'on' : 'off'}>
+      <Banner tone="warn">
+        Turn this on <strong>only</strong> for pages that ship in Arabic, Persian,
+        Urdu or Hebrew. It adds a right-to-left section to DESIGN.md covering
+        mirroring, bidirectional text and numerals. Every other rule in the
+        payload is already written in logical terms, so a left-to-right build
+        needs nothing from here and gets the same layout with this off.
+      </Banner>
+      {/* `Toggle`, not a bare input. The chrome styles `input:not(.dmd *)` as
+          a FIELD, so a raw checkbox here measured 283px wide and threw its
+          label to the far side of the row. Every other switch in this panel
+          uses this primitive. */}
+      <div style={{ marginTop: PAD.gap }}>
+        <Toggle label="Enable RTL optimizations" checked={on}
+          desc="Adds a Right-to-left section to DESIGN.md. Nothing else changes."
+          onChange={v => set(s => ({ ...s, meta: { ...s.meta, rtl: v } }))} />
+      </div>
+      <p className="panel-note" style={{ marginTop: PAD.sub }}>
+        {on
+          ? 'DESIGN.md carries a Right-to-left section. Nothing else in the payload changes, because the rest was already direction-neutral.'
+          : 'Nothing right-to-left reaches the payload.'}
+      </p>
+    </Collapsible>
+  )
+}
+
 function MetaGlobalTab() {
   return (
     <div>
@@ -1230,6 +1270,8 @@ function MetaGlobalTab() {
           where a boundary needs no line. */}
       <SectionBreak />
       <GlobalMetrics />
+      <SectionBreak />
+      <RtlSection />
     </div>
   )
 }

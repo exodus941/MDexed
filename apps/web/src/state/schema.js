@@ -553,7 +553,18 @@ export const createInitialState = () => ({
   /* No version until the first export. `version` is a build number stamped by
      exporting — see state/build.js — so a document that has produced no file
      has nothing to name. */
-  meta: { name: 'My Design System', description: '', version: '' },
+  /* ── `rtl` IS OFF, AND THAT IS THE POINT ──
+   *
+   * The general rules are written in LOGICAL terms whether this is on or not,
+   * because `inline-start` resolves to left in a left-to-right build and costs
+   * that build nothing. What this switch adds is the RTL-SPECIFIC guidance:
+   * mirroring, which marks flip and which never do, bidirectional text,
+   * numerals, and the `dir` attribute.
+   *
+   * That guidance is noise for a page that will never be Arabic, Persian,
+   * Urdu or Hebrew. A reader who does not need it should not have to decide
+   * whether it applies to them, so it stays out of the payload entirely. */
+  meta: { name: 'My Design System', description: '', version: '', rtl: false },
   macros: { ...DEFAULT_MACROS },
 
   color: {
