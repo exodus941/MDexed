@@ -2030,3 +2030,51 @@
   column-gap: var(--space-lg, 24px); row-gap: var(--space-md, 16px);
   grid-template-columns: minmax(0, 1fr) var(--context, 200px);
 }
+
+/* ── FORCED COLORS: EVERY MARK WE DRAW WITH A SHADOW DISAPPEARS ──
+ *
+ * Windows High Contrast overrides authored colour and IGNORES `box-shadow`
+ * outright. It drops `background-image` too. Six marks in this stylesheet are
+ * drawn with one or the other, and each of them is a rule we chose:
+ *
+ *   the selected row's accent bar        nav-item and table-row
+ *   the selected tab's underline         "never build one from a border"
+ *   the neutral badge's outline          "a neutral chip is drawn by its edge"
+ *   the marked column's edge             the comparison table
+ *   that column's row dividers           a 1px background-image gradient
+ *
+ * So in that mode a selected row, a selected tab and a neutral chip all lose
+ * their only marker. The fill cannot cover for them, because forced colors
+ * disregards background-color as well.
+ *
+ * ONE MECHANISM FOR ALL OF THEM: an `outline` with a NEGATIVE offset. Forced
+ * colors preserves outlines, which is why the focus ring already survives, and
+ * an outline costs no layout at all. A border would widen the box and shift
+ * the very column these rules exist to keep straight.
+ *
+ * `Highlight` for a chosen thing, `CanvasText` for a structural edge. Those
+ * are the user's own colours, which is the whole point of the mode. */
+@media (forced-colors: active) {
+  .dmd .nav-item[aria-current='page'],
+  .dmd .nav-item.is-active,
+  .dmd .table tr.is-selected > td {
+    outline: 2px solid Highlight;
+    outline-offset: -2px;
+  }
+  /* A tab's mark is an underline, and an underline cannot survive here. The
+     requirement is that the state is PERCEIVABLE, not that it looks the same. */
+  .dmd .tab.is-active,
+  .dmd .tab[aria-selected='true'] {
+    outline: 2px solid Highlight;
+    outline-offset: -2px;
+  }
+  .dmd .badge-neutral,
+  .dmd .plan-cell.is-picked {
+    outline: 1px solid CanvasText;
+    outline-offset: -1px;
+  }
+  /* Its dividers are a background-image, which is dropped as well. */
+  .dmd .plan-cell {
+    border-top: 1px solid CanvasText;
+  }
+}

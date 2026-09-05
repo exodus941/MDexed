@@ -142,6 +142,38 @@ ${decl(dark)}
 ${decl(light).replace(/^ {2}/gm, '    ')}
   }
 }
+
+/* ── FORCED COLORS: A MARK DRAWN WITH A SHADOW DISAPPEARS ──
+ *
+ * Windows High Contrast overrides authored colour, IGNORES \`box-shadow\`
+ * outright, and drops \`background-image\`. This system draws three marks with
+ * one of those, and each is a rule it states deliberately:
+ *
+ *   the selected row's accent bar    nav-item-selected, table-row-selected
+ *   the selected tab's underline     "never build an underline from a border"
+ *   the neutral badge's outline      "a neutral chip is drawn by its edge"
+ *
+ * So in that mode a selected row, a selected tab and a neutral chip lose their
+ * only marker. The fill cannot cover for them, because forced colors
+ * disregards \`background-color\` as well.
+ *
+ * ONE MECHANISM: an \`outline\` with a NEGATIVE offset. Forced colors preserves
+ * outlines, which is why a focus ring already survives there, and an outline
+ * costs no layout. A border would widen the box and move the column these
+ * rules exist to keep straight.
+ *
+ * \`Highlight\` for a chosen thing and \`CanvasText\` for a structural edge are
+ * the user's own colours, which is the point of the mode. Match your own
+ * selectors to these; the states are what matter, not the class names. */
+@media (forced-colors: active) {
+  [aria-current="page"],
+  [aria-selected="true"],
+  [aria-checked="true"],
+  .is-selected > td {
+    outline: 2px solid Highlight;
+    outline-offset: -2px;
+  }
+}
 `
 }
 

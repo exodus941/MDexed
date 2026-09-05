@@ -2096,6 +2096,10 @@ line('\n- project file -')
     /* no-multi-value-token-inside-a-shorthand: a component padding token
        already carries two values, so this expands to three. */
     '.h { padding: var(--space-md) var(--cmp-table-cell-padding); }',
+    /* a-shadow-drawn-mark-survives-forced-colors: a state marked with an
+       inset shadow, in a file carrying no forced-colors block. That mode
+       ignores box-shadow, so the row would lose its only marker. */
+    '.row.is-selected > td { box-shadow: inset 4px 0 0 var(--c-text); }',
   ].join('\n'))
   write('broken.html', [
     '<html data-theme="light">',                 /* hardcoded-theme */
@@ -2114,13 +2118,19 @@ line('\n- project file -')
   /* ── AND STAYS QUIET ON CORRECT CODE ── */
   const clean = fs.mkdtempSync(path.join(os.tmpdir(), 'verify-ok-'))
   fs.writeFileSync(path.join(clean, 'tokens.css'),
-    ':root { --c-text: #111; --space-md: 16px; --font-body-md-family: system-ui; }')
+    ':root { --c-text: #111; --space-md: 16px; --edge-w: 4px; --font-body-md-family: system-ui; }')
   fs.writeFileSync(path.join(clean, 'good.css'), [
     '/* A comment naming 13px and #ff0000 is prose, not code. */',
     '.a { color: var(--c-text); padding: var(--space-md); }',
     '.b { border: 1px solid var(--c-text); }',
     '.c { font-family: var(--font-body-md-family); }',
     '@media (min-width: 640px) { .a { padding: var(--space-md); } }',
+    /* The CORRECT form of the forced-colors case, not merely its absence. A
+       state marked with an inset shadow, in a file that restores it. Without
+       this the quiet half would pass on a fixture containing no shadow at
+       all, which proves nothing about the check. */
+    '.row.is-selected > td { box-shadow: inset var(--edge-w) 0 0 var(--c-text); }',
+    '@media (forced-colors: active) {\n  .row.is-selected > td { outline: var(--edge-w) solid Highlight; outline-offset: calc(-1 * var(--edge-w)); }\n}',
   ].join('\n'))
   fs.writeFileSync(path.join(clean, 'good.html'), [
     '<html>',

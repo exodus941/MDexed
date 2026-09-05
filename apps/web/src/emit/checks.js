@@ -350,6 +350,47 @@ export const CHECKS = [
   },
 
   {
+    id: 'a-shadow-drawn-mark-survives-forced-colors',
+    where: 'source',
+    line: 'A state marked with box-shadow also has a forced-colors outline, or it vanishes in Windows High Contrast.',
+    /* ── A SOURCE CHECK, BECAUSE THE RENDER CANNOT TEST IT ──
+     *
+     * Forced colors cannot be turned on from script. `matchMedia` reads it and
+     * nothing sets it, so a render check could only ever measure the mode the
+     * browser happens to be in. The question is therefore about the CSS: does
+     * this build carry the block at all?
+     *
+     * Windows High Contrast overrides authored colour, ignores `box-shadow`
+     * outright and drops `background-image`. A system that marks its selected
+     * row with an inset shadow and its selected tab with an inset underline
+     * loses both, and the fill cannot cover for them because
+     * `background-color` is disregarded too.
+     *
+     * ASKS ONLY WHAT IS UNAMBIGUOUS. It fires when a file draws a state with
+     * an inset shadow AND has no `forced-colors` block anywhere in it. It says
+     * nothing about which selectors that block should carry, because a build
+     * marks its states with whatever it likes. */
+    body: [
+      "for (const f of files.filter(f => /\\.css$/.test(f.path))) {",
+      "  if (/forced-colors/.test(f.text)) continue",
+      "  const lines = f.text.split('\\n')",
+      "  for (let i = 0; i < lines.length; i++) {",
+      /* An inset shadow inside a rule whose selector names a STATE. A plain
+         elevation shadow is not a marker and is not asked about. */
+      "    if (!/box-shadow:\\s*inset/.test(lines[i])) continue",
+      "    let sel = ''",
+      "    for (let j = i; j >= 0 && j > i - 12; j--) {",
+      "      if (/[{]/.test(lines[j])) { sel = lines[j]; break }",
+      "    }",
+      "    if (!/selected|current|active|checked|is-picked/i.test(sel)) continue",
+      "    fail(f.path, i + 1, 'this marks a state with an inset box-shadow, and forced colors ignores box-shadow entirely. In Windows High Contrast the state loses its only marker, because background-color is disregarded there as well. Add a @media (forced-colors: active) block that restores it with an outline at a negative offset, which costs no layout and which that mode preserves.')",
+      "    break",
+      "  }",
+      "}",
+    ],
+  },
+
+  {
     id: 'css-not-in-a-literal',
     where: 'source',
     line: 'No stylesheet is built from a JavaScript template literal.',
