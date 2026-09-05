@@ -86,11 +86,12 @@ export default function TokenColorPicker({
 
   return createPortal(
     <>
-      <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 2000 }} />
+      <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 'var(--z-popover)' }} />
       <div className="anim-pop" style={{
         position: 'fixed', left,
         ...(openUp ? { bottom: vp.h - rect.top + 8 } : { top: rect ? rect.bottom + 8 : 80 }),
-        zIndex: 2001, width: WIDTH,
+        /* One token with the catcher above, which is its earlier sibling. */
+        zIndex: 'var(--z-popover)', width: WIDTH,
         background: 'var(--surf2)', border: '1px solid var(--bdr2)', borderRadius: 12,
         boxShadow: '0 18px 44px rgba(0,0,0,.6)', padding: 12,
         display: 'grid', gridTemplateColumns: `${LEFT_COL}px 1fr`, gap: 12,

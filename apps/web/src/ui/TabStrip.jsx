@@ -571,7 +571,7 @@ export default function TabStrip({ tabs, active, onSelect, right, title, actions
 
         {pinned && menuOpen && (
           <div ref={menuRef} className="anim-pop" style={{
-            position: 'absolute', top: BAR_H - 2, left: 12, zIndex: 71, minWidth: 176,
+            position: 'absolute', top: BAR_H - 2, left: 12, zIndex: 'var(--z-dropdown)', minWidth: 176,
             background: 'var(--surf2)', border: '1px solid var(--bdr2)', borderRadius: 8,
             boxShadow: '0 12px 32px rgba(0,0,0,.55)', padding: 6,
           }}>

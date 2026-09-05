@@ -122,7 +122,7 @@ export default function FixPreview({ fix, onCancel, onConfirm }) {
 
   return createPortal(
     <div onClick={onCancel} role="presentation" style={{
-      position: 'fixed', inset: 0, background: 'rgba(0,0,0,.72)', zIndex: 1000,
+      position: 'fixed', inset: 0, background: 'rgba(0,0,0,.72)', zIndex: 'var(--z-overlay)',
       display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,
     }}>
       <div onClick={e => e.stopPropagation()} className="anim-rise modal-panel"

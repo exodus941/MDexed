@@ -90,9 +90,11 @@ export default function FontPicker({ value, onChange, label, role }) {
 
       {open && (
         <>
-          <div onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 40 }} />
+          <div onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 'var(--z-dropdown)' }} />
           <div className="anim-pop" style={{
-            position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4, zIndex: 41,
+            /* One token with the catcher above. They are siblings and this one
+               is second, so DOM order puts the list on top. */
+            position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4, zIndex: 'var(--z-dropdown)',
             background: 'var(--surf2)', border: '1px solid var(--bdr2)', borderRadius: 8,
             boxShadow: '0 12px 32px rgba(0,0,0,.5)', overflow: 'hidden',
           }}>

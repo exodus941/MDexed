@@ -118,7 +118,7 @@ body { background: var(--c-bg, #fff); }
    no words, and floored at the published target because a finger has to hit
    it. It is a real button in the tab order, not a hover affordance. */
 .page-theme {
-  position: fixed; inset-block-start: 12px; inset-inline-end: 12px; z-index: 9;
+  position: fixed; inset-block-start: 12px; inset-inline-end: 12px; z-index: var(--z-sticky);
   display: inline-flex; align-items: center; justify-content: center;
   inline-size: var(--target-min, 44px); block-size: var(--target-min, 44px);
   aspect-ratio: 1; padding: 0;

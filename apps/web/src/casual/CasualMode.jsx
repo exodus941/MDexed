@@ -123,7 +123,7 @@ function Door({ icon, title, note, primary, onClick }) {
 export function LaunchFork({ onGuided, onHandsOn, onRestore, restorableName, leaving }) {
   return createPortal(
     <div className={leaving ? 'anim-fade-out' : 'anim-fade'} style={{
-      position: 'fixed', inset: 0, background: 'rgba(0,0,0,.72)', zIndex: 1100,
+      position: 'fixed', inset: 0, background: 'rgba(0,0,0,.72)', zIndex: 'var(--z-overlay)',
       display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,
     }}>
       <div className={`${leaving ? 'anim-fall' : 'anim-rise'} modal-panel`} role="dialog"
@@ -236,7 +236,7 @@ export default function CasualWizard({ onClose, onBack, leaving }) {
 
   return createPortal(
     <div className={leaving ? 'anim-fade-out' : 'anim-fade'} style={{
-      position: 'fixed', inset: 0, background: 'rgba(0,0,0,.72)', zIndex: 1100,
+      position: 'fixed', inset: 0, background: 'rgba(0,0,0,.72)', zIndex: 'var(--z-overlay)',
       display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,
     }}>
       <div onClick={e => e.stopPropagation()} className={`${leaving ? 'anim-fall' : 'anim-rise'} modal-panel`}

@@ -4,7 +4,7 @@
 import fs from 'node:fs'
 import { load as yamlLoad } from 'js-yaml'
 import { createInitialState, CONTRAST_PAIRS, ANTI_PATTERNS, pairFails } from '../src/state/schema.js'
-import { derive, buildCssVars } from '../src/state/derive.js'
+import { derive, buildCssVars, Z_LAYERS } from '../src/state/derive.js'
 import { migrate } from '../src/state/migrate.js'
 import { isOnTypeGrid, isOnSpaceGrid } from '../src/state/grid.js'
 import { applyPreset, PRESETS } from '../src/state/presets.js'
@@ -1033,16 +1033,28 @@ line('\n- prompt construction -')
   const aliases = Object.keys(root).filter(k => k.startsWith('--c-dark-'))
   assert(aliases.length > 0, `tokens.css defines the dark aliases (${aliases.length})`)
 
-  /* Every alias must equal the dark block's value for the same role, or the
-     name is worse than absent — it resolves, and to the wrong colour. */
-  const wrong = aliases.filter(a => darkBlock[a.replace('--c-dark-', '--c-')] !== root[a])
+  /* Every alias must equal what the role RESOLVES to under dark, or the name
+     is worse than absent — it resolves, and to the wrong colour.
+     Read through the cascade, not out of one block. The dark block carries
+     only what dark changes, so a role the theme leaves alone is not in it and
+     keeps its :root value. Reading the block alone reported `--c-dark-border`
+     as wrong when it is the one role identical in both modes. */
+  const underDark = k => darkBlock[k] ?? root[k]
+  const wrong = aliases.filter(a => underDark(a.replace('--c-dark-', '--c-')) !== root[a])
   assert(wrong.length === 0,
     `every dark alias carries the dark value${wrong.length ? ` — ${wrong.slice(0, 3).join(', ')}` : ` (${aliases.length})`}`)
 
-  /* One alias per role, not one per role plus the ones we forgot. */
-  const roles = Object.keys(darkBlock).filter(k => !k.startsWith('--c-dark-'))
+  /* One alias per role, not one per role plus the ones we forgot. Count from
+     :root, which holds every role; the dark block holds only the changed. */
+  const roles = Object.keys(root).filter(k => !k.startsWith('--c-dark-'))
   assert(aliases.length === roles.length,
     `one alias per role (${aliases.length} aliases, ${roles.length} roles)`)
+
+  /* The narrowing above must not lose a role. Anything the dark block sets
+     has to exist at :root as well, or the alias for it resolves to nothing. */
+  const orphan = Object.keys(darkBlock).filter(k => !(k in root))
+  assert(orphan.length === 0,
+    `every dark role also stands at :root${orphan.length ? ` — ${orphan.slice(0, 3).join(', ')}` : ` (${Object.keys(darkBlock).length} switched)`}`)
 }
 
 /* ── A line is never the colour of what it divides ──
@@ -2553,6 +2565,88 @@ line('\n- depth intensity -')
       assert(f.length === 0, `${sep}/${i.id} audits clean (${f.map(x => x.id).join(', ')})`)
     }
   }
+}
+
+/* ── EVERY STACKING LAYER COMES FROM THE SCALE ──
+ *
+ * Before this ran, our own tree carried 31 z-index declarations at 16 distinct
+ * values, including 71, 801, 1100 and 2001. None of those is a decision. Each
+ * is what somebody types when they need to sit above whatever was already
+ * there, and typing one is how a dialog ends up under its own scrim.
+ *
+ * LOCAL STACKING IS NOT A LAYER, and the value separates them. `z-index: 1`
+ * inside a positioned box orders two siblings and never joins the global
+ * order. So the rule is exact: 0 and 1 are local, everything else is a layer
+ * and a layer comes from a token. Asking the selector instead would need a
+ * name list, which approves whatever nobody thought of. */
+{
+  line('\n- every stacking layer comes from the scale -')
+  const root = new URL('../src/', import.meta.url)
+  const walk = dir => fs.readdirSync(dir, { withFileTypes: true }).flatMap(e => {
+    const p = new URL(e.name + (e.isDirectory() ? '/' : ''), dir)
+    return e.isDirectory() ? walk(p) : (/\.(jsx?|css)$/.test(e.name) ? [p] : [])
+  })
+  /* Blank a comment, never delete it. Deleting takes its newlines too, and
+     every line number below shifts. */
+  const blank = s => s.replace(/\/\*[\s\S]*?\*\//g, m => m.replace(/[^\n]/g, ' '))
+    .replace(/(^|[^:])\/\/[^\n]*/g, (m, p) => p + ' '.repeat(m.length - p.length))
+  const typed = []
+  for (const f of walk(root)) {
+    /* derive.js is the home of the scale, so the numbers belong there. */
+    if (f.href.endsWith('state/derive.js')) continue
+    const code = blank(fs.readFileSync(f, 'utf8'))
+    code.split('\n').forEach((lineText, i) => {
+      const m = /(?:z-index|zIndex)\s*:\s*(-?\d+)/.exec(lineText)
+      if (!m || Math.abs(Number(m[1])) <= 1) return
+      typed.push(`${f.href.split('/src/')[1]}:${i + 1} = ${m[1]}`)
+    })
+  }
+  assert(typed.length === 0,
+    `no hand-typed stacking value${typed.length ? ` — ${typed.slice(0, 4).join(', ')}${typed.length > 4 ? ` +${typed.length - 4} more` : ''}` : ' (31 migrated)'}`)
+
+  /* Prove the check can fire, on the exact shape it exists for. A guard
+     proven on nothing is a guard nobody can trust. */
+  const inject = 'const s = { position: "fixed", zIndex: 2001 }'
+  assert(/(?:z-index|zIndex)\s*:\s*(-?\d+)/.test(inject)
+    && Number(/(?:z-index|zIndex)\s*:\s*(-?\d+)/.exec(inject)[1]) > 1,
+    'the scan fires on an injected 2001')
+  assert(!(Math.abs(Number(/(?:z-index|zIndex)\s*:\s*(-?\d+)/.exec('.x{z-index:1}')[1])) > 1),
+    'and stays quiet on a local z-index: 1')
+}
+
+/* ── THE STACKING ORDER REACHES THE PAYLOAD, ONCE ──
+ *
+ * It reached tokens.css and stopped once before, so a build importing the DTCG
+ * file saw no layers and would have invented its own. And when it did reach
+ * CSS it arrived five times, once per theme block, which states that the
+ * stacking order changes with the theme. */
+{
+  line('\n- the stacking order reaches the payload, once -')
+  const css = payloadTextFiles(state, derived)['tokens.css']
+  const names = Object.keys(Z_LAYERS)
+  for (const n of names) {
+    const hits = (css.match(new RegExp(`--z-${n}\\s*:`, 'g')) || []).length
+    assert(hits === 1, `--z-${n} is declared exactly once in tokens.css (${hits})`)
+  }
+  const json = JSON.parse(payloadTextFiles(state, derived)['tokens.json'])
+  assert(Object.keys(json.number ?? {}).length === names.length,
+    `all ${names.length} layers reach tokens.json (${Object.keys(json.number ?? {}).length})`)
+
+  /* A theme block says what the THEME decides. Nothing else may be in it. */
+  const darkBlock = (() => {
+    const i = css.search(/:root\[data-theme="dark"\]\s*\{/)
+    const j = css.indexOf('{', i)
+    let depth = 0
+    for (let k = j; k < css.length; k++) {
+      if (css[k] === '{') depth++
+      else if (css[k] === '}' && --depth === 0) return css.slice(j, k)
+    }
+    return ''
+  })()
+  const strays = [...darkBlock.matchAll(/(--(?:z|space|radius|font|border|width|duration|ease)-[a-z0-9-]+)\s*:/g)]
+    .map(m => m[1])
+  assert(strays.length === 0,
+    `the dark block carries only what the theme decides${strays.length ? ` — ${strays.slice(0, 4).join(', ')}` : ''}`)
 }
 
 line(`\n${failures === 0 ? 'ALL PASS' : `${failures} FAILURE(S)`}\n`)

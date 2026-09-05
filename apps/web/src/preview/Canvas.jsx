@@ -87,7 +87,9 @@ function MenuItem({ t, open, onOpen, onPick }) {
 
       {isGroup && open && (
         <div className="anim-pop" style={{
-          position: 'absolute', left: '100%', top: -5, marginLeft: 4, zIndex: 802,
+          /* Local, not a layer. The panel below carries a z-index, so it opens
+             a stacking context and this only has to clear its sibling items. */
+          position: 'absolute', left: '100%', top: -5, marginLeft: 4, zIndex: 1,
           background: 'var(--surf2)', border: '1px solid var(--bdr2)', borderRadius: 8,
           boxShadow: '0 12px 32px rgba(0,0,0,.55)', padding: 6, minWidth: 200,
         }}>
@@ -133,12 +135,13 @@ function TargetMenu({ menu, onPick, onClose }) {
 
   return (
     <>
-      <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 800 }} />
+      <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 'var(--z-dropdown)' }} />
       <div className="anim-pop" style={{
         position: 'fixed',
         left: Math.min(vp.x(menu.x), vp.w - 280),
         top: Math.min(vp.x(menu.y) + 8, vp.h - 40 - menu.targets.length * 32),
-        zIndex: 801,
+        /* One token with the catcher above, which is its earlier sibling. */
+        zIndex: 'var(--z-dropdown)',
         background: 'var(--surf2)', border: '1px solid var(--bdr2)', borderRadius: 8,
         boxShadow: '0 12px 32px rgba(0,0,0,.55)', padding: 6, minWidth: 240,
       }}>
@@ -297,7 +300,7 @@ function WarningsChip({ onJump, onApply }) {
            Fix it button, and capped against the viewport so a narrow preview
            pane shrinks it rather than pushing it off-screen. */
         <div ref={boxRef} className="anim-pop" style={{
-          position: 'absolute', top: 'calc(100% + 6px)', right: 0, zIndex: 500,
+          position: 'absolute', top: 'calc(100% + 6px)', right: 0, zIndex: 'var(--z-dropdown)',
           background: 'var(--surf2)', border: '1px solid var(--bdr2)', borderRadius: 12,
           boxShadow: '0 12px 32px var(--shade)',
           width: 'min(440px, calc(100vw - 40px))', maxHeight: 460, overflowY: 'auto',

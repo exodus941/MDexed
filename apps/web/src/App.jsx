@@ -741,7 +741,7 @@ function ProjectMenu ({ items, onAction, projectId }) {
       </button>
       {open && (
         <div ref={boxRef} className="anim-pop" style={{
-          position: 'absolute', top: 'calc(100% + 6px)', right: 0, zIndex: 500,
+          position: 'absolute', top: 'calc(100% + 6px)', right: 0, zIndex: 'var(--z-dropdown)',
           background: 'var(--surf2)', border: '1px solid var(--bdr2)', borderRadius: 12,
           boxShadow: '0 12px 32px var(--shade)', width: 232, padding: '6px',
         }}>
@@ -812,7 +812,7 @@ function ToolsMenu({ uiSpeed, setUiSpeed, uiHue, setUiHue, uiTheme, setUiTheme, 
          * bottom, so a slider as the last child needs more clearance below it
          * than a line of text does. Hence the extra on the bottom. */
         <div ref={boxRef} className="anim-pop" style={{
-          position: 'absolute', top: 'calc(100% + 6px)', right: 0, zIndex: 500,
+          position: 'absolute', top: 'calc(100% + 6px)', right: 0, zIndex: 'var(--z-dropdown)',
           background: 'var(--surf2)', border: '1px solid var(--bdr2)', borderRadius: 12,
           boxShadow: '0 12px 32px var(--shade)', width: 288,
           padding: '0 0 6px',
@@ -885,7 +885,7 @@ function FileModal({ onClose }) {
   const [copied, setCopied] = useState(false)
 
   return (
-    <div onClick={onClose} className="anim-fade modal-back" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.75)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+    <div onClick={onClose} className="anim-fade modal-back" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
       <div onClick={e => e.stopPropagation()} className="anim-rise modal-panel" style={{ background: 'var(--surf)', border: '1px solid var(--bdr)', borderRadius: 12, width: '100%', maxWidth: 760, maxHeight: '84vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <div style={{ display: 'flex', alignItems: 'baseline', padding: '12px 16px', borderBottom: '1px solid var(--bdr)', gap: 12 }}>
           <span style={{ fontFamily: 'var(--display)', fontWeight: 700, fontSize: 16, flex: 1 }}>DESIGN.md</span>
@@ -1170,7 +1170,7 @@ function NoticeBar({ notice, onClose }) {
 function NewDocModal({ onClose, onCreate }) {
   const [name, setName] = useState('')
   return (
-    <div onClick={onClose} className="anim-fade modal-back" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.72)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+    <div onClick={onClose} className="anim-fade modal-back" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.72)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
       <div onClick={e => e.stopPropagation()} className="anim-rise modal-panel" style={{ background: 'var(--surf)', border: '1px solid var(--bdr)', borderRadius: 12, width: '100%', maxWidth: 560, maxHeight: '84vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <div style={{ display: 'flex', alignItems: 'center', padding: '12px 16px', borderBottom: '1px solid var(--bdr)' }}>
           <span style={{ fontFamily: 'var(--display)', fontWeight: 700, fontSize: 16, flex: 1 }}>New design system</span>
@@ -1946,7 +1946,7 @@ function Shell() {
             to the height of the first — a number I had to guess, guessed 39
             against a real 50, and the tab bar slid under the title bar. One
             sticky wrapper has no number to get wrong. */}
-        <div ref={stickyRef} style={{ position: 'sticky', top: 0, zIndex: 400, flexShrink: 0, background: 'var(--surf)' }}>
+        <div ref={stickyRef} style={{ position: 'sticky', top: 0, zIndex: 'var(--z-sticky)', flexShrink: 0, background: 'var(--surf)' }}>
         {/* Two lines on a phone, one on a desktop.
             Five things in 375px left the project name showing "My Desi", which
             names nothing, and squeezed everything else against it. Wrapping is
@@ -2443,7 +2443,7 @@ function Shell() {
           has no corner to sit in. So it spans the width with a gutter each
           side and centres what it holds. */}
       <div style={{
-        position: 'fixed', bottom: 16, zIndex: 900,
+        position: 'fixed', bottom: 16, zIndex: 'var(--z-toast)',
         display: 'flex', flexDirection: 'column', gap: 8, pointerEvents: 'none',
         /* `center`, not `stretch`. The toast carries its own maxWidth of
            `100vw - 48px`, so stretching a 351px span gave it 327px and parked

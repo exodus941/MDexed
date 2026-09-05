@@ -41,6 +41,18 @@ export const Z_LAYERS = {
   tooltip: 700,
 }
 
+/* The chrome reads the same nine layers as the document, so they come from this
+   one object rather than a second copy in theme.css. Written BEFORE the first
+   render, never in an effect: a dialog mounted on the opening frame would
+   resolve `var(--z-overlay)` to nothing and fall back to `auto`, which puts it
+   under its own scrim. Called from main.jsx, so nothing in Node touches
+   `document`. */
+export function applyZLayers(root) {
+  for (const [name, v] of Object.entries(Z_LAYERS)) {
+    root.style.setProperty(`--z-${name}`, String(v))
+  }
+}
+
 const UNIT_RE = /^(-?\d*\.?\d+)\s*([a-z%]*)$/i
 const round = (v, p = 1) => Math.round(v * 10 ** p) / 10 ** p
 

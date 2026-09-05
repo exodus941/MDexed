@@ -399,7 +399,7 @@ main{container-type:inline-size}
    square across the bottom because there is no gap left to round against.
    `!important` because the shells carry these as inline styles, and this rule
    is scoped to a width where it is the only sensible answer. */
-.modal-back{position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center}
+.modal-back{position:fixed;inset:0;z-index:var(--z-overlay);display:flex;align-items:center;justify-content:center}
 @media (max-width:767px){
   .modal-back{padding:0!important;align-items:flex-end!important}
   .modal-panel{
