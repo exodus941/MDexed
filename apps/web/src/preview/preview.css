@@ -1564,8 +1564,35 @@
 .dmd .table:has(tbody td:first-child :is(input[type="checkbox"], .checkbox)) td:first-child {
   padding: var(--cmp-table-selection-cell-padding, var(--cmp-table-cell-padding, var(--space-sm, 12px) var(--space-md, 16px)));
 }
-.dmd .table tr.is-selected > td:first-child {
-  box-shadow: var(--cmp-table-row-selected-box-shadow, none);
+/* ── THE EDGE OVERLAPS THE ROW RULE, NEVER SITS INSIDE IT ──
+ *
+ * An inset box-shadow paints inside the border box and the BORDER paints on
+ * top of it. Every row here carries a 1px bottom rule, so the bar came out
+ * 56px in a 57px row and stopped one pixel short at every boundary. It reads
+ * as a dash between the rules rather than as the row's own edge, and a run of
+ * two selected rows shows the break twice.
+ *
+ * Nothing else can paint over that rule. A background is clipped to the border
+ * box, so the border still covers it. A border of its own widens the cell and
+ * moves the very column these rules keep straight. An outline draws on all
+ * four sides.
+ *
+ * So the bar is a pseudo-element, stretched one hairline past each end. Two
+ * adjacent selected rows then meet with no seam, which is correct: they are
+ * one selection.
+ *
+ * `inset-inline-start`, so the bar is on the START edge in either direction.
+ * The width falls back to zero, which is what the tint and the plain lift
+ * want: neither emits an edge token, and neither should draw a bar. */
+.dmd .table tr.is-selected > td:first-child { position: relative; }
+.dmd .table tr.is-selected > td:first-child::before {
+  content: '';
+  position: absolute;
+  inset-block: calc(-1 * var(--border-hairline, 1px));
+  inset-inline-start: 0;
+  width: var(--cmp-table-row-selected-edge-width, 0px);
+  background: var(--cmp-table-row-selected-edge-color, var(--c-accent, #b8422e));
+  pointer-events: none;
 }
 /* The selected row outranks the stripe, which is a more specific selector. */
 .dmd .table-rows-zebra tbody tr.is-selected > td,
@@ -1723,9 +1750,31 @@
 }
 /* The legend IS the direct label. No eight-colour palette survives the loss of
    red-green vision, so the words are not decoration. */
-.dmd .chart-key { display: flex; flex-wrap: wrap; gap: var(--space-xs, 8px) var(--space-md, 16px); }
-.dmd .chart-key > * { display: inline-flex; align-items: baseline; gap: var(--space-2xs, 6px); }
-.dmd .chart-key .dot { width: 8px; height: 8px; }
+/* ── STATE BOTH GAPS TOGETHER ──
+ *
+ * Proximity is a ratio. The first version put `--space-2xs` inside a legend
+ * item and `--space-md` between items, which resolve to 4px and 16px. 4:1
+ * looks safe and is not: 4px is the smallest step on the scale, so the dot sat
+ * against its own word. `--icon-gap` is the published distance from a mark to
+ * the label it belongs to, and 24 against 8 is the 3:1 the rule asks for. */
+.dmd .chart-key { display: flex; flex-wrap: wrap; gap: var(--space-xs, 8px) var(--space-lg, 24px); }
+.dmd .chart-key > * { display: inline-flex; align-items: baseline; gap: var(--icon-gap, 8px); }
+/* ── AND THE DOT IS A MARK BESIDE A LABEL ──
+ *
+ * A dot holds no text, so under `align-items: baseline` it takes its baseline
+ * from its bottom margin edge and lands ON the text baseline. Measured: 4px
+ * below the cap top and 0 above the baseline, in a 12px cap band. It reads as
+ * sinking, which is exactly what it was doing.
+ *
+ * This is the rule every other mark in the system takes. The percentage
+ * resolves against the element's OWN height, so it holds at any dot size, and
+ * `0.75em` is the cap band of the label it inherits from. */
+.dmd .chart-key .dot {
+  width: 8px; height: 8px;
+  vertical-align: baseline;
+  align-self: baseline;
+  transform: translateY(calc((100% - 0.75em) / 2));
+}
 .dmd .nav-item {
   padding: var(--cmp-nav-item-padding, var(--space-xs, 8px) var(--space-sm, 12px));
   border-radius: var(--cmp-nav-item-rounded, var(--radius-md, 8px));

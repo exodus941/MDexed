@@ -440,6 +440,45 @@ export const CHECKS = [
   },
 
   {
+    id: 'no-retired-token',
+    where: 'source',
+    line: 'No file uses a token this system has retired.',
+    /* ── THE HALF OF DEPRECATION THAT ACTUALLY MOVES A CODEBASE ──
+     *
+     * `$deprecated` in the interop file and a comment in the stylesheet are
+     * both passive: they are true whether or not anybody reads them. Nothing
+     * happened until a build could fail on one.
+     *
+     * READ THE STYLESHEET, not a list compiled into this file. tokens.css
+     * carries the marks, so a system that retires a token tomorrow gets the
+     * check for nothing and one that has retired nothing pays no attention to
+     * an empty list. A comment on the line above a declaration is the shape
+     * the emitter writes, and it is the only place the word appears.
+     *
+     * A DECLARATION IS NOT A USE. tokens.css declares every retired token by
+     * definition, and a project that inlines its tokens declares them again.
+     * Faulting those would fault the one file that has to hold them. */
+    body: [
+      "/* retiredTokens is read out of tokens.css in the preamble, beside the",
+      "   token set itself. That file is outside the scanned set on purpose. */",
+      "if (retiredTokens.size) {",
+      "  for (const f of files) {",
+      "    for (const [i, line] of f.bareLines.entries()) {",
+      "      for (const [tok, use] of retiredTokens) {",
+      "        if (!line.includes(tok)) continue",
+      "        /* A DECLARATION IS NOT A USE. A project that inlines its tokens",
+      "           declares every one of them, and faulting those would fault the",
+      "           file that has to hold them. */",
+      "        if (new RegExp('^\\\\s*' + tok + '\\\\s*:').test(line)) continue",
+      "        fail(f.path, i + 1, tok + ' is retired.' + (use ? ' Use ' + use + ' instead.' : '') + ' It still resolves today and it is going.')",
+      "      }",
+      "    }",
+      "  }",
+      "}",
+    ],
+  },
+
+  {
     id: 'a-widget-owes-its-keys',
     where: 'source',
     line: 'Every ARIA widget role in the build handles the keys its pattern requires.',
@@ -875,6 +914,42 @@ export const CHECKS = [
       "    fail(name(table), 'the first column starts ' + round(d) + 'px off the margin set by ' + name(head) + ' above it. Zero the outer cell padding rather than letting it add to the container own. If a hit area wider than its mark is centring that mark, give the outer column start alignment so the area grows inward instead.')",
       "}",
     ],
+    /* Shipped only when RTL Optimizations is on. The rule is about the START
+       edge, and this check reads `left`, which is the start edge in one
+       direction out of two. Under `dir="rtl"` it would compare a table's right
+       edge against a heading's left and report every correct table as being a
+       column-width out. */
+    rtlBody: [
+      "for (const table of all('table')) {",
+      "  let host = table.parentElement, head = null",
+      "  for (let i = 0; i < 4 && host && !head; i++) {",
+      "    head = Array.prototype.find.call(host.querySelectorAll('h1,h2,h3,h4,h5,h6'), h => !table.contains(h))",
+      "    if (!head) host = host.parentElement",
+      "  }",
+      "  if (!head) continue",
+      "  const first = table.querySelector('tr > *:first-child')",
+      "  if (!first) continue",
+      "  if (table.querySelector('tbody td:first-child input[type=\"checkbox\"], tbody td:first-child [role=\"checkbox\"]')) continue",
+      "  const paints = Array.prototype.filter.call(",
+      "    first.querySelectorAll('svg, img, [class*=box], [class*=avatar], [class*=dot]'),",
+      "    n => { const cs = getComputedStyle(n), b = n.getBoundingClientRect()",
+      "           return cs.opacity !== '0' && cs.visibility !== 'hidden' && b.width > 2 && b.height > 2 })",
+      "  /* ASK THE ELEMENT WHICH WAY IT RUNS. A table and the heading above it",
+      "     can differ: a page in Arabic may hold a table of Latin identifiers",
+      "     that is deliberately left to right. Each is read on its own. */",
+      "  const startOf = el => {",
+      "    const r = el.getBoundingClientRect()",
+      "    return getComputedStyle(el).direction === 'rtl' ? r.right : r.left",
+      "  }",
+      "  const rtl = getComputedStyle(table).direction === 'rtl'",
+      "  const box = inner(first)",
+      "  const edge = paints.length ? startOf(paints[0]) : (rtl ? box.right : box.left)",
+      "  /* Signed INWARD, so a positive number means the same thing either way. */",
+      "  const d = (rtl ? -1 : 1) * (edge - startOf(head))",
+      "  if (Math.abs(d) > 0.5)",
+      "    fail(name(table), 'the first column starts ' + round(d) + 'px off the margin set by ' + name(head) + ' above it, measured from the START edge because this runs ' + (rtl ? 'right to left' : 'left to right') + '. Zero the outer cell padding rather than letting it add to the container own.')",
+      "}",
+    ],
   },
 
   /* ── A CHECK I COULD NOT MAKE HONEST, AND WHY IT IS NOT HERE ──
@@ -1114,9 +1189,26 @@ export const CHECKS = [
       "const barPx = s => { if (!s || s === 'none' || !/inset/.test(s)) return 0",
       "  const m = s.replace(/rgba?\\([^)]*\\)/g, '').match(/(-?[\\d.]+)px/)",
       "  return m ? Math.abs(parseFloat(m[1])) : 0 }",
+      "/* ── TWO MECHANISMS DRAW THIS BAR, AND ASKING ABOUT ONE IS BLINDNESS ──",
+      "   An inset shadow is right where nothing crosses the row. Inside a RULED",
+      "   set it is wrong: the border paints on top of it, so the bar stops one",
+      "   hairline short at every boundary. There the bar is a pseudo-element",
+      "   stretched past each end. A check that asks only about box-shadow goes",
+      "   silent the moment a build does the correct thing. */",
+      "const pseudoBar = el => {",
+      "  const b = getComputedStyle(el, '::before')",
+      "  if (!b || b.content === 'none') return 0",
+      "  if (b.position !== 'absolute' && b.position !== 'fixed') return 0",
+      "  if (!b.backgroundColor || b.backgroundColor === 'rgba(0, 0, 0, 0)') return 0",
+      "  const w = parseFloat(b.width) || 0",
+      "  /* On the START edge, and narrow enough to be a bar rather than a wash. */",
+      "  const atStart = parseFloat(b.left) === 0 || parseFloat(b.right) === 0",
+      "  const host = el.getBoundingClientRect().width",
+      "  return (atStart && w > 0 && w <= host / 4) ? w : 0",
+      "}",
       "const edgeOf = el => { const cs = getComputedStyle(el)",
       "  const r = el.getBoundingClientRect()",
-      "  return { left: r.left, inset: r.left + (parseFloat(cs.paddingLeft) || 0), bar: barPx(cs.boxShadow) } }",
+      "  return { left: r.left, inset: r.left + (parseFloat(cs.paddingLeft) || 0), bar: Math.max(barPx(cs.boxShadow), pseudoBar(el)) } }",
       /* ── TWO QUESTIONS, AND THE FIRST ONE ALLOWS NOTHING ──
        *
        * A first version let the marked row sit up to the bar's width further
@@ -1145,7 +1237,74 @@ export const CHECKS = [
       "    const td = r.querySelector('td')",
       "    if (!td) continue",
       "    const m = edgeOf(td)",
-      "    const bar = Math.max(m.bar, barPx(getComputedStyle(r).boxShadow))",
+      "    const bar = Math.max(m.bar, barPx(getComputedStyle(r).boxShadow), pseudoBar(r))",
+      "    if (bar > 1) { if (!mark) { mark = m; w = bar; cell = td } }",
+      "    else if (!plain) plain = m",
+      "  }",
+      "  if (mark && plain) jog(cell, mark, plain, w)",
+      "}",
+      "for (const el of all('[aria-current], [aria-selected=\"true\"]')) {",
+      "  const mark = edgeOf(el)",
+      "  if (mark.bar < 2) continue",
+      "  const p = el.parentElement",
+      "  if (!p) continue",
+      "  for (const sib of p.children) {",
+      "    if (sib === el || sib.tagName !== el.tagName) continue",
+      "    const plain = edgeOf(sib)",
+      "    if (plain.bar > 0) continue",
+      "    jog(el, mark, plain, mark.bar)",
+      "    break",
+      "  }",
+      "}",
+    ],
+    /* Shipped only when RTL Optimizations is on. A selection edge is drawn on
+       the START of the row, and the body above finds it by reading `left` and
+       `padding-left`. Under `dir="rtl"` the bar is on the right, so every
+       correct selected row would report its whole padding as a jog. */
+    rtlBody: [
+      "const barPx = s => { if (!s || s === 'none' || !/inset/.test(s)) return 0",
+      "  const m = s.replace(/rgba?\\([^)]*\\)/g, '').match(/(-?[\\d.]+)px/)",
+      "  return m ? Math.abs(parseFloat(m[1])) : 0 }",
+      "/* Two mechanisms draw this bar. See the note in the plain body: an inset",
+      "   shadow suits a row nothing crosses, and a pseudo-element is the only",
+      "   thing that can paint over a row rule. Asking about one is blindness. */",
+      "const pseudoBar = el => {",
+      "  const b = getComputedStyle(el, '::before')",
+      "  if (!b || b.content === 'none') return 0",
+      "  if (b.position !== 'absolute' && b.position !== 'fixed') return 0",
+      "  if (!b.backgroundColor || b.backgroundColor === 'rgba(0, 0, 0, 0)') return 0",
+      "  const w = parseFloat(b.width) || 0",
+      "  const atStart = parseFloat(b.left) === 0 || parseFloat(b.right) === 0",
+      "  const host = el.getBoundingClientRect().width",
+      "  return (atStart && w > 0 && w <= host / 4) ? w : 0",
+      "}",
+      "/* Everything below is measured INWARD from the start edge, so one piece",
+      "   of arithmetic serves both directions and no comparison flips sign. */",
+      "const edgeOf = el => { const cs = getComputedStyle(el)",
+      "  const r = el.getBoundingClientRect()",
+      "  const rtl = cs.direction === 'rtl'",
+      "  const dir = rtl ? -1 : 1",
+      "  const startX = rtl ? r.right : r.left",
+      "  const padStart = parseFloat(rtl ? cs.paddingRight : cs.paddingLeft) || 0",
+      "  return { startX, dir, padStart, insetX: startX + dir * padStart, bar: Math.max(barPx(cs.boxShadow), pseudoBar(el)) } }",
+      "const jog = (el, mark, plain, w) => {",
+      "  if (Math.abs(mark.startX - plain.startX) > 1) return",
+      "  const cost = mark.dir * (mark.insetX - plain.insetX)",
+      "  if (Math.abs(cost) > 1)",
+      "    fail(name(el), 'this row carries a ' + w + 'px selection edge and its content starts ' + cost.toFixed(1) + 'px further in than the row beside it, so the column staggers. Reserve the bar gutter in the BASE padding, which every row of the column takes, rather than adding the bar to the selected row alone.')",
+      "  /* The clear distance is the start padding less the bar, which needs no",
+      "     direction at all once the padding is the start one. */",
+      "  const clear = mark.padStart - w",
+      "  if (clear < 4)",
+      "    fail(name(el), 'a ' + w + 'px selection edge sits ' + clear.toFixed(1) + 'px from the first thing in the row, so the two read as one shape. That is worst where the content is an ornament in the accent colour, such as a checked box. Give the gutter the bar plus a step off the spacing scale.')",
+      "}",
+      "for (const tb of all('table')) {",
+      "  let mark = null, plain = null, w = 0, cell = null",
+      "  for (const r of tb.querySelectorAll('tr')) {",
+      "    const td = r.querySelector('td')",
+      "    if (!td) continue",
+      "    const m = edgeOf(td)",
+      "    const bar = Math.max(m.bar, barPx(getComputedStyle(r).boxShadow), pseudoBar(r))",
       "    if (bar > 1) { if (!mark) { mark = m; w = bar; cell = td } }",
       "    else if (!plain) plain = m",
       "  }",

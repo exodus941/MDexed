@@ -33,12 +33,13 @@ const indent = (lines, by) => lines.map(l => ' '.repeat(by) + l).join('\n')
  * Takes a directory. Reads every .html and .css it holds, plus the token
  * names out of tokens.css beside it, then runs each source check over them.
  */
-export function verifyNodeFile () {
+export function verifyNodeFile (state) {
+  const rtl = !!state?.meta?.rtl
   const blocks = SOURCE_CHECKS.map(c => [
     '',
     '  /* ' + c.id + ' — ' + c.line.replace(/\x60/g, '') + ' */',
     '  run(' + JSON.stringify(c.id) + ', () => {',
-    indent(c.body, 4),
+    indent((rtl && c.rtlBody) ? c.rtlBody : c.body, 4),
     '  })',
   ].join('\n')).join('\n')
 
@@ -114,19 +115,35 @@ const files = paths.map(p => {
 })
 
 /* Every token this system publishes. A name outside this set is either a typo
-   or a value the builder invented and gave a token-shaped name. */
+   or a value the builder invented and gave a token-shaped name.
+ *
+ * The RETIRED ones are read in the same pass, because tokens.css is the only
+ * file that carries the marks and it is deliberately outside the scanned set:
+ * it declares every token by definition, so scanning it would fault the one
+ * file that has to hold them. A mark is a comment naming the replacement, on
+ * the line above the declaration, which is the shape the emitter writes. */
 const tokens = new Set()
+const retiredTokens = new Map()
+const readTokens = css => {
+  for (const m of css.matchAll(/(--[\\w-]+)\\s*:/g)) tokens.add(m[1])
+  const lines = css.split('\\n')
+  for (let i = 0; i < lines.length; i++) {
+    if (!/RETIRED\\./.test(lines[i])) continue
+    const decl = (lines[i + 1] || '').match(/(--[\\w-]+)\\s*:/)
+    if (!decl) continue
+    const use = (lines[i].match(/Use (--[\\w-]+)/) || [])[1]
+    retiredTokens.set(decl[1], use || null)
+  }
+}
 for (const candidate of ['tokens.css', join(ROOT, 'tokens.css')]) {
   try {
-    const css = readFileSync(join(HERE, candidate), 'utf8')
-    for (const m of css.matchAll(/(--[\\w-]+)\\s*:/g)) tokens.add(m[1])
+    readTokens(readFileSync(join(HERE, candidate), 'utf8'))
     break
   } catch { /* try the next location */ }
 }
 if (!tokens.size) {
   try {
-    const css = readFileSync(join(ROOT, 'tokens.css'), 'utf8')
-    for (const m of css.matchAll(/(--[\\w-]+)\\s*:/g)) tokens.add(m[1])
+    readTokens(readFileSync(join(ROOT, 'tokens.css'), 'utf8'))
   } catch { /* reported below */ }
 }
 
@@ -199,14 +216,27 @@ process.exit(1)
  *   places; where a glyph sits inside its own viewBox is the icon set's
  *   business, and correcting per glyph destroys the set's optical balance.
  */
-export function verifyBrowserFile () {
-  const blocks = RENDER_CHECKS.map(c => [
-    '',
-    '  /* ' + c.id + ' — ' + c.line.replace(/\x60/g, '') + ' */',
-    '  await run(' + JSON.stringify(c.id) + ', async () => {',
-    indent(c.body, 4),
-    '  })',
-  ].join('\n')).join('\n')
+/* ── THE DIRECTION-AWARE BODY SHIPS ONLY WHEN RTL IS ON ──
+ *
+ * Two checks read `left` and mean START. Under `dir="rtl"` the start edge is
+ * the right one, so each would report every correct table and every correct
+ * selected row as being its whole padding out of place.
+ *
+ * Both have an `rtlBody` that measures inward from whichever edge the element
+ * declares. It is NOT shipped by default: an LTR build gets the file it has
+ * always had, byte for byte, and pays nothing for a direction it does not use.
+ * That is the same gate the RTL prose takes.
+ */
+const bodyFor = (c, rtl) => (rtl && c.rtlBody) ? c.rtlBody : c.body
+
+export function verifyBrowserFile (state) {
+  const rtl = !!state?.meta?.rtl
+  const blocks = RENDER_CHECKS.map(c => {
+    const lines = ['', '  /* ' + c.id + ' — ' + c.line.replace(/\x60/g, '') + ' */']
+    if (rtl && c.rtlBody) lines.push('  /* Direction-aware: measured from the START edge, not from the left. */')
+    lines.push('  await run(' + JSON.stringify(c.id) + ', async () => {', indent(bodyFor(c, rtl), 4), '  })')
+    return lines.join('\n')
+  }).join('\n')
 
   return `/* Verify the built page against the design system that shipped with it.
  *

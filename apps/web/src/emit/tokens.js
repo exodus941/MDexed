@@ -37,7 +37,18 @@ export function tokensCss(state, derived) {
      value can be named from a light context. See buildCssVars. */
   const light = varsFor(state, derived, 'light', { darkAliases: hasDark(state) })
   const dark = varsFor(state, derived, 'dark')
-  const decl = vars => Object.entries(vars).map(([k, v]) => `  ${k}: ${v};`).join('\n')
+  /* A retired token keeps its value here and says so in a comment beside it.
+     CSS has no `$deprecated`, and a stylesheet is the file a builder actually
+     reads while working. */
+  const retiredCss = new Map((state.deprecated ?? [])
+    .filter(d => d?.token)
+    .map(d => [d.token.startsWith('--') ? d.token : `--c-${d.token}`, d]))
+  const decl = vars => Object.entries(vars).map(([k, v]) => {
+    const d = retiredCss.get(k)
+    if (!d) return `  ${k}: ${v};`
+    const where = d.replacement ? ` Use ${d.replacement}.` : ''
+    return `  /* RETIRED.${where}${d.reason ? ` ${d.reason}` : ''} */\n  ${k}: ${v};`
+  }).join('\n')
 
   /* ── WHAT THE THEME DECIDES, AND WHAT IT DOES NOT ──
    *
@@ -443,8 +454,28 @@ ${map('breakpoints', (state.layout?.breakpoints ?? []).map(b => [b.name, `${b.px
    and most token pipelines already read. Both themes are present as separate
    groups because the format has no first-class notion of a mode. */
 export function tokensJson(state, derived) {
+  /* ── A RETIRED TOKEN IS STILL EMITTED, AND SAYS IT IS GOING ──
+   *
+   * Deleting a name breaks every build that imported it, on the day it ships.
+   * DTCG's answer is `$deprecated`: the token keeps its value, so nothing
+   * breaks today, and carries the reason, so a consumer can act before it
+   * does. The value is a STRING rather than `true` wherever a replacement is
+   * named, because "deprecated" alone tells a reader to stop and not where to
+   * go. */
+  const retired = new Map((state.deprecated ?? [])
+    .filter(d => d?.token)
+    .map(d => [d.token.replace(/^--c-/, ''), d]))
+  const note = d => d.replacement
+    ? `Use ${d.replacement} instead.${d.reason ? ` ${d.reason}` : ''}`
+    : (d.reason || true)
+
   const colour = mode => Object.fromEntries(
-    Object.entries(derived.roles[mode]).map(([k, v]) => [k, { $type: 'color', $value: v }])
+    Object.entries(derived.roles[mode]).map(([k, v]) => [
+      k,
+      retired.has(k)
+        ? { $type: 'color', $value: v, $deprecated: note(retired.get(k)) }
+        : { $type: 'color', $value: v },
+    ])
   )
   const scales = Object.fromEntries(
     Object.entries(derived.ramps).map(([name, ramp]) => [

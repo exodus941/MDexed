@@ -152,7 +152,11 @@ line('\n- macros -')
 assert(px(derive({ ...state, macros: { ...state.macros, density: 2 } }).spacing, 'md') === '32px', 'density 2 doubles md spacing')
 const round2 = derive({ ...state, macros: { ...state.macros, roundness: 2 } })
 assert(px(round2.rounded, 'full') === '9999px', 'pill radius is not scaled')
-assert(px(round2.rounded, 'md') === '16px', 'md radius doubles')
+/* Assert the DOUBLING, not the pixel. This read `=== '16px'`, which was the
+   answer at a base of 8 and pinned that base into a test about a macro. The
+   base moved to 4 and the macro was never the thing that changed. */
+assert(parseFloat(px(round2.rounded, 'md')) === 2 * parseFloat(px(derived.rounded, 'md')),
+  `md radius doubles (${px(derived.rounded, 'md')} -> ${px(round2.rounded, 'md')})`)
 const scaled = derive({ ...state, macros: { ...state.macros, scale: 1.5 } })
 assert(ty(scaled.typography, 'h1').fontSize === '72px', `scale 1.5 lifts h1 (${ty(scaled.typography, 'h1').fontSize})`)
 /* A macro moves every step and lands every one of them on the grid. The macro
@@ -2080,7 +2084,11 @@ line('\n- project file -')
   const path = await import('node:path')
 
   const BACKTICK = String.fromCharCode(96)
-  const withBacktick = CHECKS.filter(c => (c.body || []).some(l => l.includes(BACKTICK)))
+  /* `rtlBody` is joined into the same template literal as `body`, so it is
+     under the same rule. Checking only `body` would have left the direction
+     variants outside the net that exists for exactly this. */
+  const allBodies = c => [...(c.body || []), ...(c.rtlBody || [])]
+  const withBacktick = CHECKS.filter(c => allBodies(c).some(l => l.includes(BACKTICK)))
   assert(withBacktick.length === 0,
     `no check body holds a backtick${withBacktick.length ? ` — ${withBacktick.map(c => c.id).join(', ')}` : ''}`)
 
@@ -2090,6 +2098,41 @@ line('\n- project file -')
   assert([...SOURCE_CHECKS, ...RENDER_CHECKS].every(c => Array.isArray(c.body) && c.body.length),
     `every runnable check carries a body (${SOURCE_CHECKS.length + RENDER_CHECKS.length})`)
   assert(MANUAL_CHECKS.every(c => !c.body), 'a manual check carries no body it cannot run')
+
+  /* ── THE DIRECTION-AWARE BODIES, AND THE GATE THEY SIT BEHIND ──
+   *
+   * Two checks read `left` and mean START. Proven in a browser: pointed at a
+   * CORRECT right-to-left table, the plain bodies report it as 271.8px off its
+   * heading and its selection edge as sitting -4.0px from the content. The
+   * direction-aware bodies are silent on the same markup, report exactly the
+   * 8px jog injected into one, and 2.0px on a gutter that is bar plus nothing.
+   *
+   * They ship only when RTL Optimizations is on. An LTR build must pay nothing
+   * for a direction it does not use. */
+  const withRtl = CHECKS.filter(c => c.rtlBody)
+  assert(withRtl.length === 2,
+    `two checks carry a direction-aware body (${withRtl.map(c => c.id).join(', ')})`)
+  assert(withRtl.every(c => Array.isArray(c.rtlBody) && c.rtlBody.length),
+    'and each is a real body')
+
+  const rtlState = { ...state, meta: { ...state.meta, rtl: true } }
+  const ltrBrowser = verifyBrowserFile(state)
+  const rtlBrowser = verifyBrowserFile(rtlState)
+  const READS_DIRECTION = /getComputedStyle\([a-zA-Z]+\)\.direction/
+  assert(!READS_DIRECTION.test(ltrBrowser),
+    'an LTR build ships no direction-aware body')
+  assert(READS_DIRECTION.test(rtlBrowser),
+    'and an RTL build does')
+  assert(rtlBrowser.length > ltrBrowser.length,
+    `the RTL file is the larger of the two (${rtlBrowser.length} against ${ltrBrowser.length})`)
+  /* Neither file may lose a check. A gate that drops one is worse than no
+     gate: the run still prints PASS. */
+  for (const c of RENDER_CHECKS) {
+    assert(ltrBrowser.includes(c.id) && rtlBrowser.includes(c.id),
+      `${c.id} survives both directions`)
+  }
+  assert(verifyNodeFile(rtlState).length === verifyNodeFile(state).length,
+    'no SOURCE check is direction-aware, so the node file is the same either way')
 
   const nodeSrc = verifyNodeFile(), browserSrc = verifyBrowserFile()
   let browserParses = true
@@ -2183,7 +2226,18 @@ line('\n- project file -')
     } catch (err) { return String(err.stdout || '') + String(err.stderr || '') }
   }
 
-  write('tokens.css', ':root { --c-text: #111; --space-md: 16px; --font-body-md-family: system-ui; }')
+  /* One retired token, in the shape the emitter writes: a comment naming the
+     replacement, on the line above the declaration. Multi-line, because the
+     check reads the NEXT line and a one-line :root has no next line. */
+  write('tokens.css', [
+    ':root {',
+    '  --c-text: #111;',
+    '  --space-md: 16px;',
+    '  --font-body-md-family: system-ui;',
+    '  /* RETIRED. Use --c-text-muted. Split into two roles with different bars. */',
+    '  --c-text-faint: #999;',
+    '}',
+  ].join('\n'))
   write('broken.css', [
     '.a { color: #ff0000; }',                    /* literal-colour */
     '.b { padding: 13px; }',                     /* off-scale-number */
@@ -2206,6 +2260,8 @@ line('\n- project file -')
     /* a-stacking-layer-is-a-token: a hand-typed layer, which is the number
        somebody reaches for when nothing published an order. */
     '.j { position: fixed; z-index: 2001; }',
+    /* no-retired-token: a USE of the token tokens.css marks as going. */
+    '.k { color: var(--c-text-faint); }',
   ].join('\n'))
   write('broken.html', [
     '<html data-theme="light">',                 /* hardcoded-theme */
@@ -2226,8 +2282,20 @@ line('\n- project file -')
 
   /* ── AND STAYS QUIET ON CORRECT CODE ── */
   const clean = fs.mkdtempSync(path.join(os.tmpdir(), 'verify-ok-'))
-  fs.writeFileSync(path.join(clean, 'tokens.css'),
-    ':root { --c-text: #111; --space-md: 16px; --edge-w: 4px; --z-modal: 400; --font-body-md-family: system-ui; }')
+  /* The clean fixture RETIRES a token too, and never uses it. Without that,
+     the quiet half would pass on a project that has retired nothing, which
+     proves nothing about the check. */
+  fs.writeFileSync(path.join(clean, 'tokens.css'), [
+    ':root {',
+    '  --c-text: #111;',
+    '  --space-md: 16px;',
+    '  --edge-w: 4px;',
+    '  --z-modal: 400;',
+    '  --font-body-md-family: system-ui;',
+    '  /* RETIRED. Use --c-text-muted. Split into two roles with different bars. */',
+    '  --c-text-faint: #999;',
+    '}',
+  ].join('\n'))
   fs.writeFileSync(path.join(clean, 'good.css'), [
     '/* A comment naming 13px and #ff0000 is prose, not code. */',
     '.a { color: var(--c-text); padding: var(--space-md); }',
@@ -2578,6 +2646,101 @@ line('\n- depth intensity -')
       assert(f.length === 0, `${sep}/${i.id} audits clean (${f.map(x => x.id).join(', ')})`)
     }
   }
+}
+
+/* ── THE SELECTION EDGE, AND WHICH MECHANISM DRAWS IT ──
+ *
+ * An inset shadow paints inside the border box and the BORDER paints on top of
+ * it. A table row carries a bottom hairline, so the bar came out 56px in a
+ * 57px row and stopped short at every boundary. A nav item has no rule
+ * crossing it, so the shadow is still right there. */
+{
+  line('\n- the selection edge -')
+  const { selectedState } = await import('../src/state/components.js')
+  const { CHECKS } = await import('../src/emit/checks.js')
+
+  const plain = selectedState('edge', 'medium')
+  const ruled = selectedState('edge', 'medium', { ruled: true })
+  assert(typeof plain.boxShadow === 'string' && /inset/.test(plain.boxShadow),
+    'an unruled set draws the bar with an inset shadow, which costs no element')
+  assert(ruled.boxShadow === undefined,
+    'a RULED set publishes no shadow, or a builder taking it reproduces the fault')
+  /* Both publish the INGREDIENTS, so a build that sets its own inset can
+     rebuild the bar rather than taking a sum it no longer uses. */
+  for (const [what, props] of [['unruled', plain], ['ruled', ruled]]) {
+    assert(props.edgeWidth && /^\d+px$/.test(props.edgeWidth),
+      `${what}: the bar width is published on its own (${props.edgeWidth})`)
+    assert(props.edgeColor === '{colors.accent}',
+      `${what}: and so is its colour (${props.edgeColor})`)
+  }
+
+  /* A treatment with no edge draws no bar and publishes no ingredients. */
+  for (const style of ['tint', 'lift']) {
+    const none = selectedState(style, 'medium', { ruled: true })
+    assert(none.edgeWidth === undefined && none.boxShadow === undefined,
+      `the ${style} treatment publishes no edge at all`)
+  }
+
+  /* THE CHECK MUST SEE BOTH MECHANISMS. Asking only about box-shadow goes
+     silent the moment a build does the correct thing in a ruled table.
+     Proven in a browser on the pseudo-element form: silent on a correct row,
+     and firing on an injected jog and on a gutter of bar-plus-nothing. */
+  const edgeCheck = CHECKS.find(c => c.id === 'a-selection-edge-costs-only-its-own-width')
+  for (const [what, lines] of [['body', edgeCheck.body], ['rtlBody', edgeCheck.rtlBody]]) {
+    const src = lines.join('\n')
+    assert(/pseudoBar/.test(src) && /::before/.test(src),
+      `the edge check reads the pseudo-element too, in its ${what}`)
+    assert(/boxShadow/.test(src),
+      `and still reads the shadow, in its ${what}`)
+  }
+}
+
+/* ── RETIRING A TOKEN ──
+ *
+ * A system that never deletes anything becomes unusable, and one that deletes
+ * without warning breaks every build that imported the name. */
+{
+  line('\n- retiring a token -')
+  const none = payloadTextFiles(state, derived)
+  assert(!/### Retired/.test(none['DESIGN.md']),
+    'a system with nothing retired ships no heading about retirement')
+  assert(!/\$deprecated/.test(none['tokens.json']),
+    'and no $deprecated in the interop file')
+  assert(!/RETIRED\./.test(none['tokens.css']),
+    'and no mark in the stylesheet')
+
+  const s2 = {
+    ...state,
+    deprecated: [{ token: 'text-subtle', replacement: '--c-text-muted', reason: 'Split into two roles with different contrast bars.' }],
+  }
+  const d2 = derive(s2)
+  const f2 = payloadTextFiles(s2, d2)
+
+  /* THE VALUE SURVIVES. That is the whole point: nothing breaks today. */
+  const json = JSON.parse(f2['tokens.json'])
+  const entry = json.color.light['text-subtle']
+  assert(entry != null, 'a retired token is still emitted')
+  assert(entry.$value === derived.roles.light['text-subtle'],
+    'and keeps the value it had')
+  assert(typeof entry.$deprecated === 'string' && entry.$deprecated.includes('--c-text-muted'),
+    `and its $deprecated names the replacement (${JSON.stringify(entry.$deprecated)})`)
+  /* A string rather than `true`, because "deprecated" alone tells a reader to
+     stop and never where to go. */
+  assert(entry.$deprecated !== true, 'the mark is a message, not a bare true')
+  assert(json.color.light['text-muted'].$deprecated === undefined,
+    'and nothing else is marked')
+
+  const css2 = f2['tokens.css']
+  assert(/RETIRED\. Use --c-text-muted\./.test(css2),
+    'tokens.css carries the mark above the declaration')
+  assert(new RegExp('RETIRED[^\\n]*\\n\\s*--c-text-subtle\\s*:').test(css2),
+    'and the mark sits on the line ABOVE it, which is the shape the check reads')
+  assert(css2.includes('--c-text-subtle:'), 'and the declaration is still there')
+
+  const md2 = f2['DESIGN.md']
+  assert(/### Retired/.test(md2), 'DESIGN.md gains the Retired section')
+  assert(md2.includes('--c-text-subtle') && md2.includes('--c-text-muted'),
+    'and names both the retired token and its replacement')
 }
 
 /* ── THE CHART SCALES ──

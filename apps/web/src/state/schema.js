@@ -567,6 +567,23 @@ export const createInitialState = () => ({
   meta: { name: 'My Design System', description: '', version: '', rtl: false },
   macros: { ...DEFAULT_MACROS },
 
+  /* ── RETIRED TOKENS ──
+   *
+   * A design system that never deletes anything becomes unusable, and one that
+   * deletes without warning breaks every build that imported the name. The
+   * answer both DTCG and every mature system reach for is a token that is
+   * still emitted and marked as going.
+   *
+   * Each entry is `{ token, replacement, reason }`. The token keeps its value
+   * so nothing breaks today. `$deprecated` in the interop file and a comment
+   * in the stylesheet say it is going. A source check fails any file still
+   * using it and names what to use instead, which is the half that actually
+   * moves a codebase.
+   *
+   * Empty by default. A system with nothing retired says nothing about
+   * retirement, rather than shipping an empty heading. */
+  deprecated: [],
+
   color: {
   /* ── The default seeds ──
      Chosen against the accessibility audit rather than by eye alone, because
@@ -717,7 +734,12 @@ export const createInitialState = () => ({
   },
 
   space: { base: 4, steps: SPACE_STEPS.map(s => ({ ...s })), overrides: {} },
-  radius: { base: 8, steps: RADIUS_STEPS.map(s => ({ ...s })), overrides: {}, nesting: true, borderWidths: { hairline: 1, thick: 2 } },
+  /* 4px is the 1.00 step, not 8. At 8 the whole system read as rounder than
+     anything on it: a 28px button carried an 8px corner and a 16px badge
+     carried 4, so small controls looked like lozenges. The multipliers are
+     unchanged, so every preset moves with it and the shape of the scale is
+     the same. A document saved before this keeps its own base. */
+  radius: { base: 4, steps: RADIUS_STEPS.map(s => ({ ...s })), overrides: {}, nesting: true, borderWidths: { hairline: 1, thick: 2 } },
 
   layout: {
     /* `xs` at 320 is not one of Tailwind's five, and it is here deliberately.

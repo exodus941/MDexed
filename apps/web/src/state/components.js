@@ -467,13 +467,29 @@ export function selectionEdge(name) {
  * The bar is an inset box-shadow, never a border. A border makes the row wider
  * by its own width and pushes every label in the list across by it, so only
  * the selected row would line up differently from its neighbours. */
-export function selectedState(styleName, edgeName, basePadding) {
+export function selectedState(styleName, edgeName, { ruled = false } = {}) {
   const style = SELECTION_STYLES[selectionStyle(styleName)]
   const props = { ...style.states.selected._ }
   if (!style.edge) return props
   const edge = SELECTION_EDGES[selectionEdge(edgeName)]
   const w = `${edge.px}px`
-  props.boxShadow = `inset ${w} 0 0 {colors.accent}`
+  /* ── A ROW INSIDE A RULED SET NEEDS A DIFFERENT MECHANISM ──
+   *
+   * An inset shadow paints inside the border box and the BORDER paints on top
+   * of it. A table row carries a 1px bottom rule, so the bar came out 56px in
+   * a 57px row and stopped short at every boundary. It reads as a dash
+   * between the rules rather than as the row's own edge.
+   *
+   * A nav item has no rule crossing it, so the shadow is still right there,
+   * and it costs no extra element. Where a rule DOES cross, the bar has to
+   * paint over it, and only a pseudo-element can: a background is clipped to
+   * the border box and a border widens the cell.
+   *
+   * So a ruled set publishes the INGREDIENTS and no shadow. Publishing both
+   * would be two mechanisms for one mark, and a builder taking the shadow
+   * would reproduce the fault this replaces. */
+  if (!ruled) props.boxShadow = `inset ${w} 0 0 {colors.accent}`
+  props.edgeColor = '{colors.accent}'
   /* ── THE BAR'S OWN WIDTH, PUBLISHED SEPARATELY ──
    *
    * The shorthand below is the ready-made answer, and it ASSUMES the cell
@@ -621,7 +637,9 @@ export function expandComponents(cfg = {}) {
         states: {
           ...rawDef.states,
           hover: { row: chosen.states.hover._ },
-          selected: { row: selectedState(selection, tableSelectionEdgeWeight) },
+          /* Ruled: every row carries a bottom rule, so the bar cannot be an
+             inset shadow. See selectedState. */
+          selected: { row: selectedState(selection, tableSelectionEdgeWeight, { ruled: true }) },
         },
       }
     }

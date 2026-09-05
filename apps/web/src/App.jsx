@@ -3,7 +3,7 @@
    and owns cloud sync. */
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import { StoreProvider, useStore, VIEW_TAGS } from './state/store.jsx'
-import { createInitialState, MACROS, DEFAULT_MACROS, CONTRAST_PAIRS, pairFails } from './state/schema.js'
+import { createInitialState, MACROS, DEFAULT_MACROS, CONTRAST_PAIRS, pairFails, ALL_ROLES } from './state/schema.js'
 import { PRESETS, applyPreset } from './state/presets.js'
 import { check } from './color/contrast.js'
 import { migrate } from './state/migrate.js'
@@ -15,7 +15,7 @@ import { serializeProject, parseProject, projectFilename, PROJECT_EXT } from './
 import { isValidColor } from './color/convert.js'
 import { APP_CSS } from './ui/theme.js'
 import { loadDocumentFonts } from './type/fonts.js'
-import { Banner, Toggle, ResetButton, CloseButton, SectionHeader, SectionBreak, Collapsible, Strut, numberFromText, PAD, BTN, MODAL_BTN } from './ui/controls.jsx'
+import { Banner, Toggle, ResetButton, CloseButton, SectionHeader, SectionBreak, Collapsible, Strut, ConfirmDelete, numberFromText, PAD, BTN, MODAL_BTN } from './ui/controls.jsx'
 import CrossFade from './ui/CrossFade.jsx'
 import TabStrip, { scrollableUnder } from './ui/TabStrip.jsx'
 import ImportModal, { IMPORT_FORMATS } from './ui/ImportModal.jsx'
@@ -1249,14 +1249,100 @@ function RtlSection() {
           uses this primitive. */}
       <div style={{ marginTop: PAD.gap }}>
         <Toggle label="Enable RTL optimizations" checked={on}
-          desc="Adds a Right-to-left section to DESIGN.md. Nothing else changes."
+          desc="Adds a Right-to-left section to DESIGN.md, and swaps two checks to measure from the start edge."
           onChange={v => set(s => ({ ...s, meta: { ...s.meta, rtl: v } }))} />
       </div>
       <p className="panel-note" style={{ marginTop: PAD.sub }}>
         {on
-          ? 'DESIGN.md carries a Right-to-left section. Nothing else in the payload changes, because the rest was already direction-neutral.'
-          : 'Nothing right-to-left reaches the payload.'}
+          ? 'DESIGN.md carries a Right-to-left section, and two checks in VERIFY-BROWSER.js now measure from the START edge rather than from the left. Pointed at a correct right-to-left table, the plain versions report it as 271.8px off its heading.'
+          : 'Nothing right-to-left reaches the payload. Two checks read the left edge and mean start, which is correct in this direction and would fault every right-to-left table.'}
       </p>
+    </Collapsible>
+  )
+}
+
+/* ── RETIRING A TOKEN ──
+ *
+ * A design system that never deletes anything becomes unusable, and one that
+ * deletes without warning breaks every build that imported the name. So a
+ * retired token keeps its value and carries a mark.
+ *
+ * The list is empty by default and the section says so, rather than shipping
+ * an empty heading into DESIGN.md. */
+function RetiredSection() {
+  const { state, set } = useStore()
+  const rows = state.deprecated ?? []
+  const write = next => set(s => ({ ...s, deprecated: next }), 'deprecated')
+  const upd = (i, k, v) => write(rows.map((r, j) => (j === i ? { ...r, [k]: v } : r)))
+  /* Every colour role, so a name is CHOSEN rather than typed. A typo here
+     retires nothing and reads in the output exactly like a real entry. */
+  const names = ALL_ROLES.map(r => r.name)
+  const taken = new Set(rows.map(r => r.token))
+  const free = names.filter(n => !taken.has(n))
+
+  return (
+    <Collapsible title="Retired Tokens" note={rows.length ? `${rows.length}` : 'none'}>
+      <p className="panel-note">
+        A retired token still resolves, so nothing breaks today, and it carries a
+        mark saying it is going: <code>$deprecated</code> in <code>tokens.json</code>,
+        a comment above the declaration in <code>tokens.css</code>, and a row in
+        DESIGN.md. <code>VERIFY.mjs</code> fails any file that still uses one and
+        names the replacement.
+      </p>
+      {/* ── EVERY CLASS HERE IS A CHROME CLASS ──
+       *
+       * The first version reached for `.card`, `.row`, `.card-actions`,
+       * `.btn` and `.btn-sm`. All five are scoped to `.dmd` in preview.css and
+       * do not exist out here, so they styled nothing and no guard fired,
+       * because every name is real somewhere.
+       *
+       * Measured before the fix: two buttons carrying one class, at 19px and
+       * 49px, because each was sized by its own words. `.btn-add` and
+       * `.btn-delete` are the chrome's own primitives for exactly this shape,
+       * and `.btn-delete` already floors itself at the 24px target. */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: PAD.row, marginTop: PAD.gap }}>
+        {rows.length === 0 && (
+          <div style={{ textAlign: 'center', padding: '20px 12px', color: 'var(--dim)', fontSize: 12, border: '1px dashed var(--bdr)', borderRadius: 8 }}>
+            Nothing is retired, so nothing about retirement reaches the payload.
+          </div>
+        )}
+        {rows.map((r, i) => (
+          <div key={i} style={{ border: '1px solid var(--bdr2)', borderRadius: 8, padding: PAD.sub }}>
+            <div className="action-row" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: PAD.sub }}>
+              <select value={r.token} style={{ flex: 1, minWidth: 0 }}
+                aria-label="Retired role"
+                onChange={e => upd(i, 'token', e.target.value)}>
+                {[r.token, ...free].filter(Boolean).map(n => <option key={n} value={n}>{n}</option>)}
+              </select>
+              {/* `ConfirmDelete`, never a typed glyph in a button. It carries
+                  the icon set's own trash mark, asks before it acts, and its
+                  shell is the same `.btn-delete` every other row uses. */}
+              <ConfirmDelete title={`Restore ${r.token}`}
+                onConfirm={() => write(rows.filter((_, j) => j !== i))} />
+            </div>
+            <div style={{ marginBottom: PAD.sub }}>
+              <label>Use instead</label>
+              <select value={r.replacement ?? ''} onChange={e => upd(i, 'replacement', e.target.value)}>
+                <option value="">— none —</option>
+                {names.filter(n => n !== r.token).map(n => (
+                  <option key={n} value={`--c-${n}`}>{`--c-${n}`}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label>Why</label>
+              <input value={r.reason ?? ''} onChange={e => upd(i, 'reason', e.target.value)}
+                placeholder="Split into two roles with different contrast bars." />
+            </div>
+          </div>
+        ))}
+      </div>
+      {free.length > 0 && (
+        <button className="btn-add"
+          onClick={() => write([...rows, { token: free[0], replacement: '', reason: '' }])}>
+          Retire a token
+        </button>
+      )}
     </Collapsible>
   )
 }
@@ -1270,6 +1356,8 @@ function MetaGlobalTab() {
           where a boundary needs no line. */}
       <SectionBreak />
       <GlobalMetrics />
+      <SectionBreak />
+      <RetiredSection />
       <SectionBreak />
       <RtlSection />
     </div>

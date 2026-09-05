@@ -61,7 +61,9 @@ export function payloadTextFiles (state, derived) {
     'tailwind.config.js': tokens.tailwindPreset(state, derived),
     '_tokens.scss': tokens.tokensScss(state, derived),
     'tokens.json': tokens.tokensJson(state, derived),
-    [VERIFY_NODE]: verifyNodeFile(),
-    [VERIFY_BROWSER]: verifyBrowserFile(),
+    /* The state decides whether the direction-aware check bodies ship. An LTR
+       build gets the file it has always had, byte for byte. */
+    [VERIFY_NODE]: verifyNodeFile(state),
+    [VERIFY_BROWSER]: verifyBrowserFile(state),
   }
 }
