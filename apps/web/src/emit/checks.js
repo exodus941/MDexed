@@ -123,6 +123,38 @@ export const CHECKS = [
   },
 
   {
+    id: 'no-published-token-is-redeclared',
+    where: 'source',
+    line: 'Your own source declares no name this system already publishes.',
+    /* ── THE HOLE BESIDE `unknown-token`, AND IT IS SILENT ──
+     *
+     * That check accepts any property the source declares, which is right: a
+     * measured length has to live somewhere. But it means a build can DECLARE
+     * a name the token file already publishes, at a different value, and pass.
+     * The system is then changed by a line nobody reads as a change.
+     *
+     * Found by building a page in simulation run 12. Its `:root` carried
+     * `--icon-stroke: 1.5` where the system publishes 1, in the same `:root`
+     * and after `tokens.css`, so every icon on the page painted at one and a
+     * half times the published weight. Both verifiers passed it.
+     *
+     * A REDECLARATION IS NOT A TYPO, so the message says which value the
+     * system ships. And the theme blocks are exempt by construction: this asks
+     * only about the source the builder wrote, never about `tokens.css`. */
+    body: [
+      "for (const f of files) {",
+      "  for (const [i, line] of f.bareLines.entries()) {",
+      "    for (const m of line.matchAll(/(^|[;{\\s])(--[\\w-]+)\\s*:/g)) {",
+      "      const name = m[2]",
+      "      if (!tokens.has(name)) continue",
+      "      fail(f.path, i + 1, name + ' is a published token and this line declares it again. The system ships ' + (tokenValues.get(name) || 'its own value') + '. Redeclaring it changes the system for the whole page, and no check reading var() can see that. Name your own value something the system does not publish.')",
+      "    }",
+      "  }",
+      "}",
+    ],
+  },
+
+  {
     id: 'fallback-hides-a-token',
     where: 'source',
     line: 'No `var()` carries a fallback. A fallback paints a value nobody chose.',

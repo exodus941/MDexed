@@ -2272,6 +2272,10 @@ line('\n- project file -')
     '.j { position: fixed; z-index: 2001; }',
     /* no-retired-token: a USE of the token tokens.css marks as going. */
     '.k { color: var(--c-text-faint); }',
+    /* no-published-token-is-redeclared: a name the system already publishes,
+       declared again at another value. The value is ON the grid, so nothing
+       else objects, and every var(--space-md) on the page silently moves. */
+    ':root { --space-md: 20px; }',
   ].join('\n'))
   write('broken.html', [
     '<html data-theme="light">',                 /* hardcoded-theme */

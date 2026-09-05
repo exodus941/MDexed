@@ -123,9 +123,16 @@ const files = paths.map(p => {
  * file that has to hold them. A mark is a comment naming the replacement, on
  * the line above the declaration, which is the shape the emitter writes. */
 const tokens = new Set()
+/* The published VALUE as well as the name, so a check can say what the system
+   ships rather than only that a name is taken. The first declaration wins: the
+   root block comes before the theme blocks, and root is the base. */
+const tokenValues = new Map()
 const retiredTokens = new Map()
 const readTokens = css => {
-  for (const m of css.matchAll(/(--[\\w-]+)\\s*:/g)) tokens.add(m[1])
+  for (const m of css.matchAll(/(--[\\w-]+)\\s*:\\s*([^;\\n]*)/g)) {
+    tokens.add(m[1])
+    if (!tokenValues.has(m[1])) tokenValues.set(m[1], m[2].trim())
+  }
   const lines = css.split('\\n')
   for (let i = 0; i < lines.length; i++) {
     if (!/RETIRED\\./.test(lines[i])) continue
