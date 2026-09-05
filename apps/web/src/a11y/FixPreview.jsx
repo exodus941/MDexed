@@ -24,6 +24,7 @@
  * The simulated swatches sit beside the real ones, because the fault is defined
  * under deuteranopia and a reader cannot check the claim without seeing it. */
 import { useMemo } from 'react'
+import { useCloseOnEscape } from '../ui/controls.jsx'
 import { createPortal } from 'react-dom'
 import { useStore } from '../state/store.jsx'
 import { derive } from '../state/derive.js'
@@ -66,6 +67,7 @@ function Chip({ hex, label }) {
 }
 
 export default function FixPreview({ fix, onCancel, onConfirm }) {
+  useCloseOnEscape(onCancel)
   const { state, derived } = useStore()
 
   /* The candidate, and what the audit says about it. Both derived from the same

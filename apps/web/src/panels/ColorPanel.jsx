@@ -15,7 +15,7 @@ import TokenColorPicker, { paletteGroups } from '../ui/TokenColorPicker.jsx'
 import { viewport } from '../ui/zoom.js'
 import { GRADIENT_TYPES, GRADIENT_PURPOSES, purposeOf } from '../color/modes.js'
 import { GROUND_TINTS, groundSeedHex, groundTintOf, tintsCollide } from '../color/ground.js'
-import { SectionHeader, Collapsible, Expand, Slider, NumField, Toggle, OverrideBadge, ConfirmDelete, Banner, Plus, PAD, BTN, ChoiceCard } from '../ui/controls.jsx'
+import { SectionHeader, Collapsible, Expand, Slider, NumField, Toggle, OverrideBadge, ConfirmDelete, Banner, Plus, PAD, BTN, ChoiceCard, useCloseOnEscape } from '../ui/controls.jsx'
 import { useAi } from '../ai/ui.jsx'
 import { complete } from '../ai/client.js'
 import { systemPrompt, gradientNotePrompt } from '../ai/prompts.js'
@@ -75,6 +75,7 @@ const Lock = ({ locked, size = 12 }) => (
 const SEED_PICKER_W = 420
 
 function SeedPickerPop({ seed, anchor, onChange, onClose }) {
+  useCloseOnEscape(onClose)
   const vp = viewport()
   const r = anchor?.getBoundingClientRect()
   const rect = r && { left: vp.x(r.left), top: vp.x(r.top), bottom: vp.x(r.bottom) }

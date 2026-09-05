@@ -16,7 +16,7 @@
  */
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { PAD, BTN, MODAL_BTN, CloseButton, Collapsible } from '../ui/controls.jsx'
+import { PAD, BTN, MODAL_BTN, CloseButton, Collapsible, useCloseOnEscape } from '../ui/controls.jsx'
 import { PALETTES, GROUNDS, TYPE_PAIRINGS, TIGHTNESS, SHAPES, DEPTHS, INTENSITIES, THEMES, BLANK, STEPS, BRAND_MAX } from './answers.js'
 import { buildPrompt, promptFilename, MDEXED_URL } from './prompt.js'
 import { IconSend, IconUser, IconFolder, IconPlus } from '../preview/icons.jsx'
@@ -121,6 +121,11 @@ function Door({ icon, title, note, primary, onClick }) {
 }
 
 export function LaunchFork({ onGuided, onHandsOn, onRestore, restorableName, leaving }) {
+  /* The door has no Cancel, so nothing about it said what Escape means, and it
+     was the one modal in the chrome a reader could not get out of by keyboard.
+     Hands-on IS the dismiss: it closes the door onto the editor and changes
+     nothing else, so Escape takes that path. */
+  useCloseOnEscape(onHandsOn, !leaving)
   return createPortal(
     <div className={leaving ? 'anim-fade-out' : 'anim-fade'} style={{
       position: 'fixed', inset: 0, background: 'rgba(0,0,0,.72)', zIndex: 'var(--z-overlay)',
@@ -176,6 +181,7 @@ export function LaunchFork({ onGuided, onHandsOn, onRestore, restorableName, lea
 
 /* ── THE WIZARD ── */
 export default function CasualWizard({ onClose, onBack, leaving }) {
+  useCloseOnEscape(onClose, !leaving)
   /* Derived from the page list, never typed. The footer used a literal 2, so
      adding a page would have hidden Next on the one before the last. */
   const LAST = STEPS.length - 1

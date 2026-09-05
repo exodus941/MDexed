@@ -104,7 +104,11 @@ export default function FontPicker({ value, onChange, label, role }) {
               <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
                 <Segmented size="sm" value={category ?? 'all'} onChange={v => setCategory(v === 'all' ? null : v)}
                   options={[{ value: 'all', label: 'All' }, ...CATEGORIES.map(c => ({ value: c, label: c === 'sans-serif' ? 'Sans' : c === 'monospace' ? 'Mono' : c === 'handwriting' ? 'Script' : c[0].toUpperCase() + c.slice(1) }))]} />
-                <button className={variableOnly ? 'seg-on' : 'seg'} onClick={() => setVariableOnly(v => !v)} style={{ fontSize: 12 }}>Variable</button>
+                {/* A hand-rolled chip beside the Segmented, so it missed that
+                    component's `aria-pressed` and marked itself with a class
+                    alone. Same rule, same fix. */}
+                <button className={variableOnly ? 'seg-on' : 'seg'} aria-pressed={variableOnly}
+                  onClick={() => setVariableOnly(v => !v)} style={{ fontSize: 12 }}>Variable</button>
                 <span style={{ marginLeft: 'auto', fontSize: 10, color: 'var(--dim)', fontFamily: 'var(--mono)' }}>{results.length}</span>
               </div>
             </div>
@@ -117,9 +121,32 @@ export default function FontPicker({ value, onChange, label, role }) {
 
             <div ref={listRef} onScroll={e => setScrollTop(e.currentTarget.scrollTop)}
               style={{ height: VIEWPORT_H, overflowY: 'auto', position: 'relative' }}>
-              {!results.length && !loading && (
-                <div style={{ padding: 20, textAlign: 'center', color: 'var(--dim)', fontSize: 12 }}>No families match.</div>
-              )}
+              {/* ── NO RESULTS OFFERS A WAY BACK, NEVER A WAY FORWARD ──
+                  The reader already has the catalogue and asked the wrong
+                  question. This said "No families match." and stopped, so a
+                  category left on from an earlier search hid 1,900 families
+                  and the reason was four chips away. Measured in simulation
+                  run 12: searching "Source Serif 4" with the Script category
+                  on returns nothing, and the font exists. Name what is
+                  narrowing it, and clear it in one press. */}
+              {!results.length && !loading && (() => {
+                const narrowing = [
+                  query && `"${query}"`,
+                  category && `the ${category} category`,
+                  variableOnly && 'variable only',
+                ].filter(Boolean)
+                return (
+                  <div style={{ padding: 20, textAlign: 'center', color: 'var(--dim)', fontSize: 12 }}>
+                    <div>No families match {narrowing.length ? narrowing.join(' and ') : 'that'}.</div>
+                    {narrowing.length > 1 || category || variableOnly ? (
+                      <button className="btn-ghost" style={{ marginTop: 8, fontSize: 12 }}
+                        onClick={() => { setCategory(null); setVariableOnly(false) }}>
+                        Clear the Filter
+                      </button>
+                    ) : null}
+                  </div>
+                )
+              })()}
               <div style={{ height: results.length * ROW_H, position: 'relative' }}>
                 {visible.map((f, i) => {
                   const idx = start + i

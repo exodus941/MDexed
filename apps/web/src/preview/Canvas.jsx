@@ -425,8 +425,11 @@ export default function Canvas({ onInspect, surface, setSurface, onOpenContrast,
                 used buttons in the bar. The stylesheet says the same thing and
                 lost to this inline value, which is the other lesson here. */}
             <div className="seg-box" style={{ display: 'flex', gap: 2, background: 'var(--surf3)', padding: 1, borderRadius: 6, border: '1px solid var(--bdr)', flexShrink: 0 }}>
+              {/* The third hand-rolled seg chip. Paint is not a state, and this
+                  one decides which theme the preview is showing. */}
               {['light', 'dark'].map(m => (
-                <button key={m} onClick={() => setMode(m)} className={mode === m ? 'seg-on' : 'seg'} style={{ padding: '2px 12px' }}>
+                <button key={m} onClick={() => setMode(m)} aria-pressed={mode === m}
+                  className={mode === m ? 'seg-on' : 'seg'} style={{ padding: '2px 12px' }}>
                   {m === 'light' ? 'Light' : 'Dark'}
                 </button>
               ))}

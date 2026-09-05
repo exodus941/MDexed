@@ -1,6 +1,39 @@
 /* Shared editor controls. Small, unopinionated, used by every panel. */
 import { useState, useEffect } from 'react'
 
+/* ── ESCAPE CLOSES AN OVERLAY, AND NOTHING IN THIS CHROME DID ──
+ *
+ * The keyboard contract this system PUBLISHES says a modal, a menu and a
+ * tooltip all close on Escape. Its own chrome held three dialogs and answered
+ * the key in none of them. Found by driving the editor as a person in
+ * simulation run 12: the seed colour picker opens over the panel below it,
+ * takes no focus, and the only way out is a click on the catcher.
+ *
+ * One hook, so a fourth overlay cannot be added without it.
+ *
+ * A FIELD OWNS ESCAPE FIRST. `NumField` here uses it to abandon an edit and
+ * blur, and a capture listener on the window runs BEFORE the field whatever
+ * the field does about it — capture travels window to target, so
+ * stopPropagation in the field cannot reach it. So the hook asks what has
+ * focus instead. Escape in a field abandons the edit and blurs; a second press
+ * closes the overlay, which is what every editor does. */
+const EDITING = el => !!el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' ||
+  el.tagName === 'SELECT' || el.isContentEditable)
+
+export function useCloseOnEscape(onClose, active = true) {
+  useEffect(() => {
+    if (!active || !onClose) return
+    const onKey = e => {
+      if (e.key !== 'Escape') return
+      if (EDITING(document.activeElement)) return
+      e.stopPropagation()
+      onClose()
+    }
+    window.addEventListener('keydown', onKey, true)
+    return () => window.removeEventListener('keydown', onKey, true)
+  }, [onClose, active])
+}
+
 /** How close to the default a drag has to land before it snaps there. */
 export const SNAP_FRACTION = 0.025
 
@@ -600,7 +633,15 @@ export function Segmented({ options, value, onChange, size = 'md', full }) {
         const val = typeof o === 'string' ? o : o.value
         const label = typeof o === 'string' ? o : o.label
         return (
-          <button key={val} onClick={() => onChange(val)} className={value === val ? 'seg-on' : 'seg'}
+          /* PAINT IS NOT A STATE. This marked the chosen item with a class and
+             nothing else, so a screen reader was never told which of the five
+             is on. It is the rule this system publishes as
+             `a-marked-item-says-so`, broken in the chrome that publishes it.
+             `aria-pressed` rather than radio semantics: each button is its own
+             tab stop here, which is what a toolbar of toggles is, and radio
+             roles would owe arrow keys and a roving tabindex as well. */
+          <button key={val} onClick={() => onChange(val)} aria-pressed={value === val}
+            className={value === val ? 'seg-on' : 'seg'}
             style={{
               ...(size === 'sm' ? { padding: '2px 6px', fontSize: 12 } : null),
               /* Equal shares rather than content-sized, so the divisions land
