@@ -1021,8 +1021,16 @@ export const CHECKS = [
       "    if (!head) host = host.parentElement",
       "  }",
       "  if (!head) continue",
+      /* THE HEADING HAS TO SIT ON THE SAME MARGIN, OR THERE IS NOTHING TO
+         LINE UP WITH. A table inside a card, under a section heading outside
+         it, is a normal arrangement: the card padding is a decision, not a
+         stray cell inset. This faulted one at 33px on a correct page. Ask
+         whether the two share a padded box, which is the property that
+         decides it. */
       "  const first = table.querySelector('tr > *:first-child')",
       "  if (!first) continue",
+      "  const box = padded(first), headBox = padded(head)",
+      "  if (!box || !headBox || box.el !== headBox.el) continue",
       /* ── THE SELECTION COLUMN IS THE DOCUMENTED EXCEPTION ──
        *
        * A column that carries the selected row's accent bar cannot also sit
@@ -1071,8 +1079,16 @@ export const CHECKS = [
       "    if (!head) host = host.parentElement",
       "  }",
       "  if (!head) continue",
+      /* THE HEADING HAS TO SIT ON THE SAME MARGIN, OR THERE IS NOTHING TO
+         LINE UP WITH. A table inside a card, under a section heading outside
+         it, is a normal arrangement: the card padding is a decision, not a
+         stray cell inset. This faulted one at 33px on a correct page. Ask
+         whether the two share a padded box, which is the property that
+         decides it. */
       "  const first = table.querySelector('tr > *:first-child')",
       "  if (!first) continue",
+      "  const box = padded(first), headBox = padded(head)",
+      "  if (!box || !headBox || box.el !== headBox.el) continue",
       "  if (table.querySelector('tbody td:first-child input[type=\"checkbox\"], tbody td:first-child [role=\"checkbox\"]')) continue",
       "  const paints = Array.prototype.filter.call(",
       "    first.querySelectorAll('svg, img, [class*=box], [class*=avatar], [class*=dot]'),",

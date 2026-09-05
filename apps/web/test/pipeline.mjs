@@ -2384,6 +2384,34 @@ line('\n- depth intensity -')
   const base = createInitialState()
   const depthLine = a => buildPrompt(a).split('\n').find(l => l.startsWith('- Depth'))
 
+  /* ── ONE DECISION, ONE FIELD, AND ONE FULL STOP ──
+   *
+   * Both found by simulation run 12, in the prompt the wizard hands an agent.
+   *
+   * The palette bullet always named a start colour and the brand bullet named
+   * a different hex as the accent. Nothing said which wins, so a compliant
+   * reader could set the accent to either. The seed is the FALLBACK, so it is
+   * stated only when nobody gave a colour.
+   *
+   * And `bullet()` writes the closing stop, so a branch carrying its own
+   * shipped "The first is the accent..". Only one of the two branches did,
+   * which is how a doubled stop survives every reading of the output. */
+  {
+    const withBrand = buildPrompt({ ...BLANK, palette: 'green', brand: ['#1b5e4a'] })
+    const without = buildPrompt({ ...BLANK, palette: 'green', brand: [] })
+    const paletteOf = p => p.split('\n').find(l => l.startsWith('- Palette')) ?? ''
+    assert(!/Start from/.test(paletteOf(withBrand)),
+      'a given brand colour leaves the palette bullet naming no seed of its own')
+    assert(/the brand colour below/.test(paletteOf(withBrand)),
+      'and the palette bullet says where the accent does come from')
+    assert(/Start from #[0-9a-f]{6}\.$/.test(paletteOf(without)),
+      `with no brand colour the palette bullet names the seed — ${paletteOf(without)}`)
+    for (const [label, p] of [['with a brand colour', withBrand], ['without one', without]]) {
+      const doubled = p.match(/[a-z0-9)]\.\.(\s|$)/g) ?? []
+      assert(doubled.length === 0, `${label}, no bullet ends in two full stops (${doubled.join(', ')})`)
+    }
+  }
+
   assert(INTENSITIES.length === 4, `four levels (${INTENSITIES.length})`)
   assert(INTENSITIES.map(i => i.pct).join() === '0,33,66,100',
     `the levels are 0, 33, 66 and 100 per cent (${INTENSITIES.map(i => i.pct).join()})`)
@@ -2820,6 +2848,54 @@ line('\n- depth intensity -')
   assert(json.color.chart.categorical['1'].$type === 'color', 'and carries a DTCG type')
 
   const md = files['DESIGN.md']
+  /* ── EVERY TABLE IS ONE CONTIGUOUS BLOCK ──
+   *
+   * The stacking-order table shipped as eleven separate entries of a list this
+   * emitter joins with a blank line, so markdown read it as eleven paragraphs
+   * of pipes rather than as a table. It was the only table in the document
+   * written by hand instead of through `table()`, and nothing was looking.
+   *
+   * A blank line between two pipe lines is a fault UNLESS what follows it is a
+   * NEW table, and a new table is exactly a header line with a separator row
+   * under it. The Motion section ships two adjacent tables that way — durations
+   * then easings — and the first version of this check faulted both. Pointing a
+   * new check at correct code before shipping it is the whole reason that was
+   * caught here rather than by them. */
+  const SEPARATOR = /^\|[\s:|-]+\|$/
+  for (const [file, text] of Object.entries(files)) {
+    if (!file.endsWith('.md')) continue
+    const lines = text.split('\n')
+    const broken = []
+    for (let i = 1; i < lines.length - 1; i++) {
+      if (lines[i].trim() !== '') continue
+      if (!lines[i - 1].startsWith('|') || !lines[i + 1].startsWith('|')) continue
+      const startsNewTable = SEPARATOR.test(lines[i + 2] ?? '')
+      if (!startsNewTable) broken.push(i + 1)
+    }
+    assert(broken.length === 0,
+      `${file} has no blank line inside a table${broken.length ? ` — line ${broken.slice(0, 4).join(', ')}` : ''}`)
+  }
+
+  /* ── THE DOCUMENT NAMES A PROPERTY THAT EXISTS ──
+   *
+   * The families table listed three roles — display, body, mono — while
+   * tokens.css publishes families on the SCALE roles, so the mono family lives
+   * on `--font-code-family` and the document said "the mono family" and never
+   * that name. Building from it, the obvious guess `--font-mono-family`
+   * resolved to nothing, painted nothing and reported nothing. The Sass file
+   * calls the same family `$font-mono`, so one thing had three names across
+   * four files and the document bridged none of them.
+   *
+   * Assert the bridge rather than the wording: every property the table names
+   * has to be declared in tokens.css. */
+  {
+    const named = [...md.matchAll(/`var\((--font-[a-z0-9-]+-family)\)`/g)].map(m => m[1])
+    assert(named.length >= 3, `the families table names a custom property per role (${named.length})`)
+    const missing = named.filter(n => !css.includes(`${n}:`))
+    assert(missing.length === 0,
+      `every family property the document names is declared in tokens.css${missing.length ? ` — ${[...new Set(missing)].join(', ')}` : ''}`)
+  }
+
   assert(/### Charts/.test(md), 'DESIGN.md carries the Charts section')
   assert(md.includes(dv.worst.distance.toFixed(3)), 'and states the measured worst pair')
   assert(md.includes(dv.worstWithoutRedGreen.toFixed(3)),

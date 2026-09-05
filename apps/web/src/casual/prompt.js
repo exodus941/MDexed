@@ -81,8 +81,13 @@ export function buildPrompt(answers) {
   /* Every colour they gave, in order. The first anchors the accent and the
      rest land on the other seeds. Naming a count as well as the list, because
      an agent reading six hexes needs to know none of them is optional. */
+  /* NO TRAILING STOP. `bullet()` writes one, and this branch used to carry its
+     own, so the prompt shipped "The first is the accent..". The other branch
+     never did, which is how a doubled stop survives a reading: only one of two
+     paths shows it. Both branches now end mid-sentence and the bullet closes
+     them. */
   const brand = a.brand.length
-    ? `${a.brand.length} given, use them all: ${a.brand.join(', ')}. The first is the accent.`
+    ? `${a.brand.length} given, use them all: ${a.brand.join(', ')}. The first is the accent`
     : 'none given, so choose inside the hue range above'
 
   const lines = [
@@ -98,7 +103,15 @@ export function buildPrompt(answers) {
     '',
     '## What I chose',
     '',
-    bullet(`Palette: ${a.palette.label}. Hue range ${a.palette.hue}. Start from ${a.palette.seed}.`),
+    /* TWO INSTRUCTIONS NAMED ONE VALUE. This bullet always said "Start from
+       #0d7a70", and the brand bullet below says "the first is the accent" with
+       a different hex. Nothing said which wins, so a compliant reader could
+       set the accent to either. One decision gets one field: the palette seed
+       is the fallback for when nobody gave a colour, so it is stated only
+       then. The hue range is the palette's own answer and always belongs. */
+    bullet(a.brand.length
+      ? `Palette: ${a.palette.label}. Hue range ${a.palette.hue}. The accent comes from the brand colour below, not from this range.`
+      : `Palette: ${a.palette.label}. Hue range ${a.palette.hue}. Start from ${a.palette.seed}.`),
     /* The ground is a SEED, so the bullet names the control that writes it
        rather than a hex. A hex here would go stale the moment the accent
        moves, because the accent-hue tint reads the accent's own hue. */

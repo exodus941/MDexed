@@ -422,10 +422,33 @@ const kebabCss = k => k.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase()
 /* ── Typography ── */
 function typographyBody(state, derived) {
   const t = state.type
-  const fams = table(['Role', 'Family', 'Used for'], [
-    ['display', derived.families.display?.stack ?? '—', 'Headings and display sizes'],
-    ['body', derived.families.body?.stack ?? '—', 'Body copy, labels, UI text'],
-    ['mono', derived.families.mono?.stack ?? '—', 'Code, figures, technical values'],
+  /* ── NAME THE PROPERTY, NOT ONLY THE ROLE ──
+   *
+   * This table listed three FAMILY roles and the token file publishes SCALE
+   * roles, so the mono family is carried by `--font-code-family` and nothing
+   * anywhere said so. Every rule in this document about figures says "the mono
+   * family", the obvious guess is `--font-mono-family`, and a custom property
+   * no stylesheet declares resolves to nothing, paints nothing and reports
+   * nothing — which this file warns about in the Colors section and then
+   * walked into itself.
+   *
+   * Found by simulation run 12, by writing the guess and getting no face.
+   * The Sass file calls the same family `$font-mono`, so one thing had three
+   * names across four files and the document bridged none of them. */
+  /* A family is not a token of its own. Every SCALE role carries one, so the
+     property to read is whichever scale role is canonical for that family.
+     Prefer the obvious name, and fall back to the first role in the family so
+     a renamed or removed scale role cannot leave the column empty. */
+  const PREFERRED = { display: 'display', body: 'body-md', mono: 'code' }
+  const famProp = role => {
+    const inFamily = derived.typography.filter(tok => tok.family === role)
+    const pick = inFamily.find(tok => tok.name === PREFERRED[role]) ?? inFamily[0]
+    return pick ? `\`var(--font-${pick.name}-family)\`` : '—'
+  }
+  const fams = table(['Role', 'Family', 'Read the family as', 'Used for'], [
+    ['display', derived.families.display?.stack ?? '—', famProp('display'), 'Headings and display sizes'],
+    ['body', derived.families.body?.stack ?? '—', famProp('body'), 'Body copy, labels, UI text'],
+    ['mono', derived.families.mono?.stack ?? '—', famProp('mono'), 'Code, figures, technical values'],
   ])
 
   const rows = derived.typography.map(tok => [
@@ -649,18 +672,26 @@ function elevationBody(state, derived) {
     '',
     'A shadow says a thing is raised. `z-index` says which raised thing wins. Nine layers, on a step of 100, so something new slots between two without renumbering the rest:',
     '',
-    '| Token | Value | What sits here |',
-    '| --- | --- | --- |',
-    '| `--z-base` | 0 | the page |',
-    '| `--z-raised` | 10 | a card that lifts off it |',
-    '| `--z-sticky` | 100 | a header that stays while the content scrolls |',
-    '| `--z-dropdown` | 200 | a menu opened from a control |',
-    '| `--z-overlay` | 300 | the scrim behind a dialog |',
-    '| `--z-modal` | 400 | the dialog on that scrim |',
-    '| `--z-popover` | 500 | a picker that has to clear a dialog |',
-    '| `--z-toast` | 600 | a message that clears everything |',
-    '| `--z-tooltip` | 700 | last |',
-    '',
+    /* ── ONE STRING, BECAUSE THE JOINER PUTS A BLANK LINE BETWEEN ENTRIES ──
+     *
+     * This shipped as eleven separate array entries, and everything in this
+     * function is joined with a blank line between entries. So the only table
+     * in the document written by hand rather than through `table()` came out
+     * with a blank line between every row, which markdown reads as eleven
+     * paragraphs of pipes. Found by reading the emitted file in simulation
+     * run 12 — nothing else was looking, because every other table in the
+     * document goes through the helper and cannot have this shape. */
+    table(['Token', 'Value', 'What sits here'], [
+      ['`--z-base`', '0', 'the page'],
+      ['`--z-raised`', '10', 'a card that lifts off it'],
+      ['`--z-sticky`', '100', 'a header that stays while the content scrolls'],
+      ['`--z-dropdown`', '200', 'a menu opened from a control'],
+      ['`--z-overlay`', '300', 'the scrim behind a dialog'],
+      ['`--z-modal`', '400', 'the dialog on that scrim'],
+      ['`--z-popover`', '500', 'a picker that has to clear a dialog'],
+      ['`--z-toast`', '600', 'a message that clears everything'],
+      ['`--z-tooltip`', '700', 'last'],
+    ]),
     'Read it as a sequence rather than a table of numbers. A card lifts, a header sticks, a menu opens, a scrim covers, a dialog sits on the scrim, a picker clears the dialog, a toast clears everything, and a tooltip is last. A builder reaching for "above a modal" then finds `popover` instead of adding a thousand.',
     '',
     '**Local stacking is not a layer.** `z-index: 1` inside a positioned card, to put a mark over a fill, orders two siblings and never joins the global order. It needs no token and it must not take one, because a card that claims `--z-modal` beats every dialog on the page.',
