@@ -126,8 +126,26 @@ export const TABS_SENTINEL = '@media (max-width: 999906px)'          // 712
    Recompute it for your own content. The formula is the widest answer plus its
    cell padding, times the number of options, plus the widest row label plus
    its padding. */
+/* AN ACTION ROW BESIDE A HEADING TAKES ITS OWN LINE WHEN IT STOPS FITTING, and
+   this is the width where it stops. It carried the document's own `md` step
+   before, which is a number measured for panes rather than for this row, so a
+   long title still pushed the actions onto their own line between 768 and 920
+   while the layout went on treating them as beside it. They stayed at their
+   natural widths, never paired, and the description sat under them instead of
+   under the title.
+
+   MEASURED BY SHRINKING THE REAL ROW, with the longest title this system
+   ships. Beside at 920, on its own line at 900. The arithmetic agrees, which
+   is the sign a derivation is sound: a 638px title, an 8px gap, a 206px action
+   row and 25px of surface padding each side come to 906.
+
+   Recompute it for your own content. A container query cannot measure text, so
+   take it from a LONG title. A short one then collapses a step early, which
+   nobody notices; an overflow is a defect everybody notices. */
+export const HEAD_ACTIONS_SENTINEL = '@media (max-width: 999908px)'  // 920
+
 export const PLANS_SENTINEL = '@media (max-width: 999907px)'         // 400
-export const LADDER = { bare: 384, tabs: 712, plans: 400 }
+export const LADDER = { bare: 384, tabs: 712, plans: 400, headActions: 920 }
 
 export const CONTAINER_LINE = '.dmd-frame { container-type: inline-size; container-name: dmd; }'
 
@@ -174,4 +192,5 @@ export function buildResponsiveCss (css, breakpoints = [], mode = 'container') {
     .split(LADDER_BARE_SENTINEL).join(query(LADDER.bare))
     .split(TABS_SENTINEL).join(query(LADDER.tabs))
     .split(PLANS_SENTINEL).join(query(LADDER.plans))
+    .split(HEAD_ACTIONS_SENTINEL).join(query(LADDER.headActions))
 }

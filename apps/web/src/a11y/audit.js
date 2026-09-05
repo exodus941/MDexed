@@ -1003,13 +1003,13 @@ function hairlineChecks(derived, mode) {
  * The palette cannot fix this by moving `success`: every green collides with
  * `danger` under deuteranopia, which is why the teal was chosen. So the finding
  * names the conflict and points at the accent, which is the one free choice. */
-const MEANING_PAIRS = [
+export const MEANING_PAIRS = [
   ['accent', 'success'], ['accent', 'warning'], ['accent', 'danger'],
   ['success', 'warning'],
 ]
-const HUE_MIN = 25
+export const HUE_MIN = 25
 /* Points of OKLCH lightness. See the note in meaningCollision. */
-const LIGHTNESS_MIN = 10   // below this two hues read as one colour at a glance
+export const LIGHTNESS_MIN = 10   // below this two hues read as one colour at a glance
 
 function meaningCollision(derived, mode) {
   const roles = derived.roles?.[mode] ?? {}

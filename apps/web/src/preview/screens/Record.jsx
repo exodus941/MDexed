@@ -63,10 +63,27 @@ export default function Record({ onInspect, tabStyle, casing }) {
           <div className="page-title">
             <h2 {...txt('h2')}>Ashford &amp; Kline — Q4 reconciliation</h2>
           </div>
-          <div className="row page-actions">
-            <button className="btn btn-secondary btn-sm" {...ins('button-sm')}><Ico d={IconDownload} size="sm" />{L('Export')}</button>
-            <button className="btn btn-primary btn-sm" {...ins('button-primary')}><Ico d={IconSend} size="sm" />{L('Send')}</button>
-            <button className="btn btn-secondary btn-sm icon-only" {...ins('button-secondary')}><Ico d={IconMore} /></button>
+          {/* AN ACTION ROW THAT BREAKS, BREAKS INTO PAIRS, and this one never
+              did. Measured at a 640px frame: 206px of buttons shrink-wrapped
+              against the right edge of a 590px line, under a title that had
+              already wrapped. A row alone on its line takes that line.
+
+              THREE IS ODD, so the most important takes a full-width line of
+              its own and goes FIRST — in a column the top line is the one that
+              gets pressed. `.pair-lead` says which; CSS cannot count
+              importance. The remaining two pair underneath.
+
+              Wide the pairs dissolve to `display: contents` and the buttons sit
+              in one row at natural widths, so `order` there restores the row
+              reading: the primary second to last, the overflow last. */}
+          <div className="row page-actions action-pairs">
+            <div className="pair pair-lead">
+              <button className="btn btn-primary btn-sm act-2" {...ins('button-primary')}><Ico d={IconSend} size="sm" />{L('Send')}</button>
+            </div>
+            <div className="pair">
+              <button className="btn btn-secondary btn-sm act-1" {...ins('button-sm')}><Ico d={IconDownload} size="sm" />{L('Export')}</button>
+              <button className="btn btn-secondary btn-sm icon-only act-3" {...ins('button-secondary')}><Ico d={IconMore} /></button>
+            </div>
           </div>
           <p className="muted small page-sub" {...txt('body-sm', 'text-muted')}>Opened 12 days ago by A. Halloran</p>
         </div>

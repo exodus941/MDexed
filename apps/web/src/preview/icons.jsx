@@ -77,7 +77,7 @@ export const IconBulb = <><path d="M9 18h6" /><path d="M10 22h4" /><path d="M12 
  * It carries a name, because it carries no words. `aria-pressed` says which way
  * it is set: an icon-only control with no state is a button whose meaning a
  * screen reader has to guess from an icon it cannot see. */
-export const ThemeToggle = ({ theme, mode, onToggle, inspect }) => {
+export const ThemeToggle = ({ theme, mode, onToggle, inspect, className = '' }) => {
   if (theme !== 'both') return null
   const dark = mode === 'dark'
   /* COMPOSE THE TWO HANDLERS. `inspectProps` returns its own `onClick`, and a
@@ -87,7 +87,7 @@ export const ThemeToggle = ({ theme, mode, onToggle, inspect }) => {
      Pull the inspector's handler out by name and call both. */
   const { onClick: inspectClick, ...rest } = inspect ?? {}
   return (
-    <button type="button" className="btn btn-secondary btn-sm icon-only"
+    <button type="button" className={`btn btn-secondary btn-sm icon-only${className ? ' ' + className : ''}`}
       aria-pressed={dark}
       aria-label={dark ? 'Dark theme is on. Switch to light.' : 'Light theme is on. Switch to dark.'}
       title={dark ? 'Switch to the light theme' : 'Switch to the dark theme'}

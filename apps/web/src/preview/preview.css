@@ -1227,6 +1227,17 @@
 .dmd .action-pairs { display: flex; flex-wrap: wrap; gap: var(--space-xs, 8px); flex: 1 1 auto; min-width: 0; }
 .dmd .action-pairs > .pair { display: contents; }
 
+/* WIDE, THE ROW READING WINS. The pairs dissolve here, so the buttons sit
+   directly in this row and take their own order. The markup puts the primary's
+   pair FIRST, because a column is pressed from the top, and these three
+   declarations put the row back the way a row reads: the primary second to
+   last and the overflow last. Below the collapse the pairs become boxes again
+   and the lead pair's own order decides. */
+.dmd .action-pairs > .pair > .act-1 { order: 1; }
+.dmd .action-pairs > .pair > .act-2 { order: 2; }
+.dmd .action-pairs > .pair > .act-3 { order: 3; }
+.dmd .action-pairs > .pair > .act-4 { order: 4; }
+
 /* A FACT: a label over its value, and the pair is ONE object.
  *
  * These were built from `.stack-sm`, so the label sat 12px above the value it

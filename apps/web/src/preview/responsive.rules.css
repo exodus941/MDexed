@@ -192,9 +192,7 @@
      low. Where the row does wrap, the actions land on a line of their own and
      `row-gap` supplies the separation instead of a per-child margin — one
      source, so the two cannot add up. */
-  .dmd .page-head > .page-actions {
-    order: 4; flex: 0 0 auto; margin-left: auto;
-  }
+  .dmd .page-head > .page-actions { order: 4; }
   /* `row-gap: 0` stays. The actions carry ONE margin — the first-line centring
      one from the base rule — and it serves both arrangements: beside the title
      it centres the buttons on line one, and on a wrapped line it is the whole
@@ -333,6 +331,13 @@
   .dmd .action-pairs { flex-direction: column; }
   .dmd .action-pairs > .pair { display: flex; flex-wrap: wrap; gap: var(--space-xs, 8px); }
   .dmd .action-pairs > .pair > .btn { flex: 1 1 0; min-width: min-content; }
+  /* The lead pair carries the one button that gets its own line, and it goes
+     to the top. The per-button order above is the ROW reading and has no line
+     to order here, so it is dropped. */
+  .dmd .action-pairs > .pair.pair-lead { order: -1; }
+  .dmd .action-pairs > .pair > .btn.act-1,
+  .dmd .action-pairs > .pair > .btn.act-2,
+  .dmd .action-pairs > .pair > .btn.act-3 { order: 0; }
   /* An auto margin inside a pair is SLACK, and slack would eat the half this
      button is entitled to. Zeroed at (0,4,0) so it beats the auto margin on
      specificity rather than on line order — a rule that wins by position
@@ -736,4 +741,53 @@
   .dmd .plans,
   .dmd .plan-wide { display: none; }
   .dmd .plan-stack { display: flex; }
+}
+
+@media (max-width: 999908px) {
+  /* ── A ROW ALONE ON ITS LINE TAKES THAT LINE, AND BREAKS INTO PAIRS ──
+   *
+   * This said `flex: 0 0 auto` with an auto margin, so when the row wrapped it
+   * stayed shrink-wrapped against the right edge. Measured at a 640px frame:
+   * 281px of controls in a 590px line on one surface, 206px on another, both
+   * tucked under the menu button in the corner. Neither paired.
+   *
+   * The band between the two collapse steps is where it showed. Below the
+   * narrow step the row already took its line and paired; above the wide step
+   * it sits beside the title. In between it did neither.
+   *
+   * A CONTAINER QUERY CANNOT MEASURE TEXT, so the step is taken from the
+   * LONGEST title this system ships rather than from a short one. A short
+   * title then collapses a step early, which nobody notices. An overflow is a
+   * defect everybody notices.
+   *
+   * Scoped to the header. `.action-pairs` is also the selection bar's, and its
+   * own step was measured for a bar rather than for a heading. */
+  .dmd .page-head > .page-actions {
+    order: 4; flex: 1 0 100%; margin-left: 0; transform: none;
+  }
+  /* `align-items: stretch`, because `.row` declares BASELINE and a column
+     flex box reads that as a cross-axis instruction: every pair shrank to its
+     own content and the "full width" line held a 77px button. */
+  .dmd .page-head > .page-actions.action-pairs { flex-direction: column; align-items: stretch; }
+  /* The description belongs under the TITLE, and the actions take a full line
+     below everything. Ordered 9 they landed between the two. */
+  .dmd .page-head > .page-sub { order: 3; }
+  .dmd .page-head > .page-actions.action-pairs > .pair {
+    display: flex; flex-wrap: wrap; gap: var(--space-xs, 8px);
+  }
+  .dmd .page-head > .page-actions.action-pairs > .pair > .btn {
+    flex: 1 1 0; min-width: min-content;
+  }
+  /* AN ICON-ONLY CONTROL IS SQUARE, and `flex: 1 1 0` beat its aspect ratio:
+     measured 279x28 on a dot menu, which is one glyph centred in a bar. It
+     keeps its square and its partner takes the rest of the line. */
+  .dmd .page-head > .page-actions.action-pairs > .pair > .btn.icon-only {
+    flex: 0 0 auto;
+  }
+  /* CSS cannot count importance, so the markup says which button leads. */
+  .dmd .page-head > .page-actions.action-pairs > .pair.pair-lead { order: -1; }
+  .dmd .page-head > .page-actions.action-pairs > .pair > .btn.act-1,
+  .dmd .page-head > .page-actions.action-pairs > .pair > .btn.act-2,
+  .dmd .page-head > .page-actions.action-pairs > .pair > .btn.act-3,
+  .dmd .page-head > .page-actions.action-pairs > .pair > .btn.act-4 { order: 0; }
 }

@@ -3072,5 +3072,64 @@ line('\n- depth intensity -')
     `the dark block carries only what the theme decides${strays.length ? ` — ${strays.slice(0, 4).join(', ')}` : ''}`)
 }
 
+/* ── THE GENERATOR NEVER EMITS TWO MEANINGS AS ONE COLOUR ──
+ *
+ * The audit reports a colliding pair, and a warning arrives after the palette
+ * is on screen. Nothing stopped it being produced: status seeds are placed in
+ * their own hue bands, the accent anywhere, and no step compared the two.
+ *
+ * A TEST WITH NOTHING IN IT PRINTS THE SAME WORD AS A TEST WITH EVERYTHING, so
+ * the input is perturbed until the check can fire: every harmony, every
+ * intensity, and a pinned brand walked round the whole hue circle. */
+{
+  line('\n- two meanings are never one colour -')
+  const { generatePalette, HARMONIES, INTENSITIES } = await import('../src/color/palette.js')
+  const { MEANING_PAIRS, HUE_MIN, LIGHTNESS_MIN } = await import('../src/a11y/audit.js')
+  const { parseColor, toOklchObj } = await import('../src/color/convert.js')
+
+  const ok = hex => { const p = parseColor(hex); return p ? toOklchObj(p) : null }
+  const collides = (x, y) => {
+    if (!x || !y) return false
+    if ((x.c ?? 0) < 0.03 || (y.c ?? 0) < 0.03) return false
+    const raw = Math.abs((x.h ?? 0) - (y.h ?? 0))
+    const gap = Math.min(raw, 360 - raw)
+    if (gap >= HUE_MIN) return false
+    return Math.abs((x.l ?? 0) - (y.l ?? 0)) * 100 < LIGHTNESS_MIN
+  }
+  const SEEDS = [
+    { id: 'a', name: 'accent' }, { id: 'n', name: 'neutral' },
+    { id: 's', name: 'success' }, { id: 'w', name: 'warning' }, { id: 'd', name: 'danger' },
+  ]
+  const count = (seeds, out) => {
+    const hex = n => { const s = seeds.find(x => x.name === n); return out[s.id] ?? s.hex }
+    return MEANING_PAIRS.filter(([a, b]) => collides(ok(hex(a)), ok(hex(b)))).length
+  }
+
+  let runs = 0, bad = 0
+  for (const h of HARMONIES) for (const i of INTENSITIES) for (let n = 0; n < 12; n++) {
+    const seeds = SEEDS.map(s => ({ ...s }))
+    bad += count(seeds, generatePalette(seeds, h.id, i.id)); runs++
+  }
+  assert(runs >= 100, `the sample is big enough to fire (${runs} palettes)`)
+  assert(bad === 0, `no generated palette reads as one colour twice (${bad} of ${runs})`)
+
+  /* A PINNED BRAND IS THE CASE THEY HIT, and it has no hue to give: a green
+     brand inside the success band is within 25° of every legal success hue.
+     Lightness is the other lever, and the fix has to reach for it. */
+  let lockRuns = 0, lockBad = 0, wroteALock = 0
+  for (let n = 0; n < 90; n++) {
+    const seeds = SEEDS.map(s => (s.name === 'accent'
+      ? { ...s, hex: `hsl(${(n * 360) / 90} 55% 30%)`, locked: true } : { ...s }))
+    const out = generatePalette(seeds, 'analogous', 'balanced')
+    if (out[seeds.find(s => s.name === 'accent').id]) wroteALock++
+    lockBad += count(seeds, out); lockRuns++
+  }
+  assert(lockRuns >= 50, `the pinned sample is big enough to fire (${lockRuns})`)
+  assert(lockBad === 0, `a pinned brand never leaves a colliding pair (${lockBad} of ${lockRuns})`)
+  /* A LOCK IS A DECISION. Moving a colour somebody pinned is worse than the
+     collision it would clear. */
+  assert(wroteALock === 0, `the generator never writes a locked seed (${wroteALock})`)
+}
+
 line(`\n${failures === 0 ? 'ALL PASS' : `${failures} FAILURE(S)`}\n`)
 process.exit(failures ? 1 : 0)

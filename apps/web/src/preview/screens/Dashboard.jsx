@@ -101,14 +101,27 @@ export default function Dashboard({ onInspect, layout, casing, theme, mode, onTo
                 comfortable to hit nor the right weight for the top of a screen.
                 They take the medium size from the same scale — a different step
                 of the system, not a number invented outside it. */}
-            <div className="row page-actions">
-              <button className="btn btn-secondary btn-sm" {...ins('button-sm')}><Ico d={IconDownload} size="sm" />{L('Export')}</button>
-              <button className="btn btn-primary btn-sm" {...ins('button-primary')}><Ico d={IconPlus} size="sm" />{L('New invoice')}</button>
-              <button className="btn btn-secondary btn-sm icon-only" {...ins('button-secondary')}><Ico d={IconBell} /></button>
-              {/* Inside the action group, and before the menu control, because
-                  the rightmost seat belongs to navigation. It appears only when
-                  the document ships both palettes. */}
-              <ThemeToggle theme={theme} mode={mode} onToggle={onToggleTheme} inspect={ins('button-secondary')} />
+            {/* AN EVEN COUNT PAIRS STRAIGHT AWAY, with no lead line. Four
+                controls, so two lines of two once the row breaks.
+
+                EACH PAIR HOLDS ONE LABEL AND ONE MARK. Pairing the two
+                icon-only buttons together would leave a full-width line
+                carrying two 28px squares and nothing else, which is the
+                stranded-glyph shape the pairing exists to remove. The labelled
+                button stretches and the mark keeps its square.
+
+                Wide the pairs dissolve and `act-1` to `act-4` put the row back
+                the way it reads: Export, New invoice, bell, then the toggle
+                before the menu, because the rightmost seat is navigation's. */}
+            <div className="row page-actions action-pairs">
+              <div className="pair">
+                <button className="btn btn-secondary btn-sm act-1" {...ins('button-sm')}><Ico d={IconDownload} size="sm" />{L('Export')}</button>
+                <button className="btn btn-secondary btn-sm icon-only act-3" {...ins('button-secondary')}><Ico d={IconBell} /></button>
+              </div>
+              <div className="pair">
+                <button className="btn btn-primary btn-sm act-2" {...ins('button-primary')}><Ico d={IconPlus} size="sm" />{L('New invoice')}</button>
+                <ThemeToggle theme={theme} mode={mode} onToggle={onToggleTheme} inspect={ins('button-secondary')} className="act-4" />
+              </div>
             </div>
             {/* The menu control is a BUTTON, and it belongs to the action group.
              *
