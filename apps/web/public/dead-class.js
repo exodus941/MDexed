@@ -33,9 +33,17 @@
  */
 
 ;(async () => {
-  /* Every rule, flattened out of any at-rule wrapper. A rule inside a media
-     query still styles the element; whether the query matches today is a
-     different question and not this one. */
+  /* ── READ THE TEXT, NOT ONLY THE CSSOM ──
+   *
+   * The first version asked `document.styleSheets` for `cssRules` and nothing
+   * else. Measured in the dev server: five sheets, THREE throwing on access
+   * and two returning nothing, for a total of 0 rules. The tool then reported
+   * zero findings, which reads exactly like a clean page, and an injected
+   * fault carrying five preview classes came back clean.
+   *
+   * So the rules are gathered from the text as well: every inline <style>, and
+   * every same-origin <link> fetched. The CSSOM is kept as one more source
+   * rather than the only one. */
   const rules = []
   const collect = list => {
     for (const r of list) {
@@ -44,17 +52,72 @@
     }
   }
   for (const sheet of document.styleSheets) {
-    try { collect(sheet.cssRules) } catch { /* cross-origin, skip */ }
+    try { collect(sheet.cssRules) } catch { /* cross-origin, read below */ }
   }
 
-  /* Selector fragments that name a given class, split on commas so one rule
-     with five selectors is five candidates. */
+  const fromText = css => {
+    /* Blank comments rather than deleting them, so nothing joins across one. */
+    const bare = css.replace(/\/\*[\s\S]*?\*\//g, m => m.replace(/[^\n]/g, ' '))
+    for (const m of bare.matchAll(/(^|[}])([^{}]*)\{/g)) {
+      const sel = m[2].trim()
+      if (!sel || sel.startsWith('@')) continue
+      rules.push(sel)
+    }
+  }
+  for (const el of document.querySelectorAll('style')) fromText(el.textContent || '')
+  const links = [...document.querySelectorAll('link[rel="stylesheet"][href]')]
+    .map(l => l.href)
+    .filter(h => { try { return new URL(h).origin === location.origin } catch { return false } })
+  for (const href of links) {
+    try { fromText(await (await fetch(href)).text()) } catch { /* unreachable, skip */ }
+  }
+
+  /* A RUN THAT READ NOTHING IS NOT A PASS, and has to say so. */
+  if (!rules.length) {
+    console.error('dead-class: 0 rules readable. Nothing was checked, and this is NOT a clean result.')
+    return
+  }
+
+  /* ── ONLY THE SUBJECT COUNTS ──
+   *
+   * The first version indexed a selector under every class it mentioned, and
+   * called four correct classes dead:
+   *
+   *   .form-stack > select        styles its CHILDREN, which is its whole job
+   *   .seed-lock:hover > span     the same, on hover
+   *   header button:not(:has(.keep-lbl))   a MARKER, read and never painted
+   *
+   * In each of those the class sits to the LEFT of the subject, so the element
+   * carrying it correctly does not match, and reporting that faults code that
+   * works. The subject of a selector is its last compound: the part after the
+   * final combinator at paren depth zero. And a class named inside `:not()` or
+   * `:has()` is being tested, never styled.
+   */
+  const subjectOf = sel => {
+    let depth = 0, cut = 0
+    for (let i = 0; i < sel.length; i++) {
+      const ch = sel[i]
+      if (ch === '(' || ch === '[') depth++
+      else if (ch === ')' || ch === ']') depth--
+      else if (depth === 0 && (ch === ' ' || ch === '>' || ch === '+' || ch === '~')) cut = i + 1
+    }
+    return sel.slice(cut)
+  }
+  /* Blank what is inside a functional pseudo-class, so a class only tested
+     there is not read as styled. Repeated, because they nest. */
+  const stripTests = s => {
+    let out = s, prev
+    do { prev = out; out = out.replace(/:(?:not|has|is|where)\(([^()]*)\)/g, (m, inner) => ':x(' + inner.replace(/[^\s,]/g, '.') + ')') } while (out !== prev)
+    return out
+  }
+
   const byClass = new Map()
   for (const sel of rules) {
     for (const part of sel.split(',')) {
       const trimmed = part.trim()
       if (!trimmed) continue
-      for (const m of trimmed.matchAll(/\.(-?[_a-zA-Z][\w-]*)/g)) {
+      const subject = stripTests(subjectOf(trimmed))
+      for (const m of subject.matchAll(/\.(-?[_a-zA-Z][\w-]*)/g)) {
         if (!byClass.has(m[1])) byClass.set(m[1], [])
         byClass.get(m[1]).push(trimmed)
       }

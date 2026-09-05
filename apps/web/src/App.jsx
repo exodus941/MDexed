@@ -2459,8 +2459,13 @@ function Shell() {
                     {/* Icon-only, so SQUARE at the row's own control height. It
                         measured 40x28 from a 12px horizontal padding it has no
                         label to need. */}
+                    {/* The three shape values moved to `.icon-only` in
+                        theme.css, which had no chrome rule at all and so
+                        styled nothing while these did its job. Only the height
+                        and the disabled colour stay, because both are this
+                        button's own. */}
                     <button className="btn-ghost icon-only" onClick={redo} disabled={!canRedo} title="Redo (Ctrl+Shift+Z)"
-                      style={{ padding: 0, width: 28, justifyContent: 'center', color: canRedo ? 'var(--text-dim)' : undefined }}>
+                      style={{ height: 28, color: canRedo ? 'var(--text-dim)' : undefined }}>
                       <Undo flip />
                     </button>
                   </div>

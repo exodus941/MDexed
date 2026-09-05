@@ -153,14 +153,10 @@ export const Check = ({ on, mixed, label }) => {
         ref={el => { if (el) el.indeterminate = !!mixed && !on }}
         aria-label={label}
       />
-      <span className="checkbox" aria-hidden="true" style={{
-        width: 'var(--cmp-checkbox-size, 16px)', height: 'var(--cmp-checkbox-size, 16px)',
-        borderRadius: 'var(--cmp-checkbox-rounded, var(--radius-sm, 4px))',
-        border: `1px solid ${filled ? 'var(--cmp-checkbox-checked-border-color, var(--c-accent, #333))' : 'var(--cmp-checkbox-border-color, var(--c-border, #ccc))'}`,
-        background: filled ? 'var(--cmp-checkbox-checked-background-color, var(--c-accent, #333))' : 'var(--cmp-checkbox-background-color, var(--c-surface, #fff))',
-        color: 'var(--cmp-checkbox-checked-text-color, var(--c-accent-fg, #fff))',
-        display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-      }}>
+      {/* Every value moved to preview.css, for the reason the switch's did:
+          the class was in four rules there and none of them gave it a box, so
+          it styled nothing while the source read as though it did. */}
+      <span className={`checkbox${filled ? ' is-on' : ''}`} aria-hidden="true">
         {on && <svg aria-hidden="true" focusable="false" width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3.4} strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>}
         {mixed && !on && <svg aria-hidden="true" focusable="false" width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3.4} strokeLinecap="round"><line x1="5" y1="12" x2="19" y2="12" /></svg>}
       </span>
@@ -185,15 +181,11 @@ export const Switch = ({ on, label }) => (
       checked={!!on} onChange={() => {}}
       aria-label={label}
     />
-    <span className="switch" aria-hidden="true" style={{
-      width: 'var(--cmp-switch-width, 36px)', height: 'var(--cmp-switch-height, 20px)',
-      borderRadius: 'var(--cmp-switch-rounded, 9999px)',
-      background: on ? 'var(--cmp-switch-checked-background-color, var(--c-accent, #333))' : 'var(--cmp-switch-background-color, var(--c-border, #ccc))',
-      display: 'inline-flex', alignItems: 'center', padding: 2, flexShrink: 0,
-      justifyContent: on ? 'flex-end' : 'flex-start',
-      transition: 'background var(--duration-fast, 120ms) var(--ease-standard, ease)',
-    }}>
-      <span style={{ width: 16, height: 16, borderRadius: '50%', background: 'var(--c-surface, #fff)' }} />
-    </span>
+    {/* Every value moved to preview.css. `.switch` appeared in four rules
+        there and not one gave it a box, so the class styled nothing and the
+        track was eight typed values including a 2px padding and a 16px knob.
+        A class that exists and sets nothing you need is the same as no class,
+        and it reads in the source as though the work is done. */}
+    <span className={`switch${on ? ' is-on' : ''}`} aria-hidden="true"><span /></span>
   </>
 )

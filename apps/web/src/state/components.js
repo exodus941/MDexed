@@ -138,8 +138,21 @@ export const COMPONENT_LIBRARY = [
   },
   {
     name: 'switch', label: 'Switch', group: 'Forms', on: true,
-    /* Same as the checkbox: the track to the words beside it. */
-    base: { width: '36px', height: '20px', rounded: '{rounded.full}', backgroundColor: '{colors.border}', gap: '{spacing.xs}' },
+    /* Same as the checkbox: the track to the words beside it.
+     *
+     * ── 24 IS DELIBERATE, AND IT LIVES HERE NOW ──
+     *
+     * The track is exactly 2.5.8's minimum. It used to say 20 here and 24 in a
+     * default override with no comment, which is two writers for one number
+     * and they disagreed. Every stylesheet fallback then had to guess: one
+     * said 24 and two said 20, so a build with the token missing drew three
+     * different switches. The override is gone and this is the only place the
+     * number is stated.
+     *
+     * The HIT AREA is a separate question and a separate rule: the same
+     * document publishes a 44px target, and one value cannot answer both. The
+     * target is centred on this track and floored at the published minimum. */
+    base: { width: '36px', height: '24px', rounded: '{rounded.full}', backgroundColor: '{colors.border}', gap: '{spacing.xs}' },
     states: { checked: { _: { backgroundColor: '{colors.accent}' } } },
   },
   {
@@ -322,7 +335,14 @@ export const COMPONENT_LIBRARY = [
      * off the card in both modes. Worst case across the shipped presets: 1.29
      * light, 1.79 dark. The initials take `text` rather than `accent`, because
      * an accent on an accent tint is a second signal doing the first one's job. */
-    base: { size: '32px', rounded: '{rounded.full}', backgroundColor: '{colors.accent-raised}', textColor: '{colors.text}', typography: 'caption' },
+    /* ── AN AVATAR IS NOT AN ICON, SO IT PUBLISHES ITS OWN GAP ──
+     *
+     * It had none, so a row holding one fell back to the row's default and put
+     * 8px between a 32px disc and the name beside it. `--icon-gap` is
+     * calibrated for a 14px mark against a 14px label; a disc is four times
+     * the mark, and at the same distance the two read as touching. One step up
+     * the scale, which is 12 against 8. */
+    base: { size: '32px', gap: '{spacing.sm}', rounded: '{rounded.full}', backgroundColor: '{colors.accent-raised}', textColor: '{colors.text}', typography: 'caption' },
   },
 ]
 

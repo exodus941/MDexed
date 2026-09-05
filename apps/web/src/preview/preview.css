@@ -191,6 +191,11 @@
 }
 .dmd .btn-primary:hover, .dmd .btn-primary.is-hover { background: var(--cmp-button-primary-hover-background-color, var(--c-accent-hover, #9c3726)); }
 .dmd .btn-primary:active, .dmd .btn-primary.is-active { background: var(--cmp-button-primary-active-background-color, var(--c-accent-active, #7f2c1e)); }
+/* The secondary's pressed colour was PUBLISHED and never painted. The
+   component declares `active.secondary` and the token is emitted, so the
+   Gallery's "active" specimen rendered a resting button and the document said
+   otherwise. A setting the file states, the demonstration obeys. */
+.dmd .btn-secondary:active, .dmd .btn-secondary.is-active { background: var(--cmp-button-secondary-active-background-color, var(--c-surface-sunken, #e9e9e9)); }
 .dmd .btn-secondary {
   background: var(--cmp-button-secondary-background-color, var(--c-surface, #fff));
   color: var(--cmp-button-secondary-text-color, var(--c-text, #111));
@@ -881,6 +886,66 @@
   margin-top: calc((var(--font-body-sm-size, 14px) * var(--font-body-sm-leading, 1.55)
                     - var(--cmp-checkbox-size, 16px)) / 2);
 }
+/* ── THE BOX AND ITS MARK ──
+ *
+ * Drawn inline by the component, so `.checkbox` sat in four rules here and not
+ * one of them gave it a box. Same fault as the switch below, in its sibling.
+ *
+ * `is-on` covers CHECKED and INDETERMINATE together: both take the filled
+ * colours, and the MARK is what separates them. A reader who cannot tell two
+ * hues apart still sees a tick against a dash. */
+.dmd .checkbox {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  width: var(--cmp-checkbox-size, 16px);
+  height: var(--cmp-checkbox-size, 16px);
+  border-radius: var(--cmp-checkbox-rounded, var(--radius-sm, 4px));
+  border: var(--border-hairline, 1px) solid var(--cmp-checkbox-border-color, var(--c-border, #ccc));
+  background: var(--cmp-checkbox-background-color, var(--c-surface, #fff));
+  color: var(--cmp-checkbox-checked-text-color, var(--c-accent-fg, #fff));
+}
+.dmd .checkbox.is-on {
+  border-color: var(--cmp-checkbox-checked-border-color, var(--c-accent, #333));
+  background: var(--cmp-checkbox-checked-background-color, var(--c-accent, #333));
+}
+
+/* ── THE TRACK AND ITS KNOB ──
+ *
+ * The component drew both inline, so `.switch` appeared in four rules here and
+ * not one of them gave it a box. The class styled nothing while reading in the
+ * source as though it did.
+ *
+ * The knob is DERIVED from the track, so one token moves both and they cannot
+ * drift apart. It used to be a typed 16 beside a typed 2px inset. */
+.dmd .switch {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  width: var(--cmp-switch-width, 36px);
+  height: var(--cmp-switch-height, 24px);
+  padding: var(--space-3xs, 2px);
+  border-radius: var(--cmp-switch-rounded, var(--radius-full, 9999px));
+  background: var(--cmp-switch-background-color, var(--c-border, #ccc));
+  transition: background var(--duration-fast, 120ms) var(--ease-standard, ease);
+}
+.dmd .switch.is-on {
+  justify-content: flex-end;
+  background: var(--cmp-switch-checked-background-color, var(--c-accent, #333));
+}
+.dmd .switch > span {
+  width: calc(var(--cmp-switch-height, 24px) - 2 * var(--space-3xs, 2px));
+  aspect-ratio: 1;
+  border-radius: var(--radius-full, 9999px);
+  background: var(--c-surface, #fff);
+}
+/* The fallback here read 24 while the component ships 20. A drifted fallback
+   states a second design nobody chose, and it paints whenever the token is
+   missing. */
 .dmd .row > .switch {
   margin-top: calc((var(--font-body-sm-size, 14px) * var(--font-body-sm-leading, 1.55)
                     - var(--cmp-switch-height, 24px)) / 2);
@@ -1709,6 +1774,18 @@
    a text baseline to offer: a flex box with no baseline-aligned child reports
    its bottom edge, so the initials could never sit on the same line as the
    name beside them. `overflow` stays visible for the same reason. */
+/* ── A ROW HOLDING AN AVATAR TAKES THE AVATAR'S GAP ──
+ *
+ * ONE LEVEL, NOT ANY DEPTH. `:has(.avatar)` would match every ancestor row up
+ * to the card, and each would widen. The editor wraps each instance in an
+ * inspector span, so the disc can be a grandchild, and both shapes are named
+ * rather than reaching for a descendant selector.
+ *
+ * The row keeps its own gap when there is no avatar in it, so nothing else in
+ * the system moves. */
+.dmd .row:has(> .avatar), .dmd .row:has(> * > .avatar) {
+  column-gap: var(--cmp-avatar-gap, var(--space-sm, 12px));
+}
 .dmd .avatar {
   width: var(--cmp-avatar-size, 32px); height: var(--cmp-avatar-size, 32px);
   border-radius: var(--cmp-avatar-rounded, var(--radius-full, 9999px));

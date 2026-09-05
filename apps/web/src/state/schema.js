@@ -528,7 +528,10 @@ const defaultComponentOverrides = () => ({
      colour it measured 3.95:1 against the page in five presets, under the 4.5
      that text owes. A ghost button's label is the accent. */
   'button-ghost.textColor': '{colors.accent}',
-  'switch.height': '24px',
+  /* `switch.height` used to sit here at 24px with no comment, while the
+     library said 20. Two writers for one number, disagreeing, and every
+     stylesheet fallback had to guess which. The 24 moved into the library
+     where the component is defined, with the reason beside it. */
   /* `badge-neutral.backgroundColor: {colors.bg}` used to sit here, with no
      comment saying why — and it painted the chip the page colour. On any
      surface drawn in `bg` the chip vanished: measured `#d6ddde` on `#d6ddde`,
