@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "prebuild": "node tools/clean-dist.mjs",
     "build": "vite build",
     "preview": "vite preview",
     "test": "node test/pipeline.mjs",

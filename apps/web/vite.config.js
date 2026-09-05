@@ -118,8 +118,53 @@ function syntaxGuardOnSave() {
   }
 }
 
+/* ── SERVE THE WORKING ARTEFACTS WITHOUT SHIPPING THEM ──
+ *
+ * A simulation run has to be reachable over http, or nothing can measure the
+ * build it produced. Putting each run under `public/` did that, and `public/`
+ * is copied wholesale into `dist/` on every build.
+ *
+ * So three runs put megabytes of generated HTML into the shipped output on
+ * every build. `local/` is served in dev and copied nowhere. The path is
+ * gitignored, so a run stays a working artefact rather than a deliverable.
+ *
+ * IT IS NOT THE CURE FOR THE EPERM, and I spent a detour believing it was. A
+ * build died emptying `dist/run10`, which named a copied run, so the copying
+ * looked like the cause. The next build died emptying `dist/assets`. `dist/`
+ * itself is inside a synced folder, and the indexer holds whatever vite last
+ * wrote. `tools/clean-dist.mjs` owns that. Read the SECOND failure before
+ * believing the first one's filename. */
+function serveLocalArtefacts() {
+  const root = fileURLToPath(new URL('./local/', import.meta.url))
+  return {
+    name: 'serve-local-artefacts',
+    apply: 'serve',
+    configureServer(server) {
+      server.middlewares.use((req, res, next) => {
+        const url = (req.url || '').split('?')[0]
+        const rel = decodeURIComponent(url).replace(/^\/+/, '')
+        /* Refuse anything that climbs out. A dev server is still a server. */
+        const file = path.resolve(root, rel)
+        if (!file.startsWith(path.resolve(root))) return next()
+        let stat = null
+        try { stat = fs.statSync(file) } catch { return next() }
+        const target = stat.isDirectory() ? path.join(file, 'index.html') : file
+        if (!fs.existsSync(target)) return next()
+        const ext = path.extname(target).toLowerCase()
+        const TYPES = {
+          '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript',
+          '.css': 'text/css', '.json': 'application/json', '.md': 'text/markdown',
+          '.svg': 'image/svg+xml', '.png': 'image/png', '.zip': 'application/zip',
+        }
+        res.setHeader('content-type', (TYPES[ext] || 'application/octet-stream') + '; charset=utf-8')
+        res.end(fs.readFileSync(target))
+      })
+    },
+  }
+}
+
 export default defineConfig(({ command }) => ({
-  plugins: [react(), syntaxGuardOnSave()],
+  plugins: [react(), syntaxGuardOnSave(), serveLocalArtefacts()],
 
   /* `dev` in the dev server: a build number there would name a build that was
      never produced, and the thing you are looking at is whatever is on disk

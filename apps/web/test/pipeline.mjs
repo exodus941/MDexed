@@ -1870,7 +1870,13 @@ line('\n- prompt construction -')
     ['a card action row sits on the bottom edge in a row of cards', ['every action sits on the bottom edge', 'resolves to zero and nothing moves']],
     ['the action distance moves to padding, not the auto margin', ['cannot also hold a minimum', 'the margin pushes the action down, the padding holds it clear']],
     ['a painting table has no column gap', ['no column gap at all']],
-    ['figures take the mono family', ['set figures in the mono family']],
+    /* Narrowed 5 September 2026. The rule used to say every figure, and one
+       row of stat tiles then read $45,645, 18 and 21 with only the first
+       carrying a mark. The column clause is the whole rule, so the drift test
+       asserts it rather than the old opening words. */
+    ['figures take the mono family in a COLUMN', ['set figures in the mono family when they sit in a column of figures']],
+    ['a standalone figure keeps the body face', ['nothing to stack against', 'keep the body face']],
+    ['an amount in a column also takes an end edge', ['takes the mono face and an end edge']],
     ['an amount takes a right edge, an identifier does not', ['reads as a total']],
     ['a checkbox has three states', ['a checkbox has **three** states']],
     ['recase a label, never content', ['not a label on a box']],
@@ -2850,6 +2856,12 @@ line('\n- depth intensity -')
       'a native dialog, which answers Escape with no script'],
     ['a-widget-owes-its-keys', 'said.has(sig)',
       'a build holding both role=tablist and role=tab, which is one fault and not two'],
+    ['a-column-of-figures-takes-the-mono-face', 'ABSENT',
+      'a column holding a dash where a value is not set, which is an absent value rather than a non-figure'],
+    ['a-column-of-figures-takes-the-mono-face', 'figures < 2',
+      'a column with one real figure among placeholders, which is not a column of figures'],
+    ['a-column-of-figures-takes-the-mono-face', 'mixed',
+      'a column mixing figures and words, and a column of dates carrying a month name'],
     ['an-amount-lines-up-on-its-end-edge', 'MARKED',
       'a column of bare integers, which is an order number as readily as a quantity'],
     ['an-amount-lines-up-on-its-end-edge', 'MONO',

@@ -995,8 +995,13 @@ function componentsBody(state, derived) {
 
     /* Figures. The mono family is named in this document and, until now,
        nothing said what it was for — so it would be used for code samples and
-       every table of money would come out misaligned. */
-    '**Set figures in the mono family**, and there are two cases. An AMOUNT — money, a quantity, a percentage, a duration, anything you would add up or compare in size — takes the mono face AND an END edge, set with `text-align: end`: that edge lines up the magnitudes and the mono face lines up the digits inside them. Any OTHER figure — an invoice number, a journal or order reference, a version, a hash — takes the mono face alone and keeps its normal alignment, because nobody compares its magnitude and an end-aligned identifier reads as a total. A date is text when it carries a month name and a figure when it does not: "12 Aug" stays in the body face, "12/08/2026" takes the mono face.',
+       every table of money would come out misaligned.
+
+       NARROWED 5 September 2026, after a dashboard rendered it both ways. The
+       rule used to say every figure, so one row of stat tiles read $45,645, 18
+       and 21 with only the first carrying a mark. A COLUMN is what makes the
+       face matter: one figure standing alone has nothing to stack against. */
+    '**Set figures in the mono family when they sit in a COLUMN of figures** — a table cell, a ledger, a run of values read down the page. One figure standing alone has nothing to stack against, so a stat tile, a pricing hero, a badge count and a number inside a sentence all keep the body face. Inside a column there are two cases. An AMOUNT — money, a quantity, a percentage, a duration, anything you would add up or compare in size — takes the mono face AND an END edge, set with `text-align: end`. The mono face gives every digit one width; the END edge is what stacks the columns of digits over each other, and it is the half usually missing. Any OTHER figure in that column — an invoice number, a journal or order reference, a version, a hash — takes the face alone and keeps its normal alignment, because nobody compares its magnitude and an end-aligned identifier reads as a total. A date is text when it carries a month name and a figure when it does not: "12 Aug" stays in the body face, "12/08/2026" in a column takes the mono face.',
 
     /* NUMERALS. A setting, so the sentence follows it rather than stating a
        preference the document might contradict. The limit is the point: tabular

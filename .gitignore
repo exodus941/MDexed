@@ -43,3 +43,13 @@ apps/web/public/layout-tools.js
 # DIRECTORY here, and the app's own two files sit at the top level, so the
 # directory is the property to match.
 apps/web/public/*/
+
+# A simulation run and a test fixture have to be reachable over http, and
+# neither is a deliverable. local/ is served by a dev-only plugin and copied
+# nowhere, so a run cannot reach dist, github or a deploy.
+#
+# public/ is copied wholesale into dist/, so three runs put megabytes of
+# generated HTML into the shipped output on every build. That is the reason
+# they moved. It is NOT the reason builds were dying with EPERM: dist/ itself
+# sits inside a synced folder, and the fix for that is tools/clean-dist.mjs.
+apps/web/local/

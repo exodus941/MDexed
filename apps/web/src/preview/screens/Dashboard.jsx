@@ -223,7 +223,16 @@ export default function Dashboard({ onInspect, layout, casing, theme, mode, onTo
                     </div>
                   </td>
                   <td><span className={`badge ${badgeFor(status)}`} {...ins(`badge-${badgeFor(status).replace('badge-', '')}`)}>{L(status)}</span></td>
-                  <td className={tb.numeric === 'left' ? '' : 'num-col'}><span {...txt('body-sm')}>{amount}</span></td>
+                  {/* A COLUMN OF FIGURES TAKES THE MONO FACE, and this one was
+                      a bare span in the body face while the Index table beside
+                      it used the primitive. `.num-col` sets the end edge and
+                      tabular figures; it has never set the family. So the
+                      amounts stacked at four different widths.
+                      `.amount` is mono plus the end edge, `.figure` is mono
+                      alone — which is what the left-aligned setting needs. */}
+                  <td className={tb.numeric === 'left' ? '' : 'num-col'}>
+                    <span className={tb.numeric === 'left' ? 'figure' : 'amount'} {...txt('body-sm')}>{amount}</span>
+                  </td>
                 </tr>
               ))}
             </tbody>

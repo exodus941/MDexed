@@ -596,6 +596,65 @@ export const CHECKS = [
   },
 
   {
+    id: 'a-column-of-figures-takes-the-mono-face',
+    where: 'render',
+    line: 'Every cell in a column of figures is set in the mono family.',
+    /* ── THE HALF THAT MAKES THE EDGE CHECK POSSIBLE ──
+     *
+     * `an-amount-lines-up-on-its-end-edge` skips a column whose face is wrong,
+     * because the two rules are separate and it has no business enforcing this
+     * one. That left a hole a build could fall through by getting BOTH halves
+     * wrong, and this system's own dashboard did exactly that: an amount
+     * column in the body face, beside an invoice table that used the mono
+     * primitive correctly. Neither check said anything.
+     *
+     * A COLUMN IS WHAT MAKES THE FACE MATTER. One figure standing alone has
+     * nothing to stack against, so a stat tile, a pricing hero and a badge
+     * count all keep the body face. Asking about columns only is not a
+     * narrowing for convenience — it is the reason the rule exists.
+     *
+     * AN ABSENT VALUE IS NOT A NON-FIGURE. A dash where a due date has not
+     * been set would otherwise disqualify the whole column, and the check
+     * would go quiet on exactly the tables that carry real data. Placeholders
+     * are skipped, and at least two real figures still have to remain. */
+    body: [
+      "const MONO = /mono|courier|consolas|menlo|ui-monospace/i",
+      "const FIGURE = /^[^0-9A-Za-z]{0,2}[0-9](?:[0-9,.:/\\u00a0 ]*[0-9])?[^0-9A-Za-z]?$/",
+      "const ABSENT = /^(?:[-\\u2013\\u2014\\u2212]|n\\/a|none|)$/i",
+      "for (const table of all('table')) {",
+      "  const rows = Array.prototype.filter.call(table.querySelectorAll('tbody tr'), function (r) {",
+      "    const b = r.getBoundingClientRect(); return b.width > 0 && b.height > 0",
+      "  })",
+      "  if (rows.length < 2) continue",
+      "  const cols = {}",
+      "  for (const r of rows) {",
+      "    Array.prototype.forEach.call(r.children, function (td, i) {",
+      "      (cols[i] = cols[i] || []).push(td)",
+      "    })",
+      "  }",
+      "  for (const key of Object.keys(cols)) {",
+      "    const cells = cols[key]",
+      "    if (cells.length < 2) continue",
+      "    let figures = 0",
+      "    let body = 0",
+      "    let first = null",
+      "    let mixed = false",
+      "    for (const td of cells) {",
+      "      const text = (td.textContent || '').replace(/\\s+/g, ' ').trim()",
+      "      if (ABSENT.test(text)) continue",
+      "      if (!FIGURE.test(text)) { mixed = true; break }",
+      "      figures++",
+      "      const holder = td.querySelector('*') || td",
+      "      if (!MONO.test(getComputedStyle(holder).fontFamily)) { body++; if (!first) first = td }",
+      "    }",
+      "    if (mixed || figures < 2 || !body) continue",
+      "    fail(name(first), 'this column holds ' + figures + ' figures and ' + body + ' of them are set in the body face. A column is what makes the mono face matter: it gives every digit one width, so the digits stack. A proportional face cannot line them up however carefully the cells are padded. Set the family on the cell, not on one span inside it, or the next value added lands in the wrong face.')",
+      "  }",
+      "}",
+    ],
+  },
+
+  {
     id: 'an-amount-lines-up-on-its-end-edge',
     where: 'render',
     line: 'Amounts in one column share an end edge. The mono face alone does not line them up.',
