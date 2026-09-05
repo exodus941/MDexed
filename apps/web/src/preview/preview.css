@@ -2062,12 +2062,12 @@
     outline-offset: -2px;
   }
   /* A tab's mark is an underline, and an underline cannot survive here. The
-     requirement is that the state is PERCEIVABLE, not that it looks the same. */
-  .dmd .tab.is-active,
-  .dmd .tab[aria-selected='true'] {
-    outline: 2px solid Highlight;
-    outline-offset: -2px;
-  }
+     requirement is that the state is PERCEIVABLE, not that it looks the same.
+     The two selectors that used to sit here named a `.tab` class this preview
+     has never had. Measured across all eleven surfaces: zero matches, so the
+     selected tab lost its only marker in this mode and the rule written to
+     save it could not fire. A tab strip here is a `nav` of `.nav-item`, and
+     the chosen one now carries `aria-current`, which the rule above covers. */
   .dmd .badge-neutral,
   .dmd .plan-cell.is-picked {
     outline: 1px solid CanvasText;

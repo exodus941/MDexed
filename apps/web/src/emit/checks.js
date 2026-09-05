@@ -439,7 +439,184 @@ export const CHECKS = [
     ],
   },
 
+  {
+    id: 'a-widget-owes-its-keys',
+    where: 'source',
+    line: 'Every ARIA widget role in the build handles the keys its pattern requires.',
+    /* ── A CONTRACT NOBODY CAN RUN IS PROSE ──
+     *
+     * DESIGN.md now states which keys each component answers. Stated and
+     * unchecked, that is the same shape as the three rules a simulated build
+     * read straight past.
+     *
+     * HANDLERS TRAVEL, so the keys are looked for across the WHOLE build and
+     * the finding is reported where the role sits. A first version asked each
+     * file for its own handlers, and faulted the first correct shape it met:
+     * a strip declared in one file and driven by a hook in another.
+     *
+     * TWO NATIVE ELEMENTS OWE NOTHING. A `<dialog>` opened with `showModal()`
+     * answers Escape with no script, and a native `<select>` answers every
+     * combobox key. Only the roles a builder puts on a `div` are asked. */
+    body: [
+      "const OWES = [",
+      "  { role: 'tablist',     keys: ['ArrowRight', 'ArrowLeft'], pattern: 'Tabs' },",
+      "  { role: 'tab',         keys: ['ArrowRight', 'ArrowLeft'], pattern: 'Tabs' },",
+      "  { role: 'combobox',    keys: ['ArrowDown', 'Escape'],     pattern: 'Combobox' },",
+      "  { role: 'listbox',     keys: ['ArrowDown', 'Escape'],     pattern: 'Listbox' },",
+      "  { role: 'menu',        keys: ['ArrowDown', 'Escape'],     pattern: 'Menu' },",
+      "  { role: 'menubar',     keys: ['ArrowDown', 'Escape'],     pattern: 'Menu' },",
+      "  { role: 'dialog',      keys: ['Escape'],                  pattern: 'Modal dialog' },",
+      "  { role: 'alertdialog', keys: ['Escape'],                  pattern: 'Modal dialog' },",
+      "  { role: 'tooltip',     keys: ['Escape'],                  pattern: 'Tooltip' },",
+      "]",
+      "const NL = String.fromCharCode(10)",
+      "const everywhere = files.map(f => f.bare).join(NL)",
+      "const nativeDialog = /showModal\\s*\\(/.test(everywhere)",
+      "/* One finding per missing key set, not one per role. A build holding",
+      "   both role=tablist and role=tab with no arrows has one fault. */",
+      "const said = new Set()",
+      "for (const o of OWES) {",
+      "  if (nativeDialog && (o.role === 'dialog' || o.role === 'alertdialog')) continue",
+      "  const missing = o.keys.filter(k => !everywhere.includes(k))",
+      "  if (!missing.length) continue",
+      "  const sig = o.pattern + ':' + missing.join(',')",
+      "  if (said.has(sig)) continue",
+      "  for (const f of files) {",
+      "    const i = f.bareLines.findIndex(l =>",
+      "      l.includes('role=\"' + o.role + '\"') || l.includes(\"role='\" + o.role + \"'\"))",
+      "    if (i < 0) continue",
+      "    said.add(sig)",
+      "    fail(f.path, i + 1, 'role=\"' + o.role + '\" is the ' + o.pattern + ' pattern, and nothing in this build handles ' + missing.join(' or ') + '. A keyboard reader cannot operate it. See the Keyboard table in DESIGN.md.')",
+      "    break",
+      "  }",
+      "}",
+    ],
+  },
+
   /* ══ RENDER ═══════════════════════════════════════════════════════════ */
+
+  {
+    id: 'a-composite-widget-is-one-tab-stop',
+    where: 'render',
+    line: 'A tablist, menu, listbox, radiogroup or toolbar exposes exactly one tab stop.',
+    /* ── THE HALF OF THE CONTRACT A GREP CANNOT SEE ──
+     *
+     * The source check above asks whether the arrows are handled anywhere.
+     * This one asks the page, per instance, and catches the commoner fault: a
+     * strip where every item is tabbable. Six tabs then cost six presses to
+     * walk past, and the arrows do nothing because focus never sits on the
+     * group.
+     *
+     * `aria-activedescendant` is the other legal shape. Focus stays on the
+     * CONTAINER and the items are correctly not tabbable, so a container
+     * declaring it is skipped rather than faulted for having no stop. */
+    body: [
+      "const GROUPS = '[role=\"tablist\"], [role=\"menu\"], [role=\"menubar\"], [role=\"radiogroup\"], [role=\"listbox\"], [role=\"toolbar\"], [role=\"tree\"]'",
+      "const FOCUSABLE = 'a[href], button, input, select, textarea, [tabindex], [contenteditable=\"true\"]'",
+      "for (const g of all(GROUPS)) {",
+      "  const r = g.getBoundingClientRect()",
+      "  if (r.width < 1 || r.height < 1) continue",
+      "  if (g.hasAttribute('aria-activedescendant')) continue",
+      "  const stops = Array.prototype.filter.call(g.querySelectorAll(FOCUSABLE), function (el) {",
+      "    const t = el.getAttribute('tabindex')",
+      "    if (t !== null) return Number(t) >= 0",
+      "    return !el.disabled",
+      "  })",
+      "  if (stops.length > 1)",
+      "    fail(name(g), 'a composite widget with ' + stops.length + ' tab stops. It owes exactly one. Tab enters the group and lands on the ACTIVE item, and the arrows move within it. Give the active item tabindex=\"0\" and every other item tabindex=\"-1\".')",
+      "  else if (stops.length === 0)",
+      "    fail(name(g), 'a composite widget with no tab stop at all, so a keyboard cannot enter it. Give the active item tabindex=\"0\", or put aria-activedescendant on this container and make the container itself focusable.')",
+      "}",
+    ],
+  },
+
+  {
+    id: 'a-tab-names-its-panel',
+    where: 'render',
+    line: 'Every tab states aria-selected and names its panel, and the panel names its tab.',
+    /* aria-selected goes on EVERY tab, not only the chosen one. Present on one
+       and absent on the rest, a reader is told which tab is selected and never
+       that the others are not. */
+    body: [
+      "for (const t of all('[role=\"tab\"]')) {",
+      "  if (!t.hasAttribute('aria-selected'))",
+      "    fail(name(t), 'a tab states aria-selected. It goes on EVERY tab in the strip, false as well as true, or a reader hears which one is chosen and never that the rest are not.')",
+      "  const controls = t.getAttribute('aria-controls')",
+      "  if (!controls) {",
+      "    fail(name(t), 'a tab names the panel it shows, with aria-controls pointing at that panel id.')",
+      "    continue",
+      "  }",
+      "  if (!document.getElementById(controls))",
+      "    fail(name(t), 'aria-controls names ' + controls + ' and no element carries that id, so the tab points at nothing.')",
+      "}",
+      "for (const p of all('[role=\"tabpanel\"]')) {",
+      "  if (!p.getAttribute('aria-labelledby'))",
+      "    fail(name(p), 'a tabpanel takes its name from its own tab, with aria-labelledby. Repeating the words in an aria-label is a second copy that drifts.')",
+      "}",
+    ],
+  },
+
+  {
+    id: 'a-marked-item-says-so',
+    where: 'render',
+    line: 'The chosen item in a nav or a strip declares aria-current or aria-selected, not only a colour.',
+    /* ── PAINT IS NOT A STATE ──
+     *
+     * Found in this system's own preview, and it had been there from the
+     * start. A tab strip marked its chosen tab with an inset shadow and a
+     * heavier weight, and carried no attribute and no class. Two consequences,
+     * and the second is the expensive one.
+     *
+     * A screen reader is never told which tab is current.
+     *
+     * And the forced-colors rule written to save that mark keyed on a class
+     * the preview has never had. Measured across eleven surfaces: zero
+     * matches. So in Windows High Contrast, which ignores box-shadow outright,
+     * the selected tab lost its only marker on every screen, and the rule that
+     * existed to prevent exactly that could not fire.
+     *
+     * READ THE PAINT, NOT A CLASS NAME. The question is whether one item in a
+     * run LOOKS different from the rest, and only the computed style answers
+     * it. Comparing class names would approve any mark nobody thought of.
+     *
+     * THREE GUARDS, or it fires on correct code. A run of two has no majority,
+     * so nothing can be the odd one out. More than one item differing is a
+     * layout with several kinds of item in it, not a marked one. And a
+     * container that is not navigation is somebody's card list. */
+    body: [
+      "const RUNS = 'nav, [role=\"tablist\"], [role=\"menu\"], [role=\"menubar\"], [role=\"tree\"]'",
+      "const PAINT = ['fontWeight', 'color', 'backgroundColor', 'boxShadow', 'borderBottomColor', 'borderBottomWidth']",
+      "const SAYS = '[aria-current], [aria-selected], [aria-checked], [aria-pressed]'",
+      "for (const run of all(RUNS)) {",
+      "  const kids = Array.prototype.filter.call(run.children, function (el) {",
+      "    const r = el.getBoundingClientRect()",
+      "    return r.width > 0 && r.height > 0",
+      "  })",
+      "  if (kids.length < 3) continue",
+      "  const styles = kids.map(function (el) { return getComputedStyle(el) })",
+      "  /* The signature of each item across every property that paints. */",
+      "  const sigs = styles.map(function (cs) { return PAINT.map(function (p) { return cs[p] }).join('|') })",
+      "  const tally = {}",
+      "  for (const s of sigs) tally[s] = (tally[s] || 0) + 1",
+      "  const odd = sigs.map(function (s, i) { return tally[s] === 1 ? i : -1 }).filter(function (i) { return i >= 0 })",
+      "  if (odd.length !== 1) continue",
+      "  const el = kids[odd[0]]",
+      "  /* A DIFFERENT KIND OF ITEM IS NOT A MARKED ONE, and the tag says which.",
+      "     Measured on a real landing nav: a title span, two link items and a",
+      "     filled call-to-action button. The button is the only thing painted",
+      "     differently and it is not the current destination, so this reported a",
+      "     correct nav. A marked item is one of a run of like things, so its tag",
+      "     appears more than once. A tag appearing exactly once is a CTA, a",
+      "     title, or a search box that happens to sit in the same bar. */",
+      "  const sameKind = kids.filter(function (k) { return k.tagName === el.tagName }).length",
+      "  if (sameKind < 2) continue",
+      "  if (el.matches(SAYS) || el.closest(SAYS) === el) continue",
+      "  /* A control INSIDE the item may carry the state instead. */",
+      "  if (el.querySelector(SAYS)) continue",
+      "  fail(name(el), 'this is the only item in its run that is painted differently, so it reads as the chosen one, and it declares nothing. A screen reader is never told. Worse, a mark drawn with a shadow or a background disappears under forced colors, and the rule that restores it has to key on a state. Add aria-current=\"page\" where the run is navigation, or aria-selected where it is a tablist.')",
+      "}",
+    ],
+  },
 
   {
     id: 'one-baseline-per-row',

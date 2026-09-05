@@ -93,7 +93,10 @@ export default function Record({ onInspect, tabStyle, casing }) {
         {tabs.map(t => {
           const on = t === selected
           return (
-            <span key={t} className="nav-item" {...ins(on ? 'tab-selected' : 'tab')} style={{
+            /* The strip is a `nav`, so the chosen tab is `aria-current`. See
+               the same line in Shell.jsx for what its absence cost. */
+            <span key={t} className="nav-item" aria-current={on ? 'page' : undefined}
+              {...ins(on ? 'tab-selected' : 'tab')} style={{
               fontWeight: on ? 500 : 400,
               ...(pill
                 ? { color: on ? 'var(--c-accent)' : 'var(--c-text-muted)',

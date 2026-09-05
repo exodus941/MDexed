@@ -158,7 +158,8 @@ function markup({ base, variant, size, state, cls, style, label, tabStyle, entry
       )
     }
     case 'nav-item':
-      return <span className={`nav-item ${state === 'selected' ? 'is-active' : ''} ${cls}`} style={style}>Navigation</span>
+      return <span className={`nav-item ${state === 'selected' ? 'is-active' : ''} ${cls}`}
+        aria-current={state === 'selected' ? 'page' : undefined} style={style}>Navigation</span>
     /* A tab is shown inside a strip, because half of what the entry does is
        relate to the rule under it — an underline sits ON that rule, and a tab
        drawn alone shows a floating mark against nothing.

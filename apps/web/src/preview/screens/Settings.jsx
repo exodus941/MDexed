@@ -44,6 +44,7 @@ export default function Settings({ onInspect, casing, theme, mode, onToggleTheme
             {...txt('overline', 'text-muted')}>Settings</span>
           {sections.map((s, i) => (
             <div key={s} className={`nav-item with-icon${i === 3 ? ' is-active' : ''}`}
+              aria-current={i === 3 ? 'page' : undefined}
               {...ins(i === 3 ? 'nav-item-selected' : 'nav-item')}>
               <Ico d={[IconUser, IconFolder, IconChart, IconBell, IconFolder, IconLock][i]} />{s}
             </div>

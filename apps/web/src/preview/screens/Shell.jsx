@@ -67,7 +67,15 @@ function TabStrip({ ins, L, tabs, selected, style, label }) {
       {tabs.map(t => {
         const on = t === selected
         return (
-          <span key={t} className="nav-item" {...ins(on ? 'tab-selected' : 'tab')} style={{
+          /* `aria-current` because the strip is a `nav`, so the chosen tab is
+             a destination rather than a widget's selection. It is not
+             decoration: the mark below is an inset shadow, and forced colors
+             ignores box-shadow outright. Measured before this line existed —
+             the selected tab carried no attribute and no class, so the
+             forced-colors rule written for it matched nothing on any of the
+             eleven surfaces and the tab lost its only marker. */
+          <span key={t} className="nav-item" aria-current={on ? 'page' : undefined}
+            {...ins(on ? 'tab-selected' : 'tab')} style={{
             fontWeight: on ? 500 : 400,
             ...(pill
               ? {

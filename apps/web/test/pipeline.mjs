@@ -2212,6 +2212,9 @@ line('\n- project file -')
     '<button id="t" onclick="root.dataset.theme=1"><svg></svg></button>',
     /* state-is-not-an-inline-style: an inline style beats every rule. */
     '<svg class="dash" style="opacity:0"></svg>',
+    /* a-widget-owes-its-keys: the Tabs pattern with nothing in the build
+       handling an arrow. A keyboard reader cannot leave the first tab. */
+    '<div role="tablist"><span role="tab">One</span><span role="tab">Two</span></div>',
     '</html>',                                   /* toggle-states-itself + icon-only-is-named */
   ].join('\n'))
   write('broken.js', 'const css = ' + BACKTICK + '.x { color: red; }' + BACKTICK)
@@ -2247,7 +2250,17 @@ line('\n- project file -')
     '<button id="t" aria-pressed="false" aria-label="Light theme is on. Switch to dark.">',
     '<svg></svg></button>',
     '<script>document.documentElement.dataset.theme = "dark"</' + 'script>',
+    /* The CORRECT form of the keyboard rule, not merely its absence. A tablist
+       whose arrows ARE handled, and the handler in a different file from the
+       markup — the shape that made a per-file version fault correct code. */
+    '<div role="tablist"><span role="tab" tabindex="0">One</span></div>',
     '</html>',
+  ].join('\n'))
+  fs.writeFileSync(path.join(clean, 'tabs.js'), [
+    'export function onKey(e, tabs, i) {',
+    '  if (e.key === "ArrowRight") tabs[(i + 1) % tabs.length].focus()',
+    '  if (e.key === "ArrowLeft") tabs[(i - 1 + tabs.length) % tabs.length].focus()',
+    '}',
   ].join('\n'))
   const quiet = runVerify(clean)
   assert(/\bPASS\b/.test(quiet) && !/FAIL/.test(quiet),
@@ -2565,6 +2578,75 @@ line('\n- depth intensity -')
       assert(f.length === 0, `${sep}/${i.id} audits clean (${f.map(x => x.id).join(', ')})`)
     }
   }
+}
+
+/* ── THE KEYBOARD CONTRACT, AND THE GUARDS ITS CHECKS EARNED ──
+ *
+ * A render check cannot run here: it needs a real engine for
+ * `getComputedStyle` and a real box for `getBoundingClientRect`, and jsdom
+ * gives neither honestly. These three were proven in a browser against
+ * fixtures, and every fixture is named below beside the guard it forced.
+ *
+ * So this asserts the guards STRUCTURALLY. That is weaker than running them,
+ * and it is not nothing: each of these clauses exists because the check fired
+ * on correct code without it, and a future edit that deletes one fails here
+ * with the fixture that proved it. */
+{
+  line('\n- the keyboard contract -')
+  const { CHECKS: KC } = await import('../src/emit/checks.js')
+  const bodyOf = id => (KC.find(c => c.id === id)?.body ?? []).join('\n')
+
+  const GUARDS = [
+    ['a-marked-item-says-so', 'kids.length < 3',
+      'a run of two has no majority, so nothing can be the odd one out'],
+    ['a-marked-item-says-so', 'odd.length !== 1',
+      'two items differing is a mixed layout, not a marked one'],
+    ['a-marked-item-says-so', 'sameKind < 2',
+      'a landing nav holding a filled call-to-action button, which is a different KIND of item'],
+    ['a-composite-widget-is-one-tab-stop', 'aria-activedescendant',
+      'a listbox keeping focus on the container, whose items are correctly not tabbable'],
+    ['a-widget-owes-its-keys', 'showModal',
+      'a native dialog, which answers Escape with no script'],
+    ['a-widget-owes-its-keys', 'said.has(sig)',
+      'a build holding both role=tablist and role=tab, which is one fault and not two'],
+  ]
+  for (const [id, clause, why] of GUARDS) {
+    assert(bodyOf(id).includes(clause),
+      `${id} keeps its guard for ${why}`)
+  }
+
+  /* Every component in the system has a stated contract, and a stated `none`
+     is an answer. An absent entry reads as an oversight. */
+  const { KEYBOARD_CONTRACTS } = await import('../src/state/keyboard.js')
+  const declared = new Set(KEYBOARD_CONTRACTS.map(c => c.component))
+  /* `derived.components` is the EXPANDED list: every variant and every state,
+     named `<component>-<variant>`. A contract belongs to the component, not to
+     its variants, so each entry is matched back to the longest declared name
+     it starts with. That is the stronger assertion: it fails both a component
+     with no contract AND a contract for a component nobody ships. */
+  const base = n => [...declared].filter(d => n === d || n.startsWith(d + '-'))
+    .sort((a, b) => b.length - a.length)[0]
+  const orphans = [...new Set((derived.components ?? []).map(c => c.name)
+    .filter(n => n && !base(n)))]
+  assert(orphans.length === 0,
+    `every component states a keyboard contract${orphans.length ? ` — ${orphans.join(', ')}` : ` (${declared.size})`}`)
+  const shipped = new Set((derived.components ?? []).map(c => base(c.name)).filter(Boolean))
+  const unused = [...declared].filter(d => !shipped.has(d))
+  assert(unused.length === 0,
+    `every contract belongs to a component this system ships${unused.length ? ` — ${unused.join(', ')}` : ''}`)
+
+  /* And the contract reaches the reader. */
+  const md = payloadTextFiles(state, derived)['DESIGN.md']
+  assert(/\*\*Keyboard\*\*/.test(md), 'DESIGN.md carries the Keyboard section')
+  for (const c of KEYBOARD_CONTRACTS.filter(x => x.keys.length)) {
+    assert(md.includes('`' + c.component + '`'),
+      `DESIGN.md names the ${c.component} contract`)
+  }
+  /* Space is not Enter, and that distinction is the whole point of the table.
+     A checkbox row naming Enter would be wrong and would read as authority. */
+  const cb = KEYBOARD_CONTRACTS.find(c => c.component === 'checkbox')
+  assert(cb.keys.every(k => k.key !== 'Enter'),
+    'the checkbox contract does not claim Enter, which submits the form around it')
 }
 
 /* ── EVERY STACKING LAYER COMES FROM THE SCALE ──

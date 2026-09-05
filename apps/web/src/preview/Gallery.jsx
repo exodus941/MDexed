@@ -122,7 +122,7 @@ export default function Gallery({ onInspect, layout }) {
           <span className="with-icon badge badge-success" {...ins('badge-success')}><Ico d={IconCheck} size="sm" />Verified</span>
           <div className="with-icon small" {...txt('body-sm')}><Ico d={IconStar} />List row with a leading icon</div>
           <div className="row">
-            <span className="with-icon nav-item is-active" {...ins('nav-item-selected')}><Ico d={IconFolder} />Active nav</span>
+            <span className="with-icon nav-item is-active" aria-current="page" {...ins('nav-item-selected')}><Ico d={IconFolder} />Active nav</span>
             <span className="with-icon nav-item" {...ins('nav-item')}><Ico d={IconSearch} />Inactive nav</span>
           </div>
         </div>

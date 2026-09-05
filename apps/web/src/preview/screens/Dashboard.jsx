@@ -57,7 +57,9 @@ export default function Dashboard({ onInspect, layout, casing, theme, mode, onTo
         <nav className="stack-sm nav-list">
           <span className="caption nav-title" style={{ textTransform: 'uppercase', letterSpacing: '.08em' }}
             {...txt('overline', 'text-muted')}>{L('Workspace')}</span>
-          <div className="nav-item is-active with-icon" {...ins('nav-item-selected')}><Ico d={IconChart} />{L('Overview')}</div>
+          {/* The class paints it and says nothing. `aria-current` is what a
+              reader hears, and what the forced-colors rule keys on. */}
+          <div className="nav-item is-active with-icon" aria-current="page" {...ins('nav-item-selected')}><Ico d={IconChart} />{L('Overview')}</div>
           {[['Accounts', IconFolder], ['Invoices', IconSend], ['Reports', IconChart], ['Settings', IconMore]].map(([t, icon]) => (
             <div key={t} className="nav-item with-icon" {...ins('nav-item')}><Ico d={icon} />{L(t)}</div>
           ))}

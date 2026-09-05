@@ -11,6 +11,7 @@ import { check } from '../color/contrast.js'
 import { SPEC_COMPONENT_PROPS, collectComponents } from './yaml.js'
 import { LAYOUT_COMPONENTS, layoutRows, layoutSentences } from '../state/componentLayout.js'
 import { audit, REQUIREMENTS as A11Y_REQUIREMENTS } from '../a11y/audit.js'
+import { KEYBOARD_CONTRACTS, INTERACTIVE_CONTRACTS } from '../state/keyboard.js'
 import { purposeOf } from '../color/modes.js'
 
 const cell = v => String(v ?? '').replace(/\|/g, '\\|').replace(/\n+/g, ' ').trim()
@@ -1206,6 +1207,31 @@ function accessibilitySection(state, derived, findings) {
       'A **loading state** holds the shape of what is coming, at the height it will occupy, so nothing moves when the data lands. It carries `role="status"` and `aria-busy="true"` and a name; the placeholder shapes themselves carry `aria-hidden="true"`, because read aloud they are noise. Derive every placeholder height from the type tokens of the line it stands in for, so the skeleton and the loaded row measure the same. Any shimmer animates opacity only and stops under `prefers-reduced-motion`. A spinner is the fallback for something whose shape cannot be known, not the default.',
       'Loading is the **fourth** empty state, beside first run, no results and a failure. A system that demonstrates three gets a centred spinner invented for the fourth.',
     ]),
+
+    /* ── WHICH KEYS EACH CONTROL ANSWERS ──
+     *
+     * The section above named focus, targets, states, overlays, fields and
+     * waiting, and never said which KEYS anything answers. A builder learned
+     * that a switch needs a visible focus ring and nothing about Space. Every
+     * open-spec system measured against this one publishes the contract.
+     *
+     * Ordered so the widgets come first. A component that answers no key is
+     * still listed, because an absent entry reads as an oversight and a
+     * stated `none` reads as a decision. */
+    '**Keyboard**',
+    'Two rules under all of it. A composite widget is ONE tab stop: Tab enters the group and lands on the active item, and the arrows move within it. Built with a tabindex on every item, a strip of six tabs costs six presses to walk past. And Space is not Enter: a button takes both, a checkbox and a switch take Space only, because Enter inside a form submits it.',
+    table(
+      ['Component', 'Pattern', 'Keys'],
+      KEYBOARD_CONTRACTS.map(c => [
+        `\`${c.component}\``,
+        c.pattern,
+        c.keys.length
+          ? c.keys.map(k => `**${k.key}** ${k.does}`).join(' ')
+          : 'Answers no key.',
+      ])
+    ),
+    bullets(KEYBOARD_CONTRACTS.filter(c => c.note).map(c => `**\`${c.component}\`** ${c.note}`)),
+    `Where you build one of these on a \`div\` instead of the native element, you owe every key in its row. ${INTERACTIVE_CONTRACTS.filter(c => c.requires.length).length} of the ${KEYBOARD_CONTRACTS.length} components have no native element that answers for them, and the checklist tests those by name.`,
 
     live.length > 0 && '**Known issues in this system**',
     live.length > 0 && 'These are measured, not hypothetical. Work around them; do not reproduce them elsewhere.',
