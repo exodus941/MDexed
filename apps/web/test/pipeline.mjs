@@ -649,7 +649,19 @@ line('\n- prompt construction -')
    * around. */
   const missingTags = []
   for (const f of walk(root)) {
-    const code = fs.readFileSync(f, 'utf8')
+    const raw = fs.readFileSync(f, 'utf8')
+    /* ── A JSDoc GENERIC IS NOT A JSX TAG ──
+     *
+     * `@returns Promise<Blob>` matched, and the check reported `Blob` as an
+     * unresolved component. The tag pattern is unambiguous in CODE and not in
+     * a comment, where `<Name>` is ordinary type notation.
+     *
+     * Blanked rather than deleted, so nothing below a comment shifts. This
+     * check names a file and an identifier and no line, but the habit is the
+     * point: removing a comment takes its newlines with it. */
+    const code = raw
+      .replace(/\/\*[\s\S]*?\*\//g, m => m.replace(/[^\n]/g, ' '))
+      .replace(/(^|[^:])\/\/[^\n]*/g, (m, p) => p + ' '.repeat(m.length - p.length))
     const tags = new Set([...code.matchAll(/<([A-Z][A-Za-z0-9_]*)[\s/>]/g)].map(m => m[1]))
     for (const name of tags) {
       const declared = new RegExp(`\\b(?:function|const|let|class)\\s+${name}\\b`).test(code)
@@ -718,6 +730,53 @@ line('\n- prompt construction -')
     `contract within ${CONTRACT_MAX_BYTES} bytes (worst ${worstBytes}, ${Math.round((CONTRACT_MAX_BYTES - worstBytes) * 100 / CONTRACT_MAX_BYTES)}% spare)`)
   assert(namesOk, 'each contract copy points at its twin, not itself')
   assert(checklistOk, 'contract keeps its before-you-finish checklist')
+}
+
+/* ── THE ARCHIVE IS SMALLER, AND STILL AN ARCHIVE ──
+ *
+ * Deflate is not a free win if the headers are wrong. The CRC and the
+ * uncompressed size are always of the ORIGINAL bytes, in both the local
+ * header and the central directory. Take either from the compressed copy and
+ * the archive opens, lists its files, and reports every one as corrupt.
+ *
+ * So this does not merely measure the size. It unzips the result with a tool
+ * that did not write it, and compares the bytes back. Node's own zlib inflates
+ * the entry, which is the same check any unzip program runs.
+ *
+ * The entry method is checked too. Deflate can make a SHORT file larger, so
+ * the writer stores those, and a run where everything came out stored would
+ * otherwise pass this silently. */
+{
+  const { zip } = await import('../src/emit/zip.js')
+  const zlib = await import('node:zlib')
+  const files = payloadTextFiles(state, derived)
+  const raw = Object.values(files).reduce((n, t) => n + Buffer.byteLength(t, 'utf8'), 0)
+  const blob = await zip(files, new Date(2026, 0, 1))
+  const buf = Buffer.from(await blob.arrayBuffer())
+
+  assert(buf.length < raw, `the archive is smaller than its contents (${buf.length} of ${raw})`)
+  assert(buf.readUInt32LE(0) === 0x04034b50, 'it starts with a local file header')
+
+  /* Walk the entries and inflate each one back. */
+  let at = 0, checked = 0, deflated = 0
+  while (buf.readUInt32LE(at) === 0x04034b50) {
+    const method = buf.readUInt16LE(at + 8)
+    const crc = buf.readUInt32LE(at + 14)
+    const packedLen = buf.readUInt32LE(at + 18)
+    const rawLen = buf.readUInt32LE(at + 22)
+    const nameLen = buf.readUInt16LE(at + 26)
+    const name = buf.subarray(at + 30, at + 30 + nameLen).toString('utf8')
+    const body = buf.subarray(at + 30 + nameLen, at + 30 + nameLen + packedLen)
+    const back = method === 8 ? zlib.inflateRawSync(body) : body
+    assert(back.length === rawLen, `${name}: the stated size matches what came back (${rawLen})`)
+    assert(back.toString('utf8') === files[name], `${name}: the bytes survive the round trip`)
+    assert(zlib.crc32 ? zlib.crc32(back) === crc : true, `${name}: the CRC is of the original bytes`)
+    if (method === 8) deflated++
+    checked++
+    at += 30 + nameLen + packedLen
+  }
+  assert(checked === Object.keys(files).length, `every entry was read back (${checked})`)
+  assert(deflated > 0, `and at least one is actually deflated (${deflated} of ${checked})`)
 }
 
 /* ── The payload contains what its own README promises ──

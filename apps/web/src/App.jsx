@@ -1854,7 +1854,10 @@ function Shell() {
             html.previewHtml({ state: stamped, derived, markup, surface: s.label, mode })
         }
       }
-      const url = URL.createObjectURL(zip(files))
+      /* `zip` deflates through the browser's own CompressionStream, so it is
+         async now. The whole export already sits inside a try and a
+         `setPackaging` guard, so the await costs nothing here. */
+      const url = URL.createObjectURL(await zip(files))
       const a = document.createElement('a')
       a.href = url; a.download = `${slug}-design-package.zip`; a.click()
       URL.revokeObjectURL(url)

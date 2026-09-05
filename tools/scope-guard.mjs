@@ -36,6 +36,10 @@ const GLOBALS = new Set([
   'setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'queueMicrotask',
   'requestAnimationFrame', 'cancelAnimationFrame', 'getComputedStyle', 'matchMedia',
   'structuredClone', 'performance', 'TextEncoder', 'TextDecoder', 'DOMParser',
+  /* The zip writer deflates through these rather than through a bundled
+     library. Guarded with `typeof` at the call site, because a browser without
+     them stores the entry instead of failing the export. */
+  'CompressionStream', 'DecompressionStream',
   'Math', 'JSON', 'Object', 'Array', 'String', 'Number', 'Boolean', 'Date', 'Set',
   'Map', 'WeakMap', 'WeakSet', 'Promise', 'RegExp', 'Error', 'TypeError', 'Symbol',
   'Proxy', 'Reflect', 'BigInt', 'Intl', 'globalThis', 'process', 'import', 'require',
