@@ -174,7 +174,7 @@ export const ROLE_GROUPS = [
        * there: lift -0.0473 at chroma 0.0799. At high lightness the eye takes
        * far more chroma before it reads as a stain, which is why one value
        * cannot serve both modes. */
-      { name: 'accent-subtle',   desc: 'Tinted background',          light: 'accent.100',  dark: 'neutral.950~accent.500@0.1'  },
+      { name: 'accent-subtle',   desc: 'Tinted background',          light: 'accent.50',   dark: 'neutral.950~accent.500@0.1'  },
       /* ── A FILLED SHAPE, AND `accent-subtle` CANNOT DRAW ONE ──
        *
        * `accent-subtle` is a GROUND: text sits on it and the words carry the
@@ -258,7 +258,7 @@ export const ROLE_GROUPS = [
          document reports every surface where the colour is too low for body
          text. The limit is stated rather than designed away. */
       { name: 'success',         desc: 'Success fill',               light: 'success.700', dark: 'success.400' },
-      { name: 'success-subtle',  desc: 'Success background',         light: 'success.100', dark: 'neutral.950~success.500@0.1' } /* mixes into the ground, see accent-subtle */,
+      { name: 'success-subtle',  desc: 'Success background',         light: 'success.50',  dark: 'neutral.950~success.500@0.1' } /* mixes into the ground, see accent-subtle */,
       { name: 'success-fg',      desc: 'Content on success fill',    light: 'neutral.50',  dark: 'neutral.950' },
       /* ── THE ONE ROLE THAT GIVES THIS PALETTE A VALUE STRUCTURE ──
        *
@@ -293,7 +293,7 @@ export const ROLE_GROUPS = [
        * Measured: light 0.2 to 15.4 points, dark 0.2 to 15.5, no failure and no
        * warning in either. Warning on its own chip reads 10.69:1 in light. */
       { name: 'warning',         desc: 'Warning fill',               light: 'warning.900', dark: 'warning.200' },
-      { name: 'warning-subtle',  desc: 'Warning background',         light: 'warning.100', dark: 'neutral.950~warning.500@0.1' } /* mixes into the ground, see accent-subtle */,
+      { name: 'warning-subtle',  desc: 'Warning background',         light: 'warning.50',  dark: 'neutral.950~warning.500@0.1' } /* mixes into the ground, see accent-subtle */,
       { name: 'warning-fg',      desc: 'Content on warning fill',    light: 'neutral.50',  dark: 'neutral.950' },
       { name: 'danger',          desc: 'Destructive fill',           light: 'danger.700',  dark: 'danger.400'  },
       /* Accent has had a hover role since the start; danger never did, so a
@@ -303,7 +303,7 @@ export const ROLE_GROUPS = [
          does: darker on paper, lighter in the dark, because a hover has to
          move away from the page rather than always down. */
       { name: 'danger-hover',    desc: 'Destructive hover',          light: 'danger.800',  dark: 'danger.300'  },
-      { name: 'danger-subtle',   desc: 'Destructive background',     light: 'danger.100',  dark: 'neutral.950~danger.500@0.1'  } /* mixes into the ground, see accent-subtle */,
+      { name: 'danger-subtle',   desc: 'Destructive background',     light: 'danger.50',   dark: 'neutral.950~danger.500@0.1'  } /* mixes into the ground, see accent-subtle */,
       { name: 'danger-fg',       desc: 'Content on destructive fill',light: 'neutral.50',  dark: 'neutral.950' },
     ],
   },

@@ -1419,6 +1419,13 @@ export const CHECKS = [
        * is the same one that check uses: square-ish, and carrying initials
        * rather than a sentence. */
       "  const chars = (el.textContent || '').trim().length",
+      "  /* A TINT SITS BEHIND SOMETHING. A fill with no text on it at all is a",
+      "     MARK, and a mark's colour is its meaning: a chart series, a legend",
+      "     dot, a status stripe. Measured on a categorical scale built for",
+      "     separation, one segment reads 0.079 against a 0.009 page, and that",
+      "     is the palette doing its job rather than a stain. textContent counts",
+      "     descendants, so a tinted panel with any words in it is still asked. */",
+      "  if (!chars) continue",
       "  if (Math.abs(r.width - r.height) <= 2 && chars <= 3) continue",
       /* The allowance rises with the ground's own colour: a tinted ground can
          carry a tinted panel without either reading as a stain. Both numbers
