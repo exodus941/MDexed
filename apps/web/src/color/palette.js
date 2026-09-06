@@ -14,7 +14,7 @@ import { fromOklch, toOklchObj, toGamut, toHex, parseColor } from './convert.js'
    means, and the generator has to answer the same question the same way. A
    second copy here would drift, and then the generator would emit palettes its
    own audit rejects. */
-import { MEANING_PAIRS, HUE_MIN as MEANING_HUE_MIN, LIGHTNESS_MIN as MEANING_LIGHTNESS_MIN } from '../a11y/audit.js'
+import { MEANING_PAIRS, HUE_MIN as MEANING_HUE_MIN } from '../a11y/audit.js'
 
 /* A near-grey has no hue worth comparing, the same floor the audit uses. */
 const CHROMA_FLOOR = 0.03
@@ -63,11 +63,22 @@ export const INTENSITIES = [
  * carries a factor that puts 1.00 on the reference rather than on the old
  * behaviour. The old behaviour is 1.25, inside the range rather than at its
  * end, so nobody has to leave the scale to get back to it. */
-export const CHROMA_LEVEL = { min: 0.5, max: 1.8, step: 0.05, default: 1 }
+export const CHROMA_LEVEL = { min: 0, max: 2, step: 0.05, default: 1 }
 
-/* What 1.00 multiplies by. Measured: Balanced's [0.11, 0.19] comes out at a
-   mean of 0.125, and the references sit at 0.101. */
-const LEVEL_REFERENCE = 0.8
+/* What 1.00 multiplies by, chosen so the default lands on the references and
+   RE-MEASURED whenever the shape it scales changes.
+ *
+ * It was 0.8, which put Balanced's [0.11, 0.19] on the measured 0.101. Adding
+ * the ladder's chroma curve dropped the same setting to 0.087, and the curve
+ * is normalised by its own mean, so the loss is not the curve. It is the
+ * GAMUT: the loud middle rung asks for more chroma than sRGB holds and gets
+ * clipped, while the quiet rungs keep everything they ask for. Clipping one
+ * side of a balanced curve is not balanced.
+ *
+ * A CALIBRATION CONSTANT IS ONLY TRUE OF THE THING IT CALIBRATED. Measured
+ * again across 400 palettes per step: 0.80 gives 0.087, 0.92 gives 0.094, 1.03
+ * gives 0.101. */
+const LEVEL_REFERENCE = 1.03
 
 /* Hue bands a colour has to sit in to still read as its meaning. */
 const ROLE_HUE_BAND = {
@@ -84,6 +95,111 @@ const NEUTRAL_NAMES = new Set(['neutral', 'muted', 'surface-tint', 'grey', 'gray
 const rand = (lo, hi) => lo + Math.random() * (hi - lo)
 const wrap = h => ((h % 360) + 360) % 360
 
+/* ── THE LADDER: WHY A GENERATED PALETTE READ AS A BOX OF PENCILS ──
+ *
+ * Measured against six palettes a person picked out as agreeable, on the five
+ * numbers that describe a set:
+ *
+ *                     chroma mean   lightness   SPREAD   hue span
+ *   theirs             0.070-0.129  0.48-0.76   0.24-0.65  157-237°
+ *   generate           0.084-0.100  0.52-0.56   0.05-0.17  112-234°
+ *
+ * FOUR OF THE FIVE ALREADY AGREED. The chroma was in their band, the hue span
+ * was in their band, and the mean lightness was in their band. One number was
+ * out by five and a half times, and it is the one that decides how a row of
+ * swatches reads.
+ *
+ * Every seed came out at one lightness, differing only in hue. Five equally
+ * mid colours in five hues is a box of pencils: nothing recedes, nothing
+ * leads, and the eye has nowhere to rest. Their sets run from a dark member to
+ * a pale one and use hue for far less of the work.
+ *
+ * ── SO THE SEEDS TAKE RUNGS ──
+ *
+ * A run picks a KEY, which is the palette's own middle, and a SPREAD, which is
+ * how far it reaches. Each seed takes an evenly spaced rung between them.
+ *
+ * ── THE NEUTRAL IS EXCLUDED, AND FINDING OUT WHY COST THE MOST ──
+ *
+ * `buildRamp` takes only hue and chroma from a seed, so it looked as though a
+ * seed's lightness were free: every step's lightness comes from the ramp
+ * SHAPE. That is true of ten of the eleven steps. `anchorSeed` writes the seed
+ * VERBATIM into whichever step sits nearest it in lightness, so the eleventh
+ * moves to wherever the seed is.
+ *
+ * On a chromatic seed that is harmless and is the feature: a brand colour
+ * survives generation exactly. On the NEUTRAL it is not, because `bg` and
+ * `surface` are both steps of the neutral ramp. A neutral placed at the pale
+ * end anchors into a pale step and pulls the card up toward `*.50`, which is
+ * where every subtle fill lives.
+ *
+ * Measured: with the neutral taking an outer rung, 53 flat-fill warnings in
+ * 300 runs, none before. Every one of them carried a neutral at L 0.92 and a
+ * card at #f0eeee, with the fill 1.9 points off a floor of 2. Turning
+ * `anchorSeed` off cleared all 53, which is what named the mechanism.
+ *
+ * So the neutral keeps the mid band it always had, and the chromatic seeds
+ * carry the ladder. It costs nothing: the neutral is near-achromatic anyway,
+ * so its rung was never what made a row of swatches read well.
+ *
+ * ── AND CHROMA FOLLOWS THE RUNG ──
+ *
+ * Their palettes are quiet at both ends of their own lightness range and loud
+ * in the middle. Measured, as a share of each palette's loudest swatch:
+ *
+ *   darkest 0.52 · dark 0.65 · middle 0.99 · light 0.78 · lightest 0.64
+ *
+ * It is skewed, not symmetric: the pale end holds more chroma than the deep
+ * end. So the curve is those measurements interpolated, rather than a tent
+ * fitted to them. A symmetric tent was tried and reads 0.85 where they measure
+ * 0.65. */
+/* The reach is bounded by MEANING at both ends. A hue stops being nameable at
+   the extremes, so a warning at 0.30 reads brown and a danger at 0.88 reads
+   pink, and a status seed has to survive as its own signal. */
+const LADDER = { key: [0.50, 0.70], spread: [0.30, 0.60], floor: 0.40, ceiling: 0.84 }
+
+/* Sampled at the centre of each fifth, so index i is t = 0.1 + 0.2i. */
+const CHROMA_BY_RUNG = [0.52, 0.65, 0.99, 0.78, 0.64]
+
+/* Divided by its own mean, so the curve adds SHAPE without moving the
+   palette's average chroma off the reference level the slider is calibrated
+   to. Without this every set came out a third quieter than asked for. */
+const RUNG_MEAN = CHROMA_BY_RUNG.reduce((a, b) => a + b, 0) / CHROMA_BY_RUNG.length
+
+function rungChroma(t) {
+  const x = (Math.max(0, Math.min(1, t)) - 0.1) / 0.2
+  const i = Math.max(0, Math.min(CHROMA_BY_RUNG.length - 2, Math.floor(x)))
+  const f = Math.max(0, Math.min(1, x - i))
+  const v = CHROMA_BY_RUNG[i] + (CHROMA_BY_RUNG[i + 1] - CHROMA_BY_RUNG[i]) * f
+  return v / RUNG_MEAN
+}
+
+/**
+ * Which seed takes which rung. The neutral is not in the list.
+ *
+ * THE RUNGS ARE SHUFFLED, and the first version handed them out in seed order
+ * instead. That made the rank a property of the ROLE: success came out dark in
+ * every run and warning came out pale in every run, which is a decision nobody
+ * made. It also parked the accent next to a status colour at the same
+ * lightness, and the two-meanings-one-colour warning went from 61 to 143.
+ *
+ * @returns {Map<string, number>} seed id → rung, 0 at the dark end
+ */
+function assignRungs(free) {
+  const n = free.length
+  const rungs = new Map()
+  if (!n) return rungs
+  if (n === 1) { rungs.set(free[0].seed.id, 0.5); return rungs }
+
+  const slots = Array.from({ length: n }, (_, i) => i / (n - 1))
+  for (let i = slots.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[slots[i], slots[j]] = [slots[j], slots[i]]
+  }
+  free.forEach((f, i) => rungs.set(f.seed.id, slots[i]))
+  return rungs
+}
+
 /**
  * @param seeds    current seed list (each may carry `locked`)
  * @param harmony  id from HARMONIES
@@ -95,7 +211,10 @@ export function generatePalette(seeds, harmony = 'analogous', intensity = 'balan
   /* THE LEVEL SCALES THE SHAPE. The intensity says which part of the range,
      and this says how loud that range is. Both chroma ranges move together, so
      a quiet palette keeps its quiet neutral. */
-  const level = Math.max(CHROMA_LEVEL.min, Math.min(CHROMA_LEVEL.max, chromaLevel || CHROMA_LEVEL.default))
+  /* `??` and a number test, not `||`. Zero is a legal level now, and `0 || 1`
+     is 1: the bottom of the slider would have silently generated the default. */
+  const asked = Number.isFinite(chromaLevel) ? chromaLevel : CHROMA_LEVEL.default
+  const level = Math.max(CHROMA_LEVEL.min, Math.min(CHROMA_LEVEL.max, asked))
   const k = level * LEVEL_REFERENCE
   const int = { ...base,
     chroma: base.chroma.map(v => v * k),
@@ -121,12 +240,27 @@ export function generatePalette(seeds, harmony = 'analogous', intensity = 'balan
     ? Math.max(0.40, Math.min(0.70, anchor.ok.l))
     : rand(...int.light)
 
+  /* ── THE LADDER THIS RUN CLIMBS ──
+     A locked colour keys the run, exactly as it keys the hue and the chroma,
+     so a pinned brand stays where it was put and the rest arrange around it. */
+  const onLadder = seeds.filter(s => !s.locked && !NEUTRAL_NAMES.has((s.name ?? '').toLowerCase()))
+    .map(s => ({ seed: s }))
+  const rungs = assignRungs(onLadder)
+  const key = anchor ? baseLight : rand(...LADDER.key)
+  /* MONOCHROME TAKES THE WHOLE REACH. It has one hue, so the ladder is the
+     only thing separating its members and a short one gives five of the same
+     colour. Every other scheme rolls its own. */
+  const spread = scheme.id === 'monochrome' ? LADDER.spread[1] : rand(...LADDER.spread)
+  const rungLight = (t, lo = LADDER.floor, hi = LADDER.ceiling) =>
+    Math.max(lo, Math.min(hi, key - spread / 2 + spread * t))
+
   const out = {}
   let step = 0
 
   for (const seed of seeds) {
     if (seed.locked) continue
     const name = (seed.name ?? '').toLowerCase()
+    const t = rungs.get(seed.id) ?? 0.5
 
     if (NEUTRAL_NAMES.has(name)) {
       /* Neutrals aren't grey — a trace of the accent hue keeps a palette
@@ -134,6 +268,9 @@ export function generatePalette(seeds, harmony = 'analogous', intensity = 'balan
          of a trace is the intensity setting's job, and at Vivid it stops being
          a trace: this is the seed the page background is built from, so a
          saturated one is what makes a deep-blue or oxblood UI possible at all. */
+      /* NOT ON THE LADDER, and the ladder section above says why: `bg` and
+         `surface` are both steps of this ramp, so a pale neutral anchors into
+         a pale step and closes the gap every subtle fill needs. */
       out[seed.id] = toHex(toGamut(fromOklch({
         l: rand(0.46, 0.56),
         c: rand(...int.neutralChroma),
@@ -145,10 +282,11 @@ export function generatePalette(seeds, harmony = 'analogous', intensity = 'balan
     const band = ROLE_HUE_BAND[name]
     if (band) {
       /* Status colours follow the intensity too, but never drop so low they
-         stop reading as a signal. */
+         stop reading as a signal. The ladder's own bounds already keep the hue
+         nameable, so the rung needs no extra clamp here. */
       out[seed.id] = toHex(toGamut(fromOklch({
-        l: rand(0.50, 0.60),
-        c: Math.max(0.10, rand(...int.chroma) * 0.9),
+        l: rungLight(t),
+        c: Math.max(0.10, rand(...int.chroma) * 0.9 * rungChroma(t)),
         h: rand(band[0], band[1]),
       })))
       continue
@@ -159,10 +297,9 @@ export function generatePalette(seeds, harmony = 'analogous', intensity = 'balan
       : rand(0, 360)
     /* Monochrome varies weight instead of hue, or every slot comes out
        identical. */
-    const mono = scheme.id === 'monochrome'
     out[seed.id] = toHex(toGamut(fromOklch({
-      l: mono ? baseLight + (step % 2 ? 1 : -1) * rand(0.06, 0.16) : baseLight + rand(-0.07, 0.07),
-      c: mono ? baseChroma * rand(0.55, 1.15) : baseChroma * rand(0.8, 1.2),
+      l: rungLight(t),
+      c: baseChroma * rungChroma(t) * rand(0.9, 1.1),
       h: wrap(baseHue + offset),
     })))
     step++
@@ -194,17 +331,30 @@ export function generatePalette(seeds, harmony = 'analogous', intensity = 'balan
  * pinned would be a worse fault than the collision. */
 const NUDGE_STEPS = [12, -12, 24, -24, 36, -36, 48, -48, 60, -60, 90, -90, 120, -120, 180]
 
-/* ── HUE IS NOT ALWAYS AVAILABLE, AND LIGHTNESS IS THE OTHER LEVER ──
+/* ── SCORE THE PAIR THE WAY THE AUDIT WILL, WHICH IS ON HUE ──
  *
- * A brand colour pinned INSIDE a status band leaves no legal hue to move to: a
- * green brand at 150° and a success bounded to 130–165 are within 25° at every
- * point in the band. Measured: 36 of 200 pinned brands walked round the circle
- * still collided after the hue pass.
+ * The audit answers "do these read as one colour" with hue AND lightness, and
+ * this scorer used to copy that rule verbatim. Copying it was the bug. The
+ * audit reads the ROLE colours and this reads the SEEDS, and the ramp stands
+ * between them: `accent` and `danger` are both step 500 in the default role
+ * map, so they hold the SAME lightness whatever their seeds did.
  *
- * Two meanings one degree apart in hue and fifteen points apart in lightness
- * ARE distinguishable, and this system's own presets rely on it. So the
- * constrained seed steps in lightness instead, and stays inside the range
- * where a status colour still reads as a signal rather than as a tint. */
+ * So a seed pair separated by 20 points of lightness scored as resolved here
+ * and arrived at the audit as two colours 15° apart at an identical lightness.
+ * The generator was crediting itself with a separation the ramp deletes.
+ *
+ * Measured over 480 generated palettes: 263 collisions warned with the
+ * lightness clause and 2 without it. It also clears 59 of the 61 that the
+ * shipped generator produced before any of this, so the clause was never
+ * paying for itself.
+ *
+ * A lock inside a status band can still leave no legal hue. That case now ends
+ * as the audit already described it, with a warning and no move, rather than
+ * with a move that changes nothing a reader can see.
+ *
+ * THE LIGHTNESS LEVER STAYS. It is not scored any more, so it only survives
+ * when it lowers the hue count, which it can do: a seed sitting ON its role's
+ * step IS that role, so moving it off the step hands the role back to the ramp. */
 const LIGHT_STEPS = [0.12, -0.12, 0.16, -0.16, 0.20, -0.20]
 const STATUS_LIGHT = [0.34, 0.76]
 
@@ -225,8 +375,7 @@ function separateMeanings (seeds, out) {
     if ((x.c ?? 0) < CHROMA_FLOOR || (y.c ?? 0) < CHROMA_FLOOR) return false
     const raw = Math.abs((x.h ?? 0) - (y.h ?? 0))
     const gap = Math.min(raw, 360 - raw)
-    if (gap >= MEANING_HUE_MIN) return false
-    return Math.abs((x.l ?? 0) - (y.l ?? 0)) * 100 < MEANING_LIGHTNESS_MIN
+    return gap < MEANING_HUE_MIN
   }
 
   /* SCORE THE WHOLE PALETTE, NEVER THE PAIR BEING REPAIRED. The first version
