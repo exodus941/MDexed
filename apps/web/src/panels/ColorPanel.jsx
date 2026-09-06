@@ -8,7 +8,7 @@ import { useStore } from '../state/store.jsx'
 import { derive } from '../state/derive.js'
 import { uid } from '../state/schema.js'
 import { RAMP_STEPS, DEFAULT_SHAPE, resolveRef } from '../color/ramp.js'
-import { generatePalette, HARMONIES, INTENSITIES } from '../color/palette.js'
+import { generatePalette, HARMONIES, INTENSITIES, CHROMA_LEVEL } from '../color/palette.js'
 import { isValidColor } from '../color/convert.js'
 import ColorPicker from '../ui/ColorPicker.jsx'
 import TokenColorPicker, { paletteGroups } from '../ui/TokenColorPicker.jsx'
@@ -527,6 +527,10 @@ export default function ColorPanel() {
   const [pick, setPick] = useState(null)
   const [harmony, setHarmony] = useState('analogous')
   const [intensity, setIntensity] = useState('balanced')
+  /* HOW LOUD, as a continuous decision beside the three shapes. The default
+     measures 0.111 mean chroma, against 0.101 across eight palettes a person
+     picked out as agreeable. The old behaviour is 1.25. */
+  const [chromaLevel, setChromaLevel] = useState(CHROMA_LEVEL.default)
 
   const upd = (fn, tag) => set(s => ({ ...s, color: fn(s.color) }), tag)
 
@@ -544,7 +548,7 @@ export default function ColorPanel() {
      anonymous colour edit — and so the entry can carry the whole before/after
      palette rather than a single hex. */
   const roll = () => upd(c => {
-    const next = generatePalette(c.seeds, harmony, intensity)
+    const next = generatePalette(c.seeds, harmony, intensity, chromaLevel)
     return { ...c, seeds: c.seeds.map(s => next[s.id] ? { ...s, hex: next[s.id] } : s) }
   }, `palette:${harmony}`)
   const lockedCount = color.seeds.filter(s => s.locked).length
@@ -595,6 +599,22 @@ export default function ColorPanel() {
               Generate
             </button>
           </div>
+          {/* CHROMA LEVEL. The selects above pick the SHAPE of a palette and
+              this picks its volume, so it earns a control of its own rather
+              than a fourth option inside one of them. A label, its value and
+              the track, on one row, because the number is the point. */}
+          <label className="dense" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+            <span style={{ fontSize: 12, color: 'var(--muted)', flex: '0 0 auto' }}>Chroma level</span>
+            <input type="range"
+              min={CHROMA_LEVEL.min} max={CHROMA_LEVEL.max} step={CHROMA_LEVEL.step}
+              value={chromaLevel}
+              onChange={e => setChromaLevel(Number(e.target.value))}
+              title="How saturated the whole run is. 1.00 is the reference level, measured against palettes people find agreeable. 1.25 is what this generator used to do."
+              style={{ flex: 1, minWidth: 0 }} />
+            <span className="figure" style={{ fontSize: 12, color: 'var(--text)', flex: '0 0 auto', minWidth: 32, textAlign: 'end' }}>
+              {chromaLevel.toFixed(2)}
+            </span>
+          </label>
           {/* A SWATCH IS A COLOUR, SO CLICKING IT EDITS THE COLOUR.
               It used to toggle the lock, which is a different decision about
               the same object, and nothing on the swatch said so. The lock now

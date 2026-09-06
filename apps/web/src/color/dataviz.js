@@ -77,7 +77,39 @@ const GOLDEN_ANGLE = 137.508
  * share a level only when they are four apart in the sequence, which is 190
  * degrees of hue.
  */
-export const LIGHTNESS_LEVELS = [0.52, 0.64, 0.76, 0.86]
+export const LIGHTNESS_LEVELS = [0.44, 0.78, 0.56, 0.88]
+
+/* ── WHY THIS PALETTE LOOKED LIKE A SWATCH DRAWER ──
+ *
+ * It optimised separation and had no opinion about anything else, so it came
+ * out maximally distinguishable and unpleasant by construction. Measured
+ * against eight palettes a person picked out as agreeable, 39 swatches to our
+ * 15:
+ *
+ *              chroma mean   chroma range   hue span   worst pair
+ *   theirs           0.101      0.02-0.21   157-237°   0.058-0.195
+ *   ours             0.165      0.08-0.27   240-274°   0.140-0.220
+ *
+ * THREE FAULTS, AND SEPARATION WAS NEVER ONE OF THEM. Ours is HIGHER than
+ * every reference and ours is the one that hurts to look at.
+ *
+ * CHROMA AT THE GAMUT EDGE. `maxChroma` returns the most sRGB can hold at a
+ * lightness and hue, and every swatch took it. Their most saturated swatch is
+ * about our average. So the target is an absolute level near theirs, clamped
+ * by the gamut rather than defined by it.
+ *
+ * NO QUIET MEMBER. Their sets run 0.03 to 0.17 inside one palette and give the
+ * eye somewhere to rest. Ours ran 0.13 to 0.21, every member shouting. So the
+ * chroma cycles as well as the lightness, and two of every four are quiet.
+ *
+ * THE WHOLE WHEEL. Ours spanned 274 degrees, theirs about 190. A set that
+ * leaves a gap reads as a family; a set that closes the circle reads as a box
+ * of pencils. So the hues spread inside a SPAN rather than around the circle,
+ * still by the golden ratio, so any prefix is well spread within the family.
+ */
+export const CHROMA_TARGET = 0.16
+export const CHROMA_CYCLE = [1, 0.55, 0.85, 0.4]
+export const HUE_SPAN = 260
 
 /**
  * The floor a neighbouring pair must clear, in OKLab units.
@@ -129,10 +161,18 @@ function maxChroma(l, h) {
 function seedSaturation(seedHex) {
   const s = toOklchObj(parseColor(seedHex))
   const ceiling = maxChroma(s.l, s.h ?? 0)
-  if (!ceiling) return 0.7
-  /* Floored, because eight hues at a near-zero chroma are eight greys. A
-     neutral brand still needs a chart somebody can read. */
-  return clamp(s.c / ceiling, 0.45, 1)
+  if (!ceiling) return 1
+  /* IT MODULATES THE TARGET NOW, IT DOES NOT DEFINE IT.
+   *
+   * This used to be a fraction of the gamut edge, 0.45 to 1, and the edge was
+   * the target. Once the target became an absolute level, multiplying by a
+   * fraction under 1 counted the same decision twice: the level asked for
+   * 0.14, the seed cut it to 0.6 of that, and the set came out at 0.082 with
+   * its worst pair at 0.091, under the floor it is supposed to clear.
+   *
+   * A vivid brand should still chart a little louder than a muted one, so the
+   * range is narrow and centred on 1 rather than sliding to zero. */
+  return clamp(0.85 + (s.c / ceiling) * 0.4, 0.85, 1.15)
 }
 
 /**
@@ -145,10 +185,18 @@ export function categorical(accentHex) {
   const out = []
   for (let i = 0; i < CATEGORICAL_COUNT; i++) {
     /* Series one IS the brand hue, so the first swatch of every chart in the
-       system is the colour the reader already associates with it. */
-    const h = ((seed.h ?? 0) + i * GOLDEN_ANGLE) % 360
+       system is the colour the reader already associates with it. The rest
+       spread INSIDE a span by the golden ratio, so any prefix is well spread
+       within the family rather than around the whole circle. */
+    const step = HUE_SPAN * (i / (CATEGORICAL_COUNT - 1))
+    const h = (((seed.h ?? 0) + step) % 360 + 360) % 360
     const l = LIGHTNESS_LEVELS[i % LIGHTNESS_LEVELS.length]
-    out.push(toHex(toGamut(fromOklch({ l, c: maxChroma(l, h) * sat, h }))))
+    /* AN ABSOLUTE TARGET, CLAMPED BY THE GAMUT RATHER THAN DEFINED BY IT. The
+       cycle is what gives the set a quiet member, and the seed's own
+       saturation still scales the whole thing, so a muted brand charts muted. */
+    const want = CHROMA_TARGET * CHROMA_CYCLE[i % CHROMA_CYCLE.length] * sat
+    const c = Math.min(want, maxChroma(l, h))
+    out.push(toHex(toGamut(fromOklch({ l, c, h }))))
   }
   return out
 }

@@ -46,6 +46,29 @@ export const INTENSITIES = [
   { id: 'vivid',    label: 'Vivid',    chroma: [0.19, 0.30],  neutralChroma: [0.022, 0.060], light: [0.44, 0.60] },
 ]
 
+/* ── CHROMA LEVEL: HOW LOUD, AS A CONTINUOUS DECISION ──
+ *
+ * The three intensities above are the shape of a palette. This is its volume,
+ * and it multiplies whichever shape you picked.
+ *
+ * IT EXISTS BECAUSE THE DEFAULT WAS TOO LOUD AND NOTHING SAID SO. Measured
+ * against eight palettes a person picked out as agreeable, 39 swatches: their
+ * chroma mean is 0.101 and ours was 0.165. Their most saturated swatch is
+ * about our average. Nothing in the generator ever asked for a quiet colour.
+ *
+ * 1.00 IS THE REFERENCE LEVEL. Balanced at 1.00 measures 0.111 across 240
+ * generated seeds against their 0.101, and the gap is the status floor: a
+ * success colour never drops below 0.10 or it stops reading as a signal. The ranges above are
+ * unchanged, so Muted and Vivid still mean what they always did; the level
+ * carries a factor that puts 1.00 on the reference rather than on the old
+ * behaviour. The old behaviour is 1.25, inside the range rather than at its
+ * end, so nobody has to leave the scale to get back to it. */
+export const CHROMA_LEVEL = { min: 0.5, max: 1.8, step: 0.05, default: 1 }
+
+/* What 1.00 multiplies by. Measured: Balanced's [0.11, 0.19] comes out at a
+   mean of 0.125, and the references sit at 0.101. */
+const LEVEL_REFERENCE = 0.8
+
 /* Hue bands a colour has to sit in to still read as its meaning. */
 const ROLE_HUE_BAND = {
   success: [130, 165],
@@ -66,9 +89,17 @@ const wrap = h => ((h % 360) + 360) % 360
  * @param harmony  id from HARMONIES
  * @returns a map of seed id → new hex, for unlocked seeds only
  */
-export function generatePalette(seeds, harmony = 'analogous', intensity = 'balanced') {
+export function generatePalette(seeds, harmony = 'analogous', intensity = 'balanced', chromaLevel = CHROMA_LEVEL.default) {
   const scheme = HARMONIES.find(h => h.id === harmony) ?? HARMONIES[0]
-  const int = INTENSITIES.find(i => i.id === intensity) ?? INTENSITIES[1]
+  const base = INTENSITIES.find(i => i.id === intensity) ?? INTENSITIES[1]
+  /* THE LEVEL SCALES THE SHAPE. The intensity says which part of the range,
+     and this says how loud that range is. Both chroma ranges move together, so
+     a quiet palette keeps its quiet neutral. */
+  const level = Math.max(CHROMA_LEVEL.min, Math.min(CHROMA_LEVEL.max, chromaLevel || CHROMA_LEVEL.default))
+  const k = level * LEVEL_REFERENCE
+  const int = { ...base,
+    chroma: base.chroma.map(v => v * k),
+    neutralChroma: base.neutralChroma.map(v => v * k) }
 
   /* Anchor on a locked colour if there is one — that's the point of locking.
      Prefer a chromatic lock over a neutral, which carries no usable hue. */
