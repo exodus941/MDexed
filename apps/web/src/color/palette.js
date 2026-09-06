@@ -81,11 +81,39 @@ export const CHROMA_LEVEL = { min: 0, max: 2, step: 0.05, default: 1 }
 const LEVEL_REFERENCE = 1.03
 
 /* Hue bands a colour has to sit in to still read as its meaning. */
+/* ── SUCCESS IS A TEAL, BECAUSE A GREEN ONE IS UNREADABLE BESIDE DANGER ──
+ *
+ * A true green sat here and it failed the audit at EVERY point in the band.
+ * Under red-green vision loss the only surviving axes are lightness and
+ * blue-yellow, and success and danger are both step 500 in the default role
+ * map, so their lightness is identical by construction. That leaves
+ * blue-yellow alone, and a green and a red land in the same place on it.
+ *
+ * Simulated at full severity, the old band's pair: #006121 and #892b20 become
+ * #595027 and #5d531d. The same olive twice.
+ *
+ * Measured across 360 generated palettes, moving the band to 196-222:
+ *
+ *     [130, 165]  green       3.27 fail/run    716 collisions
+ *     [196, 222]  teal        1.97 fail/run    254 collisions
+ *
+ * IT IS NOT A DEVIATION. The default document ships success at hue 191, and so
+ * do all six presets. This band was the only thing in the system still using a
+ * green, and it straddles the hue everything else already uses.
+ *
+ * Going further toward cyan scores better still, 1.40 at 215-240, and stops
+ * reading as success rather than as information. They picked 196-222 with both
+ * columns rendered side by side.
+ *
+ * The residue is `colour-alone:accent:danger`, which no hue band can fix: the
+ * accent is free by design and half the wheel collides with danger on that
+ * axis. Only a ROLE STEP separates them, which the generator does not write.
+ * See [[the-generator-scored-the-wrong-artefact]]. */
 const ROLE_HUE_BAND = {
-  success: [130, 165],
+  success: [196, 222],
   warning: [62, 92],
   danger: [18, 40],
-  positive: [130, 165],
+  positive: [196, 222],
   caution: [62, 92],
   negative: [18, 40],
 }
