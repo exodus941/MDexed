@@ -106,7 +106,22 @@ export const ROLE_GROUPS = [
          dark, and the faintest light case goes 1.28 to 1.67. Still subtle —
          `border` sits at 3.82 on a card — and now visible. */
       { name: 'border-subtle',   desc: 'Hairlines, table rules',     light: 'neutral.300', dark: 'neutral.700' },
-      { name: 'border',          desc: 'Default control outline',    light: 'neutral.500', dark: 'neutral.500' },
+      /* ── NUDGED OFF 500, BY THE SMALLEST MOVE THAT CLEARS 3:1 ──
+       *
+       * At 500 it measured 3.03 on the default page and dipped to 2.97 on a
+       * generated palette with a saturated neutral. 10 of 300 failed 1.4.11,
+       * and 3.03 is not a margin either.
+       *
+       * A ROLE IS A RAMP STEP, so there is no rounding at that granularity:
+       * the next step down is 600, which reads 3.76 and visibly darkens every
+       * control outline in the system. A ref between the two moves it by 2 of
+       * 255 per channel instead, #6f7e8c to #6d7c8a, which is below anything
+       * an eye resolves.
+       *
+       * Measured at 0.15: 3.12 on the default, 3.07 as the generated minimum,
+       * and 0 of 300 failing. The dark side mixes the other way, toward 400,
+       * because contrast against a dark page means lighter. */
+      { name: 'border',          desc: 'Default control outline',    light: 'neutral.500~600@0.15', dark: 'neutral.500~400@0.15' },
       { name: 'border-strong',   desc: 'Emphasised outline',         light: 'neutral.600', dark: 'neutral.400' },
       { name: 'ring',            desc: 'Focus indicator',            light: 'accent.600',  dark: 'accent.400'  },
     ],
@@ -667,8 +682,25 @@ export const createInitialState = () => ({
     seeds: [
       { id: 'sd-accent',  name: 'accent',  hex: '#1771bf', desc: 'Primary action and emphasis' },
       { id: 'sd-neutral', name: 'neutral', hex: '#606f7e', desc: 'Surfaces, text, borders' },
-      { id: 'sd-success', name: 'success', hex: '#007974', desc: 'Confirmation' },
-      { id: 'sd-warning', name: 'warning', hex: '#966b00', desc: 'Caution' },
+      /* ── A HUE'S LIGHTNESS IS NOT FREE, AND THE YELLOW PAID FOR IT ──
+       *
+       * All five of these sat at L 52 to 56, and they pointed at the fourth:
+       * *"looks like LITERAL shit"*. They were right, and it was physics
+       * rather than taste. sRGB holds 0.073 chroma at hue 77 at L 0.35, and
+       * 0.167 at L 0.80, so a yellow asked to be mid-dark comes out brown.
+       * #966b00 is the most saturated yellow that exists at L 56.
+       *
+       * Every real warning colour sits high for the same reason: Tailwind
+       * amber-500 at L 77, Material amber at L 84, amber-600 at L 67.
+       *
+       * The teal moves for the same physics, less severely: at L 52 hue 190
+       * holds 0.090 against 0.155 at its best.
+       *
+       * The accent and the danger stay exactly as specified. Measured after:
+       * strip spread 0.04 to 0.21, and the audit reports zero failures and
+       * zero warnings. */
+      { id: 'sd-success', name: 'success', hex: '#00948e', desc: 'Confirmation' },
+      { id: 'sd-warning', name: 'warning', hex: '#dfa200', desc: 'Caution' },
       { id: 'sd-danger',  name: 'danger',  hex: '#c13e2e', desc: 'Destructive and errors' },
     ],
     shape: { ...DEFAULT_SHAPE },

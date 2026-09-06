@@ -8,7 +8,7 @@
    Status colours are constrained to the hue bands people actually read as
    success, warning and danger — a "random" green success colour that lands on
    teal stops communicating. */
-import { fromOklch, toOklchObj, toGamut, toHex, parseColor } from './convert.js'
+import { fromOklch, toOklchObj, toGamut, toHex, parseColor, inGamut } from './convert.js'
 
 /* ONE SOURCE FOR THE THRESHOLD. The audit decides what "reads as one colour"
    means, and the generator has to answer the same question the same way. A
@@ -122,6 +122,85 @@ const NEUTRAL_NAMES = new Set(['neutral', 'muted', 'surface-tint', 'grey', 'gray
 
 const rand = (lo, hi) => lo + Math.random() * (hi - lo)
 const wrap = h => ((h % 360) + 360) % 360
+
+/* ── A HUE CANNOT BE LOUD AT EVERY LIGHTNESS, AND CLAMPING THE CHROMA MAKES
+ *    MUD ──
+ *
+ * They pointed at the fourth swatch of the default generated palette: *"looks
+ * like LITERAL shit"*. It is `warning`, and the band is 62 to 92 degrees.
+ *
+ * Measured, the most chroma sRGB holds at hue 77:
+ *
+ *   L 0.35   0.073        L 0.60   0.126        L 0.80   0.167
+ *
+ * The ladder handed warning a random rung, so half the time it asked a yellow
+ * to be dark. `toGamut` then clamped the chroma, and a clamped yellow at L
+ * 0.42 is #6d4100. Nine of fourteen runs came out AT the ceiling, which is the
+ * muddiest version of a hue that exists.
+ *
+ * So solve for the LIGHTNESS the hue can carry, rather than clamping the
+ * chroma at a lightness it cannot. At a wanted chroma of 0.12:
+ *
+ *   warning  h77    L 0.58-0.86        success h209   L 0.70-0.87
+ *   danger   h29    L 0.30-0.79        accent  h251   L 0.42-0.77
+ *
+ * A yellow must be light. That is a fact about sRGB, not a preference. */
+function maxChroma(l, h) {
+  let lo = 0, hi = 0.4
+  for (let i = 0; i < 20; i++) {
+    const mid = (lo + hi) / 2
+    if (inGamut(fromOklch({ l, c: mid, h }))) lo = mid
+    else hi = mid
+  }
+  return lo
+}
+
+/**
+ * The lightness band where hue `h` is STRONG, as a share of its own best.
+ *
+ * ── WHY A SHARE OF THE PEAK, AND NOT THE GAMUT EDGE ──
+ *
+ * Asking only whether the wanted chroma FITS was the first fix, and it was not
+ * enough. `Math.max(0.10, …)` floors a status seed at 0.10, and hue 77 holds
+ * 0.10 as low as L 0.49. So the colour came back un-clamped and still olive:
+ * #7f5805, #795b01. The gamut is a necessary condition, not a sufficient one.
+ *
+ * A hue reads as itself near the lightness where it is strongest. Measured on
+ * every shipped warning colour: Tailwind amber-500 sits at 97% of its hue's
+ * peak capacity, Material amber at 100%, amber-600 at 89%. None below 89%.
+ *
+ * At an 80% share the bands come out:
+ *
+ *   warning h77   L 0.65-0.84        success h209   L 0.68-0.87
+ *   danger  h29   L 0.50-0.68        accent  h251   L 0.52-0.71
+ *
+ * So the ladder's rung becomes an ask INSIDE the hue's own good range. The
+ * palette's lightness spread then falls out of its hues, which is what a set a
+ * person likes does anyway. A yellow is always amber and a blue can still be
+ * deep, because those are different hues rather than different decisions.
+ *
+ * IT IS NOT A UNIVERSAL LAW, AND I TESTED THAT BEFORE BUILDING ON IT. Across
+ * 851 chromatic swatches from a generator whose output a person likes, the
+ * median share is 77% and 39% sit under 70%. Their own reference has a member
+ * at 48%. So this is not what separates a good palette from a bad one in
+ * general. It is what stops OUR fixed hue bands producing mud, because a band
+ * pinned at 62-92 degrees has no other way out.
+ *
+ * @returns {{ lo: number, hi: number }}
+ */
+const STRONG_SHARE = 0.8
+
+function strongZone(h, floor = 0.28, ceiling = 0.92) {
+  let peak = -1
+  for (let l = floor; l <= ceiling + 1e-9; l += 0.02) peak = Math.max(peak, maxChroma(l, h))
+  let a = null, b = null
+  for (let l = floor; l <= ceiling + 1e-9; l += 0.01) {
+    if (maxChroma(l, h) >= peak * STRONG_SHARE) { if (a === null) a = l; b = l }
+  }
+  /* A hue with no zone cannot happen at this share, but a floor that cannot be
+     met must not silently invert the clamp. */
+  return a === null ? { lo: floor, hi: ceiling } : { lo: a, hi: b }
+}
 
 /* ── THE LADDER: WHY A GENERATED PALETTE READ AS A BOX OF PENCILS ──
  *
@@ -310,12 +389,17 @@ export function generatePalette(seeds, harmony = 'analogous', intensity = 'balan
     const band = ROLE_HUE_BAND[name]
     if (band) {
       /* Status colours follow the intensity too, but never drop so low they
-         stop reading as a signal. The ladder's own bounds already keep the hue
-         nameable, so the rung needs no extra clamp here. */
+         stop reading as a signal. */
+      const h = rand(band[0], band[1])
+      const c = Math.max(0.10, rand(...int.chroma) * 0.9 * rungChroma(t))
+      /* THE RUNG IS AN ASK, AND THE HUE ANSWERS. A yellow sent to a dark
+         rung cannot be saturated there, so take the nearest lightness in its
+         own strong zone rather than clamping the chroma into mud. */
+      const win = strongZone(h)
       out[seed.id] = toHex(toGamut(fromOklch({
-        l: rungLight(t),
-        c: Math.max(0.10, rand(...int.chroma) * 0.9 * rungChroma(t)),
-        h: rand(band[0], band[1]),
+        l: Math.max(win.lo, Math.min(win.hi, rungLight(t))),
+        c,
+        h,
       })))
       continue
     }
@@ -323,12 +407,14 @@ export function generatePalette(seeds, harmony = 'analogous', intensity = 'balan
     const offset = scheme.offsets
       ? scheme.offsets[step % scheme.offsets.length] + rand(-6, 6)
       : rand(0, 360)
-    /* Monochrome varies weight instead of hue, or every slot comes out
-       identical. */
+    const hue = wrap(baseHue + offset)
+    const chroma = baseChroma * rungChroma(t) * rand(0.9, 1.1)
+    /* Same rule as the status branch: the rung asks and the hue answers. */
+    const win = strongZone(hue)
     out[seed.id] = toHex(toGamut(fromOklch({
-      l: rungLight(t),
-      c: baseChroma * rungChroma(t) * rand(0.9, 1.1),
-      h: wrap(baseHue + offset),
+      l: Math.max(win.lo, Math.min(win.hi, rungLight(t))),
+      c: chroma,
+      h: hue,
     })))
     step++
   }
