@@ -13,6 +13,7 @@ import { buildCssVars } from '../state/derive.js'
 import { gradientCss } from '../color/modes.js'
 import { resolveRef } from '../color/ramp.js'
 import { fontsHref } from '../type/fonts.js'
+import { hasThemeToggle } from '../state/schema.js'
 
 const esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 
@@ -61,6 +62,10 @@ export function previewHtml({ state, derived, markup, surface, mode }) {
   const dark = varsFor(derived, state, 'dark')
   const href = fontsHref(state.type?.families)
   const other = mode === 'dark' ? 'light' : 'dark'
+  /* A page has a twin only when the document ships two themes. Said
+     unconditionally, a dark-only package told the reader to look for a light
+     half that is not in the zip. */
+  const paired = hasThemeToggle(state)
 
   return `<!doctype html>
 <html lang="en" data-theme="${mode}">
@@ -79,10 +84,14 @@ export function previewHtml({ state, derived, markup, surface, mode }) {
 
   ── THE THEME ATTRIBUTE ON THIS PAGE IS A PROPERTY OF THE PAGE, NOT A PATTERN ──
 
-  This file is one half of a pair. Its twin shows the ${esc(other)} theme, so
-  this one pins itself to ${esc(mode)} and cannot follow your operating system.
+  ${paired
+    ? `This file is one half of a pair. Its twin shows the ${esc(other)} theme, so
+  this one pins itself to ${esc(mode)} and cannot follow your operating system.`
+    : `This system ships one theme. This page pins itself to ${esc(mode)} so it
+  shows that theme whatever your operating system is set to.`}
 
-  DO NOT COPY THAT INTO AN APPLICATION. With no data-theme on <html>, the
+  ${paired
+    ? `DO NOT COPY THAT INTO AN APPLICATION. With no data-theme on <html>, the
   system preference decides and a page whose script never runs still opens in
   the right theme. Hardcode it and you have pinned the app to one theme with no
   way out; a build that did exactly that shipped a lightbulb button that looked
@@ -90,13 +99,19 @@ export function previewHtml({ state, derived, markup, surface, mode }) {
 
   The control in the corner is the mechanism the DESIGN.md asks for, working.
   Read its markup and its handler at the foot of this file. It is page chrome,
-  not part of the system, so it uses no component class.
+  not part of the system, so it uses no component class.`
+    : `DO NOT COPY THAT INTO AN APPLICATION. tokens.css publishes one palette,
+  so the attribute selects nothing. It is here to name what this page shows.
+
+  There is no theme control on this page, because this system has no second
+  theme to reach. DESIGN.md says so, and building one would invent a palette
+  that is not in the package.`}
 -->
 ${href ? `<link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="${esc(href)}">` : ''}
 <style>
-/* ── Tokens: light ─────────────────────────────────────────────────────── */
+${paired ? `/* ── Tokens: light ─────────────────────────────────────────────────────── */
 :root {
 ${declarations(light)}
 }
@@ -104,7 +119,14 @@ ${declarations(light)}
 /* ── Tokens: dark ──────────────────────────────────────────────────────── */
 :root[data-theme="dark"] {
 ${declarations(dark)}
-}
+}`
+  : `/* ── Tokens ────────────────────────────────────────────────────────────
+   One block, because this system ships one theme. Both were written here
+   whatever the document said, so a light-only page carried the whole dark
+   palette that tokens.css does not publish and DESIGN.md forbids inventing. */
+:root {
+${declarations(mode === 'dark' ? dark : light)}
+}`}
 
 /* ── Page chrome (not part of the design system) ───────────────────────── */
 html, body { margin: 0; padding: 0; }
@@ -117,7 +139,7 @@ body { background: var(--c-bg, #fff); }
    the tokens it needs to be legible on either palette. Square because it holds
    no words, and floored at the published target because a finger has to hit
    it. It is a real button in the tab order, not a hover affordance. */
-.page-theme {
+${!paired ? '' : `.page-theme {
   position: fixed; inset-block-start: 12px; inset-inline-end: 12px; z-index: var(--z-sticky);
   display: inline-flex; align-items: center; justify-content: center;
   inline-size: var(--target-min, 44px); block-size: var(--target-min, 44px);
@@ -131,7 +153,7 @@ body { background: var(--c-bg, #fff); }
   outline: var(--focus-width, 2px) var(--focus-style, solid) var(--c-ring);
   outline-offset: var(--focus-offset, 2px);
 }
-.page-theme svg { inline-size: 20px; block-size: 20px; }
+.page-theme svg { inline-size: 20px; block-size: 20px; }`}
 
 /* ── The system ────────────────────────────────────────────────────────── */
 ${withRealFallbacks(PREVIEW_CSS.trim(), mode === 'dark' ? dark : light)}
@@ -155,16 +177,16 @@ ${responsiveCss(state.layout?.breakpoints ?? [], 'media').trim()}
 </style>
 </head>
 <body>
-<button class="page-theme" type="button" id="page-theme"
+${!paired ? '' : `<button class="page-theme" type="button" id="page-theme"
         aria-pressed="${mode === 'dark'}"
         aria-label="${mode === 'dark' ? 'Dark theme is on. Switch to light.' : 'Light theme is on. Switch to dark.'}">
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
        stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
     <path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/>
   </svg>
-</button>
+</button>`}
 ${markup}
-<script>
+${!paired ? '' : `<script>
 /* ── THE WHOLE MECHANISM ──
  *
  * One attribute on the root element. Every token reassigns itself and no
@@ -193,7 +215,7 @@ ${markup}
       : 'Light theme is on. Switch to dark.')
   })
 })()
-</script>
+</script>`}
 </body>
 </html>
 `

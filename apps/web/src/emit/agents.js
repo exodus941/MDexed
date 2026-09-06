@@ -135,8 +135,8 @@ export function agentContract (state, derived, opts = {}) {
 
   return `# Agent instructions for ${name}
 
-Read this file completely before you write any code. It is identical to
-${twin} in this package, so read only one.
+Read this file completely before you write any code. ${twin} in this package
+says the same. Read only one.
 
 This is a design system, not a starting point. Every value in it is a decision
 already made.

@@ -10,6 +10,7 @@
  */
 import { generateFile } from './designmd.js'
 import { agentContract } from './agents.js'
+import { themeOf, hasThemeToggle } from '../state/schema.js'
 import { verifyNodeFile, verifyBrowserFile, VERIFY_NODE, VERIFY_BROWSER } from './verify.js'
 import * as tokens from './tokens.js'
 
@@ -40,6 +41,25 @@ export const REQUIRED_FILES = [
    evidently can. `EXAMPLE-dark-dashboard.html` says what it is, which theme it
    shows and which surface, before anyone opens it. */
 export const HTML_EXAMPLES_MODES = ['light', 'dark']
+
+/* WHICH of those two ship is the document's decision, and it was not being
+   asked. FOURTH VARIANT OF ONE FAULT. `markdown.js` asked `hasDark`, true for
+   dark-only. `agents.js` asked the shape of the derived object, true always.
+   This asked nothing at all: the list was a constant.
+
+   So a dark-only package shipped eleven `EXAMPLE-light-*.html` pages, each
+   pinned to `data-theme="light"`, painting a palette `tokens.css` does not
+   publish and DESIGN.md forbids inventing. Measured on one export: 2,506,572
+   bytes of light pages in a 5,325,788-byte package. 47% of what the reader
+   downloads demonstrated a theme the document says does not exist.
+
+   The comment at the call site named its own reason and the reason had
+   expired. It said `tokens.css` ships both regardless, which was true while
+   the theme was an editing preference. The theme is a three-way field now, and
+   it decides what gets EMITTED. */
+export const exampleModes = state =>
+  hasThemeToggle(state) ? HTML_EXAMPLES_MODES : [themeOf(state)]
+
 export const EXAMPLE_PREFIX = 'EXAMPLE'
 export const exampleFilename = (mode, id) => `${EXAMPLE_PREFIX}-${mode}-${id}.html`
 

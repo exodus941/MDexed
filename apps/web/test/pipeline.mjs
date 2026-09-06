@@ -1,6 +1,10 @@
 /* Pipeline regression test: derivation, macros, spec conformance, round trip.
    Run with `npm test`. No framework — plain assertions over the pure layer,
    which is where the correctness risk actually lives. */
+/* Registers a loader for Vite's `?raw` CSS imports, so the emit layer is
+   reachable from plain Node. It must be its own file, because a static graph
+   resolves before anything in it evaluates. See test/css-hook.mjs. */
+import './css-hook.mjs'
 import fs from 'node:fs'
 import { load as yamlLoad } from 'js-yaml'
 import { createInitialState, CONTRAST_PAIRS, ANTI_PATTERNS, pairFails } from '../src/state/schema.js'
@@ -18,7 +22,7 @@ import { parseFile } from '../src/emit/parse.js'
 import { collectComponents } from '../src/emit/yaml.js'
 import { tokensCss } from '../src/emit/tokens.js'
 import { agentContract, checklistBytes, checklistLines, CONTRACT_MAX_LINES, CONTRACT_MAX_BYTES } from '../src/emit/agents.js'
-import { payloadTextFiles, REQUIRED_FILES, EXAMPLE_PREFIX, HTML_EXAMPLES_MODES, exampleFilename } from '../src/emit/payload.js'
+import { payloadTextFiles, REQUIRED_FILES, EXAMPLE_PREFIX, HTML_EXAMPLES_MODES, exampleFilename, exampleModes } from '../src/emit/payload.js'
 import { serializeProject, parseProject, projectFilename } from '../src/emit/project.js'
 import { diffWords, diffStats } from '../src/ai/diff.js'
 import { contextFor, refinePrompt, draftPrompt, systemPrompt } from '../src/ai/prompts.js'
@@ -818,6 +822,80 @@ line('\n- prompt construction -')
     assert(exampleFilename(mode, 'dashboard') === `${EXAMPLE_PREFIX}-${mode}-dashboard.html`,
       `the ${mode} sample name is flat and self-describing (${exampleFilename(mode, 'dashboard')})`)
   }
+}
+
+/* ── A SINGLE-THEME PACKAGE SHIPS NOTHING FROM THE OTHER THEME ──
+ *
+ * SIXTH SITE OF ONE FAULT, and each site asked its own wrong question.
+ * `markdown.js` asked `hasDark`, true for dark-only. `agents.js` asked the
+ * shape of the derived object, true always. `payload.js` asked nothing: the
+ * mode list was a constant. `html.js` said "one half of a pair" and shipped a
+ * working toggle. `tokens.js` promised both themes in two table rows.
+ *
+ * Measured on one dark-only export before this: eleven `EXAMPLE-light-*.html`
+ * pages, 2,506,572 bytes, 47% of the package. Each pinned `data-theme="light"`
+ * and painted a palette `tokens.css` does not publish, in a package whose
+ * DESIGN.md says "do not invent the other palette to fill one".
+ *
+ * So the question gets asked ONCE, of the whole package, in both directions.
+ * Six wordings of one rule is how two of them end up disagreeing. */
+{
+  /* Dynamic, so the CSS hook above is registered before this graph resolves. */
+  const { previewHtml } = await import('../src/emit/html.js')
+  const build = theme => {
+    const s = createInitialState()
+    s.color = { ...s.color, theme }
+    const d = derive(s)
+    const files = payloadTextFiles(s, d)
+    const modes = exampleModes(s)
+    for (const mode of modes) {
+      files[exampleFilename(mode, 'dashboard')] =
+        previewHtml({ state: s, derived: d, markup: '<div class="dmd"></div>', surface: 'Dashboard', mode })
+    }
+    return { state: s, files, modes }
+  }
+
+  for (const [theme, other] of [['dark', 'light'], ['light', 'dark']]) {
+    const { files, modes } = build(theme)
+    assert(modes.length === 1 && modes[0] === theme,
+      `a ${theme}-only document ships ${theme} sample pages only (got ${modes.join(', ')})`)
+    assert(!Object.keys(files).some(f => f.startsWith(`${EXAMPLE_PREFIX}-${other}-`)),
+      `a ${theme}-only package contains no ${other} sample page`)
+
+    /* The page must not carry a control for a theme that is not in the zip,
+       nor tell the reader to look for a twin that was never written. */
+    const page = files[exampleFilename(theme, 'dashboard')]
+    assert(!/id="page-theme"/.test(page),
+      `a ${theme}-only sample page carries no theme control`)
+    assert(!/one half of a pair/.test(page),
+      `a ${theme}-only sample page does not describe a twin`)
+    assert(new RegExp(`data-theme="${theme}"`).test(page)
+      && !new RegExp(`data-theme="${other}"`).test(page),
+      `a ${theme}-only sample page pins only its own theme`)
+
+    /* And no prose file may promise the palette that is not shipped. */
+    assert(!/Custom properties for both themes/.test(files['README.md']),
+      `a ${theme}-only README does not promise both themes`)
+    assert(!/The markup is identical between them/.test(files['README.md']),
+      `a ${theme}-only README does not describe a pair of pages`)
+  }
+
+  /* THE OTHER DIRECTION, or the fix is a blindfold. A two-theme document must
+     still get both pages, the control and the pair wording. */
+  const { files, modes } = build('both')
+  assert(modes.length === 2, `a two-theme document still ships both sets (got ${modes.join(', ')})`)
+  const lightPage = files[exampleFilename('light', 'dashboard')]
+  assert(/id="page-theme"/.test(lightPage), 'a two-theme sample page still carries the control')
+  assert(/one half of a pair/.test(lightPage), 'a two-theme sample page still names its twin')
+  assert(/Custom properties for both themes/.test(files['README.md']),
+    'a two-theme README still promises both themes')
+
+  /* The twin files carry the same instructions, and each names the OTHER, so
+     neither may claim to be byte-identical to it. */
+  assert(files['AGENTS.md'] !== files['CLAUDE.md'],
+    'the twin contracts differ, because each names the other')
+  assert(!/is identical to/i.test(files['AGENTS.md'] + files['CLAUDE.md'] + files['README.md']),
+    'no file claims the twin contracts are identical')
 }
 
 /* ── The package loads the fonts it names ──

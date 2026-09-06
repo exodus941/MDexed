@@ -1903,7 +1903,7 @@ function Shell() {
   const exportPackage = async () => {
     setPackaging(true)
     try {
-      const [{ renderToStaticMarkup }, html, { payloadTextFiles, exampleFilename, HTML_EXAMPLES_MODES }, { zip }] = await Promise.all([
+      const [{ renderToStaticMarkup }, html, { payloadTextFiles, exampleFilename, exampleModes }, { zip }] = await Promise.all([
         import('react-dom/server'),
         import('./emit/html.js'),
         import('./emit/payload.js'),
@@ -1916,23 +1916,26 @@ function Shell() {
       /* The text files come from a module the test suite can import, so what
          a user receives is asserted rather than assumed. See emit/payload.js. */
       const files = payloadTextFiles(stamped, derived)
-      /* Both themes, every surface, always.
-         The dark palette is half the work in the document and none of it was
-         shipping — an agent got six light pages and a table of dark hex codes,
-         which is not the same thing. Dark mode is where a system usually comes
-         apart: surfaces have to lift instead of the shadows deepening, and a
-         colour that carried on paper stops carrying on ink. Showing it is the
-         only way that reads.
+      /* Every surface, in every theme the document SHIPS.
+         The dark palette is half the work in a two-theme document and none of
+         it was shipping — an agent got six light pages and a table of dark hex
+         codes, which is not the same thing. Dark mode is where a system usually
+         comes apart: surfaces have to lift instead of the shadows deepening,
+         and a colour that carried on paper stops carrying on ink. Showing it is
+         the only way that reads.
 
-         Not conditional on the editing mode. That setting says which theme you
-         are working on, and `tokens.css` ships both regardless — so gating the
-         examples on it would leave half the exported system undemonstrated
-         while the values for it sat right there in the file.
+         THE REASON FOR MAKING THAT UNCONDITIONAL HAD EXPIRED. It said
+         `tokens.css` ships both regardless, so gating the examples would leave
+         half the exported system undemonstrated. That was true while the theme
+         was an editing preference. It is a three-way field now and it decides
+         what gets EMITTED, so a dark-only `tokens.css` publishes one palette
+         while eleven light pages painted one it does not contain.
+         `exampleModes` asks the document. See emit/payload.js.
 
-         The markup is rendered once and reused. It is identical between the
-         two, because the theme is a variable swap and nothing else — which is
-         itself worth demonstrating. */
-      const modes = HTML_EXAMPLES_MODES
+         The markup is rendered once and reused. It is identical between two
+         themes, because the theme is a variable swap and nothing else — which
+         is itself worth demonstrating, when there are two of them. */
+      const modes = exampleModes(stamped)
       for (const s of SURFACES) {
         const markup = renderToStaticMarkup(
           <div className="dmd-frame"><div className="dmd"><s.Component layout={derived.componentLayout} tabStyle={stamped.components?.tabStyle} /></div></div>

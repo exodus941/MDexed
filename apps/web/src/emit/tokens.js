@@ -566,6 +566,10 @@ function cardSeparator(state) {
 
 export function packageReadme(state) {
   const name = state.meta?.name?.trim() || 'Design system'
+  /* This table told a dark-only reader that `tokens.css` holds both themes and
+     that each sample page has a twin. Neither was true of the package it was
+     sitting in. */
+  const both = hasThemeToggle(state)
   return `# ${name}
 
 > **Coding agents: read \`AGENTS.md\` first.** It is the contract for this
@@ -582,15 +586,15 @@ your stack, and ignore the rest.
 | File | What it's for |
 | --- | --- |
 | \`AGENTS.md\` | The rules for using this package. Written for agents, short enough to read. |
-| \`CLAUDE.md\` | Identical to \`AGENTS.md\`. Claude Code reads this name without being asked. |
+| \`CLAUDE.md\` | The same instructions as \`AGENTS.md\`. Claude Code reads this name without being asked. |
 | \`DESIGN.md\` | The system in full — values *and* the reasoning. Give this to a coding agent. |
-| \`tokens.css\` | Custom properties for both themes. Start here whatever else you use. |
+| \`tokens.css\` | Custom properties for ${both ? 'both themes' : 'the one theme this system ships'}. Start here whatever else you use. |
 | \`tokens.ts\` | Literal values for CSS-in-JS, React Native, charts, scripts. Typed, so role names autocomplete. |
 | \`tailwind.css\` | Tailwind **v4**. An \`@theme\` block; import it after \`tokens.css\`. |
 | \`tailwind.config.js\` | Tailwind **v3**. A preset — merge it, don't replace your config. |
 | \`_tokens.scss\` | Sass variables, maps and a breakpoint mixin. |
 | \`tokens.json\` | W3C Design Tokens format, for Style Dictionary, Figma and similar. |
-| \`EXAMPLE-<theme>-<surface>.html\` | Every surface as a standalone page, in the package root. Both themes when the system ships both, named in the file. The markup is identical between them — the theme is a variable swap and nothing else. |
+| \`EXAMPLE-<theme>-<surface>.html\` | Every surface as a standalone page, in the package root. ${both ? 'Both themes, named in the file. The markup is identical between them — the theme is a variable swap and nothing else.' : 'One per surface, in the one theme this system ships, named in the file.'} |
 
 Both Tailwind files are present because v3 and v4 configure themselves in
 different places and neither can read the other's. Use the one matching your
