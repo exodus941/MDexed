@@ -70,10 +70,34 @@ export default function Index ({ onInspect, casing, layout }) {
                 the page's own voice. */}
             $184,320 outstanding · 2 overdue
           </p>
-          <div className="row page-actions">
-            <button className="btn btn-secondary" {...ins('button-secondary')}><Ico d={IconDownload} />{L('Export')}</button>
-            <button className="btn btn-primary" {...ins('button-primary')}><Ico d={IconPlus} />{L('New invoice')}</button>
-            <button className="btn btn-secondary icon-only" {...ins('button-secondary')}><Ico d={IconMore} /></button>
+          {/* AN ACTION ROW THAT BREAKS, BREAKS INTO PAIRS, and this one did not.
+              It shipped as three flat buttons, so between 640 and 920 — where
+              the ladder gives the group its own line — they sat at their
+              natural widths against the left edge. Measured 285px of controls
+              on a 718px line, with 433px empty beside them.
+
+              Two of four surfaces carried `.action-pairs` and two did not,
+              which is the class-versus-instance failure: I built the pattern,
+              proved it on the screens in front of me, and left its siblings
+              flat. The check that found it is in the toolkit now.
+
+              THREE IS ODD, so the primary takes a line to itself and goes
+              FIRST — a column is pressed from the top. `.pair-lead` says
+              which, because CSS cannot count importance. Export and the
+              overflow pair underneath, the labelled one absorbing the slack
+              and the square keeping its square.
+
+              Wide, the pairs dissolve to `display: contents` and `act-1` to
+              `act-3` put the row back the way it reads: Export, New invoice,
+              then the overflow last. */}
+          <div className="row page-actions action-pairs">
+            <div className="pair pair-lead">
+              <button className="btn btn-primary act-2" {...ins('button-primary')}><Ico d={IconPlus} />{L('New invoice')}</button>
+            </div>
+            <div className="pair">
+              <button className="btn btn-secondary act-1" {...ins('button-secondary')}><Ico d={IconDownload} />{L('Export')}</button>
+              <button className="btn btn-secondary icon-only act-3" {...ins('button-secondary')}><Ico d={IconMore} /></button>
+            </div>
           </div>
         </div>
       </div>

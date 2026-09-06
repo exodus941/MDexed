@@ -246,8 +246,9 @@ export default defineConfig(({ command }) => ({
        dark chroma floor, and to 876 at 872.77 with the ground and selection
        controls, and to 880 at 877.15 with the selected table row. Then to 955
        at 950.46 with the keyboard contracts, the chart palette, the dataviz
-       scales and the amount check. */
-    chunkSizeWarningLimit: 955,
+       scales and the amount check. Then to 985 at 980.71, with the pairing
+       check and the rule that a row taking a line of its own covers it. */
+    chunkSizeWarningLimit: 985,
   },
 
   server: {

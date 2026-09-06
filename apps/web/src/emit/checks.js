@@ -2104,6 +2104,92 @@ export const CHECKS = [
   },
 
   {
+    id: 'a-row-alone-on-its-line-covers-it',
+    where: 'render',
+    line: 'An action row that takes a line of its own covers that line.',
+    /* ── A ROW TOLD TO TAKE THE LINE MUST USE THE LINE ──
+     *
+     * The document says an action row that breaks, breaks into PAIRS: two per
+     * line, equal, covering the whole width. Nothing checked it, and the rule
+     * is the easiest in the set to obey halfway. A builder writes the pairing
+     * once, proves it on the screen in front of them, and leaves the next
+     * header flat. Both then drop below the title and only one covers its line.
+     *
+     * Measured on two surfaces of one system at 768px: 285px of controls on a
+     * 718px line with 433px empty, and a lone 36px toggle on a 534px line with
+     * 498px empty. Every other check reported both clean, because nothing was
+     * out of line with anything — the line itself was the wrong shape.
+     *
+     * ASK THE FAULT, NEVER THE MECHANISM. The first version of this asked
+     * whether an auto margin sat on a growing box, which was the shape of the
+     * one instance in hand. It faulted correct code whose margin a later rule
+     * had overridden, and it missed a header holding a single control. Three
+     * conditions instead, and no mechanism in any of them:
+     *
+     *   1. The box was TOLD to take the line — an auto margin, a 100% basis,
+     *      or a positive grow. One instruction in three spellings.
+     *   2. It took it, so its width is the parent content box.
+     *   3. Its content leaves more of that line empty than full.
+     *
+     * A hole larger than the content is not a matter of taste. It says the
+     * instruction bought nothing, and the element asked for it itself.
+     *
+     * Every child must be a CONTROL, or this is prose, and left-aligned prose
+     * is correct. That guard keeps it off headings and paragraphs.
+     *
+     * STATE THE LIMIT RATHER THAN CLAIMING SAFETY. This asks about a row that
+     * spans its whole line. A group that grew to fill only the space LEFT on a
+     * shared line has the same fault and a different geometry: its box is flush
+     * against the end while its content packs at its own start. Telling that
+     * apart from a deliberately start-aligned toolbar needs the cascade, since
+     * an auto margin that resolved to zero is invisible to `getComputedStyle`.
+     * The author-side toolkit resolves it; this one does not, and a check that
+     * fires on correct code costs more than the miss it prevents.
+     *
+     * FLATTEN A DISSOLVED WRAPPER FIRST. `display: contents` generates no box,
+     * so a visibility filter drops the wrapper and everything inside it. The
+     * pairing pattern DEPENDS on dissolving a wrapper at wide widths, which
+     * makes the shape this check could not otherwise see the shape the
+     * document asks for. */
+    body: [
+      "var CTRL = 'button, input, select, textarea, a[href], summary, [role=button],'",
+      "  + ' [role=checkbox], [role=radio], [role=tab], [role=switch], [tabindex]'",
+      "for (const el of all('*')) {",
+      "  const cs = getComputedStyle(el)",
+      "  if (cs.display.indexOf('flex') === -1 || cs.flexDirection !== 'row') continue",
+      "  const parent = el.parentElement",
+      "  if (!parent) continue",
+      "  const ink = []",
+      "  for (const c of el.children) {",
+      "    if (getComputedStyle(c).display === 'contents') { for (const g of c.children) ink.push(g) }",
+      "    else ink.push(c)",
+      "  }",
+      "  const paint = ink.filter(visible).filter(c => {",
+      "    const p = getComputedStyle(c).position",
+      "    return p !== 'absolute' && p !== 'fixed'",
+      "  })",
+      "  if (!paint.length) continue",
+      "  if (!paint.every(c => c.matches(CTRL))) continue",
+      "  const told = cs.flexBasis === '100%' || parseFloat(cs.flexGrow) > 0",
+      "    || el.style.marginLeft === 'auto' || el.style.marginRight === 'auto'",
+      "  if (!told) continue",
+      "  const pcs = getComputedStyle(parent), pb = parent.getBoundingClientRect()",
+      "  const lineW = (pb.right - px(pcs.paddingRight) - px(pcs.borderRightWidth))",
+      "    - (pb.left + px(pcs.paddingLeft) + px(pcs.borderLeftWidth))",
+      "  const b = el.getBoundingClientRect()",
+      "  if (lineW <= 0 || b.width < lineW * 0.95) continue",
+      "  const cL = b.left + px(cs.paddingLeft) + px(cs.borderLeftWidth)",
+      "  const cR = b.right - px(cs.paddingRight) - px(cs.borderRightWidth)",
+      "  let inkL = Infinity, inkR = -Infinity",
+      "  for (const c of paint) { const r = c.getBoundingClientRect(); if (r.left < inkL) inkL = r.left; if (r.right > inkR) inkR = r.right }",
+      "  const filled = inkR - inkL",
+      "  const hole = (cR - cL) - filled",
+      "  if (hole <= filled) continue",
+      "  fail(name(el), 'this row of ' + paint.length + ' control(s) asked for the whole line, took ' + round(b.width) + 'px of it and filled ' + round(filled) + 'px. ' + round(hole) + 'px is empty. A row that takes a line of its own covers that line: pair the controls two per line and let the last labelled one absorb the slack. A group holding nothing but icon-only controls never needed a line at all — keep it beside the heading.')",
+      "}",
+    ],
+  },
+  {
     id: 'a-row-that-cannot-wrap-must-fit',
     where: 'render',
     line: 'A row that cannot wrap fits its box, or it carries flex-wrap: wrap.',

@@ -499,13 +499,43 @@
      elements across Landing, Settings and Overlays at 296 to 320px, on labels
      and captions that had been clear before. A transform costs no layout,
      which is exactly why it can overlap. */
-  .dmd .page-head > .page-actions { order: 4; flex: 1 0 100%; transform: none; }
+  /* ── A GROUP WITH NO LABELLED BUTTON NEVER NEEDED A LINE ──
+   *
+   * These rules drop the action group below the title when it stops fitting
+   * beside one. A group holding nothing but icon-only controls is 36px wide,
+   * so it fits beside any title at any width and none of these rules was ever
+   * about it. Ungated, they stranded one glyph on a full-width bar: measured
+   * on Settings at 296px to 896px, 218px to 626px empty beside a 36px button,
+   * and the header 53px taller than it needed to be.
+   *
+   * WRITE THE GATE AS THE CASE THE RULE IS ABOUT. The first version said
+   * `:not(:has(...))` and hung it on these four, which made them apply ONLY
+   * to the group they were meant to skip. Everything read as fixed: the
+   * selector matched, the rule was in the sheet, and the sweep came back with
+   * the same eight findings and the same numbers. A gate is easier to invert
+   * than to notice, so measure the computed value, never the selector.
+   *
+   * The gate is a DECLARATION, not a name list. `.icon-only` is this system's
+   * own word for a control with no visible label, and the pairing rules below
+   * already key on it.
+   *
+   * Falling through is the whole point. A gated group takes the base rule,
+   * which was already right for a control on the title's row — its cap-band
+   * transform, its auto margin, its own width. Restating those here would put
+   * the same values in a third place, and two of them would drift.
+   *
+   * The other three gated rules carry the same suffix and point back here. */
+  .dmd .page-head > .page-actions:has(.btn:not(.icon-only)) { order: 4; flex: 1 0 100%; transform: none; }
   /* The auto margin moves with the control that needs it. It sits on the action
      group above, which pushes that group right — but here the group is on a
      line of its own and the menu button shares the title's line, so the button
      takes it. Measured before: 168px short of the edge at 548. */
   .dmd .page-head > .nav-collapse { margin-left: auto; }
-  .dmd .page-head > .page-actions { margin-left: 0; }
+  /* WITH the group present, the group takes the slack and the button follows
+     it. Two items both declaring `auto` split the free space, which parked the
+     toggle in the middle of the row with the button at the far end. */
+  .dmd .page-head > .page-actions:not(:has(.btn:not(.icon-only))) ~ .nav-collapse { margin-left: 0; }
+  .dmd .page-head > .page-actions:has(.btn:not(.icon-only)) { margin-left: 0; }
   /* The title SHARES the line here, so it grows into what is left rather than
      taking its content width. A long title otherwise claimed the whole line and
      pushed the menu button onto a row of its own: measured at 500px with the
@@ -552,7 +582,7 @@
      description and the actions tied and the DOM decided, which put the actions
      above the line that describes the page. The orders live in one place now,
      forty lines up. */
-  .dmd .page-head > .page-actions {
+  .dmd .page-head > .page-actions:has(.btn:not(.icon-only)) {
     margin-top: var(--space-sm, 12px);
     flex-wrap: wrap;
     align-items: stretch;
@@ -762,7 +792,7 @@
    *
    * Scoped to the header. `.action-pairs` is also the selection bar's, and its
    * own step was measured for a bar rather than for a heading. */
-  .dmd .page-head > .page-actions {
+  .dmd .page-head > .page-actions:has(.btn:not(.icon-only)) {
     order: 4; flex: 1 0 100%; margin-left: 0; transform: none;
   }
   /* `align-items: stretch`, because `.row` declares BASELINE and a column
