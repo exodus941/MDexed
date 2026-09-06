@@ -2104,6 +2104,62 @@ export const CHECKS = [
   },
 
   {
+    id: 'a-type-role-is-one-decision',
+    where: 'render',
+    line: 'Text takes its size and its leading from the SAME type role.',
+    /* ── A SIZE FROM ONE ROLE AND A LEADING FROM ANOTHER ──
+     *
+     * The published roles pair a size with a leading. Nothing kept them
+     * together, so a heading could take one role’s size and another role’s
+     * leading and look almost right.
+     *
+     * Measured on this system’s own preview screens: eighteen headings wrote
+     * their size inline from one role while the element they sat in supplied
+     * the leading of a different one. A card title asked for a 20px role and
+     * rendered on a 32px role’s leading.
+     *
+     * The tell was how little a fix moved it. The author rewrote the whole
+     * leading ladder, set that role to 1.625, and the title moved 0.5px,
+     * because it was still reading the other role’s 1.375.
+     *
+     * ASK THE RENDERED PAIR, NOT THE MARKUP. A class name, a tag or a
+     * comment can all say the wrong thing. What ships is a font-size and a
+     * line-height, so those are what get compared.
+     *
+     * TWO ROLES MAY SHARE A SIZE, and here two do at 18px. So the test is
+     * whether ANY role with this size also has this leading. Requiring one
+     * particular role would fault a correct page the moment a scale doubles
+     * up a step.
+     *
+     * A SIZE THAT MATCHES NO ROLE IS A DIFFERENT FAULT and a different
+     * check owns it. Reporting it here would say "leading" about an
+     * off-scale size and send the reader to the wrong line. */
+    body: [
+      "var ROLE_NAMES = ['display','h1','h2','h3','h4','h5','h6',",
+      "  'body-lg','body-md','body-sm','caption','overline','button','code']",
+      "var ROLES = []",
+      "for (const r of ROLE_NAMES) {",
+      "  const size = parseFloat(tokenValue('--font-' + r + '-size'))",
+      "  const lead = parseFloat(tokenValue('--font-' + r + '-leading'))",
+      "  if (size > 0 && lead > 0) ROLES.push({ r: r, size: size, px: size * lead })",
+      "}",
+      "if (ROLES.length) for (const el of all('*')) {",
+      "  if (el.children.length) continue",
+      "  if (!el.textContent.trim()) continue",
+      "  const cs = getComputedStyle(el)",
+      "  const size = parseFloat(cs.fontSize)",
+      "  const lh = parseFloat(cs.lineHeight)",
+      "  if (!(size > 0) || !(lh > 0)) continue",
+      "  const sameSize = ROLES.filter(x => Math.abs(x.size - size) < 0.6)",
+      "  if (!sameSize.length) continue",
+      "  if (sameSize.some(x => Math.abs(x.px - lh) < 0.8)) continue",
+      "  const owner = sameSize.map(x => x.r).join(' or ')",
+      "  const lent = ROLES.filter(x => Math.abs(x.px - lh) < 0.8).map(x => x.r)",
+      "  fail(name(el), 'this is ' + round(size) + 'px, which is the ' + owner + ' size, and its line height is ' + round(lh) + 'px, which that role does not publish. ' + (lent.length ? 'That leading belongs to ' + lent.join(' or ') + '. ' : '') + 'A type role pairs a size with a leading, so take both from one role rather than the size from one and the leading from whatever element it sits in.')",
+      "}",
+    ],
+  },
+  {
     id: 'a-row-alone-on-its-line-covers-it',
     where: 'render',
     line: 'An action row that takes a line of its own covers that line.',

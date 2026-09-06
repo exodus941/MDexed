@@ -247,8 +247,9 @@ export default defineConfig(({ command }) => ({
        controls, and to 880 at 877.15 with the selected table row. Then to 955
        at 950.46 with the keyboard contracts, the chart palette, the dataviz
        scales and the amount check. Then to 985 at 980.71, with the pairing
-       check and the rule that a row taking a line of its own covers it. */
-    chunkSizeWarningLimit: 985,
+       check and the rule that a row taking a line of its own covers it. Then
+       to 990 at 985.67, with the type-role check and the per-role classes. */
+    chunkSizeWarningLimit: 990,
   },
 
   server: {
