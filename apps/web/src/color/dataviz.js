@@ -18,49 +18,27 @@
  * that assigns colours by iteration order gives a different picture every time
  * the data is sorted.
  *
- * ── WHY THE GOLDEN ANGLE ──
+ * ── HOW THE EIGHT ARE PLACED ──
  *
- * Eight hues at 45 degrees apart look evenly spaced on a colour wheel and are
- * not evenly spaced to an eye: the yellow-green region is perceptually narrow
- * and swallows two of them. Stepping by 137.508 degrees never revisits a
- * region until the whole circle is covered, so any PREFIX of the sequence is
- * well spread. A chart with three series gets three colours as far apart as
- * three colours can be, and the fourth does not disturb them.
+ * Hues spread evenly across a SPAN rather than around the whole circle, with
+ * series one on the accent's own hue at one end of it. Lightness cycles
+ * through four levels and chroma through four factors, so two series sharing a
+ * level are four apart in the sequence and 149 degrees apart in hue.
  *
- * ── AND WHY THE LIGHTNESS CYCLES THROUGH FOUR ──
+ * THE PALEST LEVEL IS BOUNDED BY THE PAGE, not by taste. At 0.88 it came out
+ * 0.012 DARKER than a light page measuring 0.893, so the fill read as nothing
+ * at all while this file's own prose claimed 0.11 of separation. 0.78 restores
+ * that gap and still clears the floor at 0.105 across the hue circle.
  *
- * Hue alone is not enough. Roughly one man in twelve cannot separate two of
- * the hues this sequence produces, and no rotation fixes that. What survives
- * is LIGHTNESS, so the sequence cycles through four levels rather than sitting
- * at one.
- *
- * Four, and not two, and not eight. Measured across the default and all six
- * presets, worst pair of the eight, with the red-green axis removed:
- *
- *   two levels    0.003     the two colours are the same colour
- *   FOUR LEVELS   0.019
- *   eight levels  0.053     but lightness then rises monotonically, and a
- *                           categorical scale that climbs reads as a rank
- *
- * Varying chroma as well was tried and does not help: alternating it took the
- * same worst pair to 0.013 and cost 0.030 of ordinary separation.
+ * Every filled series takes a hairline in the page's own border colour. The
+ * gap is enough for an area and not for an edge.
  *
  * ── SO STATE THE LIMIT ──
  *
- * 0.019 is under two just-noticeable differences. No eight-colour categorical
- * palette is safe without red-green vision, this one included, and saying so
- * is worth more than a claim nobody measured. That is the reason a chart never
- * encodes a series by colour alone. The palette makes the picture readable and
- * the direct label makes it certain.
- *
- * ── ONE SET, BOTH THEMES ──
- *
- * The four levels span the middle of the range, clear of a light page at 0.97
- * and a dark one at 0.20. So series three is the same colour in both themes,
- * and a legend learned in one reads in the other. The palest series has 0.11
- * of lightness between it and a light page, which is a fill and not a line:
- * every series takes a hairline in the page's own border colour, and then the
- * palest one still has an edge.
+ * No eight-colour categorical palette is safe without red-green vision, this
+ * one included. Saying so is worth more than a claim nobody measured, and it
+ * is why a chart never encodes a series by colour alone. The palette makes the
+ * picture readable and the direct label makes it certain.
  */
 
 import { parseColor, toHex, toGamut, fromOklch, toOklchObj, inGamut } from './convert.js'
@@ -69,15 +47,12 @@ import { RAMP_STEPS } from './ramp.js'
 /** Fixed count. Eight series is where a legend stops being readable. */
 export const CATEGORICAL_COUNT = 8
 
-/** Degrees. The golden angle, 360 / phi^2. */
-const GOLDEN_ANGLE = 137.508
-
 /**
  * Four lightness levels, cycling. Series i takes level i mod 4, so two series
- * share a level only when they are four apart in the sequence, which is 190
- * degrees of hue.
+ * share a level only when they are four apart in the sequence, which is 149
+ * degrees of hue across a 260 degree span.
  */
-export const LIGHTNESS_LEVELS = [0.44, 0.78, 0.56, 0.88]
+export const LIGHTNESS_LEVELS = [0.38, 0.68, 0.52, 0.78]
 
 /* ── WHY THIS PALETTE LOOKED LIKE A SWATCH DRAWER ──
  *
@@ -104,8 +79,9 @@ export const LIGHTNESS_LEVELS = [0.44, 0.78, 0.56, 0.88]
  *
  * THE WHOLE WHEEL. Ours spanned 274 degrees, theirs about 190. A set that
  * leaves a gap reads as a family; a set that closes the circle reads as a box
- * of pencils. So the hues spread inside a SPAN rather than around the circle,
- * still by the golden ratio, so any prefix is well spread within the family.
+ * of pencils. So the hues spread EVENLY inside a span rather than around the
+ * circle. The golden ratio was tried inside the span first and is wrong there:
+ * it landed two hues three degrees apart, which is 0.010 at a quiet chroma.
  */
 export const CHROMA_TARGET = 0.16
 export const CHROMA_CYCLE = [1, 0.55, 0.85, 0.4]
@@ -185,9 +161,9 @@ export function categorical(accentHex) {
   const out = []
   for (let i = 0; i < CATEGORICAL_COUNT; i++) {
     /* Series one IS the brand hue, so the first swatch of every chart in the
-       system is the colour the reader already associates with it. The rest
-       spread INSIDE a span by the golden ratio, so any prefix is well spread
-       within the family rather than around the whole circle. */
+       system is the colour the reader already associates with it, and it sits
+       at one END of the span so its nearest neighbour in hue never shares its
+       lightness. The rest step evenly across. */
     const step = HUE_SPAN * (i / (CATEGORICAL_COUNT - 1))
     const h = (((seed.h ?? 0) + step) % 360 + 360) % 360
     const l = LIGHTNESS_LEVELS[i % LIGHTNESS_LEVELS.length]
