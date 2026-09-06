@@ -148,11 +148,18 @@ ${decl(darkOnly)}
  * reader then presses the lightbulb, sees no change, and reports it broken.
  * That happened on a real build.
  *
- * So the dark block answers to a checkbox as well. Put a hidden checkbox with
- * this id anywhere on the page and label it with your visible control:
+ * So the dark block answers to a checkbox as well. Put a checkbox with this id
+ * anywhere on the page and label it with your visible control:
  *
- *   <input type="checkbox" id="dmd-dark" hidden>
+ *   <input type="checkbox" id="dmd-dark" class="visually-hidden">
  *   <label for="dmd-dark" class="…">…lightbulb…</label>
+ *
+ * HIDE IT VISUALLY, NEVER WITH THE HIDDEN ATTRIBUTE. This recipe used it, and
+ * such an input is not focusable: the toggle worked with a mouse and vanished
+ * from the tab order, while this package's own checklist asks every control to
+ * be operable. Use the offscreen-clip technique instead, so the checkbox keeps
+ * its place in the tab order and the label stays its visible face. Its focus
+ * ring belongs on the label, via a focus-visible adjacent-sibling rule.
  *
  * The control then works with no script at all. Add the script only for what
  * CSS cannot do: set the checkbox from the OS preference on load, persist the

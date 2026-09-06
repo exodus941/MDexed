@@ -112,15 +112,16 @@ export function agentContract (state, derived, opts = {}) {
 Read this file completely before you write any code. It is identical to
 ${twin} in this package, so read only one.
 
-This package is a design system. It is not a suggestion or a starting point.
-Treat every value in it as a decision that has already been made.
+This is a design system, not a starting point. Every value in it is a decision
+already made.
 
 ## Read in this order
 
 1. This file.
 2. \`DESIGN.md\`, in full. It carries the reasoning, not only the values.
 3. \`tokens.css\`, to see the names you will actually write.
-4. The \`EXAMPLE-*.html\` pages, only after the three above.
+4. \`EXAMPLE-<theme>-gallery.html\`, before you write a single component.
+5. The other \`EXAMPLE-*.html\` pages, as you need them.
 
 Do not skip step 2. The values alone will let you build something that
 validates and still looks wrong, because the constraints that matter most are
@@ -128,45 +129,51 @@ stated in prose.
 
 ## Precedence
 
-If two files disagree, this is the order. \`DESIGN.md\` wins over everything.
-\`tokens.css\` wins over the other token formats. The HTML examples never win.
+If two files disagree: the Gallery wins on how a component is BUILT, DESIGN.md
+wins on everything else, and \`tokens.css\` wins over the other token formats.
 
 ## Hard rules
 
 Never write a literal colour. No hex, no \`rgb()\`, no named colour. Use a
 token.
 
-Never invent a spacing, radius, font size or shadow value. Every value you
-need already has a name. If you are typing a number into a CSS property that
-has a scale, you are doing it wrong.
+Never invent a spacing, radius, font size or shadow value. Typing a number into
+a property that has a scale is always wrong.
 
-Never rename a token. Downstream tooling and the next export both depend on
-the names as given.
+Never rename a token. Downstream tooling and the next export depend on the
+names as given.
+
+Never invent a token or class name. A token holding two values has no \`-x\` or
+\`-y\` half, and an invented name paints nothing and reports nothing.
 
 Never add a font family. The system names every family it uses.
 
 Never change a value to fix a contrast problem. The pairings were checked. If
 a pairing looks wrong to you, report it and continue.
 
-Never treat an \`EXAMPLE-*.html\` page as a template. They are style references.
-Copy the token usage. Do not copy the markup or the page structure.
+## Build your components from the Gallery
+
+\`EXAMPLE-<theme>-gallery.html\` is every component this system ships, built
+correctly. Extract the ones you need, reproduce each 1:1, then compose your
+screen from them. Never derive a component from the prose.
+
+THE PAGE IS NOT A TEMPLATE. THE COMPONENTS IN IT ARE. Take the whole one: its
+box, its ornament, its variants, its states, and what its MARKUP renders. Half
+a component contradicts itself. DESIGN.md's Components section says how.
 
 ## When the system is silent
 
 The system does not cover every case, and this is where you may use judgement.
 Use it in this order.
 
-First, derive from what exists. A value between two steps of a scale means you
-pick one of the two steps, not a number in between.
+First, derive from what exists. A value between two steps of a scale means one
+of the two steps, never a number in between.
 
-Second, follow the nearest documented pattern. A component that is not
-specified should borrow from the closest one that is.
+Second, borrow from the nearest component in the Gallery.
 
-Third, if neither works, choose, then say so. List every such choice at the
-end of your work under a heading "Choices not covered by the design system".
-Do not bury them in comments.
-
-Do not resolve silence by importing a convention from another design system.
+Third, choose, then say so, under a heading "Choices not covered by the design
+system". Do not bury them in comments, and do not import a convention from
+another design system.
 
 ## The files
 
@@ -181,7 +188,8 @@ Do not resolve silence by importing a convention from another design system.
 | \`tokens.json\` | W3C Design Tokens, for Style Dictionary and Figma. |
 | \`${VERIFY_NODE}\` | Run it on your source before you report. Not optional. |
 | \`${VERIFY_BROWSER}\` | Paste into the console of the page you built. Not optional. |
-| \`EXAMPLE-<theme>-<surface>.html\` | Style reference only. Never a template. |
+| \`EXAMPLE-<theme>-gallery.html\` | Every component, built correctly. Extract from it. Read it before you write one. |
+| \`EXAMPLE-<theme>-<surface>.html\` | A screen using those components. Take the arrangement, never the page. |
 
 Take \`tokens.css\` plus the one file matching the stack you were asked for.
 Ignore the rest. Shipping both Tailwind files is not an invitation to use both.
@@ -190,28 +198,27 @@ The two \`VERIFY\` files are not part of that choice; both run whatever you buil
 ## Theme switching
 
 ${both
-  ? `Set \`data-theme="dark"\` on the root element. Every token resolves to its
-dark value with no second set of rules. With no attribute, the operating
-system preference decides. Do not write a separate dark stylesheet.`
+  ? `Label a visually hidden \`#dmd-dark\` checkbox with your visible control.
+\`tokens.css\` answers it with no script, and \`data-theme\` is what a script sets
+later. Write neither into your markup: absence follows the system preference.`
   : `This system ships one theme. Do not invent a second one.`}
 
 ## The part that decides whether this looks built or thrown together
 
-Tokens are the easy half. What separates a screen that looks made from one that
-looks generated is alignment, and it is all in DESIGN.md under **Typography**
-and **Layout**. Read those two before you write a component.
+Tokens are the easy half. Alignment is what separates a screen that looks made
+from one that looks generated, and it is in DESIGN.md under **Typography** and
+**Layout**. Read those two before you write a component.
 
-The checklist below measures most of it for you. These three it cannot, because
-each depends on content it has no way to vary:
+The checklist measures most of it. These three it cannot, because each depends
+on content it has no way to vary:
 
 - **A control beside a label centres on the label's FIRST line**, not on the
-  label as a block. Centring the row is right for one line and wrong the moment
-  it wraps, so build it against a label that actually wraps.
+  block. Build it against a label that actually wraps.
 - **Proximity is a ratio.** The gap between two groups must clearly beat the gap
-  inside one, or they read as a single block.
-- **A narrow layout collapses, it never reflows.** Actions beside a heading move
-  BELOW the heading and its description. Navigation goes behind one menu button.
-  Ask the container, not the window — a rail takes its width off everything else.
+  inside one, or they read as one block.
+- **A narrow layout collapses, it never reflows.** Actions move BELOW the
+  heading and its description, navigation goes behind one menu button, and the
+  width that decides it is the CONTAINER's rather than the window's.
 
 ## Before you say you are done
 
@@ -240,11 +247,7 @@ limitation of the design system.
 
 ## Run it again after the last edit
 
-Two failures survive everything above:
-
-- A check was silenced to keep the output tidy. A command sent to \`/dev/null\`
-  prints nothing when it fails, and that silence reads exactly like success.
-- A run that reported nothing was never a pass if it measured nothing. Read the
-  file count and the width it printed, not the absence of findings.
+Let both checkers print. Silence reads exactly like success, and a run that
+measured nothing was never a pass: read the counts, not the absence.
 `
 }

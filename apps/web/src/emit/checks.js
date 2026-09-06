@@ -2271,12 +2271,87 @@ export const CHECKS = [
     ],
   },
 
+  {
+    id: 'a-fixed-height-control-centres-its-label',
+    where: 'render',
+    line: 'A control with a stated height centres its label. Baseline alignment pins it to the top of the box.',
+    /* ── AN ANTI-PATTERN THIS SYSTEM STATES AND NEVER CHECKED ──
+     *
+     * The Do's and Don'ts carry it word for word: never baseline-align the
+     * contents of a fixed-height control, because baseline pins the label to
+     * the top of the box. Nothing measured it.
+     *
+     * A build read the prose and wrote `align-items: baseline` on its buttons
+     * and its nav items. Every button label sat 6.5px above its box centre in
+     * a 36px box, and every nav label 3.5px in a 44px box. Both verifiers
+     * passed the page, and a person found it in a screenshot.
+     *
+     * TWO CAUSES, ONE SYMPTOM, and the second is the one a rule about
+     * `align-items` misses. A flex row that CANNOT WRAP has one line, that
+     * line fills the box, and baseline then places the label at the line's own
+     * ascent. So a box taller than its content puts the label near the top
+     * even when the alignment is deliberate. `flex-wrap: wrap` with
+     * `align-content: center` gives the property a line to centre.
+     *
+     * ASK THE RESULT, NOT THE DECLARATION. Either cause is legal on its own,
+     * and a row aligned on the baseline is correct wherever the box fits its
+     * content. What is never correct is a label off the centre of a box whose
+     * height was stated. So this measures the label against the box.
+     *
+     * THE THRESHOLD IS ON THE MOVE. Centring shifts the label by the whole
+     * offset, so 1px here is 1px of repair. */
+    body: [
+      "const CONTROL = 'button, .btn, .nav-item, a.btn, [role=\"button\"], .select-trigger, .tab'",
+      "for (const el of all(CONTROL)) {",
+      "  const cs = getComputedStyle(el)",
+      "  /* A STATED HEIGHT is the whole point. A box that fits its content has",
+      "     nothing to centre in, and its label sits where the content puts it. */",
+      "  const stated = cs.height !== 'auto' && cs.blockSize !== 'auto'",
+      "  const floored = parseFloat(cs.minHeight) > 0 || parseFloat(cs.minBlockSize) > 0",
+      "  if (!stated && !floored) continue",
+      "  const r = el.getBoundingClientRect()",
+      "  if (!r.width || !r.height) continue",
+      "  /* Its OWN label, as a text node. A child element's rect can start at an",
+      "     ornament, and measuring that reports the mark rather than the words. */",
+      "  const tn = Array.prototype.filter.call(el.childNodes, function (n) {",
+      "    return n.nodeType === 3 && n.textContent.trim()",
+      "  })[0]",
+      "  if (!tn) continue",
+      "  const range = document.createRange()",
+      "  range.selectNode(tn)",
+      "  const rects = Array.prototype.filter.call(range.getClientRects(), function (q) { return q.width > 0 })",
+      "  if (rects.length !== 1) continue   /* a wrapped label has no single centre */",
+      "  const ctx = document.createElement('canvas').getContext('2d')",
+      "  ctx.font = cs.fontStyle + ' ' + cs.fontWeight + ' ' + cs.fontSize + ' ' + cs.fontFamily",
+      "  const m = ctx.measureText('H')",
+      "  const base = rects[0].top + m.fontBoundingBoxAscent",
+      "  const cap = base - m.actualBoundingBoxAscent",
+      "  const off = ((cap + base) / 2) - ((r.top + r.bottom) / 2)",
+      "  if (Math.abs(off) <= 1) continue",
+      "  fail(name(el), 'this control states its height and its label sits ' + round(off) + 'px from the box centre. Baseline alignment pins a label to the top of a fixed-height box, and so does a single flex line in a box taller than its content. Centre the label: an inline-block with a line-height equal to the CONTENT box, or flex-wrap with align-content centre where the mark still needs the baseline.')",
+      "}",
+    ],
+  },
+
   /* ══ MANUAL ═══════════════════════════════════════════════════════════ */
 
+  /* ── THIS CHECK USED TO FORBID THE RIGHT ANSWER ──
+   *
+   * It read "Nothing from an EXAMPLE page was copied as markup", which turned
+   * the Gallery into a picture nobody could use. A build obeying it derived
+   * every component from the prose and shipped an anti-pattern this system
+   * states in its own Do's and Don'ts. The Gallery had the fix all along.
+   *
+   * The line the package draws now: take the COMPONENT, leave the PAGE. */
   {
-    id: 'no-example-markup',
+    id: 'components-came-from-the-gallery',
     where: 'manual',
-    line: 'Nothing from an `EXAMPLE-*.html` page was copied as markup.',
+    line: 'Every component was extracted from the Gallery and reproduced whole, ornament and variants included.',
+  },
+  {
+    id: 'no-example-page-structure',
+    where: 'manual',
+    line: 'No page width, section order or sample content was copied from an `EXAMPLE-*.html` page.',
   },
   {
     id: 'choices-listed',

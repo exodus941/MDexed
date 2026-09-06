@@ -2668,7 +2668,18 @@ line('\n- depth intensity -')
         `${sep}/${i.id}: the prompt names the macro the preview used (${l})`)
       assert(l.includes(st.components.overrides['card.borderColor']),
         `${sep}/${i.id}: the prompt names the edge the preview used (${l})`)
-      assert(l.includes(`${i.pct}%`), `${sep}/${i.id}: the prompt states the percentage`)
+      /* A PERCENTAGE ONLY MEANS SOMETHING WHERE THERE IS A MACRO TO SET. For a
+         shadow the intensity IS a depth step and the number is actionable. For
+         a border there is no macro at all: the intensity picks a step on the
+         neutral ramp, which the same line already names as a colour. This
+         asserted the number on every strategy, so a reader was sent hunting for
+         a 33% control the editor does not have. `answers.js` says so in its own
+         comment, four lines from the value. */
+      if (sep === 'shadow') {
+        assert(l.includes(`${i.pct}%`), `${sep}/${i.id}: the prompt states the percentage`)
+      } else {
+        assert(!l.includes('%'), `${sep}/${i.id}: the prompt states no percentage, because a border has no macro`)
+      }
     }
   }
 

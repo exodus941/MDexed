@@ -125,7 +125,15 @@ export function buildPrompt(answers) {
        to set the macro from one and the edge from the other. Every number here
        comes from `applyAnswers`, so the prompt cannot ask for a card the
        preview did not paint. */
-    bullet(`Depth: ${a.depth.label}, intensity ${a.intensity.label.toLowerCase()} (${a.intensity.pct}%). Set the depth macro to ${a.depth.id === 'shadow' ? a.intensity.depth : 0}, and the card's border colour to ${cardEdge(a)}.`),
+    /* A PERCENTAGE THE READER CANNOT ACT ON IS WORSE THAN SILENT. For a
+       shadow the intensity IS a depth step, and the prompt names it. For a
+       border there is no macro at all: the intensity picks a step on the
+       neutral ramp, which the same line already names as a colour. A reader
+       sent hunting for a 33% control finds none, because none exists.
+       `answers.js` says so in its own comment, four lines from the value. */
+    bullet(a.depth.id === 'shadow'
+      ? `Depth: ${a.depth.label}, intensity ${a.intensity.label.toLowerCase()} (${a.intensity.pct}%). Set the depth macro to ${a.intensity.depth}, and the card's border colour to ${cardEdge(a)}.`
+      : `Depth: ${a.depth.label}, intensity ${a.intensity.label.toLowerCase()}. Set the depth macro to 0, and the card's border colour to ${cardEdge(a)}. A border has no macro: its intensity IS that colour, which is a step on the neutral ramp rather than an opacity.`),
     bullet(`Theme: ${a.theme.label}.`),
     '',
     '## The screen',
