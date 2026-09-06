@@ -295,14 +295,31 @@ export const ROLE_GROUPS = [
       { name: 'warning',         desc: 'Warning fill',               light: 'warning.900', dark: 'warning.200' },
       { name: 'warning-subtle',  desc: 'Warning background',         light: 'warning.50',  dark: 'neutral.950~warning.500@0.1' } /* mixes into the ground, see accent-subtle */,
       { name: 'warning-fg',      desc: 'Content on warning fill',    light: 'neutral.50',  dark: 'neutral.950' },
-      { name: 'danger',          desc: 'Destructive fill',           light: 'danger.700',  dark: 'danger.400'  },
+      /* ── DANGER LEAVES THE STEP IT SHARED WITH ACCENT, FOR WARNING'S REASON ──
+       *
+       * It sat at 700/400, which is also where `accent` and `success` sit. A
+       * ramp step fixes a role's lightness, so three roles on one step carry
+       * ONE lightness whatever their seeds did. Under red-green vision loss
+       * only lightness and the blue-yellow axis survive, so that left a single
+       * axis to separate a brand from a destructive action.
+       *
+       * Measured over 300 generated palettes at 700/400: 1.88 failures per
+       * run, 343 of them accent against danger. At 900/100: 0.02 per run and
+       * 2, with 5 warnings against 8. 900/200 scores 0.01 per run and 28
+       * warnings, so it is worse on the total and leaves the default document
+       * carrying one.
+       *
+       * The shipped default document still audits clean. 800/300 was measured
+       * too and is worse on both counts: 1.69 per run, and it breaks one check
+       * the default currently passes. */
+      { name: 'danger',          desc: 'Destructive fill',           light: 'danger.900',  dark: 'danger.100'  },
       /* Accent has had a hover role since the start; danger never did, so a
          destructive button's hover was defined as `danger` — the colour it
          already was — and the most consequential button in the app was the one
          that did not respond to the pointer. Steps the same direction accent
          does: darker on paper, lighter in the dark, because a hover has to
          move away from the page rather than always down. */
-      { name: 'danger-hover',    desc: 'Destructive hover',          light: 'danger.800',  dark: 'danger.300'  },
+      { name: 'danger-hover',    desc: 'Destructive hover',          light: 'danger.950',  dark: 'danger.50'  },
       { name: 'danger-subtle',   desc: 'Destructive background',     light: 'danger.50',   dark: 'neutral.950~danger.500@0.1'  } /* mixes into the ground, see accent-subtle */,
       { name: 'danger-fg',       desc: 'Content on destructive fill',light: 'neutral.50',  dark: 'neutral.950' },
     ],

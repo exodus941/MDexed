@@ -1215,11 +1215,19 @@ line('\n- prompt construction -')
    *
    * Injected by putting `warning` back on the step every other role sits on,
    * which is the exact state that shipped. Both modes must report it, or the
-   * fix above is a blindfold rather than a repair. */
+   * fix above is a blindfold rather than a repair.
+   *
+   * DANGER HAS TO COME BACK TOO. It moved off 700/400 for red-green
+   * separation, so flattening warning alone leaves danger holding the spread
+   * and the injected document is no longer flat. The test then reports the
+   * check as broken when the check is fine. Flatten every role the check
+   * measures, or the injection is not the state it claims to be. */
   {
     const flatDoc = createInitialState()
     flatDoc.color.roles.warning.light = 'warning.700'
     flatDoc.color.roles.warning.dark = 'warning.400'
+    flatDoc.color.roles.danger.light = 'danger.700'
+    flatDoc.color.roles.danger.dark = 'danger.400'
     const fd = derive(flatDoc)
     const flat = audit(flatDoc, fd).filter(f => f.id.startsWith('palette:flat'))
     assert(flat.length === 2,
