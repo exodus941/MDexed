@@ -2810,7 +2810,7 @@ line('\n- depth intensity -')
  * it is one that does not follow the brand. */
 {
   line('\n- the chart scales -')
-  const { buildDataviz, categorical, worstPair, withoutRedGreen, NEIGHBOUR_FLOOR, CATEGORICAL_COUNT, LIGHTNESS_LEVELS }
+  const { buildDataviz, categorical, worstPair, withoutRedGreen, NEIGHBOUR_FLOOR, CATEGORICAL_COUNT }
     = await import('../src/color/dataviz.js')
 
   const dv = derived.dataviz
@@ -2844,9 +2844,48 @@ line('\n- depth intensity -')
   assert(categorical(accent).join() !== categorical('#c13e2e').join(),
     'a different seed gives a different palette')
 
-  /* FOUR LIGHTNESS LEVELS, and the reason is measured. Two levels took the
-     worst pair without red-green to 0.003, which is the same colour twice. */
-  assert(LIGHTNESS_LEVELS.length === 4, `four lightness levels (${LIGHTNESS_LEVELS.length})`)
+  /* ── THE THREE CURVES, ASSERTED AS CURVES ──
+   *
+   * This used to assert four cycling lightness levels. The scale sweeps now,
+   * and a sweep is what makes it read as a family rather than as a swatch
+   * drawer, so the properties worth pinning are the shapes themselves. Assert
+   * the RESULT, not the constant, so a change to how it is computed still has
+   * to produce a sweep. */
+  const cat = dv.categorical
+  const okOf = h => toOklchObj(parseColorFor(h))
+  const Ls = cat.map(h => okOf(h).l)
+  const Cs = cat.map(h => okOf(h).c ?? 0)
+
+  /* ONE turning point: the lightness rises to a peak and comes back down. A
+     cycle has three or more, which is exactly what it looked like. */
+  let turns = 0
+  for (let i = 1; i < Ls.length - 1; i++) {
+    const up = Ls[i] > Ls[i - 1], next = Ls[i + 1] > Ls[i]
+    if (up !== next) turns++
+  }
+  assert(turns === 1, `the lightness arcs once rather than cycling (${turns} turning points, ${Ls.map(v => (v * 100).toFixed(0)).join(' ')})`)
+
+  /* The chroma rises the whole way, so the set has a quiet member and a loud
+     one instead of alternating between them. */
+  const rising = Cs.every((v, i) => i === 0 || v >= Cs[i - 1] - 0.001)
+  assert(rising, `the chroma rises along the run (${Cs.map(v => v.toFixed(2)).join(' ')})`)
+
+  /* And the hue turns one way. A sweep that doubles back is a cycle again. */
+  const steps = []
+  for (let i = 1; i < cat.length; i++) {
+    let d = (okOf(cat[i]).h ?? 0) - (okOf(cat[i - 1]).h ?? 0)
+    while (d > 180) d -= 360
+    while (d < -180) d += 360
+    steps.push(d)
+  }
+  assert(steps.every(d => d < 0) || steps.every(d => d > 0),
+    `the hue sweeps one direction (${steps.map(d => d.toFixed(0)).join(', ')})`)
+
+  /* The steps are UNEVEN, because an even walk is the metronome this replaced.
+     The reference measures 43, 96, 29 and 23 degrees. */
+  const spreadOfSteps = Math.max(...steps.map(Math.abs)) - Math.min(...steps.map(Math.abs))
+  assert(spreadOfSteps > 10,
+    `the hue steps are uneven (${spreadOfSteps.toFixed(0)} degrees between the widest and narrowest)`)
   const cvdWorst = (() => {
     let m = Infinity
     for (let i = 0; i < dv.categorical.length; i++)
@@ -2863,8 +2902,8 @@ line('\n- depth intensity -')
   const css = files['tokens.css']
   assert((css.match(/--chart-1\s*:/g) || []).length === 1,
     `--chart-1 is declared once in tokens.css (${(css.match(/--chart-1\s*:/g) || []).length})`)
-  assert((css.match(/--chart-[a-z0-9-]+\s*:/g) || []).length === 26,
-    `all 26 chart tokens reach tokens.css (${(css.match(/--chart-[a-z0-9-]+\s*:/g) || []).length})`)
+  assert((css.match(/--chart-[a-z0-9-]+\s*:/g) || []).length === 23,
+    `all 23 chart tokens reach tokens.css (${(css.match(/--chart-[a-z0-9-]+\s*:/g) || []).length})`)
   const json = JSON.parse(files['tokens.json'])
   assert(Object.keys(json.color?.chart?.categorical ?? {}).length === CATEGORICAL_COUNT,
     'the categorical scale reaches tokens.json')

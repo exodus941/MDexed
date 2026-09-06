@@ -18,25 +18,31 @@
  * that assigns colours by iteration order gives a different picture every time
  * the data is sorted.
  *
- * ── HOW THE EIGHT ARE PLACED ──
+ * ── HOW THE FIVE ARE PLACED: A SWEEP, NOT A METRONOME ──
  *
- * Hues spread evenly across a SPAN rather than around the whole circle, with
- * series one on the accent's own hue at one end of it. Lightness cycles
- * through four levels and chroma through four factors, so two series sharing a
- * level are four apart in the sequence and 149 degrees apart in hue.
+ * Series one carries the accent's own hue. The rest sweep away from it in ONE
+ * direction, across a span rather than around the circle, at UNEVEN steps that
+ * hurry through the yellow-green region. Lightness arcs once, up to a peak and
+ * gently down. Chroma rises the whole way, so the set has a quiet member to
+ * rest on and a loud one to land on.
  *
- * THE PALEST LEVEL IS BOUNDED BY THE PAGE, not by taste. At 0.88 it came out
+ * That is three curves replacing three cycles. Every one of the cycles
+ * maximised the gap between neighbours, and together they are what made the
+ * old scale read as a swatch drawer.
+ *
+ * THE PALEST STOP IS BOUNDED BY THE PAGE, not by taste. At 0.88 it came out
  * 0.012 DARKER than a light page measuring 0.893, so the fill read as nothing
- * at all while this file's own prose claimed 0.11 of separation. 0.78 restores
- * that gap and still clears the floor at 0.105 across the hue circle.
+ * at all while this file's own prose claimed 0.11 of separation. The arc peaks
+ * at 0.83, which restores that gap.
  *
  * Every filled series takes a hairline in the page's own border colour. The
  * gap is enough for an area and not for an edge.
  *
  * ── SO STATE THE LIMIT ──
  *
- * No eight-colour categorical palette is safe without red-green vision, this
- * one included. Saying so is worth more than a claim nobody measured, and it
+ * No categorical palette this size is safe without red-green vision, this one
+ * included: measured across 216 seeds, the worst pair falls to 0.030 once that
+ * axis is gone. Saying so is worth more than a claim nobody measured, and it
  * is why a chart never encodes a series by colour alone. The palette makes the
  * picture readable and the direct label makes it certain.
  */
@@ -44,15 +50,73 @@
 import { parseColor, toHex, toGamut, fromOklch, toOklchObj, inGamut } from './convert.js'
 import { RAMP_STEPS } from './ramp.js'
 
-/** Fixed count. Eight series is where a legend stops being readable. */
-export const CATEGORICAL_COUNT = 8
+/**
+ * Fixed count.
+ *
+ * IT WAS EIGHT, AND EIGHT IS WHY THE SCALE LOOKED MECHANICAL. A palette that
+ * reads as a family sweeps its hue one way and arcs its lightness once. Eight
+ * stops on that arc are too close together to tell apart. Measured across 36
+ * accent hues and four hue spans, with and without lightness alternation:
+ *
+ *   n=3   median worst pair 0.256   36 of 36 hues clear the floor
+ *   n=4                     0.136   36 of 36
+ *   n=5                     0.088    7 of 36
+ *   n=6                     0.082    1 of 36
+ *   n=8                     0.052    0 of 36
+ *
+ * So the COUNT was the constraint, not the formula. At five the sweep beats
+ * the old cycling scale on both questions at once: 0.162 against 0.146, and it
+ * reads as one family rather than as a box of pencils.
+ *
+ * A chart needing more than five series is almost always the wrong form. Say
+ * that in the document rather than shipping colours nobody can separate.
+ */
+export const CATEGORICAL_COUNT = 5
 
 /**
- * Four lightness levels, cycling. Series i takes level i mod 4, so two series
- * share a level only when they are four apart in the sequence, which is 149
- * degrees of hue across a 260 degree span.
+ * ── THE LIGHTNESS ARCS ONCE, IT DOES NOT CYCLE ──
+ *
+ * It used to be `[0.38, 0.68, 0.52, 0.78]`, cycling. That maximises the gap
+ * between neighbours and it is exactly what made the scale read as a
+ * metronome: series one to three ran 38, 68, 52. Up, then down, then up.
+ *
+ * A palette a person calls agreeable rises and settles once. Measured on the
+ * reference sent for this: 38, 63, 83, 78, 68. One peak, a gentle fall.
+ *
+ * So these points define an arc through the sequence rather than a cycle.
+ *
+ * A PARABOLA THROUGH THREE OF THEM IS NOT THE SAME CURVE, and the difference
+ * cost three presets. Fitted to 0.38, 0.83 and 0.66, it passes through 0.83 at
+ * three quarters as well, so series three and four came out one point apart
+ * instead of five. Where the hue gap between those two is also small, the pair
+ * collapsed: 0.082, 0.083 and 0.075 against a floor of 0.10.
+ *
+ * So the curve is their five measurements interpolated, not a shape fitted to
+ * a subset of them.
+ *
+ * ONE VALUE IS NOT THEIRS, AND IT IS THE FOURTH. They measure 0.78 there and
+ * this ships 0.73. At 0.78 the palette still failed 35 of 216 seeds across the
+ * hue circle, always on that same third-to-fourth pair. Their own reference
+ * measures 0.081 on it and would fail this floor too.
+ *
+ * 0.73 was chosen by searching curve[3], the hue span and the narrow-band cost
+ * together against all 216, rather than by nudging until the presets passed.
+ * Every combination that cleared is listed in the memory; this one clears with
+ * the largest margin while keeping the hue span inside the 157-237 band the
+ * references measure.
  */
-export const LIGHTNESS_LEVELS = [0.38, 0.68, 0.52, 0.78]
+export const LIGHT_CURVE = [0.38, 0.63, 0.83, 0.73, 0.66]
+
+/**
+ * ── AND THE CHROMA RISES ALONG THE RUN ──
+ *
+ * The same reference: 0.044, 0.101, 0.117, 0.127, 0.156. Monotonic. The dark
+ * anchor is the quietest member and the last is the loudest, so the set has
+ * somewhere for the eye to rest AND somewhere for it to land. The old scale
+ * cycled this too, which is a second metronome laid over the first.
+ */
+export const CHROMA_LOW = 0.05
+export const CHROMA_HIGH = 0.16
 
 /* ── WHY THIS PALETTE LOOKED LIKE A SWATCH DRAWER ──
  *
@@ -79,13 +143,26 @@ export const LIGHTNESS_LEVELS = [0.38, 0.68, 0.52, 0.78]
  *
  * THE WHOLE WHEEL. Ours spanned 274 degrees, theirs about 190. A set that
  * leaves a gap reads as a family; a set that closes the circle reads as a box
- * of pencils. So the hues spread EVENLY inside a span rather than around the
- * circle. The golden ratio was tried inside the span first and is wrong there:
- * it landed two hues three degrees apart, which is 0.010 at a quiet chroma.
+ * of pencils. So the hues spread inside a SPAN rather than around the circle.
+ * The golden ratio was tried inside the span first and is wrong there: it
+ * landed two hues three degrees apart, which is 0.010 at a quiet chroma.
+ *
+ * ── AND THE STEPS INSIDE THE SPAN ARE UNEVEN, ON PURPOSE ──
+ *
+ * Spreading EVENLY was the last thing left of the metronome. The reference
+ * steps 43, 96, 29 and 23 degrees, and the 96 is a jump straight over the
+ * yellow-green region. That agrees with what the golden-angle work already
+ * found: yellow-green is perceptually narrow, so degrees spent there buy less
+ * separation than degrees spent anywhere else.
+ *
+ * So the walk is WARPED rather than linear. A degree inside the narrow band
+ * costs a third of a degree outside it, which makes the sweep hurry through
+ * and linger where the eye can tell hues apart.
  */
 export const CHROMA_TARGET = 0.16
-export const CHROMA_CYCLE = [1, 0.55, 0.85, 0.4]
-export const HUE_SPAN = 260
+export const HUE_SPAN = -220
+export const NARROW_BAND = [100, 170]
+export const NARROW_COST = 0.35
 
 /**
  * The floor a neighbouring pair must clear, in OKLab units.
@@ -155,22 +232,63 @@ function seedSaturation(seedHex) {
  * @param {string} accentHex
  * @returns {string[]} CATEGORICAL_COUNT colours, in a fixed order, for both themes
  */
+/**
+ * Where the arc sits at position t, 0 at series one and 1 at the last.
+ *
+ * `LIGHT_CURVE` interpolated, so the set rises to a peak and settles rather
+ * than sawing up and down.
+ */
+export function lightAt(t) {
+  const n = LIGHT_CURVE.length - 1
+  const x = clamp(t, 0, 1) * n
+  const i = Math.min(n - 1, Math.floor(x))
+  return LIGHT_CURVE[i] + (LIGHT_CURVE[i + 1] - LIGHT_CURVE[i]) * (x - i)
+}
+
+/**
+ * The hue at position t, walking a warped arc.
+ *
+ * READ THE COST, NEVER THE DEGREES. A linear walk spends the same number of
+ * stops in yellow-green as anywhere else, and that region separates worst. The
+ * accumulator below charges a narrow-band degree at `NARROW_COST`, so `t` maps
+ * to a hue by how much SEPARATION has been bought rather than by how far the
+ * angle has turned.
+ */
+export function hueAt(startHue, t) {
+  const N = 360
+  const cost = []
+  let acc = 0
+  for (let i = 0; i < N; i++) {
+    const h = (((startHue + (HUE_SPAN * i) / N) % 360) + 360) % 360
+    acc += h >= NARROW_BAND[0] && h <= NARROW_BAND[1] ? NARROW_COST : 1
+    cost.push(acc)
+  }
+  const want = clamp(t, 0, 1) * acc
+  let i = cost.findIndex(v => v >= want)
+  if (i < 0) i = N - 1
+  return (((startHue + (HUE_SPAN * i) / N) % 360) + 360) % 360
+}
+
+/**
+ * @param {string} accentHex
+ * @returns {string[]} CATEGORICAL_COUNT colours, in a fixed order, for both themes
+ */
 export function categorical(accentHex) {
   const seed = toOklchObj(parseColor(accentHex))
   const sat = seedSaturation(accentHex)
   const out = []
   for (let i = 0; i < CATEGORICAL_COUNT; i++) {
     /* Series one IS the brand hue, so the first swatch of every chart in the
-       system is the colour the reader already associates with it, and it sits
-       at one END of the span so its nearest neighbour in hue never shares its
-       lightness. The rest step evenly across. */
-    const step = HUE_SPAN * (i / (CATEGORICAL_COUNT - 1))
-    const h = (((seed.h ?? 0) + step) % 360 + 360) % 360
-    const l = LIGHTNESS_LEVELS[i % LIGHTNESS_LEVELS.length]
+       system is the colour the reader already associates with it, and the
+       sweep runs away from it in one direction. */
+    const t = CATEGORICAL_COUNT === 1 ? 0 : i / (CATEGORICAL_COUNT - 1)
+    const h = hueAt(seed.h ?? 0, t)
+    const l = clamp(lightAt(t), 0.24, 0.9)
     /* AN ABSOLUTE TARGET, CLAMPED BY THE GAMUT RATHER THAN DEFINED BY IT. The
-       cycle is what gives the set a quiet member, and the seed's own
-       saturation still scales the whole thing, so a muted brand charts muted. */
-    const want = CHROMA_TARGET * CHROMA_CYCLE[i % CHROMA_CYCLE.length] * sat
+       rise is what gives the set a quiet member and a loud one, and the seed's
+       own saturation still scales the whole thing, so a muted brand charts
+       muted. */
+    const want = (CHROMA_LOW + (CHROMA_HIGH - CHROMA_LOW) * t) * sat
     const c = Math.min(want, maxChroma(l, h))
     out.push(toHex(toGamut(fromOklch({ l, c, h }))))
   }
