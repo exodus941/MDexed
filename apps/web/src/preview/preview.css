@@ -1457,7 +1457,23 @@
  * At the tightest fit the auto margin is zero and the distance is exactly 24. */
 .dmd .page-head { column-gap: var(--space-xs, 8px); align-items: center; }
 .dmd .page-head > .page-title { margin-right: calc(var(--space-lg, 24px) - var(--space-xs, 8px)); }
-.dmd .page-head > .page-actions { margin-left: auto; }
+/* ── AND THE GROUP MUST NOT GROW, OR THE AUTO MARGIN HAS NOTHING TO TAKE ──
+ *
+ * `.action-pairs` sets `flex: 1 1 auto`, and the comment on that line explains
+ * why: in a SELECTION BAR the auto margin is on a button INSIDE the group, so
+ * the group needs slack to hand over.
+ *
+ * A page header is the opposite. The auto margin is on the group ITSELF, so a
+ * growing group consumes the free space and then packs its buttons at its own
+ * left edge. Measured on the dashboard: the group's box ran 1331 to 1941 and
+ * reached the row's end, `margin-left` resolved to 0px, and every button sat
+ * 610px short of the right edge. The BOX was flush right and the BUTTONS were
+ * not, which is why a check that measured the box reported it clean.
+ *
+ * One class, two opposite requirements. Split them by context rather than by
+ * adding a second class: three classes here, so the narrow block's
+ * `flex: 1 0 100%` still wins, and `responsiveCss` renders after this file. */
+.dmd .page-head > .page-actions { margin-left: auto; flex: 0 1 auto; }
 
 /* Navigation is not body copy. An underline in running text means "this is a
    link"; a whole nav bar of underlines means nothing and reads as damage.

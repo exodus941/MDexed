@@ -71,9 +71,9 @@ export default function Index ({ onInspect, casing, layout }) {
             $184,320 outstanding · 2 overdue
           </p>
           <div className="row page-actions">
-            <button className="btn btn-secondary" {...ins('button-secondary')}><Ico d={IconDownload} />{L('Export')}</button>
-            <button className="btn btn-primary" {...ins('button-primary')}><Ico d={IconPlus} />{L('New invoice')}</button>
-            <button className="btn btn-secondary icon-only" {...ins('button-secondary')}><Ico d={IconMore} /></button>
+            <button className="btn btn-secondary btn-sm" {...ins('button-secondary')}><Ico d={IconDownload} />{L('Export')}</button>
+            <button className="btn btn-primary btn-sm" {...ins('button-primary')}><Ico d={IconPlus} />{L('New invoice')}</button>
+            <button className="btn btn-secondary btn-sm icon-only" {...ins('button-secondary')}><Ico d={IconMore} /></button>
           </div>
         </div>
       </div>
