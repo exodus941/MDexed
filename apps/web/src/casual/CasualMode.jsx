@@ -317,8 +317,21 @@ export default function CasualWizard({ onClose, onBack, leaving }) {
             </Field>
           )}
 
+          {/* ── SAY WHAT THE PREVIEW IS DOING, OR THE CONTROL LOOKS BROKEN ──
+            *
+            * A brand colour ANCHORS the accent, which the previous page says in
+            * those words. So with one set, picking Warm here leaves the sample
+            * green and nothing on the page explains it. They found exactly that:
+            * Warm selected, a green Primary button, and no reason given.
+            *
+            * The prompt has always been honest about it — "The accent comes from
+            * the brand colour below, not from this range." The page was the half
+            * that stayed silent. `applyAnswers` is correct and unchanged. */}
           {STEPS[step].id === 'palette' && (
-            <Field label="Hue Range" note="A range, not a swatch. The agent picks inside it.">
+            <Field label="Hue Range"
+              note={a.brand.length
+                ? `A range, not a swatch. Your brand ${a.brand.length > 1 ? 'colours anchor' : 'colour anchors'} the accent, so the sample keeps ${a.brand.length > 1 ? 'them' : 'it'}. This range is what the agent picks the REST of the palette from.`
+                : 'A range, not a swatch. The agent picks inside it.'}>
               <Choices options={PALETTES} value={a.palette} onChange={v => set('palette', v)} columns={2} />
             </Field>
           )}

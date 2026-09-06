@@ -115,12 +115,12 @@ export default function Dashboard({ onInspect, layout, casing, theme, mode, onTo
                 before the menu, because the rightmost seat is navigation's. */}
             <div className="row page-actions action-pairs">
               <div className="pair">
-                <button className="btn btn-secondary btn-sm act-1" {...ins('button-sm')}><Ico d={IconDownload} size="sm" />{L('Export')}</button>
-                <button className="btn btn-secondary btn-sm icon-only act-3" {...ins('button-secondary')}><Ico d={IconBell} /></button>
+                <button className="btn btn-secondary act-1" {...ins('button-sm')}><Ico d={IconDownload} />{L('Export')}</button>
+                <button className="btn btn-secondary icon-only act-3" {...ins('button-secondary')}><Ico d={IconBell} /></button>
               </div>
               <div className="pair">
-                <button className="btn btn-primary btn-sm act-2" {...ins('button-primary')}><Ico d={IconPlus} size="sm" />{L('New invoice')}</button>
-                <ThemeToggle theme={theme} mode={mode} onToggle={onToggleTheme} inspect={ins('button-secondary')} className="act-4" />
+                <button className="btn btn-primary act-2" {...ins('button-primary')}><Ico d={IconPlus} />{L('New invoice')}</button>
+                <ThemeToggle theme={theme} mode={mode} onToggle={onToggleTheme} inspect={ins('button-secondary')} className="act-4" size="" />
               </div>
             </div>
             {/* The menu control is a BUTTON, and it belongs to the action group.
@@ -137,7 +137,7 @@ export default function Dashboard({ onInspect, layout, casing, theme, mode, onTo
              * buttons have dropped to a line of their own. Inside the group it
              * could only ever go where the group went. `order` places it. */}
             <details className="nav-collapse">
-              <summary className="nav-summary btn btn-secondary btn-sm" aria-label="Workspace menu"
+              <summary className="nav-summary btn btn-secondary" aria-label="Workspace menu"
                 {...inspectProps(['nav-burger', 'nav-item'], onInspect, { passthrough: true })}>
                 <span className="nav-burger" aria-hidden="true"><span /><span /><span /></span>
                 <span className="nav-label">{L('Workspace')}</span>

@@ -78,11 +78,11 @@ export default function Record({ onInspect, tabStyle, casing }) {
               reading: the primary second to last, the overflow last. */}
           <div className="row page-actions action-pairs">
             <div className="pair pair-lead">
-              <button className="btn btn-primary btn-sm act-2" {...ins('button-primary')}><Ico d={IconSend} size="sm" />{L('Send')}</button>
+              <button className="btn btn-primary act-2" {...ins('button-primary')}><Ico d={IconSend} />{L('Send')}</button>
             </div>
             <div className="pair">
-              <button className="btn btn-secondary btn-sm act-1" {...ins('button-sm')}><Ico d={IconDownload} size="sm" />{L('Export')}</button>
-              <button className="btn btn-secondary btn-sm icon-only act-3" {...ins('button-secondary')}><Ico d={IconMore} /></button>
+              <button className="btn btn-secondary act-1" {...ins('button-sm')}><Ico d={IconDownload} />{L('Export')}</button>
+              <button className="btn btn-secondary icon-only act-3" {...ins('button-secondary')}><Ico d={IconMore} /></button>
             </div>
           </div>
           <p className="muted small page-sub" {...txt('body-sm', 'text-muted')}>Opened 12 days ago by A. Halloran</p>

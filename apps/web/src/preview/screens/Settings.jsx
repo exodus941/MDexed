@@ -69,14 +69,14 @@ export default function Settings({ onInspect, casing, theme, mode, onToggleTheme
                 trap this project has hit before. */}
             {theme === 'both' && (
               <div className="row page-actions">
-                <ThemeToggle theme={theme} mode={mode} onToggle={onToggleTheme} inspect={ins('button-secondary')} />
+                <ThemeToggle theme={theme} mode={mode} onToggle={onToggleTheme} inspect={ins('button-secondary')} size="" />
               </div>
             )}
             {/* The menu control is a button in the action group, rightmost. This
                 screen has no other actions, so it is the only one — and it still
                 takes the same shell and the same seat. See Dashboard. */}
             <details className="nav-collapse">
-              <summary className="nav-summary btn btn-secondary btn-sm" aria-label="Settings menu"
+              <summary className="nav-summary btn btn-secondary" aria-label="Settings menu"
                 {...inspectProps(['nav-burger', 'nav-item'], onInspect, { passthrough: true })}>
                 <span className="nav-burger" aria-hidden="true"><span /><span /><span /></span>
                 <span className="nav-label">Settings</span>
