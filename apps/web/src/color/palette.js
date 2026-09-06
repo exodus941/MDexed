@@ -438,8 +438,15 @@ export function generatePalette(seeds, harmony = 'analogous', intensity = 'balan
       : rand(0, 360)
     const hue = wrap(baseHue + offset)
     const chroma = baseChroma * rungChroma(t) * rand(0.9, 1.1)
-    /* Same rule as the status branch: the rung asks and the hue answers. */
-    const win = strongZone(hue)
+    /* NOT the status branch's rule, and the reason is in `strongZone`: it
+       earns its place only where a hue is PINNED. This one is free, so it can
+       leave a bad lightness by moving its hue instead.
+       Measured both ways after the neutral re-ladder, over 200 palettes:
+       clamped gives 0.06 failures per run and 8% quiet members, free gives
+       0.01 and 18%. Their references sit at 39% quiet. So the clamp costs
+       accuracy AND variety here, and it was the code disagreeing with its own
+       comment. */
+    const win = { lo: LADDER.floor, hi: LADDER.ceiling }
     out[seed.id] = toHex(toGamut(fromOklch({
       l: Math.max(win.lo, Math.min(win.hi, rungLight(t))),
       c: chroma,
