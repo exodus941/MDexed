@@ -20,7 +20,7 @@ export default function Landing({ onInspect, casing, theme, mode, onToggleTheme 
       <div className="row bar-row" style={{ justifyContent: 'space-between' }}>
         <div className="row">
           <div className="avatar" {...ins('avatar')}>N</div>
-          <strong {...txt('body-md', 'text')} style={{ fontSize: 'var(--font-body-md-size, 16px)', cursor: onInspect ? 'pointer' : undefined }}>Northwind</strong>
+          <strong className="t-body-md" {...txt('body-md', 'text')} style={{ cursor: onInspect ? 'pointer' : undefined }}>Northwind</strong>
         </div>
         {/* A marketing header folds like every other one. Loose links beside a
             button is the desktop bar with nothing done to it, and at this width
@@ -88,7 +88,7 @@ export default function Landing({ onInspect, casing, theme, mode, onToggleTheme 
       <div className="stack" style={{ padding: 'var(--space-xl, 32px) 0' }}>
         <span className="badge badge-accent" {...ins('badge-accent')} style={{ alignSelf: 'flex-start', cursor: onInspect ? 'pointer' : undefined }}>New — recurring invoices</span>
         <h1 style={{ maxWidth: '14ch' }} {...txt('h1', 'text')}>Invoicing that stays out of the way</h1>
-        <p {...txt('body-lg', 'text-muted')} style={{ fontSize: 'var(--font-body-lg-size, 18px)', color: 'var(--c-text-muted, #666)', maxWidth: '46ch', cursor: onInspect ? 'pointer' : undefined }}>
+        <p className="t-body-lg" {...txt('body-lg', 'text-muted')} style={{ color: 'var(--c-text-muted, #666)', maxWidth: '46ch', cursor: onInspect ? 'pointer' : undefined }}>
           Send an invoice in twenty seconds. Chase it automatically. Reconcile it without opening a spreadsheet.
         </p>
         {/* Two large calls to action. On a narrow screen they stack and go
@@ -109,7 +109,7 @@ export default function Landing({ onInspect, casing, theme, mode, onToggleTheme 
           ['Reconcile cleanly', 'Match payments to invoices without leaving the page.'],
         ].map(([title, body]) => (
           <div className="card" key={title} {...ins('card')}>
-            <h3 {...txt('h5', 'text')} style={{ fontSize: 'var(--font-h5-size, 20px)', marginBottom: 'var(--space-xs, 8px)', cursor: onInspect ? 'pointer' : undefined }}>{title}</h3>
+            <h3 className="t-h5" {...txt('h5', 'text')} style={{ marginBottom: 'var(--space-xs, 8px)', cursor: onInspect ? 'pointer' : undefined }}>{title}</h3>
             <p className="small muted" {...txt('body-sm', 'text-muted')}>{body}</p>
           </div>
         ))}

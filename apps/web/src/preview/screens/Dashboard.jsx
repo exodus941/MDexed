@@ -184,7 +184,7 @@ export default function Dashboard({ onInspect, layout, casing, theme, mode, onTo
           {[['Revenue', '$45,645', '+12.4%'], ['Open invoices', '18', '-3'], ['Avg. days to pay', '21', '+2']].map(([label, value, delta]) => (
             <div className="card stat" key={label} {...ins('card')}>
               <div className="caption" {...txt('caption', 'text-muted')}>{L(label)}</div>
-              <div className="stat-value" style={{ fontSize: 'var(--font-h3-size, 24px)', fontWeight: 'var(--font-h3-weight, 600)' }}
+              <div className="stat-value t-h3"
                 {...txt('h3')}>{value}</div>
               <div className="caption stat-delta" {...txt('caption', 'text-muted')}>{delta} from Q3</div>
             </div>
@@ -193,7 +193,7 @@ export default function Dashboard({ onInspect, layout, casing, theme, mode, onTo
 
         <div className="card" {...ins('card')}>
           <div className="row row-wrap" style={{ justifyContent: 'space-between', marginBottom: 'var(--space-md, 16px)' }}>
-            <h3 style={{ fontSize: 'var(--font-body-md-size, 16px)' }} {...txt('h6')}>Accounts</h3>
+            <h3 className="t-body-md" {...txt('body-md')}>Accounts</h3>
             <span className="badge badge-neutral" {...ins('badge-neutral')}>4 shown</span>
           </div>
           {/* Numeric alignment, header treatment and row separation all come
@@ -267,7 +267,7 @@ export default function Dashboard({ onInspect, layout, casing, theme, mode, onTo
          * differences once red-green vision is gone. The words are what make
          * the picture certain. */}
         <div className="card" {...ins('card')}>
-          <h3 style={{ fontSize: 'var(--font-body-md-size, 16px)', marginBottom: 'var(--space-sm, 8px)' }} {...txt('h6')}>{L('Revenue by line')}</h3>
+          <h3 className="t-body-md" style={{ marginBottom: 'var(--space-sm, 8px)' }} {...txt('body-md')}>{L('Revenue by line')}</h3>
           <div className="chart-bar">
             {[['Licences', 34], ['Services', 26], ['Support', 18], ['Training', 13], ['Other', 9]].map(([, pct], i) => (
               <span key={i} style={{ width: `${pct}%`, background: `var(--chart-${i + 1})` }} />
@@ -297,13 +297,13 @@ export default function Dashboard({ onInspect, layout, casing, theme, mode, onTo
 
         <div className="cols-2">
           <div className="card" {...ins('card')}>
-            <h3 style={{ fontSize: 'var(--font-body-md-size, 16px)', marginBottom: 'var(--space-sm, 8px)' }} {...txt('h6')}>{L('Collection rate')}</h3>
+            <h3 className="t-body-md" style={{ marginBottom: 'var(--space-sm, 8px)' }} {...txt('body-md')}>{L('Collection rate')}</h3>
             {/* No progress component in the library, so this stays part of the card. */}
             <div className="bar"><span style={{ width: '72%' }} /></div>
             <p className="caption" style={{ marginTop: 8 }} {...txt('caption', 'text-muted')}>72% of Q4 invoices settled</p>
           </div>
           <div className="card card-overlay" {...ins('card-overlay')}>
-            <h3 style={{ fontSize: 'var(--font-body-md-size, 16px)', marginBottom: 4 }} {...txt('h6')}>{L('Renewal due')}</h3>
+            <h3 className="t-body-md" style={{ marginBottom: 4 }} {...txt('body-md')}>{L('Renewal due')}</h3>
             <p className="muted small" {...txt('body-sm', 'text-muted')}>Halcyon Group renews in 6 days and has an overdue balance.</p>
             {/* `.card-actions` rather than a typed 16px. The action stands one
                 step clear of the sentence explaining it, and that step is

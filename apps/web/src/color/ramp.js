@@ -138,17 +138,50 @@ function mixSteps (ramp, a, b, t = 0.5) {
  *
  * Written `neutral.800~accent.500@0.2`: the left ref is the ground and the
  * weight is how much of the right one goes in. */
+/* ── A GREY HAS A HUE ON PAPER AND NONE TO THE EYE ──
+ *
+ * This averaged the two hue angles, which treats a near-grey's hue as if it
+ * carried information. It does not. At chroma 0.006 the number is noise, and
+ * averaging it with a real hue lands on a third colour that neither parent
+ * has.
+ *
+ * Measured on the shipped role table: neutral.800 at chroma 0.0056 and a
+ * nominal hue of 107, mixed 30% into accent.500 at hue 182, produced hue 129.
+ * The user's words for it were "whatever this olive green shit is". It was in
+ * `accent-raised` on every dark surface, and nothing reported it.
+ *
+ * WEIGHT EACH HUE BY ITS OWN CHROMA, times its share of the mix. A grey then
+ * contributes nothing and the answer is the other parent's hue exactly. A
+ * white mixed 30% into a teal now returns 182, the teal's own hue, where the
+ * old code returned 130.
+ *
+ * NO THRESHOLD, which is the point. A chroma floor was searched for first,
+ * across 24 accent hues and three ground tints, and no value cleared the
+ * drift: the fault is polar interpolation itself, not where its cutoff sits.
+ *
+ * MIXING IN OKLAB ALSO FIXES IT, and costs too much. A straight line through
+ * the a/b plane cuts inside the chroma circle, so a teal-to-orange mix came
+ * out at chroma 0.053 against 0.117. Weighting keeps 0.111.
+ *
+ * The circular mean wraps by construction, so the old short-way correction is
+ * gone rather than kept: a pair either side of 0 degrees can no longer average
+ * to the colour opposite both. */
 function mixHex (aHex, bHex, t = 0.5) {
   const A = parseColor(aHex), B = parseColor(bHex)
   if (!A || !B) return null
   const oa = toOklchObj(A), ob = toOklchObj(B)
   const mid = (x, y) => x + (y - x) * t
-  return toHex(toGamut(fromOklch({
-    l: mid(oa.l, ob.l), c: mid(oa.c, ob.c),
-    /* Hue is an angle: mix it the short way round, or a pair either side of
-       0 degrees averages to the colour opposite both of them. */
-    h: mid(oa.h ?? 0, (ob.h ?? 0) + (Math.abs((ob.h ?? 0) - (oa.h ?? 0)) > 180 ? ((ob.h ?? 0) > (oa.h ?? 0) ? -360 : 360) : 0)),
-  })))
+  const wa = (1 - t) * oa.c, wb = t * ob.c
+  let h
+  /* Two greys have no hue between them, so keep the first rather than
+     inventing one from two noise readings. */
+  if (wa + wb < 1e-9) h = oa.h ?? 0
+  else {
+    const ra = (oa.h ?? 0) * Math.PI / 180, rb = (ob.h ?? 0) * Math.PI / 180
+    h = (Math.atan2(wa * Math.sin(ra) + wb * Math.sin(rb),
+      wa * Math.cos(ra) + wb * Math.cos(rb)) * 180 / Math.PI + 360) % 360
+  }
+  return toHex(toGamut(fromOklch({ l: mid(oa.l, ob.l), c: mid(oa.c, ob.c), h })))
 }
 
 export function resolveRef(ref, ramps) {

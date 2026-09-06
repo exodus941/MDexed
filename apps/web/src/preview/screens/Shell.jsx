@@ -116,7 +116,7 @@ function Stat({ ins, txt, L, label, value, delta, rose, good }) {
     <div className="card stat" {...ins('card')} style={{ flex: '1 1 max-content', minWidth: 'max-content' }}>
       <div className="caption muted" {...txt('overline', 'text-muted')}
         style={{ textTransform: 'uppercase', letterSpacing: 'var(--font-overline-tracking)' }}>{L(label)}</div>
-      <div className="stat-value" {...txt('h4')} style={{ fontSize: 'var(--font-h4-size)', fontWeight: 'var(--font-h4-weight)' }}>{value}</div>
+      <div className="stat-value t-h4" {...txt('h4')}>{value}</div>
       <div className="caption stat-delta" {...txt('caption', good ? 'success' : 'danger')}
         style={{ color: good ? 'var(--c-success)' : 'var(--c-danger)' }}>{rose ? '+' : '−'}{delta}</div>
     </div>
@@ -210,7 +210,7 @@ export default function Shell({ onInspect, tabStyle, casing }) {
 
           <div className="card stack-sm" {...ins('card')}>
             <div className="row" style={{ justifyContent: 'space-between' }}>
-              <strong {...txt('h6')} style={{ fontSize: 'var(--font-h6-size)' }}>{L('Seeds')}</strong>
+              <strong className="t-h6" {...txt('h6')}>{L('Seeds')}</strong>
               <span className="badge badge-neutral" {...ins('badge-neutral')}>5</span>
             </div>
             {/* A separator goes above each row, never below, so the last row

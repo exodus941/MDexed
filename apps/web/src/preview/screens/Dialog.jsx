@@ -117,7 +117,7 @@ function Modal({ ins, txt, layout, onInspect }) {
           : { justifyContent: centred ? 'center' : 'flex-start' }),
       }}>
         {icon}
-        <h3 id={TITLE_ID} style={{ fontSize: 'var(--font-h5-size, 20px)' }} {...txt('h5')}>Delete this invoice?</h3>
+        <h3 id={TITLE_ID} className="t-h5" {...txt('h5')}>Delete this invoice?</h3>
       </div>
 
       <p id={DESC_ID} className="muted small" style={{ marginBottom: 'var(--space-md, 16px)' }} {...txt('body-sm', 'text-muted')}>
@@ -174,7 +174,7 @@ export default function Dialog({ onInspect, layout, casing }) {
           before that it clipped. A floor sized to the dialog removes both. */}
       <div style={{ position: 'relative', minHeight: '20rem', borderRadius: 'var(--radius-lg, 16px)', overflow: 'hidden', border: '1px solid var(--c-border-subtle, #eee)' }}>
         <div style={{ padding: 'var(--space-lg, 24px)' }} className="stack-sm">
-          <h3 style={{ fontSize: 'var(--font-h4-size, 25px)' }} {...txt("h4")}>Invoices</h3>
+          <h3 className="t-h4" {...txt("h4")}>Invoices</h3>
           <p className="muted small" {...txt("body-sm", "text-muted")}>Page content sitting behind the dialog.</p>
           <div className="row">
             <button className="btn btn-secondary btn-sm" {...ins('button-sm')}>Filter</button>

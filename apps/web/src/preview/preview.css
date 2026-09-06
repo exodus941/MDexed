@@ -31,10 +31,43 @@
 .dmd h2 { font-family: var(--font-h2-family, inherit); font-size: var(--font-h2-size, 40px); font-weight: var(--font-h2-weight, 700); line-height: var(--font-h2-leading, 1.2); letter-spacing: var(--font-h2-tracking, normal); }
 .dmd h3 { font-family: var(--font-h3-family, inherit); font-size: var(--font-h3-size, 32px); font-weight: var(--font-h3-weight, 600); line-height: var(--font-h3-leading, 1.3); letter-spacing: var(--font-h3-tracking, normal); }
 .dmd p { margin: 0; }
+
+/* ── A TYPE ROLE IS ONE DECISION, SO IT IS ONE CLASS ──
+ *
+ * Seventeen headings took their SIZE from one role and their LEADING from
+ * whatever element they happened to sit in. A card title written as
+ * `<h3 style={{ fontSize: 'var(--font-h5-size)' }}>` renders h5's 20px on h3's
+ * leading, so the published h5 value never reaches the screen.
+ *
+ * Measured the day the leading ladder was rewritten. The user set h5 to 1.625
+ * and the title moved from 27.0px to 27.5px, a gain of 0.5px, because it was
+ * reading h3's 1.375. Wired to the role it names, it is 32.5px.
+ *
+ * Height and line-height are one decision, and so are family, weight and
+ * tracking. One class carries all five, so nothing has to remember four of
+ * them. A tag keeps its own role; this is for the cases where a heading needs
+ * a role its tag does not supply, and for the spans and divs that carry a
+ * heading role without being one.
+ *
+ * NO FALLBACKS. Every one of these roles is always emitted, so a fallback
+ * could never fire and would only be a second value free to drift from the
+ * one that ships. */
+.dmd .t-display { font-family: var(--font-display-family, inherit); font-size: var(--font-display-size); font-weight: var(--font-display-weight); line-height: var(--font-display-leading); letter-spacing: var(--font-display-tracking, normal); }
+.dmd .t-h1 { font-family: var(--font-h1-family, inherit); font-size: var(--font-h1-size); font-weight: var(--font-h1-weight); line-height: var(--font-h1-leading); letter-spacing: var(--font-h1-tracking, normal); }
+.dmd .t-h2 { font-family: var(--font-h2-family, inherit); font-size: var(--font-h2-size); font-weight: var(--font-h2-weight); line-height: var(--font-h2-leading); letter-spacing: var(--font-h2-tracking, normal); }
+.dmd .t-h3 { font-family: var(--font-h3-family, inherit); font-size: var(--font-h3-size); font-weight: var(--font-h3-weight); line-height: var(--font-h3-leading); letter-spacing: var(--font-h3-tracking, normal); }
+.dmd .t-h4 { font-family: var(--font-h4-family, inherit); font-size: var(--font-h4-size); font-weight: var(--font-h4-weight); line-height: var(--font-h4-leading); letter-spacing: var(--font-h4-tracking, normal); }
+.dmd .t-h5 { font-family: var(--font-h5-family, inherit); font-size: var(--font-h5-size); font-weight: var(--font-h5-weight); line-height: var(--font-h5-leading); letter-spacing: var(--font-h5-tracking, normal); }
+.dmd .t-h6 { font-family: var(--font-h6-family, inherit); font-size: var(--font-h6-size); font-weight: var(--font-h6-weight); line-height: var(--font-h6-leading); letter-spacing: var(--font-h6-tracking, normal); }
+.dmd .t-body-lg { font-family: var(--font-body-lg-family, inherit); font-size: var(--font-body-lg-size); font-weight: var(--font-body-lg-weight); line-height: var(--font-body-lg-leading); letter-spacing: var(--font-body-lg-tracking, normal); }
+.dmd .t-body-md { font-family: var(--font-body-md-family, inherit); font-size: var(--font-body-md-size); font-weight: var(--font-body-md-weight); line-height: var(--font-body-md-leading); letter-spacing: var(--font-body-md-tracking, normal); }
+.dmd .t-body-sm { font-family: var(--font-body-sm-family, inherit); font-size: var(--font-body-sm-size); font-weight: var(--font-body-sm-weight); line-height: var(--font-body-sm-leading); letter-spacing: var(--font-body-sm-tracking, normal); }
+.dmd .t-caption { font-family: var(--font-caption-family, inherit); font-size: var(--font-caption-size); font-weight: var(--font-caption-weight); line-height: var(--font-caption-leading); letter-spacing: var(--font-caption-tracking, normal); }
+.dmd .t-overline { font-family: var(--font-overline-family, inherit); font-size: var(--font-overline-size); font-weight: var(--font-overline-weight); line-height: var(--font-overline-leading); letter-spacing: var(--font-overline-tracking, normal); }
 .dmd .muted { color: var(--c-text-muted, #666); }
 .dmd .subtle { color: var(--c-text-subtle, #999); }
 .dmd .small { font-size: var(--font-body-sm-size, 14px); line-height: var(--font-body-sm-leading, 1.55); }
-.dmd .caption { font-size: var(--font-caption-size, 12px); letter-spacing: var(--font-caption-tracking, normal); color: var(--c-text-muted, #666); }
+.dmd .caption { font-size: var(--font-caption-size, 12px); line-height: var(--font-caption-leading, 1.5); letter-spacing: var(--font-caption-tracking, normal); color: var(--c-text-muted, #666); }
 
 /* ── Surfaces ── */
 .dmd .card {

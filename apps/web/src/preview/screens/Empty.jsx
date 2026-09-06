@@ -49,7 +49,7 @@ function State({ ins, txt, L, mark, tone, title, body, primary, secondary, prima
         <Ico d={mark} size="lg" />
       </span>
       <div className="stack-sm" style={{ alignItems: 'center', maxWidth: '38ch' }}>
-        <strong {...txt('h5')} style={{ fontSize: 'var(--font-h5-size)' }}>{L(title)}</strong>
+        <strong className="t-h5" {...txt('h5')}>{L(title)}</strong>
         <p className="muted small" {...txt('body-sm', 'text-muted')}>{body}</p>
       </div>
       {/* The way out. One primary, and a secondary only where there genuinely
@@ -101,7 +101,7 @@ function Loading({ ins, txt, L }) {
       {/* `.row` is baseline already, so the alignment is not restated. Two
           children, so `space-between` has one gap and nothing to spread. */}
       <div className="row" style={{ justifyContent: 'space-between' }}>
-        <strong {...txt('h5')} style={{ fontSize: 'var(--font-h5-size)' }}>{L('Invoices')}</strong>
+        <strong className="t-h5" {...txt('h5')}>{L('Invoices')}</strong>
         <span className="skeleton skeleton-chip" aria-hidden="true" />
       </div>
       <div className="stack-sm" aria-hidden="true">

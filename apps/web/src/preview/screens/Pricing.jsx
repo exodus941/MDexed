@@ -65,12 +65,12 @@ export default function Pricing({ onInspect, casing }) {
     <div className={`card stack-sm${p.pick ? ' is-picked' : ''}`}
       {...ins(p.pick ? 'card-overlay' : 'card')}>
       <div className="row" style={{ justifyContent: 'space-between' }}>
-        <strong {...txt('h6')} style={{ fontSize: 'var(--font-h6-size)' }}>{p.name}</strong>
+        <strong className="t-h6" {...txt('h6')}>{p.name}</strong>
         {/* The chip carries the recommendation. A fill on the whole column
             would read as chosen; a mark says suggested. */}
         {p.pick && <span className="badge badge-accent" {...ins('badge-accent')}>{L('Popular')}</span>}
       </div>
-      <div {...txt('h3')} style={{ fontSize: 'var(--font-h3-size)', fontWeight: 'var(--font-h3-weight)' }}>{p.price}</div>
+      <div className="t-h3" {...txt('h3')}>{p.price}</div>
       <p className="muted small" {...txt('body-sm', 'text-muted')}>{p.note}</p>
       {/* The call to action stands clear of the sentence describing the plan,
           the same distance every other card in the system uses. */}

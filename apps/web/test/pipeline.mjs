@@ -3130,6 +3130,83 @@ line('\n- depth intensity -')
     `the dark block carries only what the theme decides${strays.length ? ` — ${strays.slice(0, 4).join(', ')}` : ''}`)
 }
 
+/* ── A MIX NEVER INVENTS A HUE NEITHER PARENT HAS ──
+ *
+ * `mixHex` averaged the two hue ANGLES, which treats a near-grey's hue as if
+ * it carried information. At chroma 0.0056 that number is noise.
+ *
+ * Measured on the shipped role table: neutral.800 at hue 107, mixed 30% into
+ * accent.500 at hue 182, produced hue 129. That is a green neither parent has,
+ * and it painted `accent-raised` on every dark surface. Nothing reported it,
+ * because every check asked about lightness and none asked about hue.
+ *
+ * A CHROMA FLOOR WAS SEARCHED FOR FIRST and there is no such number. Across 24
+ * accent hues and three ground tints, no cutoff cleared the drift: the fault is
+ * polar interpolation itself. The hue is weighted by chroma now, so a grey
+ * contributes nothing and no threshold appears anywhere.
+ *
+ * The alternative was mixing in OKLab, which also cannot invent a hue and costs
+ * more than half the chroma on a colour-to-colour mix. Both numbers are pinned
+ * below, so a future edit that reaches for OKLab fails here rather than
+ * quietly desaturating every mixed role. */
+{
+  line('\n- a mix never invents a hue -')
+  const { buildRamp, resolveRef } = await import('../src/color/ramp.js')
+  const { converter } = await import('culori')
+  const ok = converter('oklch')
+  const hueOf = hex => ok(hex).h ?? 0
+  const chromaOf = hex => ok(hex).c
+  const apart = (a, b) => { const x = Math.abs(a - b) % 360; return x > 180 ? 360 - x : x }
+
+  const SHAPE = { lightMax: 0.97, lightMin: 0.05, curve: 0, chromaPeak: 0.55, chromaScale: 1, hueShift: 0, anchorSeed: true }
+  /* The warm neutral and teal accent that produced the olive. */
+  const ramps = {
+    neutral: buildRamp('#8d8c86', SHAPE, {}),
+    accent: buildRamp('#15b8a6', SHAPE, {}),
+  }
+  const accentHue = hueOf(ramps.accent.steps[500])
+
+  /* A GREY CONTRIBUTES NO HUE. The light end is the clearest case: neutral.50
+     is nearly white, so the answer must be the accent's own hue. */
+  const light = resolveRef('neutral.50~accent.500@0.3', ramps)
+  assert(apart(hueOf(light), accentHue) < 1,
+    `a near-white mixed into the accent keeps the accent's hue (${hueOf(light).toFixed(0)} against ${accentHue.toFixed(0)})`)
+
+  /* THE ORIGINAL FAULT. 129 was the invented hue; anything within 15 of the
+     accent is the accent's family. */
+  const raised = resolveRef('neutral.800~accent.500@0.3', ramps)
+  assert(apart(hueOf(raised), accentHue) < 15,
+    `accent-raised stays in the accent's family (${hueOf(raised).toFixed(0)} against ${accentHue.toFixed(0)})`)
+  assert(apart(hueOf(raised), 129) > 30,
+    'and nowhere near the olive it used to be')
+
+  /* A SAME-RAMP MIX IS UNTOUCHED, because both parents share one hue. */
+  for (const ref of ['neutral.500~600@0.15', 'neutral.900~800@0.4']) {
+    const hex = resolveRef(ref, ramps)
+    assert(apart(hueOf(hex), hueOf(ramps.neutral.steps[500])) < 12,
+      `${ref} keeps the neutral ramp's own hue`)
+  }
+
+  /* CHROMA SURVIVES A COLOUR-TO-COLOUR MIX, which is what rules OKLab out.
+     Measured: polar 0.117, weighted 0.111, OKLab 0.053. */
+  const other = buildRamp('#b85a15', SHAPE, {})
+  const pair = { accent: ramps.accent, other }
+  const blend = resolveRef('accent.500~other.500@0.5', pair)
+  assert(chromaOf(blend) > 0.09,
+    `a colour-to-colour mix keeps its chroma (${chromaOf(blend).toFixed(3)}, OKLab would give about 0.053)`)
+
+  /* A PAIR EITHER SIDE OF ZERO DEGREES still meets the short way round. The
+     old code had an explicit correction for this and the circular mean now
+     does it by construction, so the case has to stay proven. */
+  const red = buildRamp('#c13e2e', SHAPE, {})
+  const magenta = buildRamp('#b8158a', SHAPE, {})
+  const wrap = resolveRef('red.500~magenta.500@0.5', { red, magenta })
+  const hr = hueOf(red.steps[500]), hm = hueOf(magenta.steps[500])
+  const mid = apart(hueOf(wrap), hr) + apart(hueOf(wrap), hm)
+  assert(mid < apart(hr, hm) + 2,
+    `a wrapping pair meets between them, not opposite (${hueOf(wrap).toFixed(0)} between ${hr.toFixed(0)} and ${hm.toFixed(0)})`)
+}
+
 /* ── THE GENERATOR NEVER EMITS TWO MEANINGS AS ONE COLOUR ──
  *
  * The audit reports a colliding pair, and a warning arrives after the palette

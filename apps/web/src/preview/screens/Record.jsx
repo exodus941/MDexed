@@ -149,7 +149,7 @@ export default function Record({ onInspect, tabStyle, casing }) {
       <div className="with-context" style={{ '--context': '200px' }}>
         <div className="stack">
           <div className="card stack-sm" {...ins('card')}>
-            <strong {...txt('h6')} style={{ fontSize: 'var(--font-h6-size)' }}>{L('Reconciliation notes')}</strong>
+            <strong className="t-h6" {...txt('h6')}>{L('Reconciliation notes')}</strong>
             <p className="muted small" {...txt('body-sm', 'text-muted')}>
               Three invoices from October remain unmatched against the bank feed. Two are
               duplicates raised during the migration and can be voided. The third needs a
@@ -161,7 +161,7 @@ export default function Record({ onInspect, tabStyle, casing }) {
               Three type sizes on one baseline, which is the rule this project
               states most often and demonstrates least. */}
           <div className="card stack-sm" {...ins('card')}>
-            <strong {...txt('h6')} style={{ fontSize: 'var(--font-h6-size)' }}>{L('Activity')}</strong>
+            <strong className="t-h6" {...txt('h6')}>{L('Activity')}</strong>
             {[
               ['Matched 14 invoices', '2h ago', IconCheck, 'success'],
               ['Flagged duplicate INV-2287', '5h ago', IconAlert, 'warning'],
