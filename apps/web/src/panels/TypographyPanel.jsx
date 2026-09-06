@@ -3,7 +3,7 @@
    Sizes, leading and tracking are all generated. The per-token editors exist
    for the cases where a scale genuinely shouldn't win, and anything you touch
    is marked so you can see at a glance how far the system has been bent. */
-import { useEffect, useMemo, Fragment } from 'react'
+import { useEffect, useMemo, useState, Fragment } from 'react'
 import { useStore } from '../state/store.jsx'
 import { PREVIEW_CSS, varsToStyle } from '../preview/tokens.js'
 import { buildCssVars } from '../state/derive.js'
@@ -107,16 +107,98 @@ function FeatureToggles({ enabled, onToggle }) {
   )
 }
 
+/* ── A FIELD THAT ACCEPTS A VALUE THE BROWSER CANNOT PAINT ──
+ *
+ * All four of these were one bare text input. Typing `2` into Tracking wrote
+ * `letter-spacing: 2` into the token, and a unitless length is invalid CSS, so
+ * the browser dropped the declaration and computed `normal`. Nothing errored.
+ * The token updated, the preview repainted, and the result was identical to
+ * doing nothing.
+ *
+ * Measured: `2` and `--0.0225em` both computed to `normal` at 155.4px, the
+ * same width as `0em`. So every malformed write rendered the same, and the
+ * editor looked frozen while it was working perfectly.
+ *
+ * THE UNIT IS THE FIELD'S, NOT THE TYPIST'S. The number is editable and the
+ * unit is painted beside it, so a value without one cannot be produced. That
+ * removes the whole class rather than validating against it.
+ *
+ * Size carries the same trap: `font-size: 48` is as invalid as tracking `2`.
+ * Leading and Weight are genuinely unitless, so they declare no suffix and are
+ * bounded instead. */
+export const TOKEN_FIELDS = [
+  { k: 'fontSize', label: 'Size', unit: 'px', min: 1, max: 400 },
+  { k: 'fontWeight', label: 'Weight', min: 1, max: 1000 },
+  { k: 'lineHeight', label: 'Leading', min: 0.5, max: 4 },
+  { k: 'letterSpacing', label: 'Tracking', unit: 'em', min: -0.5, max: 1 },
+]
+
+/* The number, without the unit the field paints for itself. */
+const numberPart = (v, unit) => {
+  if (v == null) return ''
+  const s = String(v).trim()
+  return unit && s.endsWith(unit) ? s.slice(0, -unit.length) : s
+}
+
+function UnitField({ field, value, placeholder, set, onCommit, title }) {
+  const { unit, min, max } = field
+  const [draft, setDraft] = useState(null)
+  const shown = draft ?? numberPart(value, unit)
+
+  /* Commit on blur rather than per keystroke. A partial number is a normal
+     state while typing: `-` alone, or `0.` mid-entry, are not values yet and
+     must not be written or clamped. */
+  const commit = () => {
+    const raw = (draft ?? '').trim()
+    setDraft(null)
+    if (draft == null) return
+    /* An empty field means "back to the scale". The setter clears on the empty
+       string, so passing null here would have stored a literal null and marked
+       the token overridden with nothing in it. */
+    if (raw === '') { onCommit(''); return }
+    const n = Number(raw)
+    if (!Number.isFinite(n)) return
+    const clamped = Math.min(max, Math.max(min, n))
+    onCommit(String(clamped) + (unit ?? ''))
+  }
+
+  return (
+    <div style={{ position: 'relative', display: 'flex', alignItems: 'stretch' }}>
+      <input
+        value={shown}
+        placeholder={numberPart(placeholder, unit)}
+        inputMode="decimal"
+        onChange={e => {
+          /* Only what can become a number. A rejected keystroke never reaches
+             the token, so the invalid state cannot be saved at all. */
+          const v = e.target.value
+          if (v === '' || /^-?\d*\.?\d*$/.test(v)) setDraft(v)
+        }}
+        onBlur={commit}
+        onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur() }}
+        title={title}
+        style={{
+          fontFamily: 'var(--mono)', fontSize: 12, padding: '4px 6px',
+          paddingRight: unit ? 24 : 6, width: '100%', minWidth: 0,
+          color: set ? 'var(--accent)' : 'var(--muted)',
+          borderColor: set ? 'rgb(var(--accent-rgb) / .4)' : 'var(--bdr)',
+        }} />
+      {unit && (
+        <span aria-hidden="true" style={{
+          position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)',
+          fontFamily: 'var(--mono)', fontSize: 12, lineHeight: 1,
+          color: 'var(--dim)', pointerEvents: 'none',
+        }}>{unit}</span>
+      )}
+    </div>
+  )
+}
+
 function TokenRow({ token, overrides, onOverride, onReset, families, inspect }) {
   const targeted = inspect?.entry === token.name
   const rowRef = useReveal(targeted, inspect?.at)
 
-  const fields = [
-    { k: 'fontSize', label: 'Size' },
-    { k: 'fontWeight', label: 'Weight' },
-    { k: 'lineHeight', label: 'Leading' },
-    { k: 'letterSpacing', label: 'Tracking' },
-  ]
+  const fields = TOKEN_FIELDS
   const anyOverride = fields.some(f => overrides[`${token.name}.${f.k}`] != null)
   const stack = families[token.family]?.stack ?? 'inherit'
   /* Constant padding: the highlight must not resize the row it lands on. */
@@ -145,14 +227,11 @@ function TokenRow({ token, overrides, onOverride, onReset, families, inspect }) 
           const key = `${token.name}.${f.k}`
           const set = overrides[key] != null
           return (
-            <input key={f.k} value={overrides[key] ?? token[f.k] ?? ''} placeholder={String(token[f.k] ?? '')}
-              onChange={e => onOverride(key, e.target.value)}
-              title={set ? 'Overridden' : 'Generated — type to override'}
-              style={{
-                fontFamily: 'var(--mono)', fontSize: 12, padding: '4px 6px',
-                color: set ? 'var(--accent)' : 'var(--muted)',
-                borderColor: set ? 'rgb(var(--accent-rgb) / .4)' : 'var(--bdr)',
-              }} />
+            <UnitField key={f.k} field={f} set={set}
+              value={overrides[key] ?? token[f.k] ?? ''}
+              placeholder={token[f.k] ?? ''}
+              onCommit={v => onOverride(key, v)}
+              title={set ? 'Overridden' : 'Generated — type to override'} />
           )
         })}
       </div>
