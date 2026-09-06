@@ -170,6 +170,10 @@ export const CHECKS = [
 
   {
     id: 'hardcoded-theme',
+    /* Only exists when the document ships two themes. A single-theme package
+       has no control to state, no attribute to keep out of the markup and
+       nothing to press. */
+    needs: 'themeToggle',
     where: 'source',
     line: 'No `data-theme` sits on `<html>` in the source. Absence is the follow-the-system state.',
     body: [
@@ -184,6 +188,10 @@ export const CHECKS = [
 
   {
     id: 'toggle-states-itself',
+    /* Only exists when the document ships two themes. A single-theme package
+       has no control to state, no attribute to keep out of the markup and
+       nothing to press. */
+    needs: 'themeToggle',
     where: 'source',
     line: 'The theme control says which theme is on: `aria-pressed` on a button, or a checkbox, and a label naming the current theme and the next.',
     /* A NATIVE CHECKBOX ALREADY STATES ITS STATE, and demanding `aria-pressed`
@@ -1346,6 +1354,10 @@ export const CHECKS = [
 
   {
     id: 'the-toggle-actually-toggles',
+    /* Only exists when the document ships two themes. A single-theme package
+       has no control to state, no attribute to keep out of the markup and
+       nothing to press. */
+    needs: 'themeToggle',
     where: 'render',
     line: 'Pressing the theme control changes the painted page. Press it and read the result.',
     body: [

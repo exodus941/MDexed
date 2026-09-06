@@ -31,6 +31,7 @@
  */
 import { SOURCE_CHECKS, RENDER_CHECKS, MANUAL_CHECKS } from './checks.js'
 import { VERIFY_NODE, VERIFY_BROWSER } from './verify.js'
+import { hasThemeToggle } from '../state/schema.js'
 
 const bullets = checks => checks.map(c => '- ' + c.line).join('\n')
 
@@ -102,8 +103,33 @@ const NAME_CAP = 60
 export function agentContract (state, derived, opts = {}) {
   const raw = state.meta?.name?.trim() || 'this design system'
   const name = raw.length > NAME_CAP ? raw.slice(0, NAME_CAP - 1) + '…' : raw
-  const both = Boolean(derived?.roles?.dark && derived?.roles?.light)
+  /* ── `derive()` ALWAYS BUILDS BOTH ROLE SETS ──
+   *
+   * This asked whether the derived object holds a light set and a dark set,
+   * and it always holds both. The theme decides what gets EMITTED, never what
+   * gets derived, so `both` was true for every document ever exported.
+   *
+   * A dark-only package therefore shipped a whole "Theme switching" section
+   * telling the builder to wire a `#dmd-dark` checkbox, plus three checklist
+   * items demanding a theme control, while the DESIGN.md beside it said "This
+   * system ships one theme. Do not build a theme toggle."
+   *
+   * AGENTS.md is step 1 of its own reading order, so the file read FIRST won.
+   *
+   * Third variant of one fault. `markdown.js` asked `hasDark`, which is true
+   * for dark-only. This asked the shape of the derived object, which answers
+   * yes always. Neither asked the question they meant, which is whether the
+   * document ships two themes. */
+  const both = hasThemeToggle(state)
   const themes = both ? 'light and dark' : 'a single theme'
+  /* A checklist item for a control this package does not ship is an
+     instruction to build one. Three of them told a dark-only reader to wire a
+     theme toggle, state its pressed status and press it, while the DESIGN.md
+     beside them forbade the whole thing. */
+  const forDoc = list => list.filter(c => c.needs !== 'themeToggle' || both)
+  const sourceChecks = forDoc(SOURCE_CHECKS)
+  const renderChecks = forDoc(RENDER_CHECKS)
+  const manualChecks = forDoc(MANUAL_CHECKS)
   const filename = opts.filename ?? 'AGENTS.md'
   const twin = filename === 'AGENTS.md' ? 'CLAUDE.md' : 'AGENTS.md'
 
@@ -228,7 +254,7 @@ Two of these run. Run them; do not read them and agree with yourself.
 node ${VERIFY_NODE} <your source directory>
 \`\`\`
 
-${bullets(SOURCE_CHECKS)}
+${bullets(sourceChecks)}
 
 Then open the page you built and paste \`${VERIFY_BROWSER}\` into the console:
 
@@ -236,11 +262,11 @@ Then open the page you built and paste \`${VERIFY_BROWSER}\` into the console:
 await verify()
 \`\`\`
 
-${bullets(RENDER_CHECKS)}
+${bullets(renderChecks)}
 
-These ${MANUAL_CHECKS.length} no tool can answer. Check them yourself.
+These ${manualChecks.length} no tool can answer. Check them yourself.
 
-${bullets(MANUAL_CHECKS)}
+${bullets(manualChecks)}
 
 If any check fails, fix it before you report. Do not report the failure as a
 limitation of the design system.
