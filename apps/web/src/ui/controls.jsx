@@ -410,6 +410,24 @@ export function FilterField({ value, onChange, placeholder = 'Search…', width 
 }
 
 /** Circular-arrow reset. Dimmed rather than hidden, so the control never shifts. */
+/* The one restore mark.
+ *
+ * Two controls undo an override: `ResetButton` beside every property row, and
+ * `OverrideBadge` on a token that has broken away. They did the same job with
+ * different marks, so learning one taught you nothing about the other.
+ *
+ * The path lives here rather than in both. A copied path drifts from the
+ * original the first time either is touched, and then one screen's undo arrow
+ * turns the other way from the next screen's. */
+export function RestoreMark({ size = 12 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
+      <path d="M3 2v6h6" /><path d="M3.5 12a8.5 8.5 0 1 0 2.5-6L3 8.5" />
+    </svg>
+  )
+}
+
 export function ResetButton({ onClick, disabled, title = 'Reset to default' }) {
   return (
     /* Always sits beside a field, so it takes the field's height. The icon
@@ -423,9 +441,7 @@ export function ResetButton({ onClick, disabled, title = 'Reset to default' }) {
         opacity: disabled ? 0.4 : 1,
         transition: 'color var(--t) var(--ease), opacity var(--t) var(--ease)',
       }}>
-      <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round">
-        <path d="M3 2v6h6" /><path d="M3.5 12a8.5 8.5 0 1 0 2.5-6L3 8.5" />
-      </svg>
+      <RestoreMark />
     </button>
   )
 }
@@ -720,17 +736,38 @@ export function Toggle({ label, checked, onChange, desc }) {
   )
 }
 
-/** Marks a token that has broken away from its generated value. */
+/* Marks a token that has broken away from its generated value.
+ *
+ * ── ONE JOB, ONE AFFORDANCE ──
+ *
+ * This read as a dot and the word `set`, while `ResetButton` fifteen screens
+ * away did the identical job as a circular arrow. Two marks for one action, in
+ * one app, so a reader who learns the Components panel does not recognise the
+ * control in Typography.
+ *
+ * The word was also the wrong half of the message. `set` names the STATE and
+ * the button performs the ACTION, so the label described what had happened
+ * rather than what a press would do. The arrow says undo, which is the thing
+ * the click actually does.
+ *
+ * SAME PATH AS `ResetButton`, not a second drawing of the same idea. A copied
+ * path drifts from the original the first time either is touched.
+ *
+ * It keeps the accent chip, because this one carries a second job the plain
+ * reset does not: it has to be findable among rows that have no override at
+ * all. `ResetButton` sits in every row and greys out; this appears only where
+ * something broke away, so it announces itself. */
 export function OverrideBadge({ onReset, title = 'Overridden — click to relink' }) {
   return (
-    <button onClick={onReset} title={title}
+    <button onClick={onReset} title={title} aria-label={title}
       style={{
-        display: 'inline-flex', alignItems: 'center', gap: 4, background: 'rgb(var(--accent-rgb) / .12)',
+        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+        width: 20, height: 20, aspectRatio: 1, padding: 0,
+        background: 'rgb(var(--accent-rgb) / .12)',
         border: '1px solid rgb(var(--accent-rgb) / .3)', color: 'var(--accent)', borderRadius: 4,
-        padding: '2px 6px', fontSize: 10, fontFamily: 'var(--mono)', cursor: 'pointer', lineHeight: 1.6,
+        cursor: 'pointer', flex: '0 0 auto',
       }}>
-      <span style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--accent)' }} />
-      set
+      <RestoreMark size={11} />
     </button>
   )
 }

@@ -134,18 +134,36 @@ function overviewBody(state) {
 function colorsBody(state, derived) {
   const { roles } = derived
   const dark = hasDark(state)
+  /* ── `hasDark` IS NOT "TWO THEMES SHIP" ──
+   *
+   * It is true for a dark-only document as well as for both, so every reader
+   * of it below printed a Light column, measured light pairs and told the
+   * builder to construct a theme toggle. A dark-only package emits one
+   * `:root`, no media query, no `data-theme` block and no light value at all.
+   *
+   * Measured on one export: the Colors table published #e3ebe9 for surface and
+   * #040b0a for text, and neither appears anywhere in the tokens.css beside it.
+   * The Overview two sections above said "This system ships one theme. Do not
+   * build a theme toggle." A compliant reader met the opposite sixty lines on.
+   *
+   * `both` is the question all of them were asking. `only` is the set a
+   * single-theme document actually emits, which is the DARK one when the
+   * theme is dark. Reading `roles.light` for that case was the second half of
+   * the same fault. */
+  const both = hasThemeToggle(state)
+  const only = dark ? roles.dark : roles.light
 
   const rows = []
   for (const group of ROLE_GROUPS) {
     for (const role of group.roles) {
       /* The property an agent types, not the bare role name. A simulation had
          one write `var(--color-accent)` from a table that said `accent`. */
-      rows.push(dark
+      rows.push(both
         ? [`\`var(--c-${role.name})\``, roles.light[role.name], roles.dark[role.name], role.desc]
-        : [`\`var(--c-${role.name})\``, roles.light[role.name], role.desc])
+        : [`\`var(--c-${role.name})\``, only[role.name], role.desc])
     }
   }
-  const roleTable = table(dark ? ['Property', 'Light', 'Dark', 'Use for'] : ['Property', 'Value', 'Use for'], rows)
+  const roleTable = table(both ? ['Property', 'Light', 'Dark', 'Use for'] : ['Property', 'Value', 'Use for'], rows)
 
   /* Measure every mode the system ships.
    *
@@ -166,10 +184,16 @@ function colorsBody(state, derived) {
   }
 
   const contrastRows = CONTRAST_PAIRS.map(p => {
+    const tokens = `\`${p.fg}\` on \`${p.bg}\``
+    /* A single-theme document measures the values it emits. This read
+       `roles.light` either way, so a dark-only export published ratios for a
+       palette no file in the package contains. */
+    if (!both) {
+      const v = only[p.fg] && only[p.bg] ? cell(only[p.fg], only[p.bg], p) : null
+      return v ? [p.label, tokens, v] : null
+    }
     const l = roles.light[p.fg] && roles.light[p.bg] ? cell(roles.light[p.fg], roles.light[p.bg], p) : null
     if (!l) return null
-    const tokens = `\`${p.fg}\` on \`${p.bg}\``
-    if (!dark) return [p.label, tokens, l]
     const d = roles.dark[p.fg] && roles.dark[p.bg] ? cell(roles.dark[p.fg], roles.dark[p.bg], p) : null
     return [p.label, tokens, l, d ?? '—']
   }).filter(Boolean)
@@ -177,7 +201,7 @@ function colorsBody(state, derived) {
   /* The sweep. Every text role against every surface role, in every mode
      shipped. It reports failures only, so it is silent on a sound system. */
   const sweepFails = []
-  for (const [mode, set] of dark ? [['light', roles.light], ['dark', roles.dark]] : [['light', roles.light]]) {
+  for (const [mode, set] of both ? [['light', roles.light], ['dark', roles.dark]] : [[dark ? 'dark' : 'light', only]]) {
     for (const fg of TEXT_ROLES) {
       for (const bg of SURFACE_ROLES) {
         if (!set[fg] || !set[bg]) continue
@@ -202,11 +226,11 @@ function colorsBody(state, derived) {
     'Write these as CSS custom properties with a `--c-` prefix: the role `accent` is `var(--c-accent)`, `text-muted` is `var(--c-text-muted)`. The role names in the table below are the part after the prefix.',
     roleTable,
     gradientBlock,
-    contrastRows.length && (dark
+    contrastRows.length && (both
       ? '**Measured contrast** (WCAG ratio, grade and APCA Lc, per mode):'
       : '**Measured contrast** (WCAG ratio, grade and APCA Lc):'),
     contrastRows.length && table(
-      dark ? ['Pair', 'Tokens', 'Light', 'Dark'] : ['Pair', 'Tokens', 'Measured'],
+      both ? ['Pair', 'Tokens', 'Light', 'Dark'] : ['Pair', 'Tokens', 'Measured'],
       contrastRows),
     /* Say what the rows do not mean, or the reader discounts the whole block
        on the first row that has a good reason to be there. `text-subtle`
@@ -222,8 +246,8 @@ function colorsBody(state, derived) {
          not exist — the same failure as the `var(--color-accent)` one above,
          from the same cause, which is a sentence describing tokens the
          package never emitted. */
-      dark && 'Two ways to reach a dark value, and the first is the one you want. `tokens.css` reassigns the same custom properties under `@media (prefers-color-scheme: dark)` and under `:root[data-theme="dark"]`, so `var(--c-surface)` is already correct in both themes. Build a theme toggle by setting `data-theme` on the root element, and change no variable name anywhere.',
-      dark && 'The second way is for the case the first cannot serve. Every role also exists as `--c-dark-<role>` — `var(--c-dark-surface)` — holding the dark value regardless of the active theme. Reach for it only when you need the dark value *while the light theme is in force*: a panel that stays dark inside a light page, or a figure showing both themes at once. A media query cannot be in two states, and this is what covers that.',
+      both && 'Two ways to reach a dark value, and the first is the one you want. `tokens.css` reassigns the same custom properties under `@media (prefers-color-scheme: dark)` and under `:root[data-theme="dark"]`, so `var(--c-surface)` is already correct in both themes. Build a theme toggle by setting `data-theme` on the root element, and change no variable name anywhere.',
+      both && 'The second way is for the case the first cannot serve. Every role also exists as `--c-dark-<role>` — `var(--c-dark-surface)` — holding the dark value regardless of the active theme. Reach for it only when you need the dark value *while the light theme is in force*: a panel that stays dark inside a light page, or a figure showing both themes at once. A media query cannot be in two states, and this is what covers that.',
       state.color.emitRamps && 'Numbered scales (`accent-50` … `accent-950`) exist for cases the semantic roles do not cover. Prefer the semantic role wherever one applies — it carries intent, the raw step does not.',
       'Never introduce a colour that is not listed here.',
       /* Learned twice, the second time by a simulation that read a sentence
