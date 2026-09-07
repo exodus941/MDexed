@@ -82,6 +82,19 @@ function nonTextContrast(state, derived, mode) {
   /* The boundary of a control is what tells you a control is there. */
   pair('border', 'surface', 'Control borders are too faint on cards')
   pair('border', 'bg', 'Control borders are too faint on the page')
+  /* MEASURE A ROLE ON ITS WORST GROUND, NEVER ITS BEST. `border` was asked
+     about `surface` and `bg` and nothing else, and those are the two lightest
+     planes a control stands on. A selected row and a striped row are each a
+     step darker, so an outline that clears 3:1 on the card can fail on the
+     row the reader just picked. Measured across the six presets in both
+     modes: 3.12 to 4.57 on the selection and 3.49 to 4.31 on the stripe, so
+     both clear today and neither was being watched. */
+  pair('border', 'selected', 'Control borders are too faint on a selected row', {
+    fix: 'Step the outline to a heavier role on this ground, or bring the selection back toward the surface. One role cannot serve two grounds at one bar.',
+  })
+  pair('border', 'row-stripe', 'Control borders are too faint on a striped row', {
+    fix: 'Step the outline to a heavier role on this ground, or soften the stripe. A stripe is rhythm, so it can afford to give.',
+  })
   pair('border-strong', 'surface', 'Emphasised borders are too faint')
 
   /* A focus ring has to clear both what it sits on and what it rings —
@@ -1221,6 +1234,113 @@ function planeCollision (derived, mode) {
   return out
 }
 
+
+/* ── A STRIPE IS RHYTHM AND A SELECTION IS A CHOICE, SO THE STEPS ARE ORDERED ──
+ *
+ * Three roles stack on one row and nothing measured the relationship between
+ * them. `planeCollision` above asks only whether two of them resolved to ONE
+ * hex, which is the loudest version of this fault and not the common one.
+ *
+ * The common one is the ORDER. A stripe carries the rhythm, so it takes the
+ * softest step the ramp holds; a selection has to be found, so it sits one
+ * step further out. Measured on the six shipped presets in both modes: the
+ * stripe reads 1.03 to 1.07 against the surface and the selection 1.15 to
+ * 1.23, so the selection is further in all twelve. Invert the two and the
+ * table reads as banded rather than as chosen, and no contrast check has an
+ * opinion, because both numbers are individually fine.
+ *
+ * ONE STEP, NOT TWO. They said it looking at the rendered table: "not sure if
+ * i prefer the selected rows to be darkened". Two steps apart and the whole
+ * table reads heavy.
+ *
+ * A THRESHOLD ON A RATIO, NEVER ON A RAMP INDEX. A ref may name the midpoint
+ * between two steps, which is how the stripe is written, so counting indices
+ * cannot answer this. The eye reads the ratio.
+ */
+function rowPlaneOrder (derived, mode) {
+  const R = derived.roles?.[mode] ?? {}
+  const out = []
+  const stripe = R['row-stripe'], selected = R.selected, surface = R.surface
+  if (!stripe || !selected || !surface) return out
+
+  const stripeStep = ratio(surface, stripe)
+  const selectedStep = ratio(surface, selected)
+  const between = ratio(stripe, selected)
+  if (stripeStep == null || selectedStep == null || between == null) return out
+
+  /* THE NUMBER THE RULE STATES, and it is deliberately generous. At 1.6:1 a
+     stripe stops separating rows and starts dividing the table into blocks.
+     Measured: the shipped stripe reads 1.03 to 1.07, the `bg-subtle` step
+     reads 1.33 to 1.48, and two steps out reads 1.84 to 1.94. So this fires
+     on the two-step case and stays quiet on everything softer, which is the
+     band where taste rather than legibility decides. */
+  if (stripeStep >= 1.6) {
+    out.push({
+      req: 'colour', id: `rowplane:${mode}:stripe-is-a-band`, level: WARN,
+      criterion: 'Practice', tab: 'roles', entry: 'row-stripe', mode,
+      title: `The row stripe reads as a boundary in ${mode}`,
+      detail: `row-stripe on surface is ${r2(stripeStep)}:1. A stripe is rhythm: it groups rows so the eye keeps its place across a wide table. At this separation it divides the table into blocks instead, and a reader sees bands rather than rows.`,
+      fix: 'Take the stripe to the softest step the ramp holds, and put the selection one step further out rather than raising the stripe to reach it.',
+      measured: `${r2(stripeStep)}:1`,
+    })
+  }
+
+  /* THE ORDER, WHICH IS THE HALF NOTHING WAS ASKING. */
+  if (selectedStep <= stripeStep) {
+    out.push({
+      req: 'colour', id: `rowplane:${mode}:order`, level: WARN,
+      criterion: 'Practice', tab: 'roles', entry: 'selected', mode,
+      title: `A striped row stands out more than a selected one in ${mode}`,
+      detail: `row-stripe reads ${r2(stripeStep)}:1 against the surface and selected reads ${r2(selectedStep)}:1, so the rhythm is louder than the choice. Every other row then competes with the one the reader picked.`,
+      fix: 'Put the selection one step further off the surface than the stripe. Move the selection out rather than pushing the stripe in, so the table keeps its rhythm.',
+      measured: `stripe ${r2(stripeStep)}:1, selected ${r2(selectedStep)}:1`,
+    })
+  }
+
+  /* AND THE DISTANCE BETWEEN THEM. One ramp step, measured on this palette at
+     1.15 to 1.20. The rejected two-step arrangement measured 1.54 to 1.93. */
+  if (between >= 1.5) {
+    out.push({
+      req: 'colour', id: `rowplane:${mode}:two-steps`, level: NOTE,
+      criterion: 'Practice', tab: 'roles', entry: 'selected', mode,
+      title: `The selection sits two steps off the stripe in ${mode}`,
+      detail: `selected on row-stripe is ${r2(between)}:1. One step apart is enough to find a row; at two the selected rows read as darkened rather than as chosen, and the table reads heavy wherever several are picked.`,
+      fix: 'Close the gap to one ramp step. The accent edge and the row checkbox carry the rest of the marking, so the fill does not have to.',
+      measured: `${r2(between)}:1`,
+    })
+  }
+
+  /* ── A SELECTED ROW IS NOT AN ACCENT TINT ──
+   *
+   * Their correction on sight: "omigod why baby blue for the selection". A
+   * saturated tint repeated down ten rows is fatigue rather than information,
+   * and every contrast number clears: the rejected `accent.200` measured band
+   * 1.62, body 8.34 and muted 4.56. Only the CHROMA separates it from the
+   * neutral answer, which measures identically and reads calm.
+   *
+   * MEASURED AGAINST THE PAGE'S OWN NEUTRAL PLANES, never against an absolute
+   * chroma. A tinted ground is an offered setting, so a fixed floor would
+   * fault a system whose whole palette carries a little chroma. Measured: the
+   * selection sits within 0.006 of the loudest neutral plane in all twelve
+   * shipped combinations, the planes vary from each other by up to 0.006, and
+   * `accent.200` sits 0.073 out. So the allowance is above the planes' own
+   * spread and eight times below the fault. */
+  const chromaOf = hex => { const o = hex ? toOklchObj(parseColor(hex)) : null; return o ? o.c : null }
+  const selC = chromaOf(selected)
+  const groundC = Math.max(chromaOf(surface) ?? 0, chromaOf(R.bg) ?? 0)
+  if (selC != null && selC > groundC + 0.01) {
+    out.push({
+      req: 'colour', id: `rowplane:${mode}:selection-is-tinted`, level: WARN,
+      criterion: 'Practice', tab: 'roles', entry: 'selected', mode,
+      title: `The selected row is a saturated tint in ${mode}`,
+      detail: `selected carries ${selC.toFixed(3)} of chroma against ${groundC.toFixed(3)} on the neutral planes around it. Every contrast number clears, and ten tinted rows in a row are fatigue rather than information.`,
+      fix: 'Take the selection to the neutral ramp, at the same lightness. The accent still marks the row, through its checkbox and its start edge, where it appears once per row instead of filling it.',
+      measured: `chroma ${selC.toFixed(3)} against ${groundC.toFixed(3)}`,
+    })
+  }
+  return out
+}
+
 /* ── A TINTED FILL MUST RECEDE, AND BY THE SAME AMOUNT IN BOTH MODES ──
  *
  * A reader called the dark theme solarized, and that is the right word for
@@ -1279,6 +1399,7 @@ export function audit(state, derived) {
       ...hairlineChecks(derived, mode),
       ...meaningCollision(derived, mode),
       ...planeCollision(derived, mode),
+      ...rowPlaneOrder(derived, mode),
       ...fillSitsOnItsGround(derived, mode),
       ...paletteStructure(derived, mode),
     ]),

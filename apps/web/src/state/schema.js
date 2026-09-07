@@ -49,10 +49,14 @@ export const ROLE_GROUPS = [
          back. It needs its own role because nothing else in this group means
          "every other row" — reusing `bg-subtle` measured 1.62:1 against the
          surface, which is a boundary rather than a rhythm.
-         THE STRIPE IS THE PAGE SHOWING THROUGH, and that is why it steps the
-         way it does: away from the surface, TOWARD the page. In light that is
-         darker and in dark it is darker again, because the page sits below the
-         card in both. Both land on the same step the `bg` role uses.
+         THE STRIPE STEPS AWAY FROM THE SURFACE, and which WAY depends on where
+         the selection went. It used to step toward the page in both modes.
+         Once the selection took the step the stripe had been holding, the
+         stripe moved to the midpoint on the other side in light, so the two
+         no longer stack in one direction. Measured in OKLCH L: light runs
+         surface 0.940, stripe 0.952, selection 0.893; dark runs surface
+         0.276, stripe 0.256, selection 0.200. What has to hold is the ORDER
+         and the DISTANCE, not the direction, and the suite asserts both.
          Striping the other way in dark — lighter than the surface — was tried
          and it breaks two things at once: a bordered control on the stripe
          falls to 2.68, and the selected row has nowhere left to go, landing at
@@ -246,9 +250,11 @@ export const ROLE_GROUPS = [
        * darkened". It now takes the step the stripe used to hold, and the
        * stripe drops to the midpoint below it. So the two are one ramp step
        * apart instead of two, and the whole table lightens without losing the
-       * separation: the selection still reads 1.27:1 against the surface and
-       * about 1.14 against the stripe, with the edge and the box carrying the
-       * rest. */
+       * separation. Measured today across the six presets in both modes: the
+       * selection reads 1.15 to 1.23:1 against the surface and 1.15 to 1.20
+       * against the stripe, with the edge and the box carrying the rest. The
+       * figures here were 1.27 and 1.14 when written, so a comment that states
+       * them is a comment that drifts. The suite measures them instead. */
       /* THE DESCRIPTION NAMES THE GROUND, because this role resolves to the
          same hex as `bg` in both modes. That is deliberate and the plane check
          exempts the pair: a selected row sits on a CARD, where it is a step

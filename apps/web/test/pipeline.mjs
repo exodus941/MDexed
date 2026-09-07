@@ -2837,9 +2837,9 @@ line('\n- depth intensity -')
   const plain = selectedState('edge', 'medium')
   const ruled = selectedState('edge', 'medium', { ruled: true })
   assert(typeof plain.boxShadow === 'string' && /inset/.test(plain.boxShadow),
-    'an unruled set draws the bar with an inset shadow, which costs no element')
+    'which mechanism draws the bar depends on whether a rule crosses the row: an unruled set takes an inset shadow, which costs no element')
   assert(ruled.boxShadow === undefined,
-    'a RULED set publishes no shadow, or a builder taking it reproduces the fault')
+    'and a row that a rule crosses takes a pseudo-element, so a ruled set publishes no shadow at all')
   /* Both publish the INGREDIENTS, so a build that sets its own inset can
      rebuild the bar rather than taking a sum it no longer uses. */
   for (const [what, props] of [['unruled', plain], ['ruled', ruled]]) {
@@ -2856,6 +2856,39 @@ line('\n- depth intensity -')
       `the ${style} treatment publishes no edge at all`)
   }
 
+
+  /* ── A STRIPE AND A ROW RULE DO DIFFERENT JOBS ──
+   *
+   * The rule store said "striping replaces the row divider — two ways of
+   * saying a new row begins is noise". That was wrong on screen: dropping the
+   * rule left ten rows floating in two shades. The band carries the rhythm
+   * ACROSS a wide row and the rule marks WHERE one row ends, so a long table
+   * takes both. Carbon does. `preview.css` has said so for as long as the
+   * setting has existed, and the old wording sat in the rule store
+   * contradicting it.
+   *
+   * So the setting has to OFFER both, and the two have to differ in the
+   * emitted instruction. An option that reads the same as its neighbour is a
+   * decision the reader still has to make. */
+  {
+    const { LAYOUT_COMPONENTS } = await import('../src/state/componentLayout.js')
+    const rows = LAYOUT_COMPONENTS.find(c => c.name === 'table')
+      ?.fields.find(f => f.k === 'rows')
+    assert(!!rows, 'the table publishes a row-separation setting')
+    const values = rows.options.map(o => o.value)
+    for (const want of ['lines', 'zebra', 'both', 'none'])
+      assert(values.includes(want), `and it offers ${want}`)
+    const say = v => rows.options.find(o => o.value === v).sentence
+    assert(/rule/i.test(say('lines')) && !/stripe|zebra|alternat/i.test(say('lines')),
+      'rules alone states a rule and no band')
+    assert(/stripe|alternat/i.test(say('zebra')) && /no rules/i.test(say('zebra')),
+      'zebra alone states a band and says the rules are gone')
+    assert(/stripe|alternat/i.test(say('both')) && /rule/i.test(say('both')),
+      'and both states the band AND the rule, because a stripe and a row rule do different jobs')
+    assert(new Set(['lines', 'zebra', 'both', 'none'].map(say)).size === 4,
+      'no two options emit the same instruction')
+  }
+
   /* THE CHECK MUST SEE BOTH MECHANISMS. Asking only about box-shadow goes
      silent the moment a build does the correct thing in a ruled table.
      Proven in a browser on the pseudo-element form: silent on a correct row,
@@ -2868,6 +2901,113 @@ line('\n- depth intensity -')
     assert(/boxShadow/.test(src),
       `and still reads the shadow, in its ${what}`)
   }
+}
+
+/* ── THE THREE PLANES ON ONE ROW, AND THE ORDER THEY SIT IN ──
+ *
+ * Nothing measured this. `planeCollision` asks whether two of them resolved to
+ * one hex, which is the loudest form of the fault. The common form is the
+ * ORDER: a stripe louder than a selection reads as banded rather than as
+ * chosen, and both numbers are individually fine, so no contrast check has an
+ * opinion.
+ *
+ * MEASURED FIRST, THEN THE BAR. Across the six presets in both modes: the
+ * stripe reads 1.03 to 1.07 against the surface, the selection 1.15 to 1.23,
+ * and the two sit 1.15 to 1.20 apart. The rule's own numbers were 1.13, 1.27
+ * and 1.12 when it was written, so a check pinning those constants would fail
+ * today on a palette nobody thinks is broken. The RELATIONSHIP is the rule.
+ */
+{
+  line('\n- the three planes on one row -')
+  const { audit } = await import('../src/a11y/audit.js')
+  const { PRESETS } = await import('../src/state/presets.js')
+  const ROW = f => f.id.startsWith('rowplane:') ||
+    /^nontext:border:(selected|row-stripe):/.test(f.id)
+
+  const lumOf = hex => {
+    const c = hex.replace('#', '').match(/../g).slice(0, 3).map(h => {
+      const v = parseInt(h, 16) / 255
+      return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4)
+    })
+    return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]
+  }
+  const ratioOf = (a, b) => {
+    const x = lumOf(a), y = lumOf(b)
+    return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05)
+  }
+
+  let worstStripe = 0, closestOrder = Infinity, widestGap = 0, loudestSel = 0
+  for (const p of PRESETS) {
+    const s = p.patch()
+    const d = derive(s)
+    for (const mode of ['light', 'dark']) {
+      const R = d.roles[mode]
+      const stripe = ratioOf(R.surface, R['row-stripe'])
+      const sel = ratioOf(R.surface, R.selected)
+      worstStripe = Math.max(worstStripe, stripe)
+      closestOrder = Math.min(closestOrder, sel - stripe)
+      widestGap = Math.max(widestGap, ratioOf(R['row-stripe'], R.selected))
+      const cs = toOklchObj(parseColorFor(R.selected)).c
+      const cg = Math.max(toOklchObj(parseColorFor(R.surface)).c, toOklchObj(parseColorFor(R.bg)).c)
+      loudestSel = Math.max(loudestSel, cs - cg)
+    }
+  }
+  assert(worstStripe < 1.6,
+    `a stripe is rhythm and a band is a boundary, so every stripe stays under the band (worst ${worstStripe.toFixed(2)}:1, bar 1.6)`)
+  assert(closestOrder > 0,
+    `a selection always stands further off the surface than the stripe (closest margin ${closestOrder.toFixed(2)})`)
+  assert(widestGap < 1.5,
+    `the stripe and the selection are one step apart, not two (widest ${widestGap.toFixed(2)}:1, bar 1.5)`)
+  assert(loudestSel <= 0.01,
+    `a selected row is not an accent-subtle background, so no selection is a saturated tint (loudest ${loudestSel.toFixed(3)} of chroma over its own neutral planes, bar 0.01)`)
+
+  /* QUIET ON CORRECT CODE, which is the half that costs more when it is
+     missing. A check that fires on a shipped preset trains a reader to skim. */
+  for (const p of PRESETS) {
+    const s = p.patch()
+    const hits = audit(s, derive(s)).filter(ROW)
+    assert(hits.length === 0,
+      `${p.id} reports nothing about its own rows${hits.length ? ` — ${hits.map(h => h.id).join(', ')}` : ''}`)
+  }
+
+  /* AND EVERY BAR FIRES ON THE FAULT IT WAS SET AGAINST. A bar proven on one
+     fault says nothing about the others, so each is injected on its own and
+     the finding is read by ID rather than counted. */
+  const put = (role, light, dark) => {
+    const n = structuredClone(createInitialState())
+    n.color.roles[role] = { light, dark }
+    return n
+  }
+  const FAULTS = [
+    ['row-stripe', 'neutral.300', 'neutral.700', 'stripe-is-a-band',
+      'a stripe two steps off the surface, which divides the table into blocks'],
+    ['row-stripe', 'neutral.200', 'neutral.800', 'order',
+      'a stripe louder than the selection, so the rhythm beats the choice'],
+    ['selected', 'accent.200', 'accent.700', 'selection-is-tinted',
+      'the baby-blue selection they rejected on sight'],
+    ['selected', 'neutral.50~100@0.4', 'neutral.900', 'order',
+      'a selection resolving to the surface it sits on'],
+  ]
+  for (const [role, light, dark, want, why] of FAULTS) {
+    const s = put(role, light, dark)
+    const ids = audit(s, derive(s)).filter(ROW).map(f => f.id)
+    assert(ids.some(id => id.endsWith(':' + want)),
+      `${want} fires on ${why}${ids.length ? '' : ' — nothing fired at all'}`)
+  }
+
+  /* THE OUTLINE ON THE TWO GROUNDS NOBODY MEASURED IT ON. `border` was asked
+     about `surface` and `bg`, the two lightest planes a control stands on. */
+  let worstBorder = Infinity
+  for (const p of PRESETS) {
+    const d = derive(p.patch())
+    for (const mode of ['light', 'dark']) {
+      const R = d.roles[mode]
+      for (const ground of ['selected', 'row-stripe'])
+        worstBorder = Math.min(worstBorder, ratioOf(R.border, R[ground]))
+    }
+  }
+  assert(worstBorder >= 3,
+    `lightening a selected row also fixes the control on it, so the outline clears 1.4.11 on a selected and a striped row (worst ${worstBorder.toFixed(2)}:1)`)
 }
 
 /* ── RETIRING A TOKEN ──
@@ -3122,6 +3262,33 @@ line('\n- depth intensity -')
       'a column whose values differ in width, where agreeing edges mean something really aligns them'],
     ['an-amount-lines-up-on-its-end-edge', 'endwise',
       'a column of equal-width amounts that declares its end alignment, and so is right for a reason'],
+    /* ── THE ROW-PLANE CHECK, PROVEN IN A BROWSER ──
+     *
+     * Six tables in one fixture, and the numbers are recorded so a future
+     * edit that widens the check has something to fail against:
+     *
+     *   own-fill zebra      stripe 1.04, selection 1.15   silent
+     *   cell-painted        stripe 1.04, selection 1.15   silent
+     *   ruled, no stripe    no stripe found               silent
+     *   stripe 2 steps out  stripe 1.94, selection 3.50   boundary + two-step
+     *   order inverted      stripe 1.15, selection 1.04   order
+     *   selection = accent  stripe 1.04, selection 6.75   two-step
+     *
+     * The first three were MEASURED, not skipped: the detection reported the
+     * stripe it found and the step it read on each. A run that measured
+     * nothing is not a pass, and it reads exactly like one. */
+    ['a-stripe-is-rhythm-and-a-selection-is-a-choice', 'fillOf',
+      'a table row that paints through its CELLS, which is how this system draws a selection and how the first version of the check went blind'],
+    ['a-stripe-is-rhythm-and-a-selection-is-a-choice', 'input:checked',
+      'a row declaring its choice with a checked box rather than aria-selected, which is what the Index preview ships'],
+    ['a-stripe-is-rhythm-and-a-selection-is-a-choice', 'others.length !== 1',
+      'a list of cards, where every row paints and there is no stripe to measure'],
+    ['a-stripe-is-rhythm-and-a-selection-is-a-choice', 'i % 2 === at[0] % 2',
+      'two fills in no pattern, which is a list with two kinds of row in it rather than a stripe'],
+    ['a-stripe-is-rhythm-and-a-selection-is-a-choice', 'at.length * 3 < kids.length',
+      'a minority fill, so two selected rows are never mistaken for the stripe'],
+    ['a-stripe-is-rhythm-and-a-selection-is-a-choice', 'own === ground || own === stripe',
+      'a row marked by its edge alone, which is a treatment this system offers and paints no fill of its own'],
   ]
   for (const [id, clause, why] of GUARDS) {
     assert(bodyOf(id).includes(clause),

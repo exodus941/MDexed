@@ -799,6 +799,49 @@ function classBridgeTable () {
   return table(['Spec name', 'Write this'], rows)
 }
 
+/* ── MEASURE THE ROW PLANES, NEVER STATE THEM AS CONSTANTS ──
+ *
+ * These three numbers were typed into the prose and spent a session being
+ * false. The rule was written when the stripe read 1.13:1 against the surface
+ * and the selection 1.27, with 1.12 between them. The palette moved and the
+ * document went on promising the old figures: measured today, 1.04, 1.15 and
+ * 1.20. A number the document computes cannot drift from the palette it
+ * describes, and the RELATIONSHIP was always the rule.
+ *
+ * Both modes, because a ratio measured in one says nothing about the other. */
+function rowPlaneProse (state, derived) {
+  const roles = derived.roles ?? {}
+  const modes = [hasLight(state) ? "light" : null, hasDark(state) ? "dark" : null].filter(Boolean)
+  const said = []
+  for (const mode of modes) {
+    const R = roles[mode] ?? {}
+    if (!R.surface || !R["row-stripe"] || !R.selected) continue
+    const r2 = n => n.toFixed(2)
+    const stripe = r2(check(R.surface, R["row-stripe"]).ratio)
+    const sel = r2(check(R.surface, R.selected).ratio)
+    const between = r2(check(R["row-stripe"], R.selected).ratio)
+    said.push(`in ${mode} the stripe reads ${stripe}:1 against the surface and the selection ${sel}, with ${between} between them`)
+  }
+  return said.join("; ")
+}
+
+/* The outline on the two grounds it was never measured on. `border` is
+   calibrated for the card, which is where it reads highest, so a selected or
+   a striped row is the case that has to be stated rather than assumed. */
+function outlineOnRowProse (state, derived) {
+  const roles = derived.roles ?? {}
+  const modes = [hasLight(state) ? "light" : null, hasDark(state) ? "dark" : null].filter(Boolean)
+  const said = []
+  for (const mode of modes) {
+    const R = roles[mode] ?? {}
+    if (!R.border) continue
+    for (const [ground, what] of [["selected", "a selected row"], ["row-stripe", "a striped row"]]) {
+      if (!R[ground]) continue
+      said.push(`${check(R.border, R[ground]).ratio.toFixed(2)}:1 on ${what} in ${mode}`)
+    }
+  }
+  return said.join(", ")
+}
 function componentsBody(state, derived) {
   const tabStyle = state.components?.tabStyle ?? 'underline'
   const proseOnly = []
@@ -1095,8 +1138,8 @@ function componentsBody(state, derived) {
       'Shrink the ORNAMENT columns rather than growing a content one. A checkbox column and a row-action column take `width: 1%`, which a table reads as "your content and no more", and the remaining width then spreads across the columns that hold data. Setting `width: 100%` on one content column instead takes ALL the slack and starves the rest — measured, 905px of account name beside a 27.5px date that wrapped.',
       'Keep the two outer edges of a table equal. An override on the first or last cell is what breaks it, and an uneven pair always reads as a lean rather than as a decision.',
       'Let ONE mechanism centre a label. A button that centres its text with a `line-height` equal to its own height, and is then also made a flex container, is centring twice: measured, the label sat 2px high, its chevron 1px off the optical middle, and the whole control 1px above its neighbours. Three faults, one cause. Where flex does the centring, set the line-height back to normal.',
-      'Stripe a long list with the SOFTEST step available, and put a selected row one step further. Measured on this palette: the stripe reads 1.13:1 against the surface and the selection 1.27, with 1.12 between them. Two steps apart the table reads heavy and the selected rows look darkened rather than chosen. Keep the row rules as well as the stripe — the stripe gives the rhythm and the rule gives the edge — and mark the selection with an accent edge and its checkbox rather than with a saturated fill, which is fatigue when it repeats down ten rows.',
-      'Choosing a lighter ground for a selected row also decides whether the controls standing on it are legal. The default outline measured 2.36:1 two steps down from the surface and 3.02 one step down. Check a control against every ground it can sit on, not only the card.',
+      `Stripe a long list with the SOFTEST step available, and put a selected row one step further. A stripe is rhythm: it groups rows so the eye keeps its place across a wide table. A selection is a choice, and it has to be FOUND rather than noticed once you are already looking, so it stands further off the surface than the stripe does. Measured on this palette, ${rowPlaneProse(state, derived)}. Above about 1.6:1 the stripe stops separating rows and starts dividing the table into blocks. Two steps apart the table reads heavy and the selected rows look darkened rather than chosen. Keep the row rules as well as the stripe — the stripe gives the rhythm and the rule gives the edge — and mark the selection with an accent edge and its checkbox rather than with a saturated fill, which is fatigue when it repeats down ten rows.`,
+      `Choosing a lighter ground for a selected row also decides whether the controls standing on it are legal. One role cannot serve two grounds at one bar: the default outline measured 2.36:1 two steps down from the surface and 3.02 one step down, and 3:1 is the floor 1.4.11 sets for a control boundary. Measured on this palette: ${outlineOnRowProse(state, derived)}. Check a control against every ground it can sit on, not only the card, and step the outline to a heavier role wherever the ground is darker.`,
       '**A TINTED SELECTION STEPS DOWN, AND IN DARK THAT READS AS A HOLE.** `accent-subtle` sits below the surface in BOTH modes — measured L 89.3 against a 94.0 card in light, and L 23.7 against 27.6 in dark. In light a slightly darker tinted band is the conventional marked row and it reads correctly. In dark the same step moves the row toward the page rather than toward the reader, so it reads as a hole with a coloured label floating in it. Where the mark has to work in dark, carry it on the LIGHTNESS instead: step up to `surface-raised`, which is +3.1 in light and +7.8 in dark, and let the label take full-strength `text`.',
       '**A GROUND MAY BE QUIET. A FILLED SHAPE MAY NOT.** `accent-subtle` is the tint behind accent-coloured TEXT, and the words carry the contrast, so the fill may sit close to the card. An avatar disc, a status dot or a tinted square has no words to carry it. Its own fill is the whole signal, and under about 1.2:1 against the ground the shape is absent rather than subtle. Measured here against the card: 1.13:1 in light and 1.11:1 in dark, so an avatar drawn in it vanished in both modes and only its initials floated. No accent STEP repairs it, because a step near the middle of the ramp carries the ramp\'s full chroma and reads as a solid button. Use `accent-raised`, which mixes the accent into the raised surface and clears the floor in both modes, and put `text` on it rather than `accent`.',
       '**AND THE EDGE COSTS A GUTTER, WHICH EVERY ROW IN THE SET RESERVES.** A bar drawn inside the row eats whatever is at that inset, so the content has to clear it. **Never a border**, whichever mechanism you pick: a border widens the row by its own width, so the selected row alone would sit at a different inset.\n\n**WHICH MECHANISM DEPENDS ON WHETHER A RULE CROSSES THE ROW.** Where nothing does — a nav item, a card in a list — an inset `box-shadow` is right and costs no extra element. Where a rule DOES cross, as in every table row with a bottom hairline, an inset shadow is wrong: the border paints on top of it, so the bar stops one hairline short at each boundary. Measured here on a 57px row: the bar painted 56. It then reads as a dash between the rules rather than as the row\'s own edge, and a run of two selected rows shows the break twice.\n\nIn a ruled set the bar is a **pseudo-element**, stretched one hairline past each end so it overlaps the rule above and below. Nothing else can: a background is clipped to the border box and the border still covers it, and an outline draws on all four sides. Two adjacent selected rows then meet with no seam, which is correct — they are one selection.\n\n```css\n.table tr.is-selected > td:first-child { position: relative; }\n.table tr.is-selected > td:first-child::before {\n  content: ""; position: absolute;\n  inset-block: calc(-1 * var(--border-hairline));\n  inset-inline-start: 0;\n  width: var(--cmp-table-row-selected-edge-width);\n  background: var(--cmp-table-row-selected-edge-color);\n}\n```\n\n**The gutter belongs to the BASE padding, never to the selected state.** Adding the bar to the selected row alone is arithmetically right and it staggers the column: measured on a 4px bar, a nav list of five had its selected label at 693 and its four siblings at 689. So `nav-item` and `table-selection-cell` carry the gutter in their own padding, every row takes it, and `nav-item-selected` and `table-row-selected` state no padding at all. The bar then paints into space that is already there.\n\n**A gutter is the bar plus a STEP, not the bar plus whatever is left.** Where the first thing in the row is a label, the component\'s own inset is enough. Where it is an ORNAMENT the step is bigger: a table\'s selection column holds a 16px checkbox, and at the small step the box and the bar read as touching. Both are the accent, so they fused into one shape. `table-selection-cell` clears it by the `lg` step. **Each component also publishes `edge-width`**, the bar alone, for a build that sets its own inset.',

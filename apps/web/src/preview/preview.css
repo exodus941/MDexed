@@ -1939,8 +1939,13 @@
  *
  * `row-stripe`, not `bg-subtle`. The stripe is the PAGE showing through, and
  * `bg-subtle` is a recessed area — a different job at a different strength.
- * Measured, `bg-subtle` bands at 1.62:1, which divides the table into blocks
- * instead of striping it. `row-stripe` lands at 1.27. */
+ * Measured today across the six presets in both modes: `row-stripe` reads 1.03
+ * to 1.07:1 against the surface and `bg-subtle` reads 1.33 to 1.48, which
+ * divides the table into blocks instead of striping it. The figures in this
+ * comment were 1.62 and 1.27 when it was written, so they had drifted with
+ * the palette. The suite asserts the RELATIONSHIP now — a stripe under 1.6,
+ * a selection further out than the stripe, and one step between them — so a
+ * palette that breaks it fails rather than quietly restating an old number. */
 .dmd .table-rows-zebra tbody tr:nth-child(even) { background: var(--c-row-stripe); }
 /* Zebra AND rules, which is what a long table wants and what the setting had
    no way to say. `table-rows-both` keeps the rule that `table-rows-zebra`

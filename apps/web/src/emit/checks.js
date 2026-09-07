@@ -1602,6 +1602,100 @@ export const CHECKS = [
   },
 
   {
+    id: 'a-stripe-is-rhythm-and-a-selection-is-a-choice',
+    where: 'render',
+    line: 'A row stripe is the softest step available, and a selected row stands further off the surface than the stripe does.',
+    /* ── THE ORDER OF THE THREE PLANES ON ONE ROW ──
+     *
+     * Three roles stack on a table row and nothing measured the relationship
+     * between them. A collision check asks whether two of them resolved to ONE
+     * colour, which is the loudest form of this fault and not the common one.
+     *
+     * The common one is the ORDER. A stripe carries the rhythm, so it takes
+     * the softest step the ramp holds; a selection has to be FOUND, so it
+     * stands one step further out. Invert the two and every other row competes
+     * with the one the reader picked, while both numbers stay individually
+     * legal. No contrast check has an opinion, because a ratio measures one
+     * colour against one other.
+     *
+     * READ THE ALTERNATION, NEVER A CLASS NAME. A stripe is not a name, it is
+     * a fill on every other row, and the computed style is the only thing that
+     * knows. Asking for a class would approve any striping nobody thought of
+     * and fault a table whose class means something else.
+     *
+     * FOUR GUARDS, and each is a case this fired on before it had them.
+     * A run of three cannot show an alternation. A marked row breaks the
+     * alternation, so it is measured and never counted as a stripe. A run
+     * where every row paints the same colour is not striped at all, which is
+     * the plain ruled table and the commonest shape on any page. And a run
+     * carrying more than two fills is a list of cards, not a stripe.
+     *
+     * Measured on the shipped palette: the stripe reads 1.04:1 against the
+     * surface in light and 1.06 in dark, the selection 1.15 and 1.22. The
+     * arrangement it rejects measured 1.48 and 1.33 with the order inverted.
+     */
+    body: [
+      "const lum = hex => { const c = hex.match(/[0-9a-f]{2}/gi)",
+      "  if (!c || c.length < 3) return null",
+      "  const v = c.slice(0, 3).map(h => { const s = parseInt(h, 16) / 255",
+      "    return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4) })",
+      "  return 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2] }",
+      "const hexOf = rgb => { const m = /rgba?\\(([^)]*)\\)/.exec(rgb || \'\')",
+      "  if (!m) return null",
+      "  const p = m[1].split(',').map(s => parseFloat(s))",
+      "  if (p.length < 3 || p.some(n => !isFinite(n))) return null",
+      "  if (p.length > 3 && p[3] === 0) return null",
+      "  return '#' + p.slice(0, 3).map(n => Math.round(n).toString(16).padStart(2, '0')).join('') }",
+      "const ratioOf = (a, b) => { const x = lum(a), y = lum(b)",
+      "  if (x == null || y == null) return null",
+      "  return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05) }",
+      "const shown = el => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0 }",
+      "const fillOf = (el, ground) => {",
+      "  const own = hexOf(getComputedStyle(el).backgroundColor)",
+      "  if (own) return own",
+      "  const cells = Array.prototype.filter.call(el.children, shown)",
+      "  if (!cells.length) return ground",
+      "  const each = cells.map(c => hexOf(getComputedStyle(c).backgroundColor))",
+      "  if (each.some(v => !v)) return ground",
+      "  return each.every(v => v === each[0]) ? each[0] : ground",
+      "}",
+      "const CHOSEN = el => el.matches('[aria-selected=true], [aria-current]')",
+      "  || !!el.querySelector('[aria-checked=true], input:checked')",
+      "for (const run of all('*')) {",
+      "  const kids = Array.prototype.filter.call(run.children, shown)",
+      "  if (kids.length < 4) continue",
+      "  if (!kids.every(k => k.tagName === kids[0].tagName)) continue",
+      "  let ground = null",
+      "  for (let n = run; n && !ground; n = n.parentElement) ground = hexOf(getComputedStyle(n).backgroundColor)",
+      "  if (!ground) continue",
+      "  const fills = kids.map(k => fillOf(k, ground))",
+      "  const plain = kids.map((k, i) => CHOSEN(k) ? -1 : i).filter(i => i >= 0)",
+      "  if (!plain.some(i => fills[i] === ground)) continue",
+      "  const others = [...new Set(plain.map(i => fills[i]).filter(f => f !== ground))]",
+      "  if (others.length !== 1) continue",
+      "  const stripe = others[0]",
+      "  const at = plain.filter(i => fills[i] === stripe)",
+      "  if (at.length * 3 < kids.length) continue",
+      "  if (!at.every(i => i % 2 === at[0] % 2)) continue",
+      "  const step = ratioOf(stripe, ground)",
+      "  if (step == null) continue",
+      "  if (step >= 1.6)",
+      "    fail(name(run), 'every other row in this run is filled ' + step.toFixed(2) + ':1 off the ground behind it, which divides the table into blocks rather than grouping its rows. A stripe is rhythm: take it to the softest step the palette publishes, and put a selected row one step further out rather than raising the stripe to reach it.')",
+      "  for (let i = 0; i < kids.length; i++) {",
+      "    if (!CHOSEN(kids[i])) continue",
+      "    const own = fills[i]",
+      "    if (own === ground || own === stripe) continue",
+      "    const mine = ratioOf(own, ground), gap = ratioOf(own, stripe)",
+      "    if (mine == null || gap == null) continue",
+      "    if (mine <= step)",
+      "      fail(name(kids[i]), 'this row is chosen and reads ' + mine.toFixed(2) + ':1 against the ground, while the plain stripe beside it reads ' + step.toFixed(2) + '. The rhythm is louder than the choice, so every other row competes with the one the reader picked. Step the selection further off the surface than the stripe, and leave the stripe where it is.')",
+      "    else if (gap >= 1.5)",
+      "      fail(name(kids[i]), 'this row is chosen and sits ' + gap.toFixed(2) + ':1 off the stripe beside it, which is two steps rather than one. Selected rows then read as darkened rather than as chosen, and a table with several picked reads heavy. Close it to one step and let the accent edge and the row checkbox carry the rest of the marking.')",
+      "  }",
+      "}",    ],
+  },
+
+  {
     id: 'a-selection-edge-costs-only-its-own-width',
     where: 'render',
     line: 'A selection edge moves the label by its own width, and by nothing else.',
