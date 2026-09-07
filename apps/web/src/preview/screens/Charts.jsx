@@ -232,7 +232,7 @@ export default function Charts({ onInspect, casing }) {
           the gridline before seeing twelve variations on them. */}
       <Spec txt={txt} ins={ins} span
         title={L('The furniture')}
-        note="The axis is heavier than a gridline. Gridlines on the value axis only. The plot is inset from the card, never from itself."
+        note="The axis outweighs its gridlines."
       >
         <div className="chart chart-column" {...ins('chart-column')}
           role="img" aria-label="Invoices raised, April to September: 58, 74, 66, 91, 84 and 108 thousand">
@@ -254,7 +254,7 @@ export default function Charts({ onInspect, casing }) {
         {/* THE ONE TYPE WHOSE CATEGORY LABEL HAS ROOM TO BE LONG, which is the
             reason to reach for it. The label column takes its content and the
             bar shrinks. A bar clipped to fit a name is a value nobody reads. */}
-        <Spec txt={txt} ins={ins} title={L('Bar')} note="Horizontal. The label column takes its content; the bar shrinks.">
+        <Spec txt={txt} ins={ins} title={L('Bar')} note="The label column takes its content.">
           <div className="chart chart-bar" {...ins('chart-bar')}
             role="img" aria-label="Revenue by line: licences 34, services 26, support 18, training 13, other 9">
             <div className="chart-plot">
@@ -276,7 +276,7 @@ export default function Charts({ onInspect, casing }) {
           </div>
         </Spec>
 
-        <Spec txt={txt} ins={ins} title={L('Line')} note="Stroke 2px, marker 8px. One weight for every line in the system.">
+        <Spec txt={txt} ins={ins} title={L('Line')} note="Stroke 2px, marker 8px. One weight.">
           <div className="chart chart-line" {...ins('chart-line')}
             role="img" aria-label="Invoices raised against settled, April to September, both rising">
             <Framed txt={txt} cats={MONTHS}>
@@ -299,7 +299,7 @@ export default function Charts({ onInspect, casing }) {
           </div>
         </Spec>
 
-        <Spec txt={txt} ins={ins} title={L('Area')} note="Fill at 0.2 of its own line. The only value in the set with no scale.">
+        <Spec txt={txt} ins={ins} title={L('Area')} note="Fill at 0.2 of its line.">
           <div className="chart chart-area" {...ins('chart-area')}
             role="img" aria-label="Invoices raised, April to September, rising from 58 to 108 thousand">
             <Framed txt={txt} cats={MONTHS}>
@@ -314,7 +314,7 @@ export default function Charts({ onInspect, casing }) {
         {/* NO GRIDLINES BEHIND A PIE, EVER. There is no value axis to read
             against, so a gridline there is decoration on top of data. Which is
             why `chart-pie` publishes no axis token at all. */}
-        <Spec txt={txt} ins={ins} title={L('Pie')} note="No axis and no gridlines, so it publishes neither.">
+        <Spec txt={txt} ins={ins} title={L('Pie')} note="No axis, so no gridlines.">
           <div className="chart chart-pie" {...ins('chart-pie')}
             role="img" aria-label="Revenue share: licences 34 per cent, services 26, support 18, training 13, other 9">
             <div className="chart-pie-face" style={{ maxWidth: 148, background: conic(SPLIT) }} role="img"
@@ -323,7 +323,7 @@ export default function Charts({ onInspect, casing }) {
           </div>
         </Spec>
 
-        <Spec txt={txt} ins={ins} title={L('Donut')} note="The hole carries a total. That is the whole reason it exists.">
+        <Spec txt={txt} ins={ins} title={L('Donut')} note="The hole carries a total.">
           <div className="chart chart-donut" {...ins('chart-donut')}
             role="img" aria-label="Revenue share of 100 thousand: licences 34 per cent, services 26, support 18, training 13, other 9">
             {/* THE STAGE STATES ITS WIDTH. `margin-inline: auto` cancels the
@@ -344,7 +344,7 @@ export default function Charts({ onInspect, casing }) {
         {/* THE ONLY TYPE THAT NEEDS A SECOND VALUE AXIS, and the only one where
             two series measure different quantities. Both axes take the same
             weight, or the chart reads as though one series matters less. */}
-        <Spec txt={txt} ins={ins} title={L('Column + line')} note="Two value axes, at one weight. The only type that needs a second.">
+        <Spec txt={txt} ins={ins} title={L('Column + line')} note="Two value axes, one weight.">
           <div className="chart chart-combo" {...ins('chart-combo')}
             role="img" aria-label="Invoices raised as columns against the settled rate as a line, April to September">
             <Framed txt={txt} cats={MONTHS} ticksEnd endMax={100}>
@@ -361,7 +361,7 @@ export default function Charts({ onInspect, casing }) {
             segments TOUCH. That is the case the chart palette is built around:
             every PAIR is separated, not only the pairs that sit side by side in
             a legend. */}
-        <Spec txt={txt} ins={ins} title={L('Stacked')} note="Segments touch. Where the palette rule actually bites.">
+        <Spec txt={txt} ins={ins} title={L('Stacked')} note="Segments touch. The palette rule bites.">
           <div className="chart chart-stacked" {...ins('chart-stacked')}
             role="img" aria-label="Invoices raised and settled stacked by month, April to September">
             <Framed txt={txt} cats={MONTHS}>
@@ -384,7 +384,7 @@ export default function Charts({ onInspect, casing }) {
             16px between them is 4:1, so a group reads as one object. Under 3:1
             the groups dissolve into one run of bars and the category axis stops
             meaning anything. */}
-        <Spec txt={txt} ins={ins} title={L('Grouped')} note="4px inside a group, 16px between. 4:1, so a group reads as one object.">
+        <Spec txt={txt} ins={ins} title={L('Grouped')} note="4px inside a group, 16px between.">
           <div className="chart chart-grouped" {...ins('chart-grouped')}
             role="img" aria-label="Raised, settled and written off, April to July, three bars a month">
             <Framed txt={txt} cats={MONTHS.slice(0, 4)}>
@@ -405,7 +405,7 @@ export default function Charts({ onInspect, casing }) {
         {/* THE ONLY TYPE WHERE THE MARKER IS THE MARK rather than an ornament on
             a line, which is why it publishes a second, smaller size. A dense
             cloud at 8px is a solid shape; at 4px it is a distribution. */}
-        <Spec txt={txt} ins={ins} title={L('Scatter')} note="Marker 8px, or 4px where the points overlap.">
+        <Spec txt={txt} ins={ins} title={L('Scatter')} note="Marker 8px, or 4px when dense.">
           <div className="chart chart-scatter" {...ins('chart-scatter')}
             role="img" aria-label="Invoice value against days to settle, twelve invoices">
             <Framed txt={txt} max={100} axis="chart-axis-x chart-axis-y">
@@ -427,7 +427,7 @@ export default function Charts({ onInspect, casing }) {
         {/* THE ONLY NATURAL CONSUMER OF `--chart-seq-1..8`. That scale has
             shipped for as long as the palette and nothing has ever painted it,
             so it was published and untrustable. */}
-        <Spec txt={txt} ins={ins} title={L('Heatmap')} note="The only consumer of the sequential scale, which shipped unpainted.">
+        <Spec txt={txt} ins={ins} title={L('Heatmap')} note="The sequential scale only consumer.">
           <div className="chart chart-heatmap" {...ins('chart-heatmap')}
             role="img" aria-label="Settlement rate by month and revenue line, six months by five lines">
             <div className="chart-cells" style={{ gridTemplateColumns: `repeat(${MONTHS.length}, minmax(0, 1fr))` }}>
@@ -444,7 +444,7 @@ export default function Charts({ onInspect, casing }) {
             label, because the row it sits in already says what it is. It still
             takes the shared stroke: one weight for every line in the system, so
             a sparkline and a full line chart cannot read as two products. */}
-        <Spec txt={txt} ins={ins} title={L('Sparkline')} note="No furniture at all. It lives in a row, and the row is its label.">
+        <Spec txt={txt} ins={ins} title={L('Sparkline')} note="No furniture. The row labels it.">
           <table className="table" {...ins('table')}>
             <thead>
               <tr>
@@ -492,7 +492,7 @@ export default function Charts({ onInspect, casing }) {
         {/* THE ONLY CONSUMER OF `--chart-div-1..8`, and the reason a zero line
             is not a gridline. A diverging chart needs one, and it carries the
             axis weight because it IS the axis, moved off the floor. */}
-        <Spec txt={txt} ins={ins} title={L('Crossing zero')} note="A zero line is not a gridline. The only consumer of the diverging scale.">
+        <Spec txt={txt} ins={ins} title={L('Crossing zero')} note="A zero line, at axis weight.">
           <div className="chart chart-column" {...ins('chart-column')}
             role="img" aria-label="Net movement by month, April to September, crossing zero in July">
             <div className="chart-frame">
@@ -523,7 +523,7 @@ export default function Charts({ onInspect, casing }) {
         {/* NO RESULTS OFFERS A WAY BACK, never a way forward. There is data;
             the filter excluded it. "Create" is the answer to a different
             question. */}
-        <Spec txt={txt} ins={ins} title={L('No results')} note="There is data. The filter excluded it, so the action is BACK.">
+        <Spec txt={txt} ins={ins} title={L('No results')} note="The filter excluded it. Offer BACK.">
           {/* NO `role="img"` HERE, DELIBERATELY, and it is the one chart on
               this surface that must not carry one. `role="img"` makes every
               child presentational, so it would silence the message and the
@@ -543,7 +543,7 @@ export default function Charts({ onInspect, casing }) {
             A spinner takes no room, so the page assembles under the reader's
             hands when it resolves. These bars are the heights the real bars
             will be, so nothing moves when the data lands. */}
-        <Spec txt={txt} ins={ins} title={L('Loading')} note="The shape of what is coming. A spinner lets the page jump when it lands.">
+        <Spec txt={txt} ins={ins} title={L('Loading')} note="The shape of what is coming.">
           <div className="chart chart-column" {...ins('chart-column')} role="status" aria-busy="true">
             <div className="chart-frame" aria-hidden="true">
               <Ticks txt={txt} steps={3} />
@@ -564,7 +564,7 @@ export default function Charts({ onInspect, casing }) {
         {/* STATE THE LIMIT RATHER THAN CYCLING THE PALETTE. Five is what the
             scale publishes. A sixth series is a chart asking to be two charts,
             and a palette that wraps gives two series one colour. */}
-        <Spec txt={txt} ins={ins} title={L('Too many series')} note="Five is the published limit. A sixth is a chart asking to be two charts.">
+        <Spec txt={txt} ins={ins} title={L('Too many series')} note="Five is the limit.">
           <div className="chart chart-stacked" {...ins('chart-stacked')}
             role="img" aria-label="Six series stacked, one more than the published scale holds">
             <Framed txt={txt} cats={MONTHS}>
@@ -589,7 +589,7 @@ export default function Charts({ onInspect, casing }) {
         {/* THE LONG CATEGORY NAME, which is the reason a horizontal bar chart
             exists at all. The label column takes its content and the bar
             shrinks. */}
-        <Spec txt={txt} ins={ins} span title={L('A long category name')} note="The label takes its content and the bar shrinks. Never the reverse.">
+        <Spec txt={txt} ins={ins} span title={L('A long category name')} note="The label wins. The bar shrinks.">
           <div className="chart chart-bar" {...ins('chart-bar')}
             role="img" aria-label="Revenue by line with one long name, five lines">
             <div className="chart-plot">
