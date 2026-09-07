@@ -105,7 +105,12 @@ export default function Form({ onInspect, layout, casing }) {
           </div>
         </Field>
 
-        <div className="stack-sm">
+        {/* A CHECKBOX MUST BELONG TO ITS OWN LABEL. These sat 16px apart while
+            each box sat 8px from its own words, which is 2:1 and leaves the box
+            able to belong to either line. 24 against 8 is three to one. The run
+            already takes a wider gap for the 44px target, so this agrees with
+            it rather than fighting it. */}
+        <div className="stack-lg">
           <label className="with-icon" style={{ cursor: 'pointer' }} {...ins('checkbox-checked')}>
             <Check on /><span className="small" {...txt("body-sm")}>Send a copy to my accountant</span>
           </label>

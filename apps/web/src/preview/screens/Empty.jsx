@@ -104,9 +104,14 @@ function Loading({ ins, txt, L }) {
         <strong className="t-h5" {...txt('h5')}>{L('Invoices')}</strong>
         <span className="skeleton skeleton-chip" aria-hidden="true" />
       </div>
-      <div className="stack-sm" aria-hidden="true">
+      {/* THE ROWS SIT FURTHER APART THAN THE CELLS INSIDE THEM, or four rows
+          read as two columns of bars. It was 12px between rows and 16 between
+          cells: inverted. The real table this stands in for carries a border on
+          every row, and a skeleton has none, so the ratio is its only signal.
+          24 against 8 is the three to one the rule asks for. */}
+      <div className="stack-lg" aria-hidden="true">
         {rows.map(w => (
-          <div key={w} className="row" style={{ gap: 'var(--space-md, 16px)' }}>
+          <div key={w} className="row" style={{ gap: 'var(--space-xs, 8px)' }}>
             <span className="skeleton skeleton-line" style={{ flex: `0 0 ${w}` }} />
             <span className="skeleton skeleton-line skeleton-figure" />
           </div>

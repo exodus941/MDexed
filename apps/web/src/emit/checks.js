@@ -2238,7 +2238,11 @@ export const CHECKS = [
       "  const clear = bg && bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent'",
       "  return clear && bg !== parentBg",
       "}",
-      "const isSpecimen = el => !!el.querySelector(':scope > * > .row-label, :scope > .row-label')",
+      /* A SPECIMEN SHEET IS EXEMPT, and it says so two ways. `.row-label`
+         marks a single specimen ROW; `data-specimen` marks a whole sheet, and
+         keying only on the row missed every sheet-level run. */
+      "const isSpecimen = el => !!(el.closest('[data-specimen]')",
+      "  || el.querySelector(':scope > * > .row-label, :scope > .row-label'))",
       "for (const box of all('*')) {",
       "  const cs = getComputedStyle(box)",
       "  if (!/flex|grid/.test(cs.display)) continue",

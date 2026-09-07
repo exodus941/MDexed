@@ -478,7 +478,17 @@
   font-size: var(--cmp-button-lg-font-size, var(--font-body-md-size, 16px));}
 
 /* ── Form controls ── */
-.dmd .field { display: flex; flex-direction: column; gap: var(--space-xs, 8px); }
+/* ── A LABEL BELONGS TO ITS OWN INPUT ──
+ *
+ * This was `xs`, 8px, while fields sit `md` apart. 2:1, and under three to one
+ * a reader has to work out which label goes with which input. Four of the
+ * fourteen proximity findings were this one declaration, on Form, Gallery,
+ * Settings and Empty.
+ *
+ * `2xs` is 4px, which is 4:1 against a 16px stack and 6:1 against a 24px one.
+ * It is also the distance this system already uses for a line that belongs to
+ * the thing above it: a byline takes the same step. */
+.dmd .field { display: flex; flex-direction: column; gap: var(--space-2xs, 4px); }
 /* A field's label names the field, so it carries full text weight. The help
    under it is secondary and stays muted. Both were muted before, which made
    the line above the field and the line below it read as equals — and once
@@ -2572,6 +2582,13 @@
      whose height comes from its row count. */
   aspect-ratio: var(--ch-aspect, 2 / 1);
   min-block-size: 140px;
+  /* AN ASPECT RATIO AND A MINIMUM HEIGHT FIGHT, AND THE RATIO WINS BY WIDENING.
+     A 140px floor at 2:1 asks for 280px of width, so inside a 296px pane the
+     plot grew past its own track: measured 56px of overflow at 296, 44 at 308
+     and 32 at 320. The floor is the decision, so the ratio has to give. This
+     caps the box at its track and the plot simply stops being 2:1 down there,
+     which is correct: a floor beats a ratio. */
+  max-inline-size: 100%;
   /* NO `min-height: 0`. `.chart` is a flex column, so a plot with that floor
      shrinks to nothing: the horizontal bar chart measured 508.9 by 0 while its
      own grid row was 104px. It only looked right until `overflow: hidden`
@@ -3330,9 +3347,19 @@
    `.with-aside` and a different meaning, so a different class: `.with-aside`
    carries named grid areas for the folded navigation, and two plain columns
    dropped into it land in one area and paint over each other. */
+/* ── THE COLUMN BOUNDARY IS A SECTION BOUNDARY, AND IT WAS INVISIBLE ──
+ *
+ * Content beside context is two sections, not one run of cards. The row-gap
+ * was `md`, the same step the cards inside each column use, so at the width
+ * where this collapses to one column the two read as one list. 1:1, measured
+ * on Record and Index. The column-gap was `lg` against the same 16, which is
+ * 1.5:1 and also under the three to one a group boundary needs.
+ *
+ * `2xl` on both. The row-gap separates nothing at wide widths, because there
+ * is one row, so raising it costs nothing until it matters. */
 .dmd .with-context {
   display: grid; align-items: start;
-  column-gap: var(--space-lg, 24px); row-gap: var(--space-md, 16px);
+  column-gap: var(--space-2xl, 48px); row-gap: var(--space-2xl, 48px);
   grid-template-columns: minmax(0, 1fr) var(--context, 200px);
 }
 

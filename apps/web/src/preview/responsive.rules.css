@@ -328,7 +328,17 @@
    * the eye ends on the right. Left to fall out of the arithmetic, the odd
    * button lands last and alone, which is the stranded item the pairing exists
    * to remove. CSS cannot count importance, so the markup says which. */
-  .dmd .action-pairs { flex-direction: column; }
+  /* ── THE GAP BETWEEN PAIRS BEATS THE GAP INSIDE ONE, OR THERE ARE NO PAIRS ──
+   *
+   * Both were `xs`, 8px. 1:1, so a reader cannot tell which two buttons belong
+   * together, and the whole pairing rule stops meaning anything. Measured on
+   * Dashboard and Index, and it is the worked example the proximity rule in
+   * core-rules is written around.
+   *
+   * `lg` between pairs against `xs` inside one is 3:1. Only in this block: the
+   * pairs dissolve to `display: contents` above this threshold, and a 24px gap
+   * would then sit between every button in a flat row. */
+  .dmd .action-pairs { flex-direction: column; row-gap: var(--space-lg, 24px); }
   .dmd .action-pairs > .pair { display: flex; flex-wrap: wrap; gap: var(--space-xs, 8px); }
   .dmd .action-pairs > .pair > .btn { flex: 1 1 0; min-width: min-content; }
   /* The lead pair carries the one button that gets its own line, and it goes

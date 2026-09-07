@@ -17,7 +17,14 @@ import { inspectProps, text } from './inspect.js'
    answerable. */
 function Section({ title, note, children, txt }) {
   return (
-    <section className="stack-sm" style={{ marginBottom: 'var(--space-lg, 32px)' }}>
+    /* `stack-lg`, NOT `stack-sm`. A section holding two grids kept them 28px
+       apart while the cards inside sat 16 apart, which is 1.75:1 and under the
+       three to one a group boundary needs. */
+    /* `data-specimen` is the claim this section makes: its job is to put
+       variants side by side. The proximity rule exempts a specimen sheet, and
+       its check keyed on `.row-label`, which marks a specimen ROW rather than
+       the sheet. Two findings here were the sheet doing its job. */
+    <section className="stack-lg" data-specimen style={{ marginBottom: 'var(--space-2xl, 48px)' }}>
       <div>
         <h3 style={{ fontSize: 'var(--font-body-md-size, 16px)' }} {...txt('h6')}>{title}</h3>
         {note && <p className="caption" style={{ marginTop: 2 }} {...txt('caption', 'text-muted')}>{note}</p>}

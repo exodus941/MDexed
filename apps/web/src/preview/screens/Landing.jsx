@@ -12,7 +12,10 @@ export default function Landing({ onInspect, casing, theme, mode, onToggleTheme 
      both rather than picking one. */
   const txt = (typeName, roleName = 'text') => inspectProps(text(typeName, roleName), onInspect)
   return (
-    <div style={{ maxWidth: 'var(--measure, 68ch)', margin: '0 auto' }} className="stack">
+    /* `stack-xl` on the OUTER one. A stack inside a stack at the same step is
+       1:1, so the inner group reads as more rows of the outer. The page's own
+       sections take the section gap; each section keeps its own. */
+    <div style={{ maxWidth: 'var(--measure, 68ch)', margin: '0 auto' }} className="stack-xl">
       {/* `bar-row`, not `row-wrap`. A brand and the mark that opens the menu are
           one bar, and this row wrapped at 320px — the burger dropped to a line
           of its own at the LEFT, 275px from where a hand expects it. A bar does
