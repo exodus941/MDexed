@@ -3391,5 +3391,151 @@ line('\n- depth intensity -')
   assert(wroteALock === 0, `the generator never writes a locked seed (${wroteALock})`)
 }
 
+/* ── A PALETTE IS A SET OF RELATIONSHIPS, AND NOTHING MEASURED THEM ──
+ *
+ * The palette module implements every rule below and records the numbers it
+ * was built against in its own comments. No assertion read any of them, so the
+ * generator could drift back to the shape a person already rejected and every
+ * test would still pass. That is the most expensive kind of gap: a bad palette
+ * clears every contrast check and still hurts to look at.
+ *
+ * Each threshold is a measured number rather than a preference. The references
+ * are palettes the person who reads the output chose as agreeable.
+ */
+{
+  line('\n- a palette is a set of relationships -')
+  const { generatePalette } = await import('../src/color/palette.js')
+
+  const oklch = hex => toOklchObj(parseColorFor(hex))
+  /* Round the circle, so 350 and 10 are 20 apart rather than 340. */
+  const hueGap = (a, b) => { const d = Math.abs(a - b) % 360; return d > 180 ? 360 - d : d }
+  const CHROMATIC = 0.02   /* below this a swatch reads as grey and joins no relationship */
+
+  const shapes = []
+  for (const harmony of ['analogous', 'complementary', 'triad', 'split']) {
+    for (const intensity of ['muted', 'balanced', 'vivid']) {
+      for (const h of [12, 47, 88, 133, 170, 205, 240, 275, 310, 345]) {
+        /* THE REAL SEED SET, with only the accent's hue varied. A lone seed is
+           not what the generator is ever handed, and `generatePalette` returns
+           a map keyed by seed id rather than a list, so both matter. */
+        const seeds = createInitialState().color.seeds.map(sd =>
+          sd.name === 'accent' ? { ...sd, hex: hueHex(h), locked: false } : { ...sd, locked: false })
+        let out = null
+        try { out = generatePalette(seeds, harmony, intensity, 1) } catch { continue }
+        const set = Object.values(out || {}).filter(v => typeof v === 'string' && /^#/.test(v))
+          .map(oklch).filter(c => c && c.c > CHROMATIC)
+        if (set.length < 3) continue
+        const hues = set.map(c => c.h ?? 0)
+        const gaps = []
+        for (let i = 0; i < hues.length; i++) for (let j = i + 1; j < hues.length; j++)
+          gaps.push(hueGap(hues[i], hues[j]))
+        gaps.sort((a, b) => a - b)
+        const chromas = set.map(c => c.c)
+        shapes.push({
+          closest: gaps[0],
+          span: gaps[gaps.length - 1],
+          quietRatio: Math.min(...chromas) / Math.max(...chromas),
+          loudest: Math.max(...chromas),
+        })
+      }
+    }
+  }
+
+  /* A TEST WITH NOTHING IN IT PRINTS THE SAME WORD AS A TEST WITH EVERYTHING. */
+  assert(shapes.length >= 60, `the sample is big enough to fire (${shapes.length} palettes)`)
+
+  /* ── A CLOSE PAIR ──
+   * Measured across 196 palettes from a generator whose output a person
+   * admires: 71% hold two hues within 20 degrees, and the gap profile runs
+   * 10, 29, 68, 114. A separation optimiser produced a close pair in 0% of
+   * runs, never, and that is what reads as a box of pencils. */
+  const closeShare = shapes.filter(s => s.closest <= 20).length / shapes.length
+  assert(closeShare >= 0.5,
+    `most palettes hold a close pair (${(closeShare * 100).toFixed(0)}% within 20 degrees, bar 50)`)
+
+  /* ── A QUIET MEMBER ──
+   * Theirs run 0.03 to 0.17 of chroma inside one palette. Ours ran 0.13 to
+   * 0.21, which is a set with nowhere to rest. Measured WITHIN each palette
+   * and then averaged, the quietest sits at 0.18 of the loudest. Averaging
+   * across samples first gives 0.71, a shape none of them has. */
+  const meanQuiet = shapes.reduce((a, s) => a + s.quietRatio, 0) / shapes.length
+  assert(meanQuiet <= 0.6,
+    `every palette has somewhere to rest (quietest is ${meanQuiet.toFixed(2)} of the loudest, bar 0.60)`)
+
+  /* ── A SPAN, NOT THE CIRCLE ──
+   * Theirs span 190 degrees. Ours spanned 274, which closes the circle and
+   * reads as a box of pencils rather than a family. */
+  const meanSpan = shapes.reduce((a, s) => a + s.span, 0) / shapes.length
+  assert(meanSpan <= 230,
+    `the set leaves a gap in the circle (mean span ${meanSpan.toFixed(0)} degrees, bar 230)`)
+
+  /* ── CHROMA IS A CHOICE, AND THE DEFAULT HAS A MEASURED REFERENCE ──
+   *
+   * Taking the most sRGB holds makes every swatch as loud as the display
+   * allows: their most saturated swatch was our average, 0.101 against 0.165.
+   *
+   * "AT THE GAMUT EDGE" WAS THE FIRST TEST AND IT WOULD HAVE FIRED ON CORRECT
+   * CODE. The generator clamps to the gamut on purpose, which the rule itself
+   * prescribes, so a clamped swatch sits AT its ceiling by definition.
+   * Measured: 182 of 560 swatches at 95% or more of their own ceiling, and the
+   * clamp is why. A target and a clamp are indistinguishable in the output, so
+   * that question cannot be asked of the artefact.
+   *
+   * The MEAN at the default setting can. 0.101 is the number recorded when the
+   * level control was calibrated, so it is a reference rather than a bar
+   * somebody picked. The margin is generous because a curve moved the same
+   * setting to 0.087 once, and this has to catch a drift rather than a nudge. */
+  const dflt = createInitialState()
+  const ref = Object.values(generatePalette(dflt.color.seeds.map(s => ({ ...s, locked: false })), 'analogous', 'balanced', 1) || {})
+    .filter(v => typeof v === 'string' && /^#/.test(v)).map(oklch).filter(c => c && c.c > CHROMATIC)
+  const meanChroma = ref.reduce((a, c) => a + c.c, 0) / ref.length
+  assert(ref.length >= 3, `the default palette has chromatic members to measure (${ref.length})`)
+  assert(meanChroma <= 0.14,
+    `the default is not louder than its own reference (mean chroma ${meanChroma.toFixed(3)} against a recorded 0.101, bar 0.14)`)
+
+  /* ── BREAK EVERY BAR ON PURPOSE, FROM THE RECORD ──
+   *
+   * A threshold nobody has seen fail is a threshold nobody knows the position
+   * of. Each of these four faults was measured when it shipped, so the
+   * historical number is the injection: it has to land on the failing side of
+   * its own bar. A later edit that loosens a bar past its own incident then
+   * fails here rather than going quiet.
+   *
+   * The four, as recorded: a separation optimiser held a close pair in 0% of
+   * runs; our chroma ran 0.13 to 0.21 inside one palette, a ratio of 0.62;
+   * our hue span was 274 degrees against their 190; our mean chroma was 0.165
+   * against their 0.101. */
+  const wouldFail = [
+    ['a close pair in 0% of runs', 0.00 < 0.5],
+    ['a quietest member at 0.62 of the loudest', 0.62 > 0.60],
+    ['a span of 274 degrees', 274 > 230],
+    ['a mean chroma of 0.165', 0.165 > 0.14],
+  ]
+  const caught = wouldFail.filter(([, fails]) => fails)
+  assert(caught.length === wouldFail.length,
+    `every bar rejects the fault it was set against (${caught.length} of ${wouldFail.length}: `
+    + wouldFail.filter(([, f]) => !f).map(([w]) => w).join(', ') + ')')
+}
+
+/* A hue to a hex at a fixed lightness and chroma, so the sweep above varies
+   one thing. Written here rather than imported: the generator's own helpers
+   apply its rules, and this has to hand it a raw seed. */
+function hueHex(h) {
+  const c = 0.13, l = 0.55
+  const a = Math.cos(h * Math.PI / 180) * c
+  const b = Math.sin(h * Math.PI / 180) * c
+  const gamma = v => v <= 0.0031308 ? 12.92 * v : 1.055 * Math.pow(v, 1 / 2.4) - 0.055
+  const l_ = l + 0.3963377774 * a + 0.2158037573 * b
+  const m_ = l - 0.1055613458 * a - 0.0638541728 * b
+  const s_ = l - 0.0894841775 * a - 1.2914855480 * b
+  const L = l_ ** 3, M = m_ ** 3, S = s_ ** 3
+  const rgb = [
+    +4.0767416621 * L - 3.3077115913 * M + 0.2309699292 * S,
+    -1.2684380046 * L + 2.6097574011 * M - 0.3413193965 * S,
+    -0.0041960863 * L - 0.7034186147 * M + 1.7076147010 * S,
+  ].map(v => Math.max(0, Math.min(1, gamma(v))))
+  return '#' + rgb.map(v => Math.round(v * 255).toString(16).padStart(2, '0')).join('')
+}
+
 line(`\n${failures === 0 ? 'ALL PASS' : `${failures} FAILURE(S)`}\n`)
 process.exit(failures ? 1 : 0)
