@@ -2109,20 +2109,63 @@ export const CHECKS = [
      * on a correct table. Require the sibling to start at or below the
      * label's own bottom edge, which excludes a row of cells outright. */
     body: [
+      /* ── IT WAS GATED TO ONE SHAPE SOMEBODY THOUGHT OF ──
+       *
+       * The gate was `text-transform: uppercase` plus positive tracking, which
+       * describes an OVERLINE and nothing else. So the check for "a bare block
+       * owns no gap" could only ever see one kind of label.
+       *
+       * Measured on one dashboard: nine stacked label pairs, five of them at
+       * 0.00px, and not one passed the gate. Every pair read
+       * `uppercase: false`, including the element classed `.t-overline`. The
+       * user found all of it in a screenshot while this check printed nothing.
+       *
+       * A TAG LIST FINDS THE CASES SOMEBODY ALREADY THOUGHT OF AND APPROVES
+       * THE REST. Ask the PROPERTY instead: two stacked siblings, both
+       * carrying text, with nothing between them and no gap from the parent.
+       *
+       * Four things legitimately separate siblings at zero distance, and each
+       * is a declaration rather than a guess: a row-gap on the parent, a border
+       * on either facing edge, a fill of their own, or a padding that holds the
+       * content apart. A margin needs no exemption, because a distance
+       * somebody chose is greater than zero. */
       "for (const el of all('*')) {",
       "  if (el.children.length) continue",
       "  const cs = getComputedStyle(el)",
-      "  if (cs.textTransform !== 'uppercase') continue",
-      "  if (parseFloat(cs.letterSpacing) <= 0) continue",
       "  if (!el.textContent.trim()) continue",
       "  const next = el.nextElementSibling",
       "  if (!next) continue",
       "  const ns = getComputedStyle(next)",
       "  if (ns.display === 'none' || ns.position === 'absolute' || ns.position === 'fixed') continue",
       "  if (!next.textContent.trim()) continue",
+      "  const parent = el.parentElement",
+      "  if (!parent) continue",
+      "  const ps = getComputedStyle(parent)",
+      /* A parent that spaces its whole group has already answered this. */
+      "  if ((parseFloat(ps.rowGap) || 0) > 0.5) continue",
+      "  if (/^(TABLE|THEAD|TBODY|TFOOT|TR|TD|TH|CAPTION)$/.test(parent.tagName)) continue",
       "  const a = el.getBoundingClientRect(), b = next.getBoundingClientRect()",
       "  if (!a.height || !b.height) continue",
       "  if (b.top < a.bottom - 1) continue",
+      /* Stacked, not side by side. */
+      "  if (b.left > a.right - 0.5 || a.left > b.right - 0.5) continue",
+      /* A rule between them IS the separation. So is a fill, or an inset. */
+      "  if (parseFloat(cs.borderBottomWidth) > 0 || parseFloat(ns.borderTopWidth) > 0) continue",
+      "  const fill = s => s.backgroundColor && s.backgroundColor !== 'rgba(0, 0, 0, 0)' ? s.backgroundColor : null",
+      "  const pf = fill(ps)",
+      "  if ((fill(cs) && fill(cs) !== pf) || (fill(ns) && fill(ns) !== pf)) continue",
+      "  if (parseFloat(cs.paddingBottom) > 0.5 || parseFloat(ns.paddingTop) > 0.5) continue",
+      /* ── A STATED MARGIN IS A DISTANCE SOMEBODY CHOSE ──
+       *
+       * The threshold is 2px, so a deliberate 2px margin trips it. A stat
+       * tile states `margin-top: 2px` on its delta, because a change belongs
+       * to the number above it rather than to the tile. Four correct tiles
+       * reported on the first run of the widened check.
+       *
+       * The fault this catches is an ABSENCE, not a small number. Read the
+       * facing margins: if either states one, the distance was decided and
+       * this check has no opinion on whether it was decided well. */
+      "  if (parseFloat(cs.marginBottom) > 0.5 || parseFloat(ns.marginTop) > 0.5) continue",
       "  const gap = b.top - a.bottom",
       "  if (gap <= 2)",
       "    fail(name(el), 'this label sits ' + round(gap) + 'px above ' + name(next) + ', which it names. A label with no gap reads as the first row of the group rather than its title. Blocks carry no gap, so state one: a flex parent with a gap fixes the whole group, a margin fixes only this instance.')",
@@ -2256,6 +2299,78 @@ export const CHECKS = [
     ],
   },
   {
+    id: 'a-lift-must-not-survive-a-wrap',
+    where: 'render',
+    line: 'A transform that centres a row on a heading is removed once that row wraps below it.',
+    /* ── A TRANSFORM COSTS NO LAYOUT, WHICH IS WHY IT CAN OVERLAP ──
+     *
+     * A row of actions beside a heading is lifted onto the heading's cap band.
+     * Once the row WRAPS onto a line of its own there is nothing to centre
+     * against, and the same lift pulls it over whatever is above.
+     *
+     * Nothing caught it, because a transform is invisible to layout. Every
+     * geometric check trusts the laid-out box; the `covered` check asks
+     * `elementFromPoint`, and the overlap lands in the heading's descender
+     * space where there is no ink to obscure.
+     *
+     * Measured on one dashboard: the action group carried
+     * `translateY(-8.6px)`, its top sat 0.6px ABOVE the title's bottom edge,
+     * and it began 93.6px inside the title's right edge. The rule was written
+     * down and never checked, so the user found it in a screenshot.
+     *
+     * PROVE THE TRANSFORM IS THE CAUSE. Remove it, re-measure, and report only
+     * when the overlap goes with it. A deliberate overlap is a technique, and
+     * without that step this would fault every one of them. */
+    body: [
+      "const tyOf = m => {",
+      "  const g = /matrix\\(([^)]*)\\)/.exec(m)",
+      "  if (!g) return 0",
+      "  const parts = g[1].split(',')",
+      "  return parseFloat(parts[5] || '0') || 0",
+      "}",
+      "for (const el of all('*')) {",
+      "  const cs = getComputedStyle(el)",
+      "  if (!cs.transform || cs.transform === 'none') continue",
+      "  const ty = tyOf(cs.transform)",
+      "  if (Math.abs(ty) <= 0.5) continue",
+      "  const prev = el.previousElementSibling",
+      "  if (!prev) continue",
+      "  const ps = getComputedStyle(prev)",
+      "  if (ps.display === 'none' || ps.position === 'absolute' || ps.position === 'fixed') continue",
+      /* ── `display: contents` IS NOT A BOX, AND ITS CHILDREN ARE ──
+         A dissolved wrapper reports 0x0, so comparing against it measures
+         nothing and the check bails. `.page-title` is exactly that at the
+         width where this fault appears, and its h1 is the real box. Take the
+         union of what the wrapper renders. */
+      "  const paintedBox = node => {",
+      "    const r = node.getBoundingClientRect()",
+      "    if (r.width > 0 && r.height > 0) return r",
+      "    let l = Infinity, t = Infinity, rr = -Infinity, bb = -Infinity",
+      "    for (const k of node.querySelectorAll('*')) {",
+      "      const kr = k.getBoundingClientRect()",
+      "      if (!kr.width || !kr.height) continue",
+      "      if (kr.left < l) l = kr.left",
+      "      if (kr.top < t) t = kr.top",
+      "      if (kr.right > rr) rr = kr.right",
+      "      if (kr.bottom > bb) bb = kr.bottom",
+      "    }",
+      "    return rr > l ? { left: l, top: t, right: rr, bottom: bb, width: rr - l, height: bb - t } : r",
+      "  }",
+      "  const a = paintedBox(prev), b = el.getBoundingClientRect()",
+      "  if (!a.height || !b.height) continue",
+      "  if (b.left > a.right - 0.5 || a.left > b.right - 0.5) continue",
+      "  const over = a.bottom - b.top",
+      "  if (over <= 0.25) continue",
+      "  const had = el.style.transform",
+      "  el.style.transform = 'none'",
+      "  const clean = el.getBoundingClientRect()",
+      "  el.style.transform = had",
+      "  if (a.bottom - clean.top > 0.25) continue",
+      "  fail(name(el), 'this row carries a ' + round(ty) + 'px vertical transform and overlaps ' + name(prev) + ' above it by ' + round(over) + 'px. Without the transform it does not. A lift that centres a row on a heading has nothing to centre against once the row wraps, and a transform costs no layout, so it pulls the row over whatever sits above. Reset it in the block that declares the collapse.')",
+      "}",
+    ],
+  },
+  {
     id: 'a-row-alone-on-its-line-covers-it',
     where: 'render',
     line: 'An action row that takes a line of its own covers that line.',
@@ -2321,9 +2436,58 @@ export const CHECKS = [
       "    return p !== 'absolute' && p !== 'fixed'",
       "  })",
       "  if (!paint.length) continue",
-      "  if (!paint.every(c => c.matches(CTRL))) continue",
+      /* ── EVERY CHILD A CONTROL WAS TOO NARROW, AND A PAGER PROVED IT ──
+       *
+       * A pager holds two buttons and a readout, and the readout is a
+       * `role="status"` span. So `every` answered false and the check bailed on
+       * a row taking 746px of a 748px line with 387.5px of hole in it. Wider
+       * than the content it held.
+       *
+       * The question is whether a row of CONTROLS took a line and left it
+       * mostly empty. A status beside them does not change that. So: at least
+       * one control, and no child that is a block of prose. A paragraph is the
+       * case `every` was really guarding against, and it can be named
+       * directly. */
+      "  if (!paint.some(c => c.matches(CTRL))) continue",
+      "  if (paint.some(c => {",
+      "    const d = getComputedStyle(c).display",
+      "    return !c.matches(CTRL) && /^(block|flow-root)$/.test(d) && c.textContent.trim().length > 60",
+      "  })) continue",
+      /* ── IT ASKED ABOUT FLEX AND MISSED THE COMMONEST CASE ──
+       *
+       * The test was `flex-basis: 100%`, a positive `flex-grow`, or an INLINE
+       * auto margin. A BLOCK fills its container by default, with no flex
+       * property involved at all, and that is how most rows take a line.
+       *
+       * Measured on one dashboard: a pager took 746px of a 748px content
+       * width, 99.7% of the line, and its three items filled 358.5px. 387.5px
+       * of hole, wider than the content. The check printed nothing.
+       *
+       * The inline-only margin test missed a second row the same way. An auto
+       * margin set by a STYLESHEET computes to a pixel value, so
+       * `el.style.marginLeft` is empty and `getComputedStyle` reads 307.438px.
+       * Read the declaration through the CSSOM as well.
+       *
+       * Ask what the box DID, not which mechanism did it: a row occupying
+       * essentially its whole line took that line, however it got there. The
+       * 95% test below already asks exactly that, so the gate only has to stop
+       * excluding the default. */
+      "  const blockish = /^(block|flow-root|list-item)$/.test(cs.display)",
+      "    || cs.display === 'flex' && parent && !/flex|grid/.test(getComputedStyle(parent).display)",
+      "  const autoSide = p => {",
+      "    if (el.style.getPropertyValue(p) === 'auto') return true",
+      "    for (const sheet of document.styleSheets) {",
+      "      let rules; try { rules = sheet.cssRules } catch (e) { continue }",
+      "      for (const r of rules) {",
+      "        if (!r.selectorText || !r.style) continue",
+      "        if (r.style.getPropertyValue(p) !== 'auto') continue",
+      "        try { if (el.matches(r.selectorText)) return true } catch (e) {}",
+      "      }",
+      "    }",
+      "    return false",
+      "  }",
       "  const told = cs.flexBasis === '100%' || parseFloat(cs.flexGrow) > 0",
-      "    || el.style.marginLeft === 'auto' || el.style.marginRight === 'auto'",
+      "    || blockish || autoSide('margin-left') || autoSide('margin-right')",
       "  if (!told) continue",
       "  const pcs = getComputedStyle(parent), pb = parent.getBoundingClientRect()",
       "  const lineW = (pb.right - px(pcs.paddingRight) - px(pcs.borderRightWidth))",
