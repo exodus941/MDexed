@@ -1887,6 +1887,45 @@
 .dmd .table-rows-both tbody tr.is-selected > td {
   background: var(--cmp-table-row-selected-background-color, var(--c-selected));
 }
+/* ── A TABLE CAPTION IS A LABEL, AND A CENTRED ONE FLOATS ──
+ *
+ * The browser centres a `<caption>` by default, and nothing here had an
+ * opinion, because nothing had ever used one. So a table summary sat across
+ * 778px with its text in the middle, reading as a stray line between the
+ * controls above and the header row below.
+ *
+ * It is the table's own name, so it takes the start edge, on the same inset as
+ * the first column. The block-end space separates it from the header rule. */
+.dmd .table > caption {
+  text-align: start;
+  padding-inline: var(--cmp-table-cell-padding-inline, var(--space-md, 16px));
+  padding-block-end: var(--space-xs, 8px);
+  color: var(--c-text-muted);
+}
+
+/* ── A PAGER PUTS ITS STEPS AT THE ENDS AND ITS PLACE BETWEEN THEM ──
+ *
+ * The system had a pager and no rule for its arrangement, so a build packed
+ * Previous, the readout and Next against the start edge. Measured: 746px of a
+ * 748px line with 358.48px of ink, so 387.52px was empty. Wider than the
+ * content it held.
+ *
+ * A reader goes back, checks where they are, goes on. So the two controls take
+ * the ends and the readout sits between them. Nothing stretches: a button that
+ * grows to fill a line stops looking like a button.
+ *
+ * AND PROXIMITY IS A RATIO. At the row's own 8px the readout read as a third
+ * button rather than as the thing the buttons act on. It is not a control, so
+ * it must not sit in a run of them at their own spacing. `lg` against `xs` is
+ * exactly 3:1. */
+.dmd nav.row:has(> .btn):has(> .caption),
+.dmd nav.row:has(> .btn):has(> .small) {
+  justify-content: space-between;
+  column-gap: var(--space-lg, 24px);
+}
+.dmd nav.row > .caption,
+.dmd nav.row > .small { margin-inline: auto; }
+
 /* ── A SINGLE VALUE NEVER BREAKS; THE TABLE SCROLLS INSTEAD ──
  *
  * A table squeezed narrower than its content FITS, by wrapping every column,
