@@ -253,8 +253,10 @@ export default defineConfig(({ command }) => ({
        gap has one writer. Then to 1025 at 1022.24, with the tab rule and the
        published pointer minimum. Then to 1075 at 1069.19, with the twelve
        chart components, their furniture and the Charts surface. Then to 1085 at
-       1078.10, with the marker elements and the aspect-ratio plots. */
-    chunkSizeWarningLimit: 1085,
+       1078.10, with the marker elements and the aspect-ratio plots. Then to
+       1135 at 1130.07, with twelve new checks: the row planes, the chart
+       furniture, and the spacing batch. */
+    chunkSizeWarningLimit: 1135,
   },
 
   server: {

@@ -2398,6 +2398,14 @@ line('\n- project file -')
        declared again at another value. The value is ON the grid, so nothing
        else objects, and every var(--space-md) on the page silently moves. */
     ':root { --space-md: 20px; }',
+    /* an-auto-margin-cannot-also-hold-a-minimum: one side declared twice,
+       once as the push and once as a floor. The later one wins and the other
+       was never doing the job its author thought. */
+    '.actions { margin-block-start: auto; margin-block-start: var(--space-md); }',
+    /* an-exemption-carries-no-weight: a zeroing rule matched with :is(),
+       which takes the weight of its heaviest argument and outranks whatever
+       component stated that distance on purpose. */
+    '.card > :is(.overline, .caption) + .title { margin-block-start: 0; }',
   ].join('\n'))
   write('broken.html', [
     '<html data-theme="light">',                 /* hardcoded-theme */
@@ -2410,6 +2418,16 @@ line('\n- project file -')
     '</html>',                                   /* toggle-states-itself + icon-only-is-named */
   ].join('\n'))
   write('broken.js', 'const css = ' + BACKTICK + '.x { color: red; }' + BACKTICK)
+  /* no-shorthand-beside-its-own-longhand: `gap` after `rowGap` sets both axes,
+     so the row value never applies once. Both keys are legal and the rendered
+     gap is simply not the one the code appears to ask for. */
+  write('broken.jsx', [
+    'export const Row = () => (',
+    '  <div style={{ display: "flex", rowGap: 6, gap: 8 }}>',
+    '    <span>one</span>',
+    '  </div>',
+    ')',
+  ].join('\n'))
 
   const dirty = runVerify(dir)
   for (const c of SOURCE_CHECKS) {
@@ -2448,6 +2466,20 @@ line('\n- project file -')
        stacking value that orders two siblings and joins no global order. */
     '.k { position: fixed; z-index: var(--z-modal); }',
     '.l { position: relative; z-index: 1; }',
+    /* The CORRECT forms of the three spacing rules, not their absence. A
+       fixture that lacks the shape a check reads is silent for the wrong
+       reason, and that reads exactly like a passing check. */
+    '.actions { margin-block-start: auto; padding-block-start: var(--space-md); }',
+    '.card > :where(.overline, .caption) + .title { margin-block-start: 0; }',
+    '.two-sides { margin-inline-start: auto; margin-inline-end: var(--space-md); }',
+  ].join('\n'))
+  /* The CORRECT style object: two longhands and no shorthand beside them. */
+  fs.writeFileSync(path.join(clean, 'good.jsx'), [
+    'export const Row = () => (',
+    '  <div style={{ display: \"flex\", rowGap: 6, columnGap: 8 }}>',
+    '    <span>one</span>',
+    '  </div>',
+    ')',
   ].join('\n'))
   fs.writeFileSync(path.join(clean, 'good.html'), [
     '<html>',
@@ -3219,6 +3251,75 @@ line('\n- depth intensity -')
   assert(md.includes(dv.categorical[0]), 'and lists the actual colours')
 }
 
+/* ── TWO MINIMUMS, BECAUSE A FINGER AND A MOUSE ARE DIFFERENT SIZES ──
+ *
+ * Only the touch target used to be published, so the mouse minimum was a
+ * number the layout tool held as a literal and no document stated. A number a
+ * tool holds and a document does not is a number nobody can change and a
+ * builder will invent.
+ *
+ * BOTH, IN EVERY FORMAT. A build importing the Sass file and never opening the
+ * stylesheet has to find them too, and the DTCG file is what a non-CSS
+ * consumer reads. So this asserts the bridge in each, rather than the wording
+ * in one.
+ */
+{
+  line('\n- two minimums, in every format -')
+  const files = payloadTextFiles(state, derived)
+  const md = files['DESIGN.md']
+
+  /* The CSS names, which the render verifier reads off the element. */
+  for (const prop of ['--target-min', '--target-min-pointer']) {
+    assert(files['tokens.css'].includes(prop + ':'),
+      `tokens.css declares ${prop}`)
+    assert(files['tailwind.css'].includes(prop),
+      `and tailwind.css carries it`)
+    assert(files['_tokens.scss'].includes(prop),
+      `and _tokens.scss bridges it`)
+  }
+  /* AND THE SASS NAME, because a Sass consumer writes `$target-min` and only
+     the file can join the two. The mono family cost a build for exactly this
+     gap: three names across four files and no bridge between any pair. */
+  for (const name of ['$target-min', '$target-min-pointer']) {
+    assert(files['_tokens.scss'].includes(name + ':'),
+      `_tokens.scss declares ${name}`)
+  }
+  /* The DTCG file is what a consumer that cannot resolve var() reads. */
+  {
+    const json = JSON.parse(files['tokens.json'])
+    const flat = JSON.stringify(json)
+    assert(/"target"/.test(flat), 'tokens.json carries a target group')
+  }
+
+  /* THE TWO VALUES ARE DIFFERENT, or one of them is not a decision. 44px is a
+     finger and 24px is WCAG 2.5.8 at AA for a pointer. */
+  const valueOf = prop => {
+    const m = new RegExp(prop + ':\\s*([^;]+)').exec(files['tokens.css'])
+    return m ? m[1].trim() : null
+  }
+  const touch = valueOf('--target-min'), fine = valueOf('--target-min-pointer')
+  assert(touch && fine && touch !== fine,
+    `a finger and a mouse take different minimums (${touch} against ${fine})`)
+
+  /* AND THE DOCUMENT SAYS WHICH IS WHICH. A published pair with no prose is
+     two numbers a reader has to guess between. */
+  assert(/coarse|finger|touch/i.test(md) && /fine|mouse|pointer/i.test(md),
+    'DESIGN.md says which minimum belongs to which pointer')
+
+  /* READ IT OFF THE ELEMENT, NEVER THE ROOT. An exported build sets its tokens
+     on :root; an editor hosting a preview sets them on the preview own scope.
+     A custom property inherits, so the control answers in both — and asking
+     the root read empty inside a hosted preview, which silently restored the
+     literal the tool used to hold. */
+  const { CHECKS: C2 } = await import('../src/emit/checks.js')
+  const floor = C2.find(c => c.id === 'target-floor-for-the-pointer')
+  const src = (floor.body ?? []).join('\n')
+  assert(/getComputedStyle\((el|row|node|target)/.test(src) || !/documentElement/.test(src),
+    'the target check reads the property off the element rather than off the root')
+  assert(/pointer: coarse/.test(src),
+    'and asks the POINTER rather than the width, because a narrow window on a desktop is not a finger')
+}
+
 /* ── THE FURNITURE HALF OF THE CHARTS SECTION ──
  *
  * The section shipped three colour scales and nothing else. Twelve chart types
@@ -3375,6 +3476,66 @@ line('\n- depth intensity -')
       'a column whose values differ in width, where agreeing edges mean something really aligns them'],
     ['an-amount-lines-up-on-its-end-edge', 'endwise',
       'a column of equal-width amounts that declares its end alignment, and so is right for a reason'],
+    /* ── THE FIVE SPACING CHECKS, PROVEN IN A BROWSER ──
+     *
+     * Two fixtures. All twelve of this system's preview surfaces are the
+     * correct-code half and every one is silent on all five.
+     * `tools/fixture-spacing.mjs` is the other half: each fault beside the
+     * correct form of the same shape, so a finding is read by id rather than
+     * counted, and each silent twin reported what it measured.
+     *
+     *   ok-above   run edge 1px, last item bottom border 0     silent
+     *   bad-below  the last rule 0.00px from the run own edge  fires
+     *   ok-nogap   a collapsing row found, row gap 0           silent
+     *   bad-gap    the same row with 8px charged above it      fires
+     *   ok-feet    3 cards at 148px, feet 0/0/0, spread 0      silent
+     *   bad-feet   the same three, feet 21px apart             fires
+     *   ok-rule    16px above and 16 below                     silent
+     *   bad-rule   4px above and 32 below                      fires
+     *   ok-strip   horizontal, 1 band, overflow hidden         silent
+     *   bad-wrap   the same strip on 2 rows                    fires
+     *   bad-scroll and one declaring overflow-x: auto          fires
+     *
+     * TWO OF THE THREE BUGS THIS BATCH HAD CAME FROM POINTING IT AT CORRECT
+     * CODE, and both would have read as passing checks.
+     *
+     * `px('none')` IS 0. `max-height` computes to `none` when nothing sets it,
+     * so a collapse guard written with the helper matched every element in the
+     * document: 24 findings on one surface, all of them correct code.
+     *
+     * AND THE HORIZONTAL TEST REJECTED THE CASE THE CHECK IS FOR. Asking every
+     * item to sit right of the one before it is false of a WRAPPED strip, so
+     * the fold was skipped as though it were a vertical rail. Judged from the
+     * first pair instead, which is what tells a strip from a rail. */
+    ['a-separator-goes-above-each-item', 'kids.length < 3',
+      'a run of two, which has no rhythm to read'],
+    ['a-separator-goes-above-each-item', 'rcs.borderBottomStyle',
+      'a container with no edge of its own, which is the commonest and healthiest shape'],
+    ['a-collapsed-row-still-costs-its-gap', 'test(kcs.maxHeight)',
+      'a zero-height child that nobody told to collapse — a bar of value zero in a column chart, which reported sixteen findings on one surface when the guard used px()'],
+    ['a-collapsed-row-still-costs-its-gap', 'gridTemplateRows',
+      'the other mechanism that animates a height nobody can know in advance'],
+    ['card-actions-sit-on-the-bottom-edge', 'hs) > 1',
+      'cards of different heights, which are not stretched and so cannot be ragged'],
+    ['card-actions-sit-on-the-bottom-edge', 'spread <= 2',
+      'a card own border and padding landing on fractional pixels'],
+    ['a-rule-sits-inside-its-gap', 'prev.tagName === next.tagName',
+      'a row separator inside a run of like siblings, which is a different rule with its own answer'],
+    ['a-rule-sits-inside-its-gap', 'above < 0 || below < 0',
+      'a rule overlapping its neighbour, where a subtraction gives a negative number rather than a distance'],
+    /* THREE FORMS OF THE HORIZONTALITY TEST, AND THE FIRST TWO EACH TRADED
+       ONE MISS FOR ANOTHER. Asking EVERY item to sit right of the one before
+       it is false of a wrapped strip, which is the case the check exists for.
+       Asking only the FIRST pair reported a vertical rail as folded, because a
+       rail leads with a section label whose box does not line up with the
+       items under it. A majority of adjacent pairs sharing a band answers
+       both: measured, six rail items at tops 0, 232, 282, 332, 382 and 432
+       share no band, and a six-tab strip on two rows shares four of five. */
+    ['a-tab-strip-never-wraps-and-never-scrolls', 'together * 2 > boxes.length',
+      'a WRAPPED strip and a vertical rail at once, which the every-pair and first-pair forms each got wrong in opposite directions'],
+    ['a-tab-strip-never-wraps-and-never-scrolls', 'b.top < y.bottom',
+      'a vertical nav rail, whose items sit above each other on purpose — measured at 3, 5 and 6 bands on this system own surfaces'],
+
     /* ── THE FOUR CHART CHECKS, PROVEN IN A BROWSER ──
      *
      * Two fixtures. The app's own Charts surface is the correct-code half —

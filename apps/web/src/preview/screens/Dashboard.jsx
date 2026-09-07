@@ -270,8 +270,16 @@ export default function Dashboard({ onInspect, layout, casing, theme, mode, onTo
           <h3 className="t-h6" style={{ marginBottom: 'var(--space-sm, 8px)' }} {...txt('h6')}>{L('Revenue by line')}</h3>
           {/* `.chart-strip`, renamed: `chart-bar` is the horizontal bar chart
               component now, and its rule sets a 24px height and
-              `overflow: hidden`. A strip is one bar of touching segments. */}
-          <div className="chart-strip">
+              `overflow: hidden`. A strip is one bar of touching segments.
+
+              AND IT OWES A NAME, because it is a picture of data and nothing
+              else on the card carries the figures for a reader who cannot see
+              it. `a-chart-is-named-not-focused` found it. The KEY below is
+              exempt and correct as it stands: its words ARE the alternative,
+              and role=img there would make every one of them presentational.
+              Measured, the strip paints 100% of its own box and the key 1%. */}
+          <div className="chart-strip" role="img"
+            aria-label={L('Revenue by line: licences 34 per cent, services 26, support 18, training 13, other 9')}>
             {[['Licences', 34], ['Services', 26], ['Support', 18], ['Training', 13], ['Other', 9]].map(([, pct], i) => (
               <span key={i} style={{ width: `${pct}%`, background: `var(--chart-${i + 1})` }} />
             ))}

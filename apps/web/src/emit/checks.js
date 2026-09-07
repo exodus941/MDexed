@@ -467,6 +467,152 @@ export const CHECKS = [
   },
 
   {
+    id: 'no-shorthand-beside-its-own-longhand',
+    where: 'source',
+    line: 'No style object mixes a shorthand with a longhand for the same property. Order decides, exactly as in a stylesheet.',
+    /* ── `rowGap: 6` THEN `gap: 8` SETS BOTH AXES TO 8 ──
+     *
+     * An inline style object is a cascade of one, and declaration order decides
+     * it the same way it does in a stylesheet. So a shorthand written after its
+     * own longhand silently deletes it, and the value that never applied is
+     * still sitting in the source where a reader can see it and believe it.
+     *
+     * Nothing reports it. Both keys are legal, the object is valid, and the
+     * rendered gap is simply not the one the code appears to ask for.
+     *
+     * IT READS THE STYLE REGIONS ONLY. `gap` and `rowGap` beside each other in
+     * a hook, a config or a token map mean nothing of the kind, so the scan is
+     * bounded by the braces of a style object.
+     */
+    body: [
+      "const PAIRS = [",
+      "  ['gap', ['rowGap', 'columnGap', 'row-gap', 'column-gap']],",
+      "  ['margin', ['marginTop', 'marginRight', 'marginBottom', 'marginLeft', 'marginBlock', 'marginInline', 'margin-top', 'margin-right', 'margin-bottom', 'margin-left']],",
+      "  ['padding', ['paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft', 'paddingBlock', 'paddingInline', 'padding-top', 'padding-right', 'padding-bottom', 'padding-left']],",
+      "  ['inset', ['top', 'right', 'bottom', 'left', 'insetBlock', 'insetInline']],",
+      "  ['border', ['borderWidth', 'borderColor', 'borderStyle', 'border-width', 'border-color', 'border-style']],",
+      "  ['background', ['backgroundColor', 'backgroundImage', 'background-color', 'background-image']],",
+      "  ['flex', ['flexGrow', 'flexShrink', 'flexBasis', 'flex-grow', 'flex-shrink', 'flex-basis']],",
+      "]",
+      /* THE BRACES OF A STYLE OBJECT, so nothing outside one is read. Both the
+         JSX form and the plain-object form, because a component library uses
+         one and a token map the other. */
+      "const REGION = /style\\s*=\\s*\\{\\{|style\\s*:\\s*\\{/g",
+      "for (const f of files.filter(x => !x.css)) {",
+      "  let m",
+      "  REGION.lastIndex = 0",
+      "  while ((m = REGION.exec(f.bare))) {",
+      "    let depth = 0, i = f.bare.indexOf('{', m.index + m[0].length - 1)",
+      "    let end = i",
+      "    for (; end < f.bare.length; end++) {",
+      "      if (f.bare[end] === '{') depth++",
+      "      else if (f.bare[end] === '}') { depth--; if (!depth) break }",
+      "    }",
+      "    const region = f.bare.slice(i, end + 1)",
+      "    for (const [short, longs] of PAIRS) {",
+      "      const shortAt = region.search(new RegExp('(^|[{,\\\\s])' + short + '\\\\s*:'))",
+      "      if (shortAt < 0) continue",
+      "      for (const long of longs) {",
+      "        const longAt = region.search(new RegExp('(^|[{,\\\\s])' + long + '\\\\s*:'))",
+      "        if (longAt < 0) continue",
+      "        const later = shortAt > longAt ? short : long",
+      "        const gone = shortAt > longAt ? long : short",
+      "        fail(f.path, lineOf(f, i + Math.max(shortAt, longAt)),",
+      "          later + ' is declared after ' + gone + ' in one style object, so ' + gone + ' never applies. An inline style object is a cascade of one and order decides it. Name the longhands you mean, and drop the shorthand.')",
+      "      }",
+      "    }",
+      "  }",
+      "}",
+    ],
+  },
+
+  {
+    id: 'an-auto-margin-cannot-also-hold-a-minimum',
+    where: 'source',
+    line: 'One writer per margin. An auto margin pushes and a stated margin spaces; the same side cannot do both.',
+    /* ── AN AUTO MARGIN CONSUMES THE FREE SPACE, SO IT CANNOT HOLD A FLOOR ──
+     *
+     * `margin-block-start: auto` on the last child of a flex column takes the
+     * free space, which is what lands a card's action row on its bottom edge
+     * wherever the text above it ends. The moment the card fills up there is no
+     * free space, the margin resolves to zero, and the action touches the
+     * sentence above it.
+     *
+     * So the two jobs need two writers: the margin pushes, and PADDING holds
+     * the minimum, because padding cannot be consumed.
+     *
+     * The fault in source is one side declared twice, once as `auto` and once
+     * as a length, for one selector. Both are legal, the later one wins, and
+     * whichever wins the other was never doing the job its author thought.
+     */
+    body: [
+      "const SIDES = {",
+      "  'margin-top': 'block-start', 'margin-block-start': 'block-start',",
+      "  'margin-bottom': 'block-end', 'margin-block-end': 'block-end',",
+      "  'margin-left': 'inline-start', 'margin-inline-start': 'inline-start',",
+      "  'margin-right': 'inline-end', 'margin-inline-end': 'inline-end',",
+      "}",
+      "for (const f of files.filter(x => x.css)) {",
+      /* ONE RULE AT A TIME. Two rules may legitimately disagree about a side —
+         that is what a responsive block is for — and only the declarations
+         inside one brace pair are a single author's single decision. */
+      "  for (const block of f.bare.matchAll(/([^{}]+)\\{([^{}]*)\\}/g)) {",
+      "    const decls = block[2]",
+      "    const seen = {}",
+      "    for (const d of decls.matchAll(/([a-z-]+)\\s*:\\s*([^;]+)/g)) {",
+      "      const side = SIDES[d[1].trim()]",
+      "      if (!side) continue",
+      "      const value = d[2].trim()",
+      "      const kind = value === 'auto' ? 'auto' : /^-?[\\d.]/.test(value) || /^calc|^var/.test(value) ? 'length' : null",
+      "      if (!kind) continue",
+      "      if (seen[side] && seen[side] !== kind) {",
+      "        fail(f.path, lineOf(f, block.index),",
+      "          block[1].trim() + ' declares its ' + side + ' margin both as auto and as a length. An auto margin CONSUMES the free space, so it cannot also hold a minimum: the moment the box fills up the stated value collapses and the two things touch. Keep the auto margin for the push and put the minimum in padding, which cannot be consumed.')",
+      "        break",
+      "      }",
+      "      seen[side] = kind",
+      "    }",
+      "  }",
+      "}",
+    ],
+  },
+
+  {
+    id: 'an-exemption-carries-no-weight',
+    where: 'source',
+    line: 'A rule that removes a distance uses :where(), never :is(). :is() takes the weight of its heaviest argument and outranks what it exempts.',
+    /* ── `:is()` TOOK THE WEIGHT AND DELETED A DISTANCE SOMEBODY CHOSE ──
+     *
+     * A default that publishes a gap needs exemptions for the pairs that are
+     * GROUPS: a caption directly above a heading, an overline above a title.
+     * Written with `:is()` that exemption came out at (0,4,0) and outranked a
+     * component's own stated distance, so it deleted a stat tile's 4px and 2px
+     * on fifteen tiles. A rule written to remove a distance I added had started
+     * removing distances somebody chose.
+     *
+     * `:where()` contributes nothing, which is exactly what a reset and an
+     * exemption are for.
+     *
+     * A ZEROING DECLARATION IS THE PROPERTY, not the selector. Asking which
+     * rules "look like exemptions" is a name list, and it approves whatever
+     * nobody thought of. Ask instead which rules set a spacing property to
+     * nothing, because that is what an exemption does.
+     */
+    body: [
+      "const ZERO = /(margin|padding|gap|row-gap|column-gap)[a-z-]*\\s*:\\s*(0|0px|0rem|none)\\s*(;|$)/",
+      "for (const f of files.filter(x => x.css)) {",
+      "  for (const block of f.bare.matchAll(/([^{}]+)\\{([^{}]*)\\}/g)) {",
+      "    const sel = block[1].trim()",
+      "    if (!/:is\\(/.test(sel)) continue",
+      "    if (!ZERO.test(block[2])) continue",
+      "    fail(f.path, lineOf(f, block.index),",
+      "      sel + ' removes a distance and matches with :is(), which takes the weight of its heaviest argument. So it outranks whatever component stated that distance on purpose: measured once, an exemption at (0,4,0) deleted a stat tile 4px and 2px gap on fifteen tiles. Use :where(), which contributes nothing.')",
+      "  }",
+      "}",
+    ],
+  },
+
+  {
     id: 'css-not-in-a-literal',
     where: 'source',
     line: 'No stylesheet is built from a JavaScript template literal.',
@@ -1178,6 +1324,21 @@ export const CHECKS = [
       "  if (chart.querySelector(CONTROL)) continue",
       "  /* A SPARKLINE IN A ROW IS DELIBERATELY SILENT, because the row already",
       "     says its name and its value in words. */",
+      "  /* ── A LEGEND IS TEXT, AND ITS WORDS ARE THE ALTERNATIVE ──",
+      "     role=img would make every one of those words presentational, which is",
+      "     the same fault as putting it on an empty state. Measured on one",
+      "     dashboard: the key paints 1% of its own box (five 8px dots and their",
+      "     labels) and the strip beside it paints 100%. Nothing sits near 10. */",
+      "  const ownBox = chart.getBoundingClientRect()",
+      "  let painted = 0",
+      "  for (const kid of chart.querySelectorAll('*')) {",
+      "    const bg = getComputedStyle(kid).backgroundColor",
+      "    if (!opaque(bg)) continue",
+      "    const b = kid.getBoundingClientRect()",
+      "    painted += b.width * b.height",
+      "  }",
+      "  const area = ownBox.width * ownBox.height",
+      "  if (area > 0 && painted / area < 0.1 && hasWords(chart)) continue",
       "  const row = chart.closest('tr, [role=row]')",
       "  if (row && hasWords(row)) continue",
       "  const named = chart.getAttribute('aria-label') || chart.getAttribute('aria-labelledby')",
@@ -2427,6 +2588,271 @@ export const CHECKS = [
   },
 
   {
+    id: 'a-separator-goes-above-each-item',
+    where: 'render',
+    line: 'A separator is drawn above each item, never below. Drawn below, the last one lands on its container own edge.',
+    /* ── TWO LINES A PIXEL APART, CLOSING NOTHING ──
+     *
+     * Drawn below, the last item in a run puts its rule directly onto the
+     * container's own bottom border. It reads as a rule waiting for a row that
+     * never comes.
+     *
+     * Drawn above, the first item supplies the rule under any group header, so
+     * the header needs no border of its own and the two can never fall out of
+     * step. It needs no index and no `:last-child`, because nothing sits above
+     * the first row to separate it from.
+     *
+     * `:last-child { border: 0 }` is not the fix either: that is a correction
+     * applied after the fact, and it breaks the moment a row is hidden or
+     * reordered. Put the rule on the side that cannot be last.
+     *
+     * THREE GUARDS. A run of two has no rhythm to read. A container with no
+     * edge of its own has nothing for the last rule to land on, which is the
+     * commonest and healthiest shape. And a run whose items carry a TOP border
+     * is the correct form, so it never reaches the comparison.
+     */
+    body: [
+      "for (const run of all('*')) {",
+      "  const kids = Array.prototype.filter.call(run.children, el => {",
+      "    const r = el.getBoundingClientRect()",
+      "    return r.width > 0 && r.height > 0",
+      "  })",
+      "  if (kids.length < 3) continue",
+      "  if (!kids.every(k => k.tagName === kids[0].tagName)) continue",
+      "  const rcs = getComputedStyle(run)",
+      "  const own = px(rcs.borderBottomWidth)",
+      "  if (!(own > 0) || rcs.borderBottomStyle === 'none') continue",
+      "  const last = kids[kids.length - 1]",
+      "  const lcs = getComputedStyle(last)",
+      "  if (!(px(lcs.borderBottomWidth) > 0) || lcs.borderBottomStyle === 'none') continue",
+      "  /* THE CORRECT FORM NEVER REACHES HERE. A run separated above carries",
+      "     its rule on the TOP edge, so the last item has no bottom border. */",
+      "  const rr = run.getBoundingClientRect(), lr = last.getBoundingClientRect()",
+      "  const apart = Math.abs((rr.bottom - own) - lr.bottom)",
+      "  if (apart > 2) continue",
+      "  fail(name(run), 'every item in this run draws its separator BELOW itself, so the last one lands ' + apart.toFixed(2) + 'px from the container own bottom edge: two lines a pixel apart, closing nothing. Draw the rule ABOVE each item instead. The first item then supplies the rule under any group header, the last ends clean, and it needs no :last-child correction that a hidden or reordered row would break.')",
+      "}",
+    ],
+  },
+
+  {
+    id: 'a-collapsed-row-still-costs-its-gap',
+    where: 'render',
+    line: 'A row that collapses gives up its line gap too. A container charges the gap whether or not anything is in it.',
+    /* ── 9px OF DEAD HEIGHT UNDER A PANEL NOBODY HAD OPENED ──
+     *
+     * An element held at `max-height: 0` is still on a flex line, and the
+     * container charges the row gap whether or not anything is in it. Measured
+     * on one title bar: 65px tall to hold a 40px button, and 9 of those pixels
+     * were a gap beneath a closed panel.
+     *
+     * So where a row opens and closes, the whole distance belongs to the
+     * ROW — its own animated margin or padding — and the container's row-gap
+     * goes to zero. One writer per gap.
+     *
+     * NARROWED ON THE DECLARATION, NEVER ON THE HEIGHT. Every zero-height
+     * child is not this fault: a bar of value zero in a column chart is zero
+     * tall and correct, and the first version of this reported sixteen of them
+     * on one surface. A COLLAPSING element says so — `max-height: 0`, or a
+     * `0fr` grid row above it, which are the two mechanisms that animate a
+     * height nobody can know in advance.
+     */
+    body: [
+      "for (const parent of all('*')) {",
+      "  const cs = getComputedStyle(parent)",
+      "  if (!/flex|grid/.test(cs.display)) continue",
+      "  const gap = px(cs.rowGap)",
+      "  if (!(gap > 0)) continue",
+      "  for (const kid of parent.children) {",
+      "    const r = kid.getBoundingClientRect()",
+      "    if (r.height > 0.5) continue",
+      "    const kcs = getComputedStyle(kid)",
+      "    if (kcs.display === 'none' || kcs.position === 'absolute' || kcs.position === 'fixed') continue",
+      "    /* THE DECLARATION, NOT THE HEIGHT. Only a box told to collapse. */",
+      "    /* READ THE STRING, NEVER px(). max-height computes to none when",
+      "       nothing sets it, and px() turns an unparseable value into 0 — so this",
+      "       matched every element in the document and reported 24 findings on one",
+      "       surface, every one correct code. A box told to collapse says 0px; a",
+      "       box nobody told anything says none. Those are different answers. */",
+      "    const collapsing = /^0(px)?$/.test(kcs.maxHeight)",
+      "      || /(^|\\s)0fr(\\s|$)/.test(cs.gridTemplateRows || '')",
+      "    if (!collapsing) continue",
+      "    fail(name(parent), 'this container publishes a ' + gap + 'px row gap and holds a collapsed row, so it is ' + gap + 'px taller than what it shows. A gap is charged whether or not anything is in it. Give the collapsing row the whole distance as its own animated margin or padding and set the container row-gap to zero, so one writer owns the gap.')",
+      "    break",
+      "  }",
+      "}",
+    ],
+  },
+
+  {
+    id: 'card-actions-sit-on-the-bottom-edge',
+    where: 'render',
+    line: 'In a row of cards of one height, every action row sits on the bottom edge.',
+    /* ── EQUAL CARDS, RAGGED ACTIONS ──
+     *
+     * Cards stretched to one height do not give their buttons one height: a
+     * description that wraps to two lines pushes its own button down, and the
+     * row then reads as ragged. Measured on three plan cards of equal height:
+     * one button ended 25px from its card's foot and the other two 47.3px.
+     *
+     * `margin-block-start: auto` on the action row takes the free space in a
+     * flex column and lands the action on the bottom wherever the text above
+     * it ends. A card sized by its own content has no free space, so the
+     * margin resolves to zero and nothing moves — the rule needs no width test
+     * and no second class.
+     *
+     * THREE GUARDS. Cards of DIFFERENT heights are not stretched, so nothing
+     * is ragged. A card whose last child holds no control has no action row.
+     * And 2px of slack, because a card's own border and padding are read from
+     * the computed style and land on fractional pixels.
+     */
+    body: [
+      "for (const parent of all('*')) {",
+      "  const cs = getComputedStyle(parent)",
+      "  if (!/flex|grid/.test(cs.display)) continue",
+      "  const cards = Array.prototype.filter.call(parent.children, el => {",
+      "    const r = el.getBoundingClientRect()",
+      "    if (r.width < 40 || r.height < 40) return false",
+      "    const ecs = getComputedStyle(el)",
+      "    /* A CARD IS A BOX THAT PAINTS AND STACKS ITS OWN CONTENTS. Asking",
+      "       for a class would approve whatever nobody thought of. */",
+      "    return /flex|grid|block/.test(ecs.display) && el.children.length > 1",
+      "  })",
+      "  if (cards.length < 2) continue",
+      "  const hs = cards.map(c => c.getBoundingClientRect().height)",
+      "  if (Math.max.apply(null, hs) - Math.min.apply(null, hs) > 1) continue",
+      "  const feet = []",
+      "  for (const c of cards) {",
+      "    const kids = Array.prototype.filter.call(c.children, el => {",
+      "      const r = el.getBoundingClientRect()",
+      "      return r.width > 0 && r.height > 0",
+      "    })",
+      "    const last = kids[kids.length - 1]",
+      "    if (!last || !last.querySelector(CONTROL)) { feet.length = 0; break }",
+      "    const ccs = getComputedStyle(c)",
+      "    const foot = c.getBoundingClientRect().bottom - px(ccs.borderBottomWidth) - px(ccs.paddingBottom)",
+      "    feet.push(foot - last.getBoundingClientRect().bottom)",
+      "  }",
+      "  if (feet.length < 2) continue",
+      "  const spread = Math.max.apply(null, feet) - Math.min.apply(null, feet)",
+      "  if (spread <= 2) continue",
+      "  fail(name(parent), 'these ' + feet.length + ' cards are stretched to one height and their action rows end ' + spread.toFixed(2) + 'px apart, so the row reads as ragged. Put margin-block-start: auto on the action row, which takes the free space in a flex column and lands it on the bottom edge wherever the text above ends. A content-sized card has no free space, so the same rule moves nothing there.')",
+      "}",
+    ],
+  },
+
+  {
+    id: 'a-rule-sits-inside-its-gap',
+    where: 'render',
+    line: 'A rule between sections sits inside that gap, half each side, so a marked boundary takes the same height as an unmarked one.',
+    /* ── THE LINE SAYS WHERE A BOUNDARY IS, NEVER HOW BIG ──
+     *
+     * Give the separator half the section gap on each side. A marked boundary
+     * and an unmarked one then occupy the same height, so the panel keeps one
+     * rhythm either way and the line carries no weight of its own.
+     *
+     * A bare `hr` with its own margins has no answer for the unruled case, and
+     * the next person to need one invents a number. Build it as one component
+     * that renders a line or a plain spacer.
+     *
+     * THREE GUARDS. A rule at the start or end of its container has only one
+     * side. A rule inside a RUN of like siblings is a row separator, which is
+     * a different rule with its own answer. And 2px of slack, because both
+     * distances come off fractional rectangles.
+     */
+    body: [
+      "for (const el of all('*')) {",
+      "  const r = el.getBoundingClientRect()",
+      "  if (r.height > 3 || r.width < 40) continue",
+      "  const cs = getComputedStyle(el)",
+      "  /* A RULE IS A LINE THAT PAINTS. Either it IS the ink, or it draws a",
+      "     border. Asking for hr or a class name would miss whichever one",
+      "     nobody thought of. */",
+      "  const paints = cs.backgroundColor !== 'rgba(0, 0, 0, 0)' || px(cs.borderTopWidth) > 0 || px(cs.borderBottomWidth) > 0",
+      "  if (!paints) continue",
+      "  const prev = el.previousElementSibling, next = el.nextElementSibling",
+      "  if (!prev || !next) continue",
+      "  const pr = prev.getBoundingClientRect(), nr = next.getBoundingClientRect()",
+      "  if (!pr.height || !nr.height) continue",
+      "  /* A ROW SEPARATOR IN A RUN IS A DIFFERENT RULE. Its neighbours are",
+      "     the same kind of thing as each other; a section rule sits between",
+      "     two unlike blocks. */",
+      "  if (prev.tagName === next.tagName && prev.tagName !== 'DIV') continue",
+      "  const above = r.top - pr.bottom, below = nr.top - r.bottom",
+      "  if (above < 0 || below < 0) continue",
+      "  if (Math.abs(above - below) <= 2) continue",
+      "  fail(name(el), 'this rule sits ' + above.toFixed(2) + 'px below what it follows and ' + below.toFixed(2) + 'px above what it precedes, so the boundary it marks is a different height from an unmarked one and the panel loses its rhythm. Give it half the section gap on each side. A line says WHERE a boundary is, never how big.')",
+      "}",
+    ],
+  },
+
+  {
+    id: 'a-tab-strip-never-wraps-and-never-scrolls',
+    where: 'render',
+    line: 'A tab strip is one line of destinations. It never wraps and never scrolls; a strip that does not fit becomes a select.',
+    /* ── REPLACE THE BAR, DO NOT SHRINK IT ──
+     *
+     * A run of destinations that does not fit is a list, and a list you pick
+     * from is a select. Give the select the tab's font size, its padding and
+     * its box height, so the value keeps the strip's baseline and the content
+     * below does not jump when the swap happens. Keep both in the markup and
+     * let CSS show one, or the rule cannot work in a page with no script.
+     *
+     * FOLDED TO TWO ROWS IT STOPS READING AS ONE CONTROL, and the marker on
+     * row two looks like a different thing: measured at 92px over two rows for
+     * four tabs in a 248px pane.
+     *
+     * AND NO SCROLLBAR EITHER. Sideways scrolling is a last resort, never a
+     * tool: a bar takes 10px of height from one strip and not the one beside
+     * it, so the two stop agreeing, and a destination scrolled out of view is
+     * a destination nobody visits.
+     *
+     * A HORIZONTAL STRIP, NOT A VERTICAL LIST, and the geometry says which. A
+     * rail's items sit above each other on purpose, so several bands there are
+     * correct. Measured on this system's own surfaces: three vertical nav
+     * lists reported 3, 5 and 6 bands, and every horizontal strip reported 1.
+     * A name list would have approved whichever shape nobody thought of.
+     */
+    body: [
+      "for (const strip of all('nav, [role=tablist]')) {",
+      "  const kids = Array.prototype.filter.call(strip.children, el => {",
+      "    const r = el.getBoundingClientRect()",
+      "    return r.width > 0 && r.height > 0",
+      "  })",
+      "  if (kids.length < 2) continue",
+      "  /* HORIZONTAL means the items do not share an x range. */",
+      "  const boxes = kids.map(k => k.getBoundingClientRect())",
+      "  /* HORIZONTAL IS A MAJORITY OF ADJACENT PAIRS SHARING A BAND, and both",
+      "     simpler forms traded one miss for another. Asking EVERY item to sit",
+      "     right of the one before it is false of a wrapped strip, which is the",
+      "     case this exists for. Asking only the FIRST pair reported a vertical",
+      "     rail as folded, because a rail leads with a section label whose box",
+      "     does not line up with the items under it. Measured: six rail items at",
+      "     tops 0, 232, 282, 332, 382 and 432 share no band at all, and a six-tab",
+      "     strip folded onto two rows shares four of five. */",
+      "  let together = 0",
+      "  for (let i = 1; i < boxes.length; i++) {",
+      "    const a = boxes[i - 1], b = boxes[i]",
+      "    if (a.top < b.bottom && b.top < a.bottom) together++",
+      "  }",
+      "  const sideBySide = together * 2 > boxes.length - 1",
+      "  if (!sideBySide) continue",
+      "  const cs = getComputedStyle(strip)",
+      "  if (/auto|scroll/.test(cs.overflowX)) {",
+      "    fail(name(strip), 'this tab strip declares overflow-x: ' + cs.overflowX + ', so a destination can sit scrolled out of view and the scrollbar takes height from this strip and not from the one beside it. A run of destinations that does not fit is a list, and a list you pick from is a select. Swap the bar for one, at the tab font size, padding and box height, so the content below does not jump.')",
+      "    continue",
+      "  }",
+      "  const bands = []",
+      "  for (const b of boxes) {",
+      "    if (!bands.some(y => b.top < y.bottom && y.top < b.bottom)) bands.push(b)",
+      "  }",
+      "  if (bands.length < 2) continue",
+      "  fail(name(strip), 'this tab strip is folded onto ' + bands.length + ' rows, so it stops reading as one control and the marker on row two looks like a different thing. Measured once at 92px over two rows for four tabs in a 248px pane. Set flex-wrap: nowrap and swap the whole bar for a select at the width where it stops fitting.')",
+      "}",
+    ],
+  },
+
+  {
     id: 'a-label-owns-its-gap',
     where: 'render',
     line: 'A group label states the distance to what it names. Two bare blocks carry no gap.',
@@ -2520,7 +2946,7 @@ export const CHECKS = [
   {
     id: 'proximity-is-a-ratio',
     where: 'render',
-    line: 'The gap between groups beats the gap inside one by three to one, or the two read as one thing.',
+    line: 'State both gaps together: the gap inside a group and the gap between groups. Proximity is a ratio, and a gutter between columns is a step of its own, never the row default. Three to one, or the two read as one thing.',
     /* THE RULE EXISTED IN PROSE AND NOTHING ENFORCED IT, so it was broken on
      * the first surface written after it.
      *
@@ -3189,7 +3615,7 @@ export const CHECKS = [
   {
     id: 'a-fixed-height-control-centres-its-label',
     where: 'render',
-    line: 'A control with a stated height centres its label. Baseline alignment pins it to the top of the box.',
+    line: 'One mechanism centres a label. A control with a stated height centres its own by line-height; make it a flex box as well and it centres twice.',
     /* ── AN ANTI-PATTERN THIS SYSTEM STATES AND NEVER CHECKED ──
      *
      * The Do's and Don'ts carry it word for word: never baseline-align the
@@ -3249,6 +3675,77 @@ export const CHECKS = [
   },
 
   /* ══ MANUAL ═══════════════════════════════════════════════════════════ */
+
+  /* ══ THE SPACING RULES A MACHINE CANNOT ANSWER ══════════════════════════
+   *
+   * Each of these was measured against this system's own twelve surfaces
+   * before it was left as a checklist line, and the numbers are why. A stated
+   * "no check" is a decision; an absent entry reads as an oversight.
+   *
+   * A CHECK THAT FIRES ON CORRECT CODE COSTS MORE THAN THE MISS IT PREVENTS,
+   * and these are the drafts that did. The measurements are recorded so the
+   * next person to try does not repeat them.
+   */
+
+  {
+    id: 'an-ornament-column-takes-its-content',
+    where: 'manual',
+    line: 'Shrink the ornament columns rather than growing a content one. A checkbox or row-action column takes width: 1%, and the slack spreads across the columns holding data.',
+  },
+
+  {
+    id: 'a-split-goes-by-what-each-side-holds',
+    where: 'manual',
+    line: 'Split a row by what each side holds, never down the middle. Three tiles against one card came 4.4px short at 46 to 54 and fit at 40 to 60; put the measurement in the comment.',
+  },
+
+  {
+    id: 'a-flexible-box-holds-its-own-label',
+    where: 'manual',
+    line: 'A box at flex: 1 with min-width: 0 can shrink under its own label. Measured once at 73px of word in a 34px box, and nothing calls that an overflow because nothing left the box. Floor it at max-content and let the row wrap.',
+  },
+
+  {
+    id: 'two-rules-of-one-weight-do-not-stack',
+    where: 'manual',
+    line: 'Never stack two rules of one weight close together. Three inside 43px say one boundary three times, and repetition reads as noise.',
+  },
+
+  {
+    id: 'a-menu-control-is-a-sibling-of-the-action-group',
+    where: 'manual',
+    line: 'A menu control is a button in the action group, always rightmost, and a SIBLING of that group rather than a member. Inside it, it can only go where the group goes.',
+  },
+
+  {
+    id: 'staying-with-the-title-beats-being-rightmost',
+    where: 'manual',
+    line: 'Rightmost and stays-with-the-title cannot both hold in one wrapping row. Staying with the title wins: the action group takes a line of its own, and the menu sits at the right end of the row it is on.',
+  },
+
+  {
+    id: 'a-byline-belongs-to-its-heading',
+    where: 'manual',
+    line: 'A byline belongs to its heading, not under it. Two sources fed one gap — a row gap of 8 plus a margin of 4 — and 12px made the line read as a floating paragraph. Zero the row gap and let each wrapping child state its own distance.',
+  },
+
+  {
+    id: 'an-action-stands-clear-of-its-explanation',
+    where: 'manual',
+    line: 'An action stands clear of the text that explains it, by 16px. That is a step above the card own rhythm; 24 reads as a separated block rather than a card with an action in it.',
+  },
+
+  {
+    id: 'a-default-goes-first-in-the-file',
+    where: 'manual',
+    line: 'A default that publishes a distance for a container children goes FIRST in the file. Written last it beats every component stating its own, because both sit at the same specificity and order decides a tie.',
+  },
+
+  {
+    id: 'alignment-is-stated-never-inherited',
+    where: 'manual',
+    line: 'Alignment is stated, never inherited from a group that may vanish. A header actions sat at the end only because a neighbouring group carried flex: 1, and that group is hidden at narrow widths: measured, 226px of empty bar beside them. Put the auto margin on the thing that must stay at the end.',
+  },
 
   /* ── THIS CHECK USED TO FORBID THE RIGHT ANSWER ──
    *
