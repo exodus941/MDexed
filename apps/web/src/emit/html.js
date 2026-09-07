@@ -6,8 +6,11 @@
    fetched at runtime except the webfonts, and nothing about it depends on the
    editor still existing.
 
-   Both palettes ship, switched by `data-theme` on the root element, because a
-   reference that only proves the light theme is half a reference. */
+   In a two-theme document both palettes ship, switched by `data-theme` on the
+   root element, because a reference that only proves the light theme is half a
+   reference. A single-theme document gets ONE `:root` block and no control:
+   writing both regardless put a whole light palette in a dark-only package,
+   which its own DESIGN.md forbids inventing. */
 import { PREVIEW_CSS, responsiveCss } from '../preview/tokens.js'
 import { buildCssVars } from '../state/derive.js'
 import { gradientCss } from '../color/modes.js'
@@ -47,10 +50,55 @@ const declarations = vars =>
  *
  * Only the literal after the first comma is replaced, so a nested
  * `var(--a, var(--b, #666))` keeps its structure and gets fixed at each level.
+ *
+ * ── TWO HOLES, FOUND BY SIMULATION RUN 13 ──
+ *
+ * It was a REGEX whose fallback group was `[^,()]*?`, so it could not see a
+ * fallback holding a comma or a paren. A font stack, an easing curve and a
+ * shadow are all three. And it ran on `PREVIEW_CSS` alone, while the page
+ * carries CSS from three places: that stylesheet, the chrome written in this
+ * file, and the inline styles React renders into the markup.
+ *
+ * Measured on one exported page: 26 fallbacks disagreed with the token they
+ * name. 12 in the style block, 14 in the markup. Among them `--c-bg` said
+ * `#fff` against a shipped `#000100`, `--c-text` said `#111` against
+ * `#f1f6f5`, and `--radius-md` said 8px against 4px. So the safety net this
+ * function exists to provide was a LIGHT palette, in a dark-only package whose
+ * DESIGN.md forbids inventing the other one.
+ *
+ * Balanced now, and applied to the whole document rather than to one string.
+ * A scan rather than a regex, because nesting is the thing that broke it.
  */
-const withRealFallbacks = (css, vars) =>
-  css.replace(/var\(\s*(--[\w-]+)\s*,\s*([^,()]*?)\s*\)/g,
-    (whole, name, fallback) => vars[name] != null ? `var(${name}, ${vars[name]})` : whole)
+const withRealFallbacks = (css, vars) => {
+  let out = '', i = 0
+  for (;;) {
+    const at = css.indexOf('var(', i)
+    if (at < 0) { out += css.slice(i); return out }
+    const open = at + 3
+    let depth = 0, end = -1
+    for (let j = open; j < css.length; j++) {
+      if (css[j] === '(') depth++
+      else if (css[j] === ')' && --depth === 0) { end = j; break }
+    }
+    /* An unclosed call is not ours to repair. Copy it and move on. */
+    if (end < 0) { out += css.slice(i); return out }
+    const inner = css.slice(open + 1, end)
+    const comma = inner.indexOf(',')
+    const name = (comma < 0 ? inner : inner.slice(0, comma)).trim()
+    const fb = comma < 0 ? null : inner.slice(comma + 1).trim()
+    out += css.slice(i, at)
+    if (fb === null || vars[name] == null) {
+      /* No fallback to fix, or no value to fix it with. Recurse INSIDE, so a
+         nested call still gets its own turn. */
+      out += 'var(' + (comma < 0 ? inner : name + ', ' + withRealFallbacks(fb, vars)) + ')'
+    } else if (fb.includes('var(')) {
+      out += 'var(' + name + ', ' + withRealFallbacks(fb, vars) + ')'
+    } else {
+      out += 'var(' + name + ', ' + vars[name] + ')'
+    }
+    i = end + 1
+  }
+}
 
 /**
  * @param markup  the surface, already rendered to static HTML
@@ -67,7 +115,15 @@ export function previewHtml({ state, derived, markup, surface, mode }) {
      half that is not in the zip. */
   const paired = hasThemeToggle(state)
 
-  return `<!doctype html>
+  /* ONE PASS OVER THE WHOLE DOCUMENT, not over one stylesheet.
+     The rewriter used to run on PREVIEW_CSS alone, and the page carries CSS
+     from three places: that stylesheet, the chrome written below, and the
+     inline styles React renders into the markup. 14 of the 26 drifted
+     fallbacks measured on one export lived in the markup, where nothing was
+     looking. The `:root` declarations are `--x: value`, never `var()` calls,
+     so they are untouched. */
+  const mine = mode === 'dark' ? dark : light
+  return withRealFallbacks(`<!doctype html>
 <html lang="en" data-theme="${mode}">
 <head>
 <meta charset="utf-8">
@@ -156,7 +212,7 @@ ${!paired ? '' : `.page-theme {
 .page-theme svg { inline-size: 20px; block-size: 20px; }`}
 
 /* ── The system ────────────────────────────────────────────────────────── */
-${withRealFallbacks(PREVIEW_CSS.trim(), mode === 'dark' ? dark : light)}
+${PREVIEW_CSS.trim()}
 
 /* ── Responsive ────────────────────────────────────────────────────────────
    Media queries here, container queries in the editor. Same breakpoints, same
@@ -218,5 +274,5 @@ ${!paired ? '' : `<script>
 </script>`}
 </body>
 </html>
-`
+`, mine)
 }

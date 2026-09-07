@@ -32,6 +32,8 @@
  *   manual — no machine can answer it; it stays a line in the checklist
  */
 
+import { hasThemeToggle } from '../state/schema.js'
+
 export const CHECKS = [
 
   /* ══ SOURCE ═══════════════════════════════════════════════════════════ */
@@ -713,6 +715,21 @@ export const CHECKS = [
       "      const p = n.parentElement",
       "      if (!p) return null",
       "      if (p.contains(h)) {",
+      /* READ THE DECLARATION, NEVER THE GEOMETRY. A container that PARTITIONS
+         its children does not put them on one row, and two side-by-side grid
+         areas overlap vertically exactly as two items on one line do.
+
+         Measured on one build: a rail of five nav items reported 4.59, 45.24,
+         95.07, 144.9 and 194.73px from the page title's cap band. The 49.83px
+         steps are the rail's own row pitch, and the title sat in another
+         column of the same grid. A pager 400.69px down a card reported too.
+
+         A flex ROW lays its children on one line. A grid assigns them areas
+         and a column flex stacks them, so only the first can pair. */
+      "        const ps = getComputedStyle(p)",
+      "        const rowish = (ps.display === 'flex' || ps.display === 'inline-flex')",
+      "          && !/column/.test(ps.flexDirection)",
+      "        if (!rowish) return null",
       "        let m = h",
       "        while (m && m.parentElement !== p) m = m.parentElement",
       "        return m && m !== n ? { item: n, headItem: m } : null",
@@ -1186,7 +1203,10 @@ export const CHECKS = [
        the centre of its 36px square button. */
     body: [
       "for (const el of all('button, a[href], label, [role=button]')) {",
-      "  if (textRect(el)) continue   /* it has a label; the cap band rule owns it */",
+      /* ASK WHETHER IT SHOWS WORDS, not whether it holds a direct text node.
+         See hasWords: a <span>-wrapped label made textRect return null and sent
+         eight labelled controls down this label-less branch. */
+      "  if (hasWords(el)) continue   /* it has a label; the cap band rule owns it */",
       "  const mark = el.querySelector('svg, img'); if (!mark) continue",
       "  const b = el.getBoundingClientRect(), m = mark.getBoundingClientRect()",
       "  if (!b.width || !m.width) continue",
@@ -1404,6 +1424,28 @@ export const CHECKS = [
       "  if (!clips) continue",
       "  if (/auto|scroll/.test(cs.overflowX) || /auto|scroll/.test(cs.overflowY)) continue",
       "  if (cs.textOverflow === 'ellipsis') continue",
+      /* ── COLLAPSED ON PURPOSE IS A STATE, NOT A CASUALTY ──
+         A fold clips its contents while it is shut, which is how a fold works.
+         The system's own navigation collapse does exactly that: the list stays
+         laid out and the box goes to `grid-template-rows: 0fr`.
+
+         Measured on one build: a five-item rail behind a burger reported five
+         findings, at 37.83 to 237.14px, on correct code. There is no remedy,
+         because the remedy is to open the menu.
+
+         Ask the PROPERTY rather than the class. A box collapsed to nothing on
+         one axis is shut. A box with real height that still cuts its content
+         is the fault this check exists for, and it still reports. */
+      "  const shutBox = el.getBoundingClientRect()",
+      "  if (shutBox.height <= 1 || shutBox.width <= 1) continue",
+      /* And the same for an ancestor: the fold is the collapsed box, while the
+         thing doing the clipping can be the list inside it. */
+      "  let shutAbove = false",
+      "  for (let a = el.parentElement, up = 0; a && up < 4; a = a.parentElement, up++) {",
+      "    const r = a.getBoundingClientRect()",
+      "    if (r.height <= 1 || r.width <= 1) { shutAbove = true; break }",
+      "  }",
+      "  if (shutAbove) continue",
       "  const box = el.getBoundingClientRect()",
       "  for (const kid of el.children) {",
       "    const ks = getComputedStyle(kid)",
@@ -1519,6 +1561,25 @@ export const CHECKS = [
       "  const a = lum(own), b = lum(ground)",
       "  if (a == null || b == null) continue",
       "  const ratio = (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05)",
+      /* THE FILL IS ONE OF THREE TREATMENTS THIS SYSTEM OFFERS, and demanding
+         it faults the other two. A document may mark a selection by its fill,
+         by a lightness step, or by a lightness step plus an accent bar. Where
+         the bar does the marking the fill is DELIBERATELY the ground's, so a
+         fill-only question reports correct code and offers no remedy.
+
+         Measured on one build: an active nav item read 1.00:1 against its own
+         container while carrying a 4px accent bar and brighter text. Its
+         document had chosen `lift-edge`.
+
+         So ask whether ANYTHING marks it. A bar is an inset shadow on the
+         start edge, or an absolutely placed start-edge pseudo-element, which
+         are the two mechanisms the system publishes. */
+      "  const barred = /inset/.test(cs.boxShadow || '')",
+      "    || (() => { const b = getComputedStyle(el, '::before')",
+      "         return !!b && b.content !== 'none' && (b.position === 'absolute' || b.position === 'fixed')",
+      "           && !!b.backgroundColor && b.backgroundColor !== 'rgba(0, 0, 0, 0)'",
+      "           && (parseFloat(b.left) === 0 || parseFloat(b.right) === 0) })()",
+      "  if (barred) continue",
       "  if (ratio < 1.06)",
       "    fail(name(el), 'this row is marked and its fill reads ' + ratio.toFixed(2) + ':1 against the ground behind it, so nothing shows. A selection has to be found rather than noticed once you are already looking. Step the fill off the surface, and give the mark a second channel: an edge, or a full-strength label.')",
       "}",
@@ -2162,6 +2223,29 @@ export const CHECKS = [
       "  const size = parseFloat(cs.fontSize)",
       "  const lh = parseFloat(cs.lineHeight)",
       "  if (!(size > 0) || !(lh > 0)) continue",
+      /* THE LINE-BOX TECHNIQUE IS THIS SYSTEM'S OWN RULE, AND THIS CHECK
+         FAULTED IT. A control with a stated height centres its label by setting
+         `line-height` to the CONTENT box, which is the height minus its
+         borders. So a 36px button with a 14px label legitimately carries a
+         34px leading, and no type role publishes that pair. Measured on one
+         build: eight findings, every one a button or a badge obeying "height
+         and line-height are one decision".
+
+         `line-height` also INHERITS, so a label span inside such a control
+         reports the same pair one level down. Ask the mechanism rather than the
+         element: walk up a bounded number of levels and look for a box whose
+         content height IS this leading. Ordinary text in an auto-height block
+         never matches, so the check keeps the case it was written for. */
+      "  var host = el, boxed = false",
+      "  for (var up = 0; host && up < 4; up++, host = host.parentElement) {",
+      "    var hs = getComputedStyle(host)",
+      "    if (hs.height === 'auto' && hs.blockSize === 'auto') continue",
+      "    var bt = parseFloat(hs.borderTopWidth) || 0",
+      "    var bb = parseFloat(hs.borderBottomWidth) || 0",
+      "    var content = host.getBoundingClientRect().height - bt - bb",
+      "    if (content > 0 && Math.abs(content - lh) < 1.2) { boxed = true; break }",
+      "  }",
+      "  if (boxed) continue",
       "  const sameSize = ROLES.filter(x => Math.abs(x.size - size) < 0.6)",
       "  if (!sameSize.length) continue",
       "  if (sameSize.some(x => Math.abs(x.px - lh) < 0.8)) continue",
@@ -2414,11 +2498,20 @@ export const CHECKS = [
        builder remembers. A date a person READS is not a figure they compare. */
     body: [
       "const MONTHS = /\\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\\b/i",
+      /* THE BODY FACE CAN BE A MONO FACE, AND THEN THIS COULD NEVER PASS.
+         Asked as a NAME pattern, the check faulted every date in a system whose
+         body family IS 'Space Mono'. Nine findings on one page, correct code,
+         and no remedy: the date was already in the body face and the rule was
+         telling it to move there. The question is not what the family is
+         CALLED. It is whether this run of text left the body face. */
+      "const first = f => (f || '').split(',')[0].trim().replace(/^[\"']|[\"']$/g, '').toLowerCase()",
+      "const BODY = first(tokenValue('--font-body-md-family'))",
       "for (const el of all('*')) {",
       "  if (el.children.length) continue",
       "  const t = (el.textContent || '').trim()",
       "  if (!t || t.length > 40 || !MONTHS.test(t)) continue",
       "  const fam = getComputedStyle(el).fontFamily",
+      "  if (BODY && first(fam) === BODY) continue",
       "  if (!/mono|courier|consolas/i.test(fam)) continue",
       "  fail(name(el), 'the text ' + JSON.stringify(t.slice(0, 24)) + ' carries a month name and is set in ' + fam.split(',')[0] + '. A date with a month name is read rather than compared, so it takes the body face. Only an all-figure date takes the mono one.')",
       "}",
@@ -2586,3 +2679,26 @@ export const CHECKS = [
 export const SOURCE_CHECKS = CHECKS.filter(c => c.where === 'source')
 export const RENDER_CHECKS = CHECKS.filter(c => c.where === 'render')
 export const MANUAL_CHECKS = CHECKS.filter(c => c.where === 'manual')
+
+/* ── ONE RULE LIST, EVERY CONSUMER ──
+ *
+ * A check tagged `needs` only exists when the document ships the thing it
+ * measures. The contract filtered on that and the two VERIFY files did not, so
+ * a single-theme package told the reader "do not build a theme toggle" in
+ * DESIGN.md and then FAILED their build for not having one.
+ *
+ * Found by simulation run 13, which built a compliant dashboard and could not
+ * pass: `hardcoded-theme` and `toggle-states-itself` in VERIFY.mjs, plus
+ * `the-toggle-actually-toggles` in VERIFY-BROWSER.js. The only way to clear
+ * them was to build the control the document forbids.
+ *
+ * The filter lives HERE because it had three call sites and a rule with three
+ * homes is how two of them end up disagreeing. That is what happened: I fixed
+ * the prose consumer and left both tools enforcing the old answer. */
+export function checksFor (list, state) {
+  return list.filter(c => !c.needs || CHECK_NEEDS[c.needs](state))
+}
+
+const CHECK_NEEDS = {
+  themeToggle: hasThemeToggle,
+}

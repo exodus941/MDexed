@@ -21,7 +21,7 @@
  * checklist. That is the whole point of the split: a rule cannot be worded one
  * way for the reader and coded another way for the tool.
  */
-import { SOURCE_CHECKS, RENDER_CHECKS } from './checks.js'
+import { SOURCE_CHECKS, RENDER_CHECKS, checksFor } from './checks.js'
 
 export const VERIFY_NODE = 'VERIFY.mjs'
 export const VERIFY_BROWSER = 'VERIFY-BROWSER.js'
@@ -35,7 +35,11 @@ const indent = (lines, by) => lines.map(l => ' '.repeat(by) + l).join('\n')
  */
 export function verifyNodeFile (state) {
   const rtl = !!state?.meta?.rtl
-  const blocks = SOURCE_CHECKS.map(c => [
+  /* A check the document does not ship must not be enforced. See checksFor in
+     checks.js: a single-theme package failed a compliant build for not having
+     the theme toggle its own DESIGN.md forbids. */
+  const checks = checksFor(SOURCE_CHECKS, state)
+  const blocks = checks.map(c => [
     '',
     '  /* ' + c.id + ' — ' + c.line.replace(/\x60/g, '') + ' */',
     '  run(' + JSON.stringify(c.id) + ', () => {',
@@ -189,7 +193,7 @@ if (!tokens.size) {
 ${blocks}
 
 const width = Math.max(...findings.map(f => f.check.length), 10)
-console.log('VERIFY  ' + files.length + ' files, ' + tokens.size + ' tokens, ' + ${SOURCE_CHECKS.length} + ' checks')
+console.log('VERIFY  ' + files.length + ' files, ' + tokens.size + ' tokens, ' + ${checks.length} + ' checks')
 if (!findings.length) {
   console.log('PASS')
   process.exit(0)
@@ -238,7 +242,8 @@ const bodyFor = (c, rtl) => (rtl && c.rtlBody) ? c.rtlBody : c.body
 
 export function verifyBrowserFile (state) {
   const rtl = !!state?.meta?.rtl
-  const blocks = RENDER_CHECKS.map(c => {
+  const checks = checksFor(RENDER_CHECKS, state)
+  const blocks = checks.map(c => {
     const lines = ['', '  /* ' + c.id + ' — ' + c.line.replace(/\x60/g, '') + ' */']
     if (rtl && c.rtlBody) lines.push('  /* Direction-aware: measured from the START edge, not from the left. */')
     lines.push('  await run(' + JSON.stringify(c.id) + ', async () => {', indent(bodyFor(c, rtl), 4), '  })')
@@ -299,6 +304,35 @@ function textRect (el) {
       : { left: b.left, right: b.right, top: b.top, bottom: b.bottom, rects: r.getClientRects().length }
   }
   return box
+}
+
+/* DOES THIS CONTROL SHOW ANY WORDS AT ALL, at any depth?
+ *
+ * A DIFFERENT QUESTION FROM textRect, AND SHARING THAT ONE BLINDED A CHECK.
+ * textRect must stay direct-only: the cap-band rules measure an element's OWN
+ * text, and a child's rect can start at an ornament instead of at the words.
+ *
+ * The icon-only rules ask the opposite. A button holding an svg and a
+ * <span>Export Statement</span> has no direct text node, so textRect returned
+ * null and the control fell into the label-less branch. Measured on one build:
+ * eight findings reporting a mark "with no label" 66 to 146px off centre, on
+ * five nav items and three labelled controls. That offset is just the distance
+ * from a leading mark to the middle of a wide control, which is correct.
+ *
+ * So ask what the ENGINE renders, and ignore text a screen reader alone sees:
+ * a visually hidden label is not visible words. */
+function hasWords (el) {
+  const walk = document.createTreeWalker(el, NodeFilter.SHOW_TEXT)
+  let n
+  while ((n = walk.nextNode())) {
+    if (!n.textContent.trim()) continue
+    const p = n.parentElement
+    if (!p || !visible(p)) continue
+    const r = document.createRange(); r.selectNode(n)
+    const b = r.getBoundingClientRect()
+    if (b.width > 0 && b.height > 0) return true
+  }
+  return false
 }
 
 /* The cap line and the baseline of an element's own text, from font metrics.
@@ -483,7 +517,7 @@ ${blocks}
   console.log('VERIFY  ' + innerWidth + 'x' + innerHeight
     + '  theme=' + (document.documentElement.dataset.theme || 'system')
     + '  pointer=' + (matchMedia('(pointer: coarse)').matches ? 'coarse' : 'fine')
-    + '  ' + ${RENDER_CHECKS.length} + ' checks')
+    + '  ' + ${checks.length} + ' checks')
   for (const n of notes) console.log('  - ' + n)
   if (!findings.length) { console.log('PASS'); return { pass: true, findings: [] } }
 
