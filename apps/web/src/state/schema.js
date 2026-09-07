@@ -858,7 +858,12 @@ export const createInitialState = () => ({
 
   focus: { width: 2, offset: 2, style: 'solid', role: 'ring' },
 
-  states: { disabledOpacity: 0.5, touchTarget: 44, transitionOn: ['background-color', 'border-color', 'color', 'opacity', 'transform'] },
+  /* TWO MINIMUMS, BECAUSE A FINGER AND A MOUSE ARE DIFFERENT SIZES.
+     `touchTarget` was the only one published, so nothing in the system
+     stated the pointer minimum and the layout tool hardcoded 24. A number
+     a tool holds and a document does not is a number a builder invents.
+     24 is WCAG 2.5.8's Target Size (Minimum) at AA. */
+  states: { disabledOpacity: 0.5, touchTarget: 44, pointerTarget: 24, transitionOn: ['background-color', 'border-color', 'color', 'opacity', 'transform'] },
 
   /* `custom` holds components that came from an imported file or an older
      document — names the library knows nothing about, emitted verbatim. */

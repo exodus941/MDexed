@@ -272,6 +272,10 @@ export function ShapePanel() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           <NumField label="Disabled opacity" value={state.states.disabledOpacity} min={0.2} max={0.9} step={0.05} onChange={v => setStates('disabledOpacity', v)} />
           <NumField label="Min touch target" value={state.states.touchTarget} min={24} max={60} suffix="px" onChange={v => setStates('touchTarget', v)} />
+          {/* The mouse minimum. Floored at 24, which is WCAG 2.5.8 at AA:
+              a field that can be set below its own standard is a field
+              that lets somebody fail the standard by accident. */}
+          <NumField label="Min pointer target" value={state.states.pointerTarget} min={24} max={44} suffix="px" onChange={v => setStates('pointerTarget', v)} />
         </div>
       </Collapsible>
     </div>

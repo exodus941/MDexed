@@ -1071,6 +1071,10 @@ function componentsBody(state, derived) {
       'State both gaps together, as one ratio. A title 28px from its own body and 48px from the section above it is nearly the midpoint of the two, which reads as neither. Halving the first to 14 and holding the second at 48 makes the answer obvious at a glance without moving anything else.',
       'A rule between two sections sits INSIDE that gap rather than adding to it. Give the separator half the section gap on each side, so a marked boundary and an unmarked one occupy the same height. The line then says where a boundary is and never how big it is, and a panel keeps one rhythm whether or not its sections are ruled.',
       'Watch for two sources feeding one gap. A margin on a child of a flex or grid container ADDS to that container\'s `gap` rather than replacing it. Halving a margin from 18 to 9 inside a column with a 10px gap moves the visible distance from 28 to 19, not to 14. Name both numbers and write the subtraction, or the value in the code will not be the value on the screen.',
+      '**A CARD SPACES ITS OWN CHILDREN, AND A LABEL DIRECTLY ABOVE A HEADING TAKES NOTHING.** A card is a block, so nothing between its children nothing that anything spaces, so every pair renders touching. Measured on one build: six pairs at 0.00px, and an overline read as the first line of the body text below it rather than as a label for the title. Give the card one distance between its children, at the small step. Then zero it for two pairs, because each is a GROUP that reads as one object: a caption or overline immediately above a heading, and a caption immediately below one. The label joins the title, and the distance falls below the pair, which is where the body needs it.',
+      '**ONE WRITER FOR ONE GAP. A CONTAINER PUBLISHES THE DISTANCE, OR EACH CHILD STATES ITS OWN, NEVER BOTH.** A `row-gap` and a `margin` ADD, so two writers produce a distance nobody chose, wrong by the sum of them. Measured while adding the rule above: a container publishing 4px met a margin of 12 and rendered 16, and a 24px row rendered 36. Two exceptions, and both are declarations rather than judgements. An AUTO margin is a push and not a distance, which is how an action row reaches the foot of a stretched card. A NEGATIVE margin cancels a gap, which is one mechanism deliberately undoing another.',
+      'A RULE THAT PROVIDES A DEFAULT GOES FIRST IN THE STYLESHEET. The card rule above is a default, and written at the bottom of the file it beat every component that states its own distance at the same weight, because order decides a tie. It deleted the auto margin that puts an action row on the bottom edge of a card: measured as a gap falling from 34.25px to 12px on three cards. Moving it ahead of the components fixed the whole class rather than those three, including a component nobody has written yet. Excluding the components by NAME was the alternative, and a name list finds the cases somebody already thought of and approves the rest.',
+      'Zero those two group pairs with `:where()`, never `:is()`. `:is()` takes the weight of its most specific argument, so the exemption outranked the stated distance inside a component and deleted a stat tile 4px and 2px gap. Measured on 15 tiles. `:where()` contributes nothing, so the exemption sits at the same weight as the rule it exempts and outranks nothing else.',
       'A description under a heading belongs to that heading. Keep it one small step away, not one ordinary step: measured at 12px it read as a floating one-line paragraph rather than as part of the title, and 4px binds the two into a block. Watch for two sources feeding that one distance — a row `gap` plus a `margin-top` on the paragraph is how 8 became 12. Set the row `row-gap` to zero and let every wrapping child state its own top spacing.',
       'Inside a card, the action row stands FURTHER from the body than anything else in the card, and 16px is the distance. A button pressed against the sentence that explains it reads as the last line of that sentence; at 24 it reads as a separated block rather than a card with an action in it. State one distance and use it in every card.',
       '**And in a ROW of cards, every action sits on the bottom edge.** Cards stretched to one height do not give their buttons one height: a description that wraps to two lines pushes its own button down, and the row then reads as ragged. Measured on three plan cards of equal height: one button ended 25px from its card\'s foot and the other two ended 47.3px from theirs. Put `margin-top: auto` on the action row, which takes the free space in a flex column and lands the action on the bottom wherever the text above it ends. A card sized by its own content has no free space, so the margin resolves to zero and nothing moves — the rule needs no width test and no second class.',
@@ -1235,7 +1239,12 @@ function componentsBody(state, derived) {
     bullets([
       `Focus ring: \`${f.width}px ${f.style}\` in \`${f.role}\`, offset \`${f.offset}px\`. Apply on \`:focus-visible\`, never remove it.`,
       `Disabled elements drop to \`${state.states.disabledOpacity}\` opacity and lose pointer events.`,
-      `Minimum touch target: **${state.states.touchTarget}px**.`,
+      /* THE TARGET MINIMUMS ARE STATED ONCE, under Accessibility > Targets
+         and states, which also carries the pointer rule and the `disabled`
+         versus `aria-disabled` distinction they need. A duplicate sat here
+         and the drift check caught it: one rule with two homes is how two
+         versions of it end up disagreeing. Same treatment as the
+         four-states rule below. */
       `Transition only: ${state.states.transitionOn.map(p => `\`${p}\``).join(', ')}.`,
       /* The four-states rule is stated ONCE, under Accessibility > Targets and
          states, which also carries the `disabled` versus `aria-disabled`
@@ -1367,7 +1376,8 @@ function accessibilitySection(state, derived, findings) {
 
     '**Targets and states**',
     bullets([
-      `Minimum interactive target: ${state.states?.touchTarget ?? 44}px. Controls smaller than this need clear space around them to compensate.`,
+      `Minimum interactive target: ${state.states?.touchTarget ?? 44}px on a touch pointer, ${state.states?.pointerTarget ?? 24}px on a mouse. Controls smaller than this need clear space around them to compensate.`,
+      `Grow the BOX, never the glyph, and promote the whole row rather than one control in it. A control clears the floor when its neighbours do.`,
       `Disabled controls sit at ${state.states?.disabledOpacity ?? 0.5} opacity and stay in the tab order only if they explain why they are disabled.`,
       'Every interactive element has a hover, a focus-visible, an active and a disabled appearance. Do not ship a control with only a resting state.',
       /* `disabled` versus `aria-disabled`. The rule above says a disabled

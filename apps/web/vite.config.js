@@ -248,8 +248,11 @@ export default defineConfig(({ command }) => ({
        at 950.46 with the keyboard contracts, the chart palette, the dataviz
        scales and the amount check. Then to 985 at 980.71, with the pairing
        check and the rule that a row taking a line of its own covers it. Then
-       to 990 at 985.67, with the type-role check and the per-role classes. */
-    chunkSizeWarningLimit: 1005,
+       to 990 at 985.67, with the type-role check and the per-role classes.
+       Then to 1020 at 1015.85, with the card-flow rule and the check that a
+       gap has one writer. Then to 1025 at 1022.24, with the tab rule and the
+       published pointer minimum. */
+    chunkSizeWarningLimit: 1025,
   },
 
   server: {

@@ -77,6 +77,88 @@
   border-radius: var(--cmp-card-rounded, var(--radius-lg, 8px));
   padding: var(--cmp-card-padding, var(--space-md, 16px));
   box-shadow: var(--cmp-card-box-shadow, var(--shadow-raised, none));
+  /* The distance between a card's own children. Declared HERE, ahead of
+     every layout variant, so `.row` and the `.stack` family can zero it at
+     the same weight and win on order. Re-declared on every card, so a plain
+     card nested in a `.stack` cannot inherit that zero. Read at the flow
+     rule, which is the only consumer. */
+  --card-flow: var(--space-sm, 12px);
+}
+
+/* ── A CARD'S CHILDREN OWN A DISTANCE, AND A GROUP OWNS NONE ──
+ *
+ * A card is `display: block`, so nothing between its children was anybody's
+ * responsibility. Six pairs stacked at 0.00px on one build, and the label
+ * above a heading read as the same object as the body text below it.
+ *
+ * A UNIFORM `row-gap` IS THE WRONG FIX, and it was my first answer. It
+ * separates the body from the title and it also pushes the flavour label off
+ * the title it names. Their words: the title and the flavour text are a group,
+ * and that group is one element here. Measured on the three: today 0/0, a flat
+ * 12px gap 12/12, this rule 0/12.
+ *
+ * So each child states the distance ABOVE itself, which lets a group declare
+ * none. Three pairs are one group, and they were chosen rather than guessed:
+ *
+ *   a label above a title    a caption or overline, then a heading
+ *   a byline below a title   a heading, then a caption or muted line
+ *   a delta below a value    the stat tile, already at a deliberate 2px
+ *
+ * `:where()` ON THE RESET, because `*` contributes no specificity. `> * + *`
+ * is (0,1,0) and a plain `.card > p` reset is (0,2,1), so the reset wins and
+ * the rule silently does nothing. That cost three attempts on the demo before
+ * I read the cascade instead of blaming the rule.
+ *
+ * A CARD THAT STATES ITS OWN LAYOUT KEEPS IT, AND `--card-flow` IS HOW IT
+ * SAYS SO. A gap and a margin ADD, so a card that already publishes a
+ * row-gap gets two writers for one distance. Measured over 378 cards on
+ * eleven surfaces: `.fact` went 4 to 16 and `.row` went 24 to 36.
+ *
+ * The first version excluded a LIST of classes, and the list named three of
+ * the six. Which is the tag-list fault: it found the cases I had thought of
+ * and approved the rest. So the opt-out moved BESIDE the declaration that
+ * causes it — `.row`, `.stack`, `.stack-sm`, `.stack-lg`, `.stat`, `.fact`
+ * each set `--card-flow: 0px` on the same line that makes them a layout.
+ * One edit, one place, and a seventh variant cannot be written without it.
+ *
+ * `.card` RE-DECLARES IT, so the inheritance cannot leak. A plain card nested
+ * inside a `.stack` would otherwise inherit the zero and lose its own flow.
+ * `:where()` ON THE PAIR EXEMPTIONS, NOT `:is()`. `:is()` takes the weight
+ * of its most specific argument, so the pair rule came out at (0,4,0) and
+ * outranked `.dmd .stat > .stat-value` at (0,3,0). It then deleted a stat
+ * tile’s own 4px and 2px, measured as [4,2] going to [0,0] on 15 tiles. A
+ * rule meant to REMOVE a distance I added had started removing distances
+ * somebody else chose. `:where()` is zero, so the exemption sits at the
+ * same (0,2,0) as the flow rule it exempts and beats nothing else.
+ *
+ * `check-card-flow` reads the computed value off every rendered card and
+ * fails any flex or grid card that did not zero it, so the set stays
+ * complete without anybody remembering this comment.
+ *
+ * A DEFAULT GOES FIRST IN THE FILE, AND THAT IS WHY THIS BLOCK SITS HERE.
+ * Written at the bottom, next to the rules it was drafted with, it beat every
+ * component that states its own distance at the same (0,2,0) weight — order
+ * decides a tie. It deleted `.card-actions`'s `margin-top: auto`, which is
+ * what puts an action row on a stretched card's bottom edge, measured as a
+ * third gap falling from 34.25px to 12px on three Pricing cards.
+ *
+ * Moving it ahead of the components fixed the whole CLASS, not those three:
+ * anything declared later at the same weight now wins, including a component
+ * nobody has written yet. The alternative was `:not(.card-actions)`, which
+ * would have been the tag-list fault a third time in one rule.
+ *
+ * Measured over 77 width-and-surface cells and 371 cards: 34 gaps went from
+ * 0.00 to 12, nothing doubled, nothing was lost, and the 10 height changes
+ * are grid cells stretching to match a neighbour — their own margins and
+ * their descendants' are unchanged. */
+.dmd .card > * + * { margin-block-start: var(--card-flow); }
+.dmd .card
+  > :where(.caption, .overline, .t-overline, .small) + :where(.t-h3, .t-h4, .t-h5, .t-h6, h2, h3, h4, h5, h6) {
+  margin-block-start: 0;
+}
+.dmd .card
+  > :where(.t-h3, .t-h4, .t-h5, .t-h6, h2, h3, h4, h5, h6) + :where(.caption, .small, .muted, .subtle) {
+  margin-block-start: 0;
 }
 /* TWO PUBLISHED TOKENS THAT NO RULE CONSUMED. `card-compact` and `card-roomy`
    are declared variants and they emit `--cmp-card-compact-padding` and
@@ -975,7 +1057,7 @@
 /* Text on a row shares one baseline, including a button label and the initials
    in an avatar — both of those donate a real baseline now. Things with no text
    to offer centre instead. */
-.dmd .row { display: flex; align-items: baseline; gap: var(--space-xs, 8px); }
+.dmd .row { display: flex; align-items: baseline; gap: var(--space-xs, 8px); --card-flow: 0px; }
 /* A control beside a label centres on the label's FIRST LINE.
  *
  * Three wrong answers were tried before this one, and each is worth knowing:
@@ -1239,8 +1321,8 @@
    value came from its own parent, and two separate defects came out of that.
    The subtraction now lives on the parent as a child-combinator rule, where
    the relationship is real. Nothing reads a gap it cannot see. */
-.dmd .stack { display: flex; flex-direction: column; gap: var(--space-md, 16px); }
-.dmd .stack-sm { display: flex; flex-direction: column; gap: var(--space-sm, 12px); }
+.dmd .stack { display: flex; flex-direction: column; gap: var(--space-md, 16px); --card-flow: 0px; }
+.dmd .stack-sm { display: flex; flex-direction: column; gap: var(--space-sm, 12px); --card-flow: 0px; }
 
 /* ── Inside a card ──
  *
@@ -1307,7 +1389,7 @@
  * The change belongs to the number and nothing else, so it sits closer to it
  * than the label does. Measured before: 4px above the number and 6px below it,
  * which made the change read as a third, separate line. */
-.dmd .stat { display: flex; flex-direction: column; }
+.dmd .stat { display: flex; flex-direction: column; --card-flow: 0px; }
 .dmd .stat > .stat-value { margin-top: var(--space-2xs, 4px); }
 .dmd .stat > .stat-delta { margin-top: var(--space-3xs, 2px); }
 
@@ -1341,7 +1423,7 @@
    to its own input once the leading was counted — 12 between, about 14 within —
    so the two groups read as one block. Proximity is decided by the ratio, never
    by the absolute value. */
-.dmd .stack-lg { display: flex; flex-direction: column; gap: var(--space-lg, 24px); }
+.dmd .stack-lg { display: flex; flex-direction: column; gap: var(--space-lg, 24px); --card-flow: 0px; }
 
 /* An action row that pairs up when it has to break.
  *
@@ -1386,7 +1468,7 @@
  * `2xs` inside against `lg` between is 6:1. Its own class rather than a tighter
  * shared stack, because a fact is a real thing with a name and `.stack-sm` is
  * used by forty-six other places that want 12. */
-.dmd .fact { display: flex; flex-direction: column; gap: var(--space-2xs, 4px); }
+.dmd .fact { display: flex; flex-direction: column; gap: var(--space-2xs, 4px); --card-flow: 0px; }
 
 /* ── A sidebar that folds ──
    Wide: the summary is a plain section label and the list is always open, so
@@ -1560,8 +1642,18 @@
  * `row-gap: 0` on the row, so every wrapping child states its own top spacing
  * and no two sources add up again. The byline then takes one step, and the
  * action row keeps the larger one it already declares. That is the ratio the
- * system asks for: the gap inside a group well under the gap between groups. */
-.dmd .page-head { row-gap: 0; }
+ * system asks for: the gap inside a group well under the gap between groups.
+ *
+ * WRITTEN `.dmd .page-head` THIS FIX WAS DEAD AT EVERY WIDE WIDTH. That is
+ * (0,2,0), and `.dmd .row.row-wrap` publishes its own `row-gap` at (0,3,0),
+ * so the 8px won and the byline rendered at 8 + 2 = 10 — the floating
+ * one-line paragraph this rule exists to stop. A narrow-width block carried
+ * the full-weight selector, so the fix held below that breakpoint and nowhere
+ * else, which is exactly why it read as done. `one-writer-for-one-gap` found
+ * it on its first run: 24 findings, all at widths where that block is
+ * inactive. Match the weight of the rule being overridden, and never leave a
+ * tie to file order. */
+.dmd .row.row-wrap.page-head { row-gap: 0; }
 .dmd .page-head > .page-sub {
   flex: 1 0 100%; order: 9;
   margin-top: var(--space-3xs, 2px);
@@ -1887,6 +1979,7 @@
 .dmd .table-rows-both tbody tr.is-selected > td {
   background: var(--cmp-table-row-selected-background-color, var(--c-selected));
 }
+
 /* ── A TABLE CAPTION IS A LABEL, AND A CENTRED ONE FLOATS ──
  *
  * The browser centres a `<caption>` by default, and nothing here had an
@@ -2209,6 +2302,96 @@
  * The select carries the TAB's type tokens, not the input's, so its text lands
  * where the strip's text lands. Their words: "make sure that the dropdown's
  * text has the same baseline as the text of the tab bar." */
+/* ── A TAB, WHICH HAD NO RULE AT ALL ──
+ *
+ * The component library declares one. It publishes twelve `--cmp-tab-*`
+ * tokens, and until now not a single rule consumed any of them. So a
+ * `class="tab"` button rendered as a bare `<button>`: no padding, no gap, no
+ * type, no selected mark. Three of them in the Gallery measured 20px and the
+ * labels ran together as "OpenPaidDraft".
+ *
+ * The same fault as `card-compact` and `card-roomy` further up. A declared
+ * component with no rule behind it is a specification that lies, and the
+ * Gallery is where a reader checks first.
+ *
+ * A published token that nothing reads is invisible to every check we have.
+ * The layout sweep found it as a TARGET-SIZE notice — 20px against a 24px
+ * mouse floor — which reads as "2px short" and is not what was wrong.
+ *
+ * THE HEIGHT IS DERIVED HERE, DELIBERATELY. There is no `--cmp-tab-height`,
+ * and stating one would invent a number. The padding and the type are both
+ * tokens, so the box moves with them, which is the behaviour the stated-height
+ * rule exists to protect. It computes to 38.25px, and the `.tab-select` below
+ * — the control this strip becomes when it stops fitting — measures 38.25px
+ * from the same two tokens. That parity is the whole reason the select rule
+ * was written, and it had nothing to be at parity WITH.
+ *
+ * BOTH TAB STYLES, not just the shipped one. `underline` publishes a selected
+ * box-shadow; `pill` publishes a selected fill and radius, and a hover fill.
+ * Reading only the underline's tokens would make the setting a pointer rather
+ * than a preview: the control would offer a choice the sample cannot show. */
+.dmd .tab {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--cmp-tab-gap, var(--space-2xs, 4px));
+  /* A strip is one line of destinations. A tab that shrinks is a tab whose
+     label wraps, so it holds its content width and the strip scrolls. */
+  flex: 0 0 auto;
+  padding: var(--cmp-tab-padding, var(--space-xs, 8px) var(--space-sm, 12px));
+  font-family: var(--cmp-tab-font-family, inherit);
+  font-size: var(--cmp-tab-font-size, var(--font-body-sm-size, 14px));
+  font-weight: var(--cmp-tab-font-weight, 400);
+  letter-spacing: var(--cmp-tab-tracking, normal);
+  line-height: var(--font-body-sm-leading, 1.58);
+  color: var(--cmp-tab-text-color, var(--c-text-muted, #666));
+  background: none;
+  border: 0;
+  cursor: pointer;
+  transition:
+    background-color var(--duration-normal, 250ms) var(--ease-standard, ease),
+    color var(--duration-normal, 250ms) var(--ease-standard, ease),
+    box-shadow var(--duration-normal, 250ms) var(--ease-standard, ease);
+}
+.dmd .tab .icon,
+.dmd .tab > svg {
+  width: var(--cmp-tab-icon-size, var(--icon-md, 16px));
+  height: var(--cmp-tab-icon-size, var(--icon-md, 16px));
+}
+/* Paired with the forcible class, so a specimen can show the state. */
+.dmd .tab:hover,
+.dmd .tab.is-hover {
+  color: var(--cmp-tab-hover-text-color, var(--c-text, #111));
+  background: var(--cmp-tab-hover-background-color, none);
+}
+/* `aria-selected` as well as the class. The attribute is what a real strip
+   carries and what a screen reader is told; the class is what a specimen uses
+   to show the state without being interactive. Paint is not a state. */
+.dmd .tab.is-selected,
+.dmd .tab[aria-selected="true"] {
+  color: var(--cmp-tab-selected-text-color, var(--c-text, #111));
+  box-shadow: var(--cmp-tab-selected-box-shadow, none);
+  background: var(--cmp-tab-selected-background-color, none);
+  border-radius: var(--cmp-tab-selected-rounded, 0);
+}
+.dmd .tab:disabled,
+.dmd .tab.is-disabled,
+.dmd .tab[aria-disabled="true"] {
+  color: var(--cmp-tab-disabled-text-color, var(--c-text-subtle, #999));
+  cursor: default;
+}
+/* THE UNDERLINE IS AN INSET SHADOW, AND FORCED COLORS DROPS IT OUTRIGHT. So
+   the selected tab would lose its only marker in Windows High Contrast, where
+   authored fills are disregarded too. An outline survives that mode and costs
+   no layout, and a negative offset keeps it inside the box so no column
+   moves. `Highlight` is the user's own colour for a chosen thing. */
+@media (forced-colors: active) {
+  .dmd .tab.is-selected,
+  .dmd .tab[aria-selected="true"] {
+    outline: 2px solid Highlight;
+    outline-offset: -2px;
+  }
+}
+
 .dmd .tab-select { display: none; }
 .dmd .tab-select > select {
   /* The same BOX as a tab, not the same line-height.

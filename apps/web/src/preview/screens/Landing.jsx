@@ -95,7 +95,12 @@ export default function Landing({ onInspect, casing, theme, mode, onToggleTheme 
             full width, primary first — a hero CTA is the one thing the page
             is asking for, and shrinking it to share a line with its own
             alternative is the opposite of that. */}
-        <div className="row stack-narrow" style={{ marginTop: 'var(--space-sm, 8px)' }}>
+        {/* NO MARGIN HERE. The `.stack` above publishes 16px between its
+            children, and a `margin-top` of 12 added to it for 28 — a distance
+            nobody chose, and past the 16px an action takes from the text that
+            explains it. The fallback had drifted too: it read 8px where
+            `--space-sm` ships 12. `one-writer-for-one-gap` found it. */}
+        <div className="row stack-narrow">
           <button className="btn btn-primary btn-lg" {...ins('button-lg')}>{L('Start free')}<Ico d={IconArrow} size="lg" end /></button>
           <button className="btn btn-secondary btn-lg" {...ins('button-secondary')}><Ico d={IconStar} size="lg" />{L('Book a demo')}</button>
         </div>

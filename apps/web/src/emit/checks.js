@@ -1357,17 +1357,32 @@ export const CHECKS = [
    */
 
   {
-    id: 'target-floor-on-a-finger',
+    id: 'target-floor-for-the-pointer',
     where: 'render',
-    line: 'On a coarse pointer every control clears the published target, as a whole row.',
+    line: 'Every control clears the published minimum for the pointer in use, as a whole row.',
+    /* IT USED TO SKIP ON A MOUSE ENTIRELY, so a build opened on a desktop was
+     * never measured against any minimum. The reason was sound at the time:
+     * the system published one target, 44, and applying a finger's number to
+     * a mouse reports every correct control in the product. A rule that fires
+     * everywhere says nothing about anywhere.
+     *
+     * The system publishes BOTH now, so the floor is chosen rather than
+     * skipped. `--target-min` for a finger; `--target-min-pointer` for a
+     * mouse, which is WCAG 2.5.8 Target Size (Minimum) at AA.
+     *
+     * Ask the POINTER, never the width. A narrow window on a desktop is not a
+     * finger, and reading the viewport is what made the old version of this
+     * check unusable. */
     body: [
-      "if (!matchMedia('(pointer: coarse)').matches) { note('skipped: this pointer is fine, not coarse'); return }",
-      "const floor = px(tokenValue('--target-min') || '44px')",
+      "const coarse = matchMedia('(pointer: coarse)').matches",
+      "const floor = coarse",
+      "  ? px(tokenValue('--target-min') || '44px')",
+      "  : px(tokenValue('--target-min-pointer') || '24px')",
       "for (const el of all('button, a[href], input, select, [role=button]')) {",
       "  if (clippedAway(el)) continue   /* its label is the hit area */",
       "  const r = el.getBoundingClientRect(); if (!r.width) continue",
       "  if (r.height < floor - 0.5 || r.width < floor - 0.5)",
-      "    fail(name(el), round(r.width) + 'x' + round(r.height) + ' under a ' + floor + 'px floor. Promote the whole row, never one control in it.')",
+      "    fail(name(el), round(r.width) + 'x' + round(r.height) + ' under the ' + floor + 'px floor for a ' + (coarse ? 'coarse' : 'fine') + ' pointer. Promote the whole row, never one control in it.')",
       "}",
     ],
   },
@@ -2169,6 +2184,84 @@ export const CHECKS = [
       "  const gap = b.top - a.bottom",
       "  if (gap <= 2)",
       "    fail(name(el), 'this label sits ' + round(gap) + 'px above ' + name(next) + ', which it names. A label with no gap reads as the first row of the group rather than its title. Blocks carry no gap, so state one: a flex parent with a gap fixes the whole group, a margin fixes only this instance.')",
+      "}",
+    ],
+  },
+
+  {
+    id: 'one-writer-for-one-gap',
+    where: 'render',
+    line: 'A container publishes the distance between its children, or each child states its own. Never both.',
+    /* A GAP AND A MARGIN ADD, SO TWO WRITERS FOR ONE DISTANCE IS ALWAYS WRONG
+     * BY THE SUM OF THEM.
+     *
+     * It reads as a spacing choice nobody made. Measured while giving a card a
+     * default distance between its children: a container publishing 4px met a
+     * rule adding 12 and rendered 16, and a 24px row rendered 36. In both
+     * cases the container had already answered the question.
+     *
+     * NOT A CLASS LIST. The first attempt at the rule excluded the container
+     * names it knew about and named three of six, which is the tag-list fault:
+     * it finds the cases somebody thought of and approves the rest. So this
+     * asks the two properties that decide it. Does the container publish a
+     * row-gap, and does the child state a block-start margin.
+     *
+     * AN AUTO MARGIN IS NOT A GAP. getComputedStyle reports the USED value, so
+     * a footer pushed to a card bottom edge with an auto block-start margin
+     * reads back as a pixel number and looks exactly like a second writer. It
+     * is a push rather than a distance, and it is the documented way to put an
+     * action row on a stretched card foot. Read the DECLARATION, through the
+     * inline style and the CSSOM both: a stylesheet auto leaves el.style
+     * empty. Skipping that cost three false positives at 34.25px.
+     *
+     * A NEGATIVE MARGIN IS NOT A SECOND WRITER EITHER. It cancels the gap,
+     * which is one mechanism deliberately undoing another.
+     *
+     * NOR IS A SUB-PIXEL CORRECTION. A margin below the smallest step on the
+     * spacing scale cannot be a spacing decision: nothing on the scale is
+     * that small, and a fraction of a pixel is invisible as distance. What it
+     * IS, every time, is an optical correction — a field note nudged by
+     * 0.152em to answer an asymmetric leading measured 1.82px and looked
+     * exactly like a second writer. The floor comes from the document's own
+     * smallest space token rather than a constant, so it moves with the
+     * scale. That was the only false positive in 73 findings across 77
+     * width-and-surface cells; the other 72 were real. */
+    body: [
+      "const smallestStep = (() => {",
+      "  const root = getComputedStyle(document.documentElement)",
+      "  let min = Infinity",
+      "  for (const n of ['--space-4xs', '--space-3xs', '--space-2xs', '--space-xs']) {",
+      "    const v = parseFloat(root.getPropertyValue(n)); if (v > 0 && v < min) min = v",
+      "  }",
+      "  return min === Infinity ? 2 : min",
+      "})()",
+      "const declaredAuto = el => {",
+      "  for (const prop of ['margin-block-start', 'margin-top'])",
+      "    if (el.style.getPropertyValue(prop) === 'auto') return true",
+      "  for (const sheet of document.styleSheets) {",
+      "    let rules; try { rules = sheet.cssRules } catch (e) { continue }",
+      "    for (const r of rules) {",
+      "      if (!r.selectorText || !r.style) continue",
+      "      const v = r.style.getPropertyValue('margin-block-start') || r.style.getPropertyValue('margin-top')",
+      "      if (v !== 'auto') continue",
+      "      try { if (el.matches(r.selectorText)) return true } catch (e) {}",
+      "    }",
+      "  }",
+      "  return false",
+      "}",
+      "for (const box of all('*')) {",
+      "  const cs = getComputedStyle(box)",
+      /* `normal` is the initial value, and it means no published gap. */
+      "  if (!/flex|grid/.test(cs.display)) continue",
+      "  const gap = cs.rowGap === 'normal' ? 0 : parseFloat(cs.rowGap) || 0",
+      "  if (gap <= 0) continue",
+      "  for (const kid of box.children) {",
+      "    if (kid === box.firstElementChild) continue   /* nothing above it to be spaced from */",
+      "    const m = parseFloat(getComputedStyle(kid).marginBlockStart) || 0",
+      "    if (m < smallestStep) continue   /* a correction, not a distance */",
+      "    if (declaredAuto(kid)) continue",
+      "    fail(name(kid), 'sits ' + round(gap + m) + 'px below its previous sibling, because its container publishes a ' + round(gap) + 'px row-gap AND it states a ' + round(m) + 'px margin. A gap and a margin add, so this distance is the sum of two writers rather than a value anybody chose. One of them owns it.')",
+      "  }",
       "}",
     ],
   },

@@ -111,7 +111,9 @@ export default function Gallery({ onInspect, layout }) {
             <button className="btn btn-primary" {...ins('button-md')}><Ico d={IconPlus} />Medium</button>
             <button className="btn btn-primary btn-lg" {...ins('button-lg')}><Ico d={IconPlus} size="lg" />Large</button>
           </div>
-          <p className="caption" style={{ marginTop: 4 }} {...txt('caption', 'text-muted')}>Each size carries its own icon gap — click one to change it.</p>
+          {/* The enclosing `.stack-sm` publishes 12px, so a 4px margin here
+              made 16 rather than replacing it. One writer per gap. */}
+          <p className="caption" {...txt('caption', 'text-muted')}>Each size carries its own icon gap — click one to change it.</p>
         </div>
       </Section>
 
@@ -301,12 +303,31 @@ export default function Gallery({ onInspect, layout }) {
 
       <Section txt={txt} title="Empty state and loading">
         <div className="cols-2">
-          <div className="card" style={{ textAlign: 'center', padding: 'var(--space-lg, 24px)' }} {...ins('card')}>
-            <div style={{ display: 'inline-flex', marginBottom: 'var(--space-xs, 8px)', color: 'var(--c-text-subtle, #999)' }}>
-              <Ico d={IconFolder} size="xl" />
+          {/* THIS WAS A HAND-ROLLED COPY OF A COMPONENT THAT ALREADY EXISTS.
+              It carried a plain `.card` with an inline `textAlign` and
+              `padding`, a mark built from three inline values beside the
+              `.empty-mark` the real screen uses, and an inline `marginTop: 2`
+              between the title and its explanation.
+
+              A demonstration IS the component, so a hand-rolled sample is a
+              specification that lies: a reader copying this Gallery card gets
+              none of `.empty-mark`'s derived icon size.
+
+              It was found by measuring, not by reading. Once the card owned
+              the distance between its children, the mark's inline 8px and the
+              card's 12px ADDED to 20 — an inline-level box's margin does not
+              collapse with a sibling's. So the stray showed up as the only
+              doubling left in 378 cards. `.stack` states the flow itself, and
+              the title and its explanation go inside a `.stack-sm` so they
+              read as one group. Same shape as `screens/Empty.jsx`. */}
+          <div className="card stack" style={{ alignItems: 'center', textAlign: 'center' }} {...ins('card')}>
+            <span className="empty-mark" style={{ color: 'var(--c-text-subtle, #999)' }} {...ins('avatar')}>
+              <Ico d={IconFolder} size="lg" />
+            </span>
+            <div className="stack-sm" style={{ alignItems: 'center' }}>
+              <div style={{ fontWeight: 500 }} {...txt("body-md")}>No invoices yet</div>
+              <p className="muted small" {...txt('body-sm', 'text-muted')}>Create one to get started.</p>
             </div>
-            <div style={{ fontWeight: 500 }} {...txt("body-md")}>No invoices yet</div>
-            <p className="muted small" style={{ marginTop: 2 }} {...txt('body-sm', 'text-muted')}>Create one to get started.</p>
             {/* The stated card action distance, not a typed 12px. */}
             <div className="card-actions">
               <button className="btn btn-primary btn-sm" {...ins("button-sm")}><Ico d={IconPlus} size="sm" />New invoice</button>
@@ -316,7 +337,8 @@ export default function Gallery({ onInspect, layout }) {
             {['70%', '92%', '48%'].map(w => (
               <div key={w} style={{ height: 12, width: w, borderRadius: 'var(--radius-sm, 4px)', background: 'var(--c-bg-subtle, #eee)' }} />
             ))}
-            <div className="bar" style={{ marginTop: 4 }}><span style={{ width: '38%' }} /></div>
+            {/* The `.stack-sm` above owns the 12px. A 4px margin added to it. */}
+            <div className="bar"><span style={{ width: '38%' }} /></div>
             <span className="caption" {...txt("caption", "text-muted")}>Loading skeleton and progress</span>
           </div>
         </div>

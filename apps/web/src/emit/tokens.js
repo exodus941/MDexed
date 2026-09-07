@@ -310,6 +310,10 @@ export function tailwindV4Css(state, derived) {
   for (const [k, w] of Object.entries(state.layout?.containers ?? {})) out.push(line(`--container-${k}`, `var(--container-${k})`))
   for (const [k] of Object.entries(state.layout?.fixedWidths ?? {})) out.push(line(`--width-${k}`, `var(--width-${k})`))
   out.push(line('--width-measure', 'var(--measure)'))
+  /* The two interactive minimums. `--spacing-*` is Tailwind's own namespace
+     for a length, so `min-h-target` and `min-h-target-pointer` resolve. */
+  out.push(line('--spacing-target', 'var(--target-min)'))
+  out.push(line('--spacing-target-pointer', 'var(--target-min-pointer)'))
 
   return `${stamp('tailwind.css')}
 /* Tailwind v4. Import it once, after tokens.css:
@@ -384,6 +388,7 @@ ${block('breakpoint', Object.fromEntries((state.layout?.breakpoints ?? []).map(b
 ${block('container', Object.fromEntries(Object.entries(state.layout?.containers ?? {}).map(([k, v]) => [k, `${v}px`])), '/** Content maximum per breakpoint. */')}
 ${block('width', Object.fromEntries(Object.entries(state.layout?.fixedWidths ?? {}).map(([k, v]) => [k, `${v}px`])), '/** Named fixed widths: a rail, a field. Starting points, not constraints. */')}
 ${block('measure', { text: `${state.layout?.maxMeasure ?? 68}ch` }, '/** The reading measure. Body copy never runs wider. */')}
+${block('target', { min: `${state.states?.touchTarget ?? 44}px`, pointer: `${state.states?.pointerTarget ?? 24}px` }, '/** Minimum interactive target: `min` for a finger, `pointer` for a mouse. */')}
 /** \`light\` or \`dark\`. */
 export type Mode = keyof typeof color
 
@@ -393,7 +398,7 @@ export type ColorRole = keyof typeof color.light
 /** Roles for one theme: \`theme('dark').surface\`. */
 export const theme = (mode: Mode) => color[mode]
 
-export default { color, scale, spacing, radius, typography, shadow, duration, easing, breakpoint, container, width, measure, theme }
+export default { color, scale, spacing, radius, typography, shadow, duration, easing, breakpoint, container, width, measure, target, theme }
 `
 }
 
@@ -454,6 +459,12 @@ ${(state.layout?.breakpoints ?? []).map(b => v(`bp-${b.name}`, `${b.px}px`)).joi
 ${Object.keys(state.layout?.containers ?? {}).map(k => v(`container-${k}`, `var(--container-${k})`)).join('\n')}
 ${Object.keys(state.layout?.fixedWidths ?? {}).map(k => v(`width-${k}`, `var(--width-${k})`)).join('\n')}
 ${v('measure', 'var(--measure)')}
+
+// ── Interactive minimums ──
+// A finger and a mouse are different sizes, and only the finger one used to
+// be published. 24px is WCAG 2.5.8 at AA.
+${v('target-min', 'var(--target-min)')}
+${v('target-min-pointer', 'var(--target-min-pointer)')}
 
 // ── Maps, for iterating ──
 ${map('colors', roles.map(r => [r, `var(--c-${r})`]))}
@@ -570,6 +581,14 @@ export function tokensJson(state, derived) {
       .map(([k, v]) => [k, { $type: 'dimension', $value: `${v}px` }])),
     measure: {
       text: { $type: 'dimension', $value: `${state.layout?.maxMeasure ?? 68}ch` },
+    },
+    /* TWO INTERACTIVE MINIMUMS. A finger and a mouse are different sizes, and
+       only the finger one was ever published, so the mouse minimum was a
+       number the layout tool held and no document stated. 24px is WCAG 2.5.8
+       Target Size (Minimum) at AA. */
+    target: {
+      min: { $type: 'dimension', $value: `${state.states?.touchTarget ?? 44}px` },
+      pointer: { $type: 'dimension', $value: `${state.states?.pointerTarget ?? 24}px` },
     },
   }, null, 2) + '\n'
 }

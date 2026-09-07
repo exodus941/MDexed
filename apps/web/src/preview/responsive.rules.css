@@ -582,8 +582,12 @@
      description and the actions tied and the DOM decided, which put the actions
      above the line that describes the page. The orders live in one place now,
      forty lines up. */
+  /* The `margin-top` that used to sit here moved to the WIDER step, which is
+     the same rule that gives this row its own line. This condition is inside
+     that one, so the distance arrives here too and there is one writer for
+     it. Written in both places, the narrow step was the only one anybody
+     maintained and the band above it had no distance at all. */
   .dmd .page-head > .page-actions:has(.btn:not(.icon-only)) {
-    margin-top: var(--space-sm, 12px);
     flex-wrap: wrap;
     align-items: stretch;
   }
@@ -800,6 +804,22 @@
    * own step was measured for a bar rather than for a heading. */
   .dmd .page-head > .page-actions:has(.btn:not(.icon-only)) {
     order: 4; flex: 1 0 100%; margin-left: 0; transform: none;
+    /* THE LINE AND THE DISTANCE ARE ONE DECISION, so they go in one block.
+       `flex: 1 0 100%` was set here AND in the narrow step, and the 12px was
+       set only in the narrow step. So between the two thresholds the action
+       row took a line of its own with nothing above it. The row's own
+       `row-gap` of 8px had been covering that by accident, and removing it —
+       which the byline needs, because a gap and its 2px margin were adding —
+       exposed a 280px band where the byline touched the actions at 0.00px.
+       Measured on Index at 640 and 768.
+
+       Declared here rather than in the narrow block because this condition is
+       the wider of the two and contains it, so one rule serves both and there
+       is one writer. Above this threshold the rule does not apply at all,
+       which is correct: the actions rejoin the title's line there and take
+       their cap-band transform instead, and a margin would join the flex line
+       and grow it. */
+    margin-top: var(--space-sm, 12px);
   }
   /* `align-items: stretch`, because `.row` declares BASELINE and a column
      flex box reads that as a cross-axis instruction: every pair shrank to its

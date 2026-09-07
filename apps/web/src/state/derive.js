@@ -375,6 +375,10 @@ export function buildCssVars(d, mode = 'light', { darkAliases = false } = {}) {
      44 — the demonstration contradicting its own document, in the one place a
      reader checks first. */
   if (d.states?.touchTarget != null) vars['--target-min'] = `${d.states.touchTarget}px`
+  /* The mouse minimum, published for the same reason as the finger one: a
+     control floored on a number nobody wrote down is a control whose size
+     is an accident. */
+  if (d.states?.pointerTarget != null) vars['--target-min-pointer'] = `${d.states.pointerTarget}px`
   for (const [name, px] of Object.entries(d.icons?.sizes ?? {})) vars[`--icon-${name}`] = `${px}px`
   /* The stroke is a PAINTED WEIGHT in device pixels, because the stylesheet sets
      `vector-effect: non-scaling-stroke`. Emitted unitless, which is what
