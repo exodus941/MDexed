@@ -12,6 +12,7 @@ import { SPEC_COMPONENT_PROPS, collectComponents } from './yaml.js'
 import { LAYOUT_COMPONENTS, layoutRows, layoutSentences } from '../state/componentLayout.js'
 import { audit, REQUIREMENTS as A11Y_REQUIREMENTS } from '../a11y/audit.js'
 import { KEYBOARD_CONTRACTS, INTERACTIVE_CONTRACTS } from '../state/keyboard.js'
+import { COMPONENT_LIBRARY, classFor } from '../state/components.js'
 import { NEIGHBOUR_FLOOR } from '../color/dataviz.js'
 import { parseColor, toOklchObj } from '../color/convert.js'
 import { purposeOf } from '../color/modes.js'
@@ -773,6 +774,31 @@ function shapesBody(state, derived) {
    already in the YAML above, and repeating it would double the file for no
    gain. Icons, focus and state conventions ride along in this section because
    they are component-level concerns with no schema slot of their own. */
+/* ── THE SPEC NAME BESIDE THE SELECTOR ──
+ *
+ * Built from the library rather than typed out, so a new variant cannot appear
+ * in the spec table and be missing from this one. Every row was verified
+ * against the stylesheet when the bridge was written, and the test suite
+ * asserts that every declared name still resolves to something. */
+function classBridgeTable () {
+  const rows = []
+  const seen = new Set()
+  const tick = String.fromCharCode(96)
+  const add = name => {
+    if (seen.has(name)) return
+    seen.add(name)
+    const cls = classFor(name)
+    rows.push([tick + name + tick, cls ?? '**not published**'])
+  }
+  for (const c of COMPONENT_LIBRARY) {
+    add(c.name)
+    for (const v of Object.keys(c.variants ?? {})) add(`${c.name}-${v}`)
+    for (const z of Object.keys(c.sizes ?? {})) add(`${c.name}-${z}`)
+    for (const st of Object.keys(c.states ?? {})) add(`${c.name}-${st}`)
+  }
+  return table(['Spec name', 'Write this'], rows)
+}
+
 function componentsBody(state, derived) {
   const tabStyle = state.components?.tabStyle ?? 'underline'
   const proseOnly = []
@@ -1151,7 +1177,16 @@ function componentsBody(state, derived) {
     bullets([
       'Variants and states are flattened into the component name: `button-primary`, `button-primary-hover`, `button-sm`.',
       'A state entry lists only what changes from its base — apply it on top, do not treat it as a complete definition.',
+      /* A DOCUMENT THAT NAMES A COMPONENT MUST NAME THE CLASS. The names in
+         this section are SPEC names, and the Gallery writes different ones:
+         `button-primary` is `.btn.btn-primary`. `btn-` appeared zero times in
+         the whole document, so a reader flattening the name as instructed got
+         an unstyled element and no error. */
+      '**The names below are SPEC names, not class names.** The table that follows says what to write. Do not derive a class from a spec name: `button-primary` is `.btn.btn-primary`, and `table-header` is not a class at all.',
     ]),
+
+    'Every name this section uses, and the selector that carries it:',
+    classBridgeTable(),
 
     ...alignment,
     ...targets,

@@ -697,3 +697,82 @@ export function expandComponents(cfg = {}) {
 
   return out.filter(c => c.properties.length)
 }
+
+/* ── THE BRIDGE FROM A SPEC NAME TO THE CLASS YOU ACTUALLY WRITE ──
+ *
+ * DESIGN.md names every component `button-primary`, `table-header`,
+ * `input-invalid`. The stylesheet defines `.btn-primary`, and `btn-` appeared
+ * ZERO times in 24,507 words. Nothing joined the two, so a reader obeying
+ * "variants and states are flattened into the component name" wrote
+ * `class="button-primary"` and got an unstyled element. Silently, which is the
+ * exact fault the package's own hard rules warn about, with the invented name
+ * coming from the document.
+ *
+ * Found by simulation run 13. Every row below was verified against the
+ * stylesheet rather than guessed: 52 declared names, checked one at a time.
+ *
+ * THE ROWS THAT ARE NOT A CLASS ARE THE POINT. `table-header` is `thead th`,
+ * an element selector. `input-focus` is a pseudo-class. `button-md` is the
+ * unmodified base, because there is no `.btn-md`. A reader who is not told
+ * these invents `.table-header` and gets nothing, which is what happened.
+ */
+export const CLASS_BRIDGE = {
+  /* One entry per shape, keyed by the spec name the document prints. */
+  'button': '`.btn`',
+  'button-md': '`.btn` — the plain class IS the md size; there is no `.btn-md`',
+  'button-sm': '`.btn.btn-sm`',
+  'button-lg': '`.btn.btn-lg`',
+  'button-hover': '`.btn.is-hover`, or the real `:hover`',
+  'button-active': '`.btn.is-active`, or the real `:active`',
+  'button-disabled': '`.btn.is-disabled`, or the `disabled` attribute',
+  'input': '`.input`',
+  'input-focus': '`.input:focus` — a pseudo-class, not a class. `.is-active` only for a sample',
+  'input-invalid': '`.input.is-invalid`',
+  'input-disabled': '`.input.is-disabled`, or the `disabled` attribute',
+  'textarea': '`<textarea class="input">` — the same class as an input',
+  'select': '`<select class="input">`, or `.btn.select-trigger` for a custom one',
+  'checkbox': '`.checkbox` beside a real `<input type="checkbox" class="checkbox-input">`',
+  'checkbox-checked': '`.checkbox.is-on`',
+  'checkbox-indeterminate': '`.checkbox.is-on` — the same fill; the MARK separates them',
+  'switch': '`.switch` beside a real `<input class="switch-input">`',
+  'switch-checked': '`.switch.is-on`',
+  'card': '`.card`',
+  'card-compact': '`.card.card-compact`',
+  'card-roomy': '`.card.card-roomy`',
+  'card-flat': '`.card.card-flat`',
+  'card-overlay': '`.card.card-overlay`',
+  'modal': '`.modal`',
+  'badge': '`.badge`',
+  'alert': '`.alert`',
+  'alert-info': '`.alert` — the base IS info; there is no `.alert-info`',
+  'tooltip': '`.tooltip`',
+  'table': '`.table`',
+  'table-header': '`.table thead th` — an element selector, not a class',
+  'table-cell': '`.table td` — an element selector, not a class',
+  'table-hover': '`.table tbody tr.is-hover`, or the real `:hover`',
+  'table-selected': '`.table tbody tr.is-selected`',
+  'nav-item': '`.nav-item`',
+  'nav-item-hover': '`.nav-item.is-hover`, or the real `:hover`',
+  'nav-item-selected': '`.nav-item.is-selected`, plus `aria-current="page"`',
+  'tab': '`.tab`',
+  'nav-burger': '`.nav-burger`, inside a `<summary class="nav-summary">`',
+  'avatar': '`.avatar`',
+}
+
+/* Variants follow one rule, so they need no row each: the base class plus the
+   variant name, on the base's OWN prefix. `button-ghost` is `.btn.btn-ghost`,
+   `badge-success` is `.badge.badge-success`. */
+const VARIANT_PREFIX = { button: 'btn' }
+
+/** The class to write for a spec name, or null where nothing is published. */
+export function classFor(specName) {
+  if (CLASS_BRIDGE[specName]) return CLASS_BRIDGE[specName]
+  for (const c of COMPONENT_LIBRARY) {
+    for (const v of Object.keys(c.variants ?? {})) {
+      if (specName !== `${c.name}-${v}`) continue
+      const p = VARIANT_PREFIX[c.name] ?? c.name
+      return `\`.${p}.${p}-${v}\``
+    }
+  }
+  return null
+}

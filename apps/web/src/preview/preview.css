@@ -78,6 +78,14 @@
   padding: var(--cmp-card-padding, var(--space-md, 16px));
   box-shadow: var(--cmp-card-box-shadow, var(--shadow-raised, none));
 }
+/* TWO PUBLISHED TOKENS THAT NO RULE CONSUMED. `card-compact` and `card-roomy`
+   are declared variants and they emit `--cmp-card-compact-padding` and
+   `--cmp-card-roomy-padding`, and nothing read either one. So a build writing
+   `class="card card-compact"` got a plain card, silently, which is the
+   invented-class fault with the invention coming from the document.
+   Found by auditing all 52 declared names against the stylesheet. */
+.dmd .card-compact { padding: var(--cmp-card-compact-padding); }
+.dmd .card-roomy   { padding: var(--cmp-card-roomy-padding); }
 .dmd .card-flat { box-shadow: var(--cmp-card-flat-box-shadow, none); }
 .dmd .card-overlay {
   box-shadow: var(--cmp-card-overlay-box-shadow, var(--shadow-overlay, none));

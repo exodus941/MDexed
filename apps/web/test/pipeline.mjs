@@ -12,7 +12,7 @@ import { derive, buildCssVars, Z_LAYERS } from '../src/state/derive.js'
 import { migrate } from '../src/state/migrate.js'
 import { isOnTypeGrid, isOnSpaceGrid } from '../src/state/grid.js'
 import { applyPreset, PRESETS } from '../src/state/presets.js'
-import { TAB_STYLES } from '../src/state/components.js'
+import { TAB_STYLES, COMPONENT_LIBRARY, classFor } from '../src/state/components.js'
 import { audit, chooseFix } from '../src/a11y/audit.js'
 import { toOklchObj, parseColor as parseColorFor } from '../src/color/convert.js'
 import { check } from '../src/color/contrast.js'
@@ -822,6 +822,42 @@ line('\n- prompt construction -')
     assert(exampleFilename(mode, 'dashboard') === `${EXAMPLE_PREFIX}-${mode}-dashboard.html`,
       `the ${mode} sample name is flat and self-describing (${exampleFilename(mode, 'dashboard')})`)
   }
+}
+
+/* ── EVERY SPEC NAME RESOLVES TO SOMETHING YOU CAN WRITE ──
+ *
+ * DESIGN.md names components `button-primary`; the stylesheet defines
+ * `.btn-primary`; and `btn-` appeared ZERO times in 24,507 words. A reader
+ * obeying the document's own "flatten the name" instruction wrote
+ * `class="button-primary"` and got an unstyled element, silently.
+ *
+ * Simulation run 13 found it. The bridge closes it, and this keeps the bridge
+ * level with the library: a variant added to COMPONENT_LIBRARY and not to the
+ * bridge fails here rather than shipping as a name that paints nothing. */
+{
+  const names = []
+  for (const c of COMPONENT_LIBRARY) {
+    names.push(c.name)
+    for (const v of Object.keys(c.variants ?? {})) names.push(`${c.name}-${v}`)
+    for (const z of Object.keys(c.sizes ?? {})) names.push(`${c.name}-${z}`)
+    for (const st of Object.keys(c.states ?? {})) names.push(`${c.name}-${st}`)
+  }
+  const unresolved = names.filter(n => !classFor(n))
+  assert(names.length > 40, `the library declares enough names to be worth checking (${names.length})`)
+  assert(!unresolved.length,
+    `every declared component name resolves to a selector (${unresolved.join(', ') || 'all ' + names.length}）`.replace('）', ')'))
+
+  /* AND THE DOCUMENT CARRIES IT, or the bridge is a module nobody reads. */
+  const s = createInitialState()
+  const doc = generateFile(s, derive(s)).text
+  assert(/\| Spec name \| Write this \|/.test(doc), 'DESIGN.md prints the bridge table')
+  assert(doc.includes('.btn.btn-primary'), 'the document names the class a reader must write')
+  assert(/The names below are SPEC names/.test(doc), 'and warns that its own names are not classes')
+
+  /* THE ROWS THAT ARE NOT A CLASS ARE THE POINT. A reader not told that
+     `table-header` is an element selector invents `.table-header`. */
+  assert(/element selector, not a class/.test(doc),
+    'the bridge says which names are not classes at all')
 }
 
 /* ── A SINGLE-THEME PACKAGE SHIPS NOTHING FROM THE OTHER THEME ──
