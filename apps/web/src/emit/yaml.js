@@ -5,9 +5,9 @@
 
    The allow-lists below are the whole spec surface. Anything outside them is
    deliberately not emitted here; it goes into the markdown body instead. */
-import { hasDark } from '../state/schema.js'
+import { hasDark, themeOf } from '../state/schema.js'
 
-export const SPEC_TOP_LEVEL = ['version', 'name', 'description', 'omitted', 'colors', 'typography', 'rounded', 'spacing', 'components']
+export const SPEC_TOP_LEVEL = ['version', 'name', 'description', 'theme', 'omitted', 'colors', 'typography', 'rounded', 'spacing', 'components']
 export const SPEC_COMPONENT_PROPS = ['backgroundColor', 'textColor', 'typography', 'rounded', 'padding', 'size', 'height', 'width']
 export const SPEC_TYPOGRAPHY_PROPS = ['fontFamily', 'fontSize', 'fontWeight', 'lineHeight', 'letterSpacing', 'fontFeature', 'fontVariation']
 
@@ -85,6 +85,18 @@ export function emitFrontmatter(state, derived, { omitted = [] } = {}) {
   L.push(`name: ${q(meta.name || 'Untitled Design System')}`)
   if (meta.description) L.push(`description: ${q(meta.description)}`)
 
+  /* ── THE THEME WAS NEVER IN THE FILE, SO IT COULD NOT SURVIVE A ROUND TRIP ──
+   *
+   * `parse.js` INFERRED it, from whether any dark role override existed. A
+   * dark-only document emits its `dark-*` roles, so the inference always
+   * answered `both`. Measured: a dark-only file exported and re-imported came
+   * back saying "Build a theme toggle into the page", where the original said
+   * "This system ships one theme. Do not build a theme toggle."
+   *
+   * The most consequential field in the document, absent from the document.
+   * Found by round-tripping during simulation run 13. */
+  L.push(`theme: ${q(themeOf(state))}`)
+
   if (omitted.length) {
     L.push('omitted:')
     for (const o of omitted) L.push(`  - ${q(o)}`)
@@ -92,6 +104,25 @@ export function emitFrontmatter(state, derived, { omitted = [] } = {}) {
 
   const colors = collectColors(state, derived)
   if (colors.length) {
+    /* ── SAY WHAT THIS BLOCK IS FOR, BECAUSE IT LOOKS LIKE A PALETTE ──
+     *
+     * Simulation run 13 read it as one, and reasonably: it is the first thing
+     * in the file, it is 428 lines long, and its unprefixed roles carry LIGHT
+     * hexes even when the document ships dark only. A reader taking `bg` from
+     * here builds the theme the same document forbids inventing.
+     *
+     * It cannot simply carry the shipped theme instead. `parse.js` reads an
+     * unprefixed role back as a LIGHT override, so emitting dark values here
+     * would invert the palette on the next import. The emitter and the parser
+     * have to agree, and this shape is what round-trips.
+     *
+     * So the block names its own job. Two lines, and the contradiction is a
+     * statement about re-import rather than a palette that disagrees with
+     * tokens.css. */
+    L.push('# This block exists so this file can be re-imported. It is not the')
+    L.push('# palette to build from: use tokens.css, and never a literal colour.')
+    L.push('# Unprefixed roles are the LIGHT set whatever theme ships, because')
+    L.push('# that is the shape the importer reads back.')
     L.push('colors:')
     let group = null
     for (const c of colors) {
