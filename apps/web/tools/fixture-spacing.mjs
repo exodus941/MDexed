@@ -17,6 +17,7 @@
  *   ok-rule   / bad-rule       a section rule centred in its gap, or not
  *   ok-strip  / bad-wrap       a tab strip on one line, or folded onto two
  *                / bad-scroll  and one that declares overflow-x: auto
+ *   ok-gap    / bad-gap-axes   a wrapped run of buttons, one gap or two
  *
  * Run:  node tools/fixture-spacing.mjs
  * Then: http://localhost:5173/fixtures/spacing.html
@@ -96,6 +97,15 @@ const strip = (id, style) => {
     + tabs + '</nav></div>'
 }
 
+/* ── A wrapped run of buttons: one gap in both axes, or two ── */
+const buttonRun = (id, colGap, rowGap) => {
+  const b = t => '<button style="flex:1 1 0;min-width:120px;white-space:nowrap">' + t + '</button>'
+  return '<div class="card" style="width:300px">'
+    + '<div id="' + id + '" style="display:flex;flex-wrap:wrap;column-gap:' + colGap + 'px;row-gap:' + rowGap + 'px">'
+    + b('Export') + b('New Invoice') + b('Send') + b('Archive')
+    + '</div></div>'
+}
+
 const html = [
   '<!doctype html>',
   '<html lang="en" data-theme="light">',
@@ -123,6 +133,8 @@ const html = [
   block('SILENT — a tab strip on one line', strip('ok-strip', 'flex-wrap:nowrap;overflow:hidden')),
   block('FIRES — a tab strip folded onto two rows', strip('bad-wrap', 'flex-wrap:wrap')),
   block('FIRES — a tab strip that declares a scroller', strip('bad-scroll', 'flex-wrap:nowrap;overflow-x:auto')),
+  block('SILENT — a wrapped run of buttons with one gap in both axes', buttonRun('ok-gap', 8, 8)),
+  block('FIRES — the same run 8px across and 24px down', buttonRun('bad-gap-axes', 8, 24)),
   '</body>',
   '</html>',
 ].join('\n')

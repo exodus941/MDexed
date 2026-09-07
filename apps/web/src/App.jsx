@@ -737,6 +737,28 @@ function ProjectMenu ({ items, onAction, projectId }) {
         title="Project — new, load, save" aria-expanded={open}
         style={{ padding: BTN.lg, gap: 6, color: open ? 'var(--accent)' : 'var(--muted)' }}>
         <Folder /><span className="lbl">Project</span>
+        {/* ── A CHEVRON, BECAUSE NOTHING ELSE SAID THIS OPENS ──
+
+            Their instruction: a hamburger or a chevron, or it can appear
+            confusing. The chevron, and the comment on the UI button beside
+            this one says why: the Project menu wore that same hamburger, and
+            with both labels hidden at a narrow width there was no telling
+            them apart without opening one. A burger here would also sit
+            beside the folder, so one job would carry two marks.
+
+            14px, which is the folder on this same button and the published
+            mark size for every button size. Drawn at 10 it matched a picker
+            in a panel; at 12 it matched the menus beside it and still put
+            TWO marks on one control at two sizes, which is the drift the
+            size rule exists to stop. One control, one mark size.
+            `var(--muted)`, centred on its own line. `aria-expanded` was
+            already here and nothing on screen agreed with it, so it turns. */}
+        <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}
+          aria-hidden="true" style={{
+            color: 'var(--muted)', alignSelf: 'center', flexShrink: 0,
+            transform: open ? 'rotate(180deg)' : 'none',
+            transition: 'transform var(--t) var(--ease)',
+          }}><polyline points="6 9 12 15 18 9" /></svg>
       </button>
       {open && (
         <div ref={boxRef} className="anim-pop" style={{

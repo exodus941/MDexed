@@ -328,17 +328,28 @@
    * the eye ends on the right. Left to fall out of the arithmetic, the odd
    * button lands last and alone, which is the stranded item the pairing exists
    * to remove. CSS cannot count importance, so the markup says which. */
-  /* ── THE GAP BETWEEN PAIRS BEATS THE GAP INSIDE ONE, OR THERE ARE NO PAIRS ──
+  /* ── ONE GAP IN BOTH AXES, BECAUSE IT IS ONE GROUP OF BUTTONS ──
    *
-   * Both were `xs`, 8px. 1:1, so a reader cannot tell which two buttons belong
-   * together, and the whole pairing rule stops meaning anything. Measured on
-   * Dashboard and Index, and it is the worked example the proximity rule in
-   * core-rules is written around.
+   * Their instruction, 8 September 2026, with three screenshots of this row:
+   * the vertical padding equals the horizontal padding between the buttons,
+   * because they are all part of the same group of buttons.
    *
-   * `lg` between pairs against `xs` inside one is 3:1. Only in this block: the
-   * pairs dissolve to `display: contents` above this threshold, and a 24px gap
-   * would then sit between every button in a flat row. */
-  .dmd .action-pairs { flex-direction: column; row-gap: var(--space-lg, 24px); }
+   * THIS REVERSES WHAT WAS HERE, and the old argument is kept because it was
+   * right about everything except the answer. It read: the gap between pairs
+   * beats the gap inside one, or there are no pairs. Both were `xs`, 1:1, so
+   * a reader cannot tell which two buttons belong together. It set `lg`
+   * against `xs` for 3:1.
+   *
+   * WHAT IT MISSED IS WHAT THE GROUP IS. Proximity separates two groups from
+   * each other, and these are not two groups. They are one run of buttons
+   * that ran out of width, so a pair is a LINE rather than a unit anybody
+   * reads. At 3:1 the two lines read as two separate action rows, which is a
+   * relationship nobody intended.
+   *
+   * Measured before: five instances across Dashboard, Record and Index, all
+   * 8px across and 24px down. The pairs still dissolve to `display: contents`
+   * above this threshold, where one flat row takes the same 8px. */
+  .dmd .action-pairs { flex-direction: column; row-gap: var(--space-xs, 8px); }
   .dmd .action-pairs > .pair { display: flex; flex-wrap: wrap; gap: var(--space-xs, 8px); }
   .dmd .action-pairs > .pair > .btn { flex: 1 1 0; min-width: min-content; }
   /* The lead pair carries the one button that gets its own line, and it goes

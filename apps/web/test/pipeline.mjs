@@ -3476,6 +3476,25 @@ line('\n- depth intensity -')
       'a column whose values differ in width, where agreeing edges mean something really aligns them'],
     ['an-amount-lines-up-on-its-end-edge', 'endwise',
       'a column of equal-width amounts that declares its end alignment, and so is right for a reason'],
+    /* ── A LINE BREAK IS NOT A GROUP BOUNDARY ──
+     *
+     * This system put `lg` between the pairs of a broken action row and `xs`
+     * inside one, for 3:1, on the proximity argument. Their correction,
+     * 8 September 2026, looking at the rendered row: the vertical gap equals
+     * the horizontal one, because they are all part of the same group of
+     * buttons. A pair here is a LINE rather than a unit anybody reads.
+     *
+     * Measured before: five instances across Dashboard, Record and Index, all
+     * 8px across and 24px down. After: 8 and 8, on every one.
+     *
+     * Proven on the fixture: `ok-gap` at 8 and 8 wraps to two lines and is
+     * silent, `bad-gap-axes` at 8 and 24 wraps to two lines and fires once. */
+    ['a-group-of-buttons-keeps-one-gap', 'bands.length < 2',
+      'a run on ONE line, whose row gap is declared and never painted'],
+    ['a-group-of-buttons-keeps-one-gap', 'role=tablist',
+      'a nav, whose items are destinations rather than a group of buttons, and whose gutter is a step of its own by another rule'],
+    ['a-group-of-buttons-keeps-one-gap', 'kids.every(k => k.matches(CONTROL)',
+      'a layout that happens to hold a control, rather than a run of buttons'],
     /* ── THE FIVE SPACING CHECKS, PROVEN IN A BROWSER ──
      *
      * Two fixtures. All twelve of this system's preview surfaces are the

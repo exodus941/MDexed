@@ -716,6 +716,22 @@ function layoutBody(state, derived) {
        * with wrap on: 49/49 with both short and 39/60 with one long, both on
        * one line. */
       '**AND THE PAIR WRAPS, WHICH IS THE ONLY WAY IT REACHES A SECOND LINE.** A flex container does not wrap by default, so a pair holding two labels that are each too long for half the row overflows instead of stacking. `white-space: nowrap` on a button means neither one can shrink below its own label, so nothing else can give. Put `flex-wrap: wrap` on the pair. Measured at a 320px viewport: without it the pair came out 341px inside a 280px row and pushed the page 42px sideways, with the primary cut off at the screen edge. With it the pair is 280px over two lines at 280 and 280, and the page does not scroll. It changes nothing at a width where the two fit.',
+      /* ── A LINE BREAK IS NOT A GROUP BOUNDARY ──
+       *
+       * This block used to put `lg` between the pairs and `xs` inside one,
+       * for 3:1, on the proximity argument: at 1:1 a reader cannot tell
+       * which two buttons belong together.
+       *
+       * Their correction, 8 September 2026, with three screenshots of the
+       * rendered row: the vertical gap equals the horizontal one, because
+       * they are all part of the same group of buttons.
+       *
+       * The old argument was right about everything except the answer. A
+       * proximity ratio needs a real GROUP on each side of it, and a pair
+       * here is a LINE rather than a unit anybody reads. At 3:1 the two
+       * lines read as two separate action rows. Measured before the change:
+       * five instances across three surfaces, all 8px across and 24 down. */
+      '**ONE GAP IN BOTH AXES, BECAUSE IT IS ONE GROUP OF BUTTONS.** The distance between the lines equals the distance between two buttons on a line. A wrapped action row is one run of buttons that ran out of width, so a line is not a group and a line break is not a group boundary. Give the pairs a larger gap than the buttons inside them and the two lines read as two separate action rows, which is a relationship nobody intended. This is the one place a proximity ratio does NOT apply, and the reason is that there is only one group.',
       '**Dissolve the pairs at any width where the row fits on one line.** `display: contents` on each pair promotes every button into the single row, at natural widths. The pairing is what a row does when it breaks, not a permanent structure.',
       '**An auto margin does not create space; it takes what the line already has.** A button held against the END edge by `margin-inline-start: auto` needs free space on its own line to consume. Put the buttons inside a box that shrink-wraps them and there is none, so the margin resolves to zero while the bar still has room — measured at 0px against 618.6px of empty bar. Nothing reports it: the margin is declared, computed style agrees it is zero, and the button simply sits in the wrong place. Give that box `flex: 1` so the slack falls inside it.',
       '**Where two or more actions carry equal top importance, each takes its own full-width line.** Ranking is what packs a line; without a ranking there is nothing to pack by.',

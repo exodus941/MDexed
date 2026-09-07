@@ -2944,6 +2944,68 @@ export const CHECKS = [
   },
 
   {
+    id: 'a-group-of-buttons-keeps-one-gap',
+    where: 'render',
+    line: 'A wrapped run of buttons keeps one gap in both axes. A line break is not a group boundary.',
+    /* ── A PROXIMITY RATIO NEEDS A REAL GROUP ON EACH SIDE OF IT ──
+     *
+     * This system put the `lg` step between the pairs of a broken action row
+     * and the `xs` step inside one, for 3:1, on the proximity argument: at 1:1
+     * a reader cannot tell which two buttons belong together.
+     *
+     * Their correction, 8 September 2026, looking at the rendered row: the
+     * vertical gap equals the horizontal one, because they are all part of the
+     * same group of buttons.
+     *
+     * The old argument was right about everything except the answer. A pair
+     * here is a LINE rather than a unit anybody reads, so a line break is not
+     * a group boundary and there is only one group. At 3:1 the two lines read
+     * as two separate action rows. Measured before the change: five instances
+     * across three surfaces, all 8px across and 24px down.
+     *
+     * READ THE PAINT, NOT A CLASS. A run of buttons is a container every one
+     * of whose children is a control or wraps one. That covers the pair
+     * wrapper this system builds and a flat row of buttons equally.
+     *
+     * FOUR GUARDS, and each is a shape this is not about. A container holding
+     * one line has no vertical gap anybody sees. A container with no gap in
+     * one axis has published nothing to compare. A NAV is a run of
+     * destinations rather than a group of buttons, and its own rule gives it a
+     * gutter of its own. And a container holding something that is not a
+     * control is a layout rather than a group.
+     */
+    body: [
+      "for (const row of all('*')) {",
+      "  const cs = getComputedStyle(row)",
+      "  if (!/flex|grid/.test(cs.display)) continue",
+      "  /* A NAV IS NOT A GROUP OF BUTTONS. Its items are destinations, and the",
+      "     gutter between two strips is a step of its own by another rule. */",
+      "  if (row.matches('nav, [role=tablist], [role=menubar]') || row.closest('nav')) continue",
+      "  const kids = Array.prototype.filter.call(row.children, el => {",
+      "    const r = el.getBoundingClientRect()",
+      "    return r.width > 0 && r.height > 0",
+      "  })",
+      "  if (kids.length < 2) continue",
+      "  /* EVERY child is a control or wraps one, so this is a run of buttons",
+      "     rather than a layout that happens to hold some. */",
+      "  if (!kids.every(k => k.matches(CONTROL) || k.querySelector(CONTROL))) continue",
+      "  const cg = px(cs.columnGap), rg = px(cs.rowGap)",
+      "  if (!(cg > 0) || !(rg > 0)) continue",
+      "  if (Math.abs(cg - rg) < 0.5) continue",
+      "  /* ONE LINE HAS NO VERTICAL GAP ANYBODY SEES. The row gap is declared",
+      "     and never painted, so it is a value waiting rather than a fault. */",
+      "  const bands = []",
+      "  for (const k of kids) {",
+      "    const r = k.getBoundingClientRect()",
+      "    if (!bands.some(b => r.top < b.bottom && b.top < r.bottom)) bands.push(r)",
+      "  }",
+      "  if (bands.length < 2) continue",
+      "  fail(name(row), 'this run of buttons is ' + cg + 'px apart across and ' + rg + 'px apart down, so its ' + bands.length + ' lines read as separate action rows. A wrapped run is one group that ran out of width: a line is not a group, and a line break is not a group boundary. Give it one gap in both axes. A proximity ratio needs a real group on each side of it, and here there is only one.')",
+      "}",
+    ],
+  },
+
+  {
     id: 'proximity-is-a-ratio',
     where: 'render',
     line: 'State both gaps together: the gap inside a group and the gap between groups. Proximity is a ratio, and a gutter between columns is a step of its own, never the row default. Three to one, or the two read as one thing.',
