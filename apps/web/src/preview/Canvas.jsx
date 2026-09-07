@@ -23,6 +23,7 @@ import Shell from './screens/Shell.jsx'
 import Record from './screens/Record.jsx'
 import Index from './screens/Index.jsx'
 import Empty from './screens/Empty.jsx'
+import Charts from './screens/Charts.jsx'
 import Pricing from './screens/Pricing.jsx'
 import Gallery from './Gallery.jsx'
 import { viewport } from '../ui/zoom.js'
@@ -58,6 +59,11 @@ export const SURFACES = [
   { id: 'form',      label: 'Form',      Component: Form },
   { id: 'settings',  label: 'Settings',  Component: Settings },
   { id: 'empty',     label: 'Empty',     Component: Empty },
+  /* Charts sits here because two of the three published scales had no
+     consumer anywhere. `seq` and `div` shipped for months and nothing
+     painted them, which is the same as not shipping them. It also carries
+     the only rendered instance of an axis, a gridline and a zero line. */
+  { id: 'charts',    label: 'Charts',    Component: Charts },
   { id: 'dialog',    label: 'Overlays',  Component: Dialog },
   { id: 'gallery',   label: 'Gallery',   Component: Gallery },
 ]

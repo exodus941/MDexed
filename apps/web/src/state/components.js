@@ -9,6 +9,177 @@
    are included deliberately. They can't go in the frontmatter, but they do
    reach the file as prose, and an agent building a button needs them. */
 
+/* THE FRAME IS TWO SETS, NOT ONE, BECAUSE FOUR TYPES HAVE NO AXIS.
+ *
+ * The first version spread one frame into all twelve. A pie has no value axis
+ * and no gridlines, so `--cmp-chart-pie-axis-color` would have been published
+ * and unreadable by any rule. That is the fault this whole section exists to
+ * close, reproduced while closing it: a token nothing can consume.
+ *
+ * So the labels are shared and the axes are not.
+ *
+ *   WITH AXES     column, bar, line, area, combo, stacked, grouped, scatter
+ *   WITHOUT       pie, donut, heatmap, sparkline
+ *
+ * A heatmap has category labels on two edges and no quantity axis at all: its
+ * separation is the cell gap. A sparkline has no furniture by definition. */
+const CHART_LABELS = {
+  /* NO `padding`. THE CONTAINER OWNS THE INSET, and publishing one here made
+     every plot doubly inset: 24px of card padding plus 16px of its own put
+     the plot 17px inside the card's content edge, on all twenty instances.
+     A chart's edges sit flush with the inner margins of whatever holds it,
+     the same way a table's do. The room the tick labels need is the frame's
+     own tick COLUMN, which is content rather than padding. */
+  typography: 'caption',
+  textColor: '{colors.text-muted}',
+}
+
+/* `border` for the axis and `border-subtle` for the gridlines, one step apart
+ * and the right way round: an axis is the chart's own outline and a gridline
+ * is quieter than it. A gridline in the axis colour turns a plot into a grid
+ * of boxes, which is the usual way a calm chart turns noisy.
+ *
+ * THE GRIDLINES BELONG TO THE VALUE AXIS ALONE. A category axis has no
+ * quantity to read against, so a line there separates nothing. That is an
+ * arrangement rather than a value, so it lives in `LAYOUT_COMPONENTS`. */
+const CHART_AXES = {
+  axisColor: '{colors.border}',
+  axisWidth: '{borderWidths.hairline}',
+  /* THE QUIETEST PUBLISHED STEP THAT STILL CLEARS THE FLOOR. `border-subtle`
+     measured 1.94:1 on the card and read as heavy for a gridline, which has
+     to sit under the data rather than beside it. `bg-subtle` is 1.48:1.
+     `bg` is 1.15 and a hairline under 1.2 is absent, not subtle.
+
+     A SURFACE ROLE FOR A LINE, deliberately. There is no lighter LINE role,
+     and a ramp cannot gain a step. The alternative was a new role serving
+     one consumer. The axis keeps `border`, so the axis is still heavier
+     than any gridline, which is the whole point of the pair. */
+  gridColor: '{colors.bg-subtle}',
+  gridWidth: '{borderWidths.hairline}',
+}
+
+const CHART_FRAME = { ...CHART_LABELS, ...CHART_AXES }
+
+/* A filled series takes a hairline in the page's own border colour, which
+   `color/dataviz.js` already states in prose and nothing published. The gap
+   between two areas is enough separation; the gap between two touching
+   segments is not. */
+const FILLED = { borderColor: '{colors.border-subtle}' }
+
+/* One stroke weight for every line in every chart type, the same way one mark
+   size serves every button size. A per-type stroke means every rule that
+   resizes a chart has to remember to restyle its line, and the button history
+   in this file says three of them will not. `thick` is 2px, which reads
+   heavier than the 1.5px icon stroke it must not be confused with. */
+const STROKE = { lineWidth: '{borderWidths.thick}' }
+
+/* 8px, on the scale. 4px where the points are dense enough to overlap, which
+   is scatter and nothing else. */
+const MARKER = { markerSize: '{spacing.xs}' }
+
+const CHART_TYPES = [
+  {
+    name: 'chart-column', label: 'Column chart', group: 'Charts', on: true,
+    /* A single-series column chart takes ONE colour, never five. Five colours
+       on one series says the categories are five different things, and a
+       category axis already said they are one thing measured six times. */
+    base: { ...CHART_FRAME, ...FILLED, rounded: '{rounded.sm}', barGap: '{spacing.xs}' },
+  },
+  {
+    name: 'chart-bar', label: 'Bar chart (horizontal)', group: 'Charts', on: true,
+    /* THE ONE TYPE WHOSE CATEGORY LABEL HAS ROOM TO BE LONG, which is the
+       reason to reach for it. So the label column takes its content and the
+       bar shrinks, never the reverse: a bar clipped to fit a name is a value
+       nobody can read. */
+    base: { ...CHART_FRAME, ...FILLED, rounded: '{rounded.sm}', barGap: '{spacing.xs}' },
+  },
+  {
+    name: 'chart-line', label: 'Line chart', group: 'Charts', on: true,
+    base: { ...CHART_FRAME, ...STROKE, ...MARKER },
+  },
+  {
+    name: 'chart-area', label: 'Area chart', group: 'Charts', on: true,
+    /* THE ONE VALUE IN THIS WHOLE SET WITH NO HOME ANYWHERE, so it is stated
+       here and nowhere else. 0.2 of the series colour keeps the line dominant
+       and still clears the ground: a fill must differ from what is behind it,
+       and an area at 0.5 competes with its own line while one at 0.05 is
+       absent rather than subtle. An opacity belongs to no scale, which is
+       exactly why it needs a published home. */
+    base: { ...CHART_FRAME, ...STROKE, fillOpacity: '0.2' },
+  },
+  {
+    name: 'chart-pie', label: 'Pie chart', group: 'Charts', on: true,
+    /* NO GRIDLINES BEHIND A PIE, EVER. There is no value axis to read
+       against, so a gridline there is decoration on top of data. Which is why
+       it takes the LABELS and not the frame: publishing an axis colour a pie
+       can never paint is the unread-token fault, and turning the grid off with
+       an arrangement field would leave the token published anyway. */
+    base: { ...CHART_LABELS, sliceGap: '{borderWidths.thick}', sliceGapColor: '{colors.surface}' },
+  },
+  {
+    name: 'chart-donut', label: 'Donut chart', group: 'Charts', on: true,
+    /* A PIE WHOSE HOLE CARRIES A TOTAL, which is a different label problem
+       and the only reason it earns its own entry. `holeRatio` is a proportion
+       rather than a length, so no scale applies. 0.58 leaves a ring wide
+       enough to read a slice and a hole wide enough to hold a figure. */
+    base: { ...CHART_LABELS, sliceGap: '{borderWidths.thick}', sliceGapColor: '{colors.surface}', holeRatio: '0.58' },
+  },
+  {
+    name: 'chart-combo', label: 'Column + line', group: 'Charts', on: true,
+    /* THE ONLY TYPE THAT NEEDS A SECOND VALUE AXIS, and the only one where two
+       series measure different quantities. Both axes take the same weight, or
+       the chart reads as though one of the two series matters less. */
+    base: { ...CHART_FRAME, ...FILLED, ...STROKE, ...MARKER, rounded: '{rounded.sm}', barGap: '{spacing.xs}' },
+  },
+  {
+    name: 'chart-stacked', label: 'Stacked (column, bar, area)', group: 'Charts', on: true,
+    /* AN ARRANGEMENT, NOT A TYPE, and it applies to three of them. It earns an
+       entry because its segments TOUCH, which is the case the chart palette is
+       built around: every pair is separated, not only the pairs that sit side
+       by side in a legend. No bar gap of its own, because the gap between
+       stacks is the column chart's and the gap inside a stack is zero. */
+    base: { ...CHART_FRAME, ...FILLED, rounded: '{rounded.sm}', barGap: '{spacing.xs}' },
+  },
+  {
+    name: 'chart-grouped', label: 'Grouped (column, bar)', group: 'Charts', on: true,
+    /* THE OTHER ARRANGEMENT, AND THE ONE THAT STATES A PROXIMITY RATIO. 4px
+       inside a group against 16px between them is 4:1, so a group reads as one
+       object without anybody having to think about it. Under 3:1 the groups
+       dissolve into one run of bars and the category axis stops meaning
+       anything. Both numbers are stated together, because a ratio is not a
+       value. */
+    base: { ...CHART_FRAME, ...FILLED, rounded: '{rounded.sm}', barGap: '{spacing.2xs}', groupGap: '{spacing.md}' },
+  },
+  {
+    name: 'chart-scatter', label: 'Scatter plot', group: 'Charts', on: true,
+    /* THE ONLY TYPE WHERE THE MARKER IS THE MARK rather than an ornament on a
+       line, which is why it publishes a second, smaller size. A dense cloud at
+       8px is a solid shape; at 4px it is a distribution. Both are on the
+       scale. */
+    base: { ...CHART_FRAME, ...MARKER, markerSizeDense: '{spacing.2xs}' },
+  },
+  {
+    name: 'chart-heatmap', label: 'Heatmap', group: 'Charts', on: true,
+    /* THE ONLY NATURAL CONSUMER OF `--chart-seq-1..8`. That scale has shipped
+       for as long as the palette has and nothing has ever painted it, so it
+       was published and untrustable in exactly the way this file warns about.
+       A hairline gap in the ground colour, not a border: a border on every
+       cell doubles at each shared edge and the grid reads twice as heavy as
+       it should. */
+    base: { ...CHART_LABELS, rounded: '{rounded.sm}', cellGap: '{borderWidths.hairline}', cellGapColor: '{colors.surface}' },
+  },
+  {
+    name: 'chart-sparkline', label: 'Sparkline', group: 'Charts', on: true,
+    /* THE NO-FURNITURE CASE, and the reason it earns an entry. No axis, no
+       gridline, no legend and no tick label, because it lives inside a table
+       row or a stat tile where the row already says what it is. It still takes
+       the shared stroke: one weight for every line in the system, so a
+       sparkline and a full line chart cannot read as two different products.
+       It carries no `padding` either — the cell it sits in owns that. */
+    base: { ...STROKE, ...MARKER, textColor: '{colors.text-muted}', typography: 'caption' },
+  },
+]
+
 export const COMPONENT_LIBRARY = [
   {
     name: 'button', label: 'Button', group: 'Actions', on: true,
@@ -344,7 +515,34 @@ export const COMPONENT_LIBRARY = [
      * the scale, which is 12 against 8. */
     base: { size: '32px', gap: '{spacing.sm}', rounded: '{rounded.full}', backgroundColor: '{colors.accent-raised}', textColor: '{colors.text}', typography: 'caption' },
   },
+
+  /* ── CHARTS ──
+   *
+   * THE COLOUR WAS ALREADY DONE AND THE FURNITURE PUBLISHED NOTHING. Three
+   * chart scales ship — `--chart-1..5`, `--chart-seq-1..8`, `--chart-div-1..8`
+   * — and no token stated an axis weight, a gridline colour, a plot inset, a
+   * bar gap, a line stroke, a marker size or an area fill. So a builder
+   * charting anything invented all seven, which is the missing-token fault at
+   * its most expensive: a chart is mostly furniture.
+   *
+   * ONE ENTRY PER TYPE, which is what they asked for. The shared frame is
+   * written ONCE here and spread into each entry, so twelve entries in the
+   * panel cost one home in the source. Every value is a REFERENCE, so twelve
+   * entries citing `{colors.border}` are twelve pointers to one decision
+   * rather than twelve copies of a number.
+   *
+   * NO `height`. A chart's height belongs to the box that places it, the same
+   * way a card's does, and inventing 200px would put a number on the scale
+   * that the scale does not contain.
+   *
+   * `padding` IS THE PLOT INSET, and `typography` and `textColor` are the tick
+   * labels. All three are among the eight properties the spec allows in
+   * frontmatter, so they reach a reader who never opens the tables. A chart's
+   * only text is its labels, so the plain names are unambiguous here.
+   */
+  ...CHART_TYPES,
 ]
+
 
 export const COMPONENT_GROUPS = [...new Set(COMPONENT_LIBRARY.map(c => c.group))]
 
@@ -757,6 +955,22 @@ export const CLASS_BRIDGE = {
   'tab': '`.tab`',
   'nav-burger': '`.nav-burger`, inside a `<summary class="nav-summary">`',
   'avatar': '`.avatar`',
+  /* Every chart type is `.chart` plus its own class, the same shape as
+     `.btn.btn-primary`. The base carries the frame; the type carries what
+     is its own. Without these rows a reader has twelve component names and
+     no way to know what to write in the markup. */
+  'chart-column': '`.chart.chart-column`',
+  'chart-bar': '`.chart.chart-bar`',
+  'chart-line': '`.chart.chart-line`',
+  'chart-area': '`.chart.chart-area`',
+  'chart-pie': '`.chart.chart-pie`',
+  'chart-donut': '`.chart.chart-donut`',
+  'chart-combo': '`.chart.chart-combo`',
+  'chart-stacked': '`.chart.chart-stacked`',
+  'chart-grouped': '`.chart.chart-grouped`',
+  'chart-scatter': '`.chart.chart-scatter`',
+  'chart-heatmap': '`.chart.chart-heatmap`',
+  'chart-sparkline': '`.chart.chart-sparkline`',
 }
 
 /* Variants follow one rule, so they need no row each: the base class plus the

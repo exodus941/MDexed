@@ -268,7 +268,10 @@ export default function Dashboard({ onInspect, layout, casing, theme, mode, onTo
          * the picture certain. */}
         <div className="card" {...ins('card')}>
           <h3 className="t-h6" style={{ marginBottom: 'var(--space-sm, 8px)' }} {...txt('h6')}>{L('Revenue by line')}</h3>
-          <div className="chart-bar">
+          {/* `.chart-strip`, renamed: `chart-bar` is the horizontal bar chart
+              component now, and its rule sets a 24px height and
+              `overflow: hidden`. A strip is one bar of touching segments. */}
+          <div className="chart-strip">
             {[['Licences', 34], ['Services', 26], ['Support', 18], ['Training', 13], ['Other', 9]].map(([, pct], i) => (
               <span key={i} style={{ width: `${pct}%`, background: `var(--chart-${i + 1})` }} />
             ))}

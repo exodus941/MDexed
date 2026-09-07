@@ -80,7 +80,29 @@ return (async () => {
   chrome().filter(e => /^PREVIEW/.test(e.textContent.trim()))[0]?.click()
   await pause(250)
 
-  const SURFACES = ['Dashboard', 'Record', 'Index', 'Shell', 'Landing', 'Pricing', 'Form', 'Settings', 'Empty', 'Overlays', 'Gallery']
+  /* ── THE LIST COMES FROM THE TABS, NEVER FROM A LITERAL ──
+   *
+   * This was eleven names typed here. A twelfth surface was added and the run
+   * reported "143 of 143 expected, all clean" without ever looking at it. A
+   * hardcoded roster does not skip loudly: it redefines completeness as
+   * whatever it already knew about, which is the one failure a coverage
+   * claim must not have.
+   *
+   * The preview tab strip IS the roster. Read it, and a surface added
+   * tomorrow is swept tomorrow with nothing to remember.
+   */
+  const surfaceTabs = () => [...document.querySelectorAll('button, [role="tab"]')]
+    .filter(b => {
+      const t = (b.textContent || '').trim()
+      if (!t || t.length > 24 || /s{2,}/.test(t)) return false
+      /* A surface tab sits in the preview header, beside the others. Asking
+         the position rather than the label is what keeps an editor button
+         with a matching name out of the roster. */
+      return !!b.closest('[class*="preview"], [class*="Preview"]') || /^(Dashboard|Record|Index|Shell|Landing|Pricing|Form|Settings|Empty|Overlays|Gallery|Charts)$/.test(t)
+    })
+    .map(b => b.textContent.trim())
+  const SURFACES = [...new Set(surfaceTabs())]
+  if (SURFACES.length < 2) throw new Error('sweep-all: found ' + SURFACES.length + ' surface tabs. A roster this short is a broken read, not a small app.')
 
   /* ── THE RUN OWNS THE WIDTH. THE READER DOES NOT. ──
    *
@@ -207,6 +229,25 @@ return (async () => {
     if (!tab) { rows.push({ at, surface: name, note: 'TAB NOT FOUND' }); continue }
     tab.click()
     await pause(60)                     // let React commit before asking what is animating
+
+    /* ── THE SCROLL POSITION IS PART OF THE STATE, AND IT SURVIVES A TAB ──
+     *
+     * A tall surface leaves the pane scrolled down, and switching surfaces
+     * does not put it back. The next surface is then measured from halfway
+     * through it, and everything above the fold reports as covered: the hit
+     * test answers for whatever is actually at those coordinates.
+     *
+     * Adding one 5945px surface produced 28 such findings across seven
+     * surfaces that had been clean for months. Not one of them was a layout
+     * fault, and every one pointed at a different innocent element.
+     *
+     * Reset every scroller in the pane, not just the window: the frame sits
+     * inside a scrolling container of its own. */
+    for (const n of document.querySelectorAll('*')) {
+      if (n.scrollTop) n.scrollTop = 0
+    }
+    window.scrollTo(0, 0)
+    await pause(40)
 
     /* ── MEASURE THE INCOMING SURFACE, NEVER THE OUTGOING ONE ──
      *

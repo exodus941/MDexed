@@ -7,6 +7,12 @@
   min-height: 100%;
   padding: var(--space-lg, 24px);
   transition: background var(--duration-normal, 200ms) var(--ease-standard, ease);
+  /* The distance from a heading to its byline, read by the two rules that
+     need it. Declared at the root, not on `.card`: a custom property used
+     inside a rule that runs outside `.card` resolves to nothing there, and an
+     invalid value reports nothing at all. This system has already paid for
+     that twice with a modal footer. */
+  --byline-gap: var(--space-2xs, 4px);
 }
 .dmd *, .dmd *::before, .dmd *::after { box-sizing: border-box; }
 /* Form controls don't inherit the font in any browser, so anything without an
@@ -26,11 +32,23 @@
    still reads as unavailable. */
 .dmd [disabled], .dmd .is-disabled { pointer-events: none; }
 .dmd [data-cmp] [disabled], .dmd [data-cmp] .is-disabled { pointer-events: none; }
-.dmd h1, .dmd h2, .dmd h3 { margin: 0; }
+/* ── A RESET CARRIES NO WEIGHT, OR IT OUTRANKS THE RULES IT MAKES ROOM FOR ──
+ *
+ * These two zero a UA margin and nothing else. Written plainly they sit at
+ * (0,2,0), which beat the heading-to-byline default at (0,1,0) and held every
+ * such pair at 0.00px. 27 findings on one surface, and the same reset had
+ * been doing it anywhere a byline was not inside a card.
+ *
+ * `:where()` contributes nothing, so a reset loses to everything, which is
+ * what a reset is for. This exact fault was diagnosed once already, on a
+ * throwaway demo, and the lesson went into a comment there rather than into
+ * the stylesheet it was about.
+ */
+:where(.dmd h1, .dmd h2, .dmd h3) { margin: 0; }
 .dmd h1 { font-family: var(--font-h1-family, inherit); font-size: var(--font-h1-size, 48px); font-weight: var(--font-h1-weight, 700); line-height: var(--font-h1-leading, 1.1); letter-spacing: var(--font-h1-tracking, normal); }
 .dmd h2 { font-family: var(--font-h2-family, inherit); font-size: var(--font-h2-size, 40px); font-weight: var(--font-h2-weight, 700); line-height: var(--font-h2-leading, 1.2); letter-spacing: var(--font-h2-tracking, normal); }
 .dmd h3 { font-family: var(--font-h3-family, inherit); font-size: var(--font-h3-size, 32px); font-weight: var(--font-h3-weight, 600); line-height: var(--font-h3-leading, 1.3); letter-spacing: var(--font-h3-tracking, normal); }
-.dmd p { margin: 0; }
+:where(.dmd p) { margin: 0; }
 
 /* ── A TYPE ROLE IS ONE DECISION, SO IT IS ONE CLASS ──
  *
@@ -156,9 +174,36 @@
   > :where(.caption, .overline, .t-overline, .small) + :where(.t-h3, .t-h4, .t-h5, .t-h6, h2, h3, h4, h5, h6) {
   margin-block-start: 0;
 }
+/* A BYLINE IS CLOSE TO ITS HEADING, NOT TOUCHING IT.
+ *
+ * This was `0`, which gave the pair the same treatment as a label ABOVE a
+ * heading. Those two are not the same distance. A label above a title takes
+ * nothing, because the pair reads as one object and that is what they asked
+ * for. A byline below a title takes one small step: the system already
+ * measured that gap and moved it from 12px to 4, because at 12 the line read
+ * as a floating paragraph and at 0 it reads as a second line of the heading.
+ *
+ * Found by sweeping a new surface, not by reading. Every heading-and-caption
+ * pair on it measured 0.00px, and the same rule had been shipping that on any
+ * card holding a byline.
+ *
+ * ONE HOME FOR THE VALUE, read by both rules that need it. Two rules are
+ * needed because they answer different questions: this one overrides the
+ * card's own flow, and the one below reaches a heading and byline inside a
+ * BARE BLOCK, which owns no gap and which is how the pair is usually wrapped
+ * when it wants to be one group. Written as 4px in both places, the two would
+ * disagree the first time anybody tuned it. */
 .dmd .card
   > :where(.t-h3, .t-h4, .t-h5, .t-h6, h2, h3, h4, h5, h6) + :where(.caption, .small, .muted, .subtle) {
-  margin-block-start: 0;
+  margin-block-start: var(--byline-gap);
+}
+/* A DEFAULT, SO IT GOES EARLY AND CARRIES NO WEIGHT. `:where()` on both sides
+   puts it at (0,1,0), under everything that might have an opinion. It fixes
+   the shape rather than a class, so a heading and byline grouped in a plain
+   `<div>` — the commonest wrapper for them — no longer touch. */
+.dmd :where(.t-h3, .t-h4, .t-h5, .t-h6, h2, h3, h4, h5, h6)
+  + :where(.caption, .small, .muted, .subtle) {
+  margin-block-start: var(--byline-gap);
 }
 /* TWO PUBLISHED TOKENS THAT NO RULE CONSUMED. `card-compact` and `card-roomy`
    are declared variants and they emit `--cmp-card-compact-padding` and
@@ -2190,13 +2235,19 @@
  * past its track. Forced colors preserves outlines and disregards
  * `background-color`, so this is also the only mark the segments keep in that
  * mode. */
-.dmd .chart-bar {
+/* RENAMED FROM `.chart-bar`, WHICH NOW NAMES THE BAR CHART COMPONENT. This
+   is one horizontal strip of touching segments, not a chart with an axis.
+   Sharing the name cost 80px of clipped content on two real charts at all
+   thirteen widths: this rule sets `overflow: hidden`, and a flex item whose
+   overflow is not visible has an automatic minimum size of ZERO, so the
+   chart collapsed from 104px to 24 and clipped the rest with no scroller. */
+.dmd .chart-strip {
   display: flex;
   height: var(--space-lg, 24px);
   border-radius: var(--radius-sm, 2px);
   overflow: hidden;
 }
-.dmd .chart-bar > span {
+.dmd .chart-strip > span {
   display: block;
   height: 100%;
   outline: 1px solid var(--c-border-subtle, #ddd);
@@ -2228,6 +2279,533 @@
   vertical-align: baseline;
   align-self: baseline;
   transform: translateY(calc((100% - 0.75em) / 2));
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   THE CHART FURNITURE
+
+   THE COLOUR WAS DONE AND THE FURNITURE PUBLISHED NOTHING. Three chart scales
+   have shipped for months. No token stated an axis weight, a gridline colour,
+   a plot inset, a bar gap, a line stroke, a marker size or an area fill, so a
+   builder charting anything invented all seven. A chart is mostly furniture,
+   which makes this the most expensive place for that hole to sit.
+
+   TWELVE TYPES, ONE RULE SET. Each type maps its OWN tokens onto a set of
+   locals, and the rules below read the locals. So the rules are written once
+   while every one of the 137 published tokens is genuinely consumed. Writing
+   the rules twelve times over would be twelve places for the axis weight to
+   disagree with itself.
+
+   Markup is `class="chart chart-column"`, the same shape as `btn btn-primary`.
+
+   A SHARED CLASS, NEVER A SUBSTRING SELECTOR. `[class*="chart-"]` would have
+   done the same job and it is a name list wearing a selector's clothes: it
+   matches `chart-key` and anything else somebody names later. `.chart` is a
+   claim the markup makes deliberately.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ── The locals, per type ── */
+.dmd .chart-column, .dmd .chart-bar, .dmd .chart-stacked, .dmd .chart-grouped {
+  --ch-edge: var(--cmp-chart-column-border-color, var(--c-border-subtle, #ddd));
+}
+.dmd .chart-column {
+  --ch-axis: var(--cmp-chart-column-axis-color); --ch-axis-w: var(--cmp-chart-column-axis-width);
+  --ch-grid: var(--cmp-chart-column-grid-color); --ch-grid-w: var(--cmp-chart-column-grid-width);
+  --ch-pad: var(--cmp-chart-column-padding);     --ch-ink: var(--cmp-chart-column-text-color);
+  --ch-font: var(--cmp-chart-column-font-size);  --ch-radius: var(--cmp-chart-column-rounded);
+  --ch-bar-gap: var(--cmp-chart-column-bar-gap); --ch-edge: var(--cmp-chart-column-border-color);
+}
+.dmd .chart-bar {
+  --ch-axis: var(--cmp-chart-bar-axis-color); --ch-axis-w: var(--cmp-chart-bar-axis-width);
+  --ch-grid: var(--cmp-chart-bar-grid-color); --ch-grid-w: var(--cmp-chart-bar-grid-width);
+  --ch-pad: var(--cmp-chart-bar-padding);     --ch-ink: var(--cmp-chart-bar-text-color);
+  --ch-font: var(--cmp-chart-bar-font-size);  --ch-radius: var(--cmp-chart-bar-rounded);
+  --ch-bar-gap: var(--cmp-chart-bar-bar-gap); --ch-edge: var(--cmp-chart-bar-border-color);
+}
+.dmd .chart-line {
+  --ch-axis: var(--cmp-chart-line-axis-color); --ch-axis-w: var(--cmp-chart-line-axis-width);
+  --ch-grid: var(--cmp-chart-line-grid-color); --ch-grid-w: var(--cmp-chart-line-grid-width);
+  --ch-pad: var(--cmp-chart-line-padding);     --ch-ink: var(--cmp-chart-line-text-color);
+  --ch-font: var(--cmp-chart-line-font-size);
+  --ch-line-w: var(--cmp-chart-line-line-width); --ch-marker: var(--cmp-chart-line-marker-size);
+}
+.dmd .chart-area {
+  --ch-axis: var(--cmp-chart-area-axis-color); --ch-axis-w: var(--cmp-chart-area-axis-width);
+  --ch-grid: var(--cmp-chart-area-grid-color); --ch-grid-w: var(--cmp-chart-area-grid-width);
+  --ch-pad: var(--cmp-chart-area-padding);     --ch-ink: var(--cmp-chart-area-text-color);
+  --ch-font: var(--cmp-chart-area-font-size);
+  --ch-line-w: var(--cmp-chart-area-line-width);
+  --ch-fill-op: var(--cmp-chart-area-fill-opacity);
+}
+.dmd .chart-pie, .dmd .chart-donut {
+  --ch-pad: var(--cmp-chart-pie-padding); --ch-ink: var(--cmp-chart-pie-text-color);
+  --ch-font: var(--cmp-chart-pie-font-size);
+  --ch-slice-gap: var(--cmp-chart-pie-slice-gap);
+  --ch-slice-gap-color: var(--cmp-chart-pie-slice-gap-color);
+}
+.dmd .chart-donut {
+  --ch-pad: var(--cmp-chart-donut-padding); --ch-ink: var(--cmp-chart-donut-text-color);
+  --ch-font: var(--cmp-chart-donut-font-size);
+  --ch-slice-gap: var(--cmp-chart-donut-slice-gap);
+  --ch-slice-gap-color: var(--cmp-chart-donut-slice-gap-color);
+  --ch-hole: var(--cmp-chart-donut-hole-ratio);
+}
+.dmd .chart-combo {
+  --ch-axis: var(--cmp-chart-combo-axis-color); --ch-axis-w: var(--cmp-chart-combo-axis-width);
+  --ch-grid: var(--cmp-chart-combo-grid-color); --ch-grid-w: var(--cmp-chart-combo-grid-width);
+  --ch-pad: var(--cmp-chart-combo-padding);     --ch-ink: var(--cmp-chart-combo-text-color);
+  --ch-font: var(--cmp-chart-combo-font-size);  --ch-radius: var(--cmp-chart-combo-rounded);
+  --ch-bar-gap: var(--cmp-chart-combo-bar-gap); --ch-edge: var(--cmp-chart-combo-border-color);
+  --ch-line-w: var(--cmp-chart-combo-line-width); --ch-marker: var(--cmp-chart-combo-marker-size);
+}
+.dmd .chart-stacked {
+  --ch-axis: var(--cmp-chart-stacked-axis-color); --ch-axis-w: var(--cmp-chart-stacked-axis-width);
+  --ch-grid: var(--cmp-chart-stacked-grid-color); --ch-grid-w: var(--cmp-chart-stacked-grid-width);
+  --ch-pad: var(--cmp-chart-stacked-padding);     --ch-ink: var(--cmp-chart-stacked-text-color);
+  --ch-font: var(--cmp-chart-stacked-font-size);  --ch-radius: var(--cmp-chart-stacked-rounded);
+  --ch-bar-gap: var(--cmp-chart-stacked-bar-gap); --ch-edge: var(--cmp-chart-stacked-border-color);
+}
+.dmd .chart-grouped {
+  --ch-axis: var(--cmp-chart-grouped-axis-color); --ch-axis-w: var(--cmp-chart-grouped-axis-width);
+  --ch-grid: var(--cmp-chart-grouped-grid-color); --ch-grid-w: var(--cmp-chart-grouped-grid-width);
+  --ch-pad: var(--cmp-chart-grouped-padding);     --ch-ink: var(--cmp-chart-grouped-text-color);
+  --ch-font: var(--cmp-chart-grouped-font-size);  --ch-radius: var(--cmp-chart-grouped-rounded);
+  --ch-bar-gap: var(--cmp-chart-grouped-bar-gap); --ch-edge: var(--cmp-chart-grouped-border-color);
+  --ch-group-gap: var(--cmp-chart-grouped-group-gap);
+}
+.dmd .chart-scatter {
+  --ch-axis: var(--cmp-chart-scatter-axis-color); --ch-axis-w: var(--cmp-chart-scatter-axis-width);
+  --ch-grid: var(--cmp-chart-scatter-grid-color); --ch-grid-w: var(--cmp-chart-scatter-grid-width);
+  --ch-pad: var(--cmp-chart-scatter-padding);     --ch-ink: var(--cmp-chart-scatter-text-color);
+  --ch-font: var(--cmp-chart-scatter-font-size);
+  --ch-marker: var(--cmp-chart-scatter-marker-size);
+  --ch-marker-dense: var(--cmp-chart-scatter-marker-size-dense);
+}
+.dmd .chart-heatmap {
+  --ch-pad: var(--cmp-chart-heatmap-padding); --ch-ink: var(--cmp-chart-heatmap-text-color);
+  --ch-font: var(--cmp-chart-heatmap-font-size); --ch-radius: var(--cmp-chart-heatmap-rounded);
+  --ch-cell-gap: var(--cmp-chart-heatmap-cell-gap);
+  --ch-cell-gap-color: var(--cmp-chart-heatmap-cell-gap-color);
+}
+.dmd .chart-sparkline {
+  --ch-ink: var(--cmp-chart-sparkline-text-color);
+  --ch-font: var(--cmp-chart-sparkline-font-size);
+  --ch-line-w: var(--cmp-chart-sparkline-line-width);
+  --ch-marker: var(--cmp-chart-sparkline-marker-size);
+}
+
+/* ── A TYPE ROLE IS ONE DECISION, SO ALL FOUR OF ITS PROPERTIES ARE READ ──
+ *
+ * The first version read `font-size` and stopped, leaving the family, the
+ * weight and the tracking published and unread — 36 tokens across twelve
+ * types. That is the fault this system already shipped on eighteen headings,
+ * where a role gave its size and the element gave its leading, so the
+ * published value never reached the screen.
+ *
+ * One line per type rather than three more in each block above, because these
+ * four move together and reading them in one place is how they stay together. */
+.dmd .chart-column   { --ch-weight: var(--cmp-chart-column-font-weight);   --ch-family: var(--cmp-chart-column-font-family);   --ch-track: var(--cmp-chart-column-tracking); }
+.dmd .chart-bar      { --ch-weight: var(--cmp-chart-bar-font-weight);      --ch-family: var(--cmp-chart-bar-font-family);      --ch-track: var(--cmp-chart-bar-tracking); }
+.dmd .chart-line     { --ch-weight: var(--cmp-chart-line-font-weight);     --ch-family: var(--cmp-chart-line-font-family);     --ch-track: var(--cmp-chart-line-tracking); }
+.dmd .chart-area     { --ch-weight: var(--cmp-chart-area-font-weight);     --ch-family: var(--cmp-chart-area-font-family);     --ch-track: var(--cmp-chart-area-tracking); }
+.dmd .chart-pie      { --ch-weight: var(--cmp-chart-pie-font-weight);      --ch-family: var(--cmp-chart-pie-font-family);      --ch-track: var(--cmp-chart-pie-tracking); }
+.dmd .chart-donut    { --ch-weight: var(--cmp-chart-donut-font-weight);    --ch-family: var(--cmp-chart-donut-font-family);    --ch-track: var(--cmp-chart-donut-tracking); }
+.dmd .chart-combo    { --ch-weight: var(--cmp-chart-combo-font-weight);    --ch-family: var(--cmp-chart-combo-font-family);    --ch-track: var(--cmp-chart-combo-tracking); }
+.dmd .chart-stacked  { --ch-weight: var(--cmp-chart-stacked-font-weight);  --ch-family: var(--cmp-chart-stacked-font-family);  --ch-track: var(--cmp-chart-stacked-tracking); }
+.dmd .chart-grouped  { --ch-weight: var(--cmp-chart-grouped-font-weight);  --ch-family: var(--cmp-chart-grouped-font-family);  --ch-track: var(--cmp-chart-grouped-tracking); }
+.dmd .chart-scatter  { --ch-weight: var(--cmp-chart-scatter-font-weight);  --ch-family: var(--cmp-chart-scatter-font-family);  --ch-track: var(--cmp-chart-scatter-tracking); }
+.dmd .chart-heatmap  { --ch-weight: var(--cmp-chart-heatmap-font-weight);  --ch-family: var(--cmp-chart-heatmap-font-family);  --ch-track: var(--cmp-chart-heatmap-tracking); }
+.dmd .chart-sparkline { --ch-weight: var(--cmp-chart-sparkline-font-weight); --ch-family: var(--cmp-chart-sparkline-font-family); --ch-track: var(--cmp-chart-sparkline-tracking); }
+
+/* ── The frame, written once ──
+ *
+ * `padding` IS the plot inset, and it belongs to the chart rather than to the
+ * card: a card's padding spaces its children and a chart's spaces its own tick
+ * labels from its plot. NO HEIGHT. A chart's height belongs to the box that
+ * places it, the same way a card's does. */
+.dmd .chart {
+  position: relative;
+  /* A CHART'S PARTS ARE GROUPS, AND A BARE BLOCK OWNS NO GAP BETWEEN THEM.
+     Without this the legend sat against the plot at 0.00px on six of the
+     twelve types, and the heatmap's own category row touched both its cells
+     and its legend. A flex column so ONE writer owns every one of those
+     distances: the plot, the labels and the legend are three groups, and the
+     between-groups step is the same `sm` the cards use. The distance INSIDE
+     the frame — a category label to its own column — is the frame's own
+     row-gap, which is a step smaller, so the ratio holds. */
+  display: flex;
+  flex-direction: column;
+  row-gap: var(--space-sm, 12px);
+  /* NO PADDING. THE CONTAINER OWNS THE INSET. A chart's edges sit flush with
+     the inner margins of whatever holds it, the same way a table's do. This
+     read `var(--ch-pad)` and added 16px on top of the card's 24, so every plot
+     sat 17px inside the card's own content edge, on all twenty instances. The
+     room a tick label needs is the frame's tick COLUMN, which is content. */
+  padding: 0;
+  font-family: var(--ch-family, inherit);
+  font-size: var(--ch-font, var(--font-caption-size, 12px));
+  font-weight: var(--ch-weight, 400);
+  letter-spacing: var(--ch-track, normal);
+  line-height: var(--font-caption-leading, 1.5);
+  color: var(--ch-ink, var(--c-text-muted, #666));
+}
+/* A sparkline has no furniture, so it has no inset either. The cell it sits in
+   owns that distance. */
+.dmd .chart-sparkline { padding: 0; }
+
+/* ── THE FRAME IS ONE GRID, BECAUSE THE CATEGORY LABELS HAVE TO LINE UP ──
+ *
+ * A tick column beside the plot offsets everything to its right. Put the
+ * category labels outside that grid and every one of them sits off its own
+ * column by the width of the tick labels, which is a defect the eye finds
+ * instantly and no colour check has an opinion about.
+ *
+ * Named areas, so the labels occupy the plot's column and nothing else. */
+.dmd .chart > .chart-frame {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  grid-template-areas:
+    'ticks plot'
+    '.     cats';
+  column-gap: var(--space-xs, 8px);
+  row-gap: var(--space-2xs, 4px);
+  min-width: 0;
+}
+/* The combo is the only type with a second value axis, and both take the same
+   weight: a lighter second axis reads as though one of the two series matters
+   less. */
+.dmd .chart-combo > .chart-frame {
+  grid-template-columns: max-content minmax(0, 1fr) max-content;
+  grid-template-areas:
+    'ticks plot ticks-end'
+    '.     cats .';
+}
+/* ── A TICK LABEL IS CENTRED ON THE GRIDLINE IT NAMES ──
+ *
+ * `space-between` distributes the label BOXES between the plot's edges, not
+ * their centres. So the first label's centre sits half a line BELOW the top
+ * gridline and the last one's sits half a line above the bottom. Measured on a
+ * 19.44px line: 9.72, 4.86, 0.00, -4.86, -9.72. The middle one is right by
+ * accident and the ends are out by exactly half a line.
+ *
+ * Extending the column by half a line at each end puts the centres on the
+ * boundaries instead, which is exact rather than tuned. Derived from the type
+ * tokens, so it holds when the scale moves. */
+.dmd .chart .chart-ticks {
+  grid-area: ticks;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-block: calc(var(--ch-font, var(--font-caption-size, 12px))
+                     * var(--font-caption-leading, 1.5) / -2);
+}
+/* An AMOUNT in a column takes an end edge, which is what stacks the digits
+   over each other. The mono face gives every digit one width; the edge is the
+   half usually missing. */
+.dmd .chart .chart-ticks > .figure { text-align: end; }
+.dmd .chart .chart-ticks-end { grid-area: ticks-end; align-items: flex-start; }
+.dmd .chart > .chart-frame > .chart-plot { grid-area: plot; }
+
+/* TWO ROWS LINE UP WHEN THEY SHARE A BASIS, NOT A GRID. Both rows flex, both
+   hold the same count, and every child takes the same `flex` value and the
+   same gap. The algorithm is deterministic, so column five of the labels sits
+   under column five of the bars. State the basis once. */
+.dmd .chart .chart-cats {
+  grid-area: cats;
+  display: flex;
+  gap: var(--ch-bar-gap, var(--space-xs, 8px));
+  min-width: 0;
+}
+.dmd .chart .chart-cats > * { flex: 1 1 0; min-width: 0; text-align: center; }
+/* A grouped chart's labels belong to the GROUP, so they take the group gap. */
+.dmd .chart-grouped .chart-cats { gap: var(--ch-group-gap, var(--space-md, 16px)); }
+
+/* The plot area. `grid`, so a gridline layer and a series layer can occupy the
+   same cell without either one positioning the other. */
+.dmd .chart .chart-plot {
+  position: relative;
+  display: grid;
+  grid-template-areas: 'plot';
+  /* NO `min-height: 0`. `.chart` is a flex column, so a plot with that floor
+     shrinks to nothing: the horizontal bar chart measured 508.9 by 0 while its
+     own grid row was 104px. It only looked right until `overflow: hidden`
+     arrived, because the rows painted outside a zero-height box.
+     `min-height: auto` is the flex default and it holds the content. The
+     charts that DO state a height state it inline, so they never needed the
+     floor either. `min-width` stays: a plot must be allowed to narrow. */
+  min-width: 0;
+}
+.dmd .chart .chart-plot > * { grid-area: plot; min-width: 0; }
+
+/* ── THE GRIDLINES BELONG TO THE VALUE AXIS ALONE ──
+ *
+ * A category axis has no quantity to read against, so a line there separates
+ * nothing and turns a plot into a grid of boxes. `repeating-linear-gradient`
+ * rather than four elements: a gridline is paint, and paint that costs no DOM
+ * cannot be measured as a stacked child by any of the layout checks.
+ *
+ * The count is a local, so a chart wanting three lines instead of four sets
+ * `--ch-grid-n` and nothing else changes. */
+.dmd .chart .chart-grid {
+  pointer-events: none;
+  background-image: repeating-linear-gradient(
+    to top,
+    var(--ch-grid, var(--c-border-subtle, #ddd)) 0,
+    var(--ch-grid, var(--c-border-subtle, #ddd)) var(--ch-grid-w, 1px),
+    transparent var(--ch-grid-w, 1px),
+    transparent calc(100% / var(--ch-grid-n, 4))
+  );
+  background-position: bottom left;
+}
+/* A horizontal bar chart reads across, so its gridlines run the other way. */
+.dmd .chart-bar .chart-grid {
+  background-image: repeating-linear-gradient(
+    to right,
+    var(--ch-grid, var(--c-border-subtle, #ddd)) 0,
+    var(--ch-grid, var(--c-border-subtle, #ddd)) var(--ch-grid-w, 1px),
+    transparent var(--ch-grid-w, 1px),
+    transparent calc(100% / var(--ch-grid-n, 4))
+  );
+  background-position: bottom left;
+}
+
+/* ── The axis, heavier than any gridline ──
+ * An axis is the chart's own outline; a gridline is quieter than it. One step
+ * apart on the neutral ramp, and the right way round. */
+.dmd .chart .chart-axis-x {
+  border-block-end: var(--ch-axis-w, 1px) solid var(--ch-axis, var(--c-border, #999));
+}
+.dmd .chart .chart-axis-y {
+  border-inline-start: var(--ch-axis-w, 1px) solid var(--ch-axis, var(--c-border, #999));
+}
+/* A ZERO LINE IS NOT A GRIDLINE. A diverging chart needs one, and it carries
+   the axis weight because it is the axis, moved off the floor. */
+.dmd .chart .chart-zero {
+  border-block-end: var(--ch-axis-w, 1px) solid var(--ch-axis, var(--c-border, #999));
+}
+
+/* ── Columns ── */
+.dmd .chart .chart-cols {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--ch-bar-gap, var(--space-xs, 8px));
+}
+.dmd .chart .chart-cols > * { flex: 1 1 0; min-width: 0; }
+.dmd .chart .chart-col {
+  border-radius: var(--ch-radius, var(--radius-sm, 2px)) var(--ch-radius, var(--radius-sm, 2px)) 0 0;
+  /* THE HAIRLINE IS AN OUTLINE AT A NEGATIVE OFFSET, never a border. A border
+     adds width to a box sized as a percentage and pushes the run past its
+     track. Forced colors preserves outlines and disregards `background-color`,
+     so this is also the only mark a segment keeps in that mode. */
+  outline: var(--ch-axis-w, 1px) solid var(--ch-edge, var(--c-border-subtle, #ddd));
+  outline-offset: calc(-1 * var(--ch-axis-w, 1px));
+}
+
+/* ── Grouped: the one arrangement that states a proximity ratio ──
+ * 4px inside a group against 16px between them is 4:1, so a group reads as one
+ * object. Under 3:1 the groups dissolve into one run of bars and the category
+ * axis stops meaning anything. Both numbers are stated together. */
+.dmd .chart-grouped .chart-cols { gap: var(--ch-group-gap, var(--space-md, 16px)); }
+.dmd .chart-grouped .chart-group {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--ch-bar-gap, var(--space-2xs, 4px));
+  flex: 1 1 0;
+  min-width: 0;
+}
+.dmd .chart-grouped .chart-group > * { flex: 1 1 0; min-width: 0; }
+
+/* ── Stacked: the segments TOUCH, which is what the palette is built around ── */
+.dmd .chart-stacked .chart-col { display: flex; flex-direction: column-reverse; }
+.dmd .chart-stacked .chart-seg {
+  outline: var(--ch-axis-w, 1px) solid var(--ch-edge, var(--c-border-subtle, #ddd));
+  outline-offset: calc(-1 * var(--ch-axis-w, 1px));
+}
+.dmd .chart-stacked .chart-col { border-radius: 0; outline: 0; }
+
+/* ── Bars, horizontal ──
+ * THE LABEL COLUMN TAKES ITS CONTENT AND THE BAR SHRINKS, never the reverse.
+ * A bar clipped to fit a name is a value nobody can read, and a long category
+ * name is the reason to reach for this type at all. */
+.dmd .chart-bar .chart-rows {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  align-items: center;
+  column-gap: var(--space-sm, 12px);
+  row-gap: var(--ch-bar-gap, var(--space-xs, 8px));
+}
+.dmd .chart-bar .chart-row-label { text-align: end; min-width: 0; }
+.dmd .chart-bar .chart-track { min-width: 0; }
+.dmd .chart-bar .chart-col {
+  border-radius: 0 var(--ch-radius, var(--radius-sm, 2px)) var(--ch-radius, var(--radius-sm, 2px)) 0;
+}
+
+/* ── Line, area, scatter, sparkline: SVG, because a path is a path ──
+ *
+ * `vector-effect: non-scaling-stroke` ON THE SHAPES, never on the `<svg>`. The
+ * property applies to drawn geometry and does not inherit, so a rule on the
+ * root element computes `non-scaling-stroke` there and `none` on every path
+ * inside it, and changes nothing. That reads as done: the declaration is in
+ * the stylesheet and computed style on the svg agrees with it. Only the child
+ * disagrees, and this system has already shipped that fault twice. */
+/* ── A `viewBox` GIVES AN `<svg>` AN INTRINSIC ASPECT RATIO, AND IT WINS ──
+ *
+ * `width: 100%; height: 100%` measured 478.9 by 478.9 inside a 140px plot. The
+ * viewBox is `0 0 100 100`, so the element takes a 1:1 ratio, and the ratio
+ * beat the percentage height. It painted 338px past the bottom of its own
+ * plot, over the card below it, on the line, area, combo, scatter and
+ * sparkline.
+ *
+ * NO LAYOUT CHECK CAUGHT IT. The sweep came back clean at 13 widths, because
+ * an SVG at `overflow: visible` paints outside its box without the box ever
+ * growing, and every geometric check reads boxes. They found it by looking.
+ *
+ * `position: absolute` with `inset: 0` takes the element out of intrinsic
+ * sizing entirely, so the plot's own height is the only thing that decides.
+ * The plot already declares `position: relative`.
+ *
+ * AND NO `overflow: hidden` ON THE PLOT, which was the first fix and it broke
+ * the horizontal bar chart. A flex item whose overflow is not `visible` has an
+ * automatic minimum size of ZERO, so the plot that sizes to its own content
+ * collapsed: 508.9 by 0 with 104px of rows inside it. The clipping was never
+ * needed anyway. An outermost `<svg>` clips to its own viewport by default, so
+ * a datum outside the axis range is already a clipped line rather than a line
+ * drawn across the neighbouring card. */
+.dmd .chart .chart-svg {
+  display: block;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.dmd .chart .chart-svg .chart-path,
+.dmd .chart .chart-svg .chart-path * {
+  fill: none;
+  stroke-width: var(--ch-line-w, 2px);
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+/* The fill under a line. A fill must differ from what is behind it: at 0.5 it
+   competes with its own line and at 0.05 it is absent rather than subtle. */
+.dmd .chart .chart-svg .chart-fill,
+.dmd .chart .chart-svg .chart-fill * {
+  stroke: none;
+  opacity: var(--ch-fill-op, 0.2);
+}
+.dmd .chart .chart-svg .chart-point,
+.dmd .chart .chart-svg .chart-point * {
+  stroke: none;
+  r: calc(var(--ch-marker, 8px) / 2);
+}
+.dmd .chart-scatter .chart-svg .chart-dense .chart-point,
+.dmd .chart-scatter .chart-svg .chart-point.is-dense {
+  r: calc(var(--ch-marker-dense, 4px) / 2);
+}
+
+/* ── Pie and donut ──
+ * `conic-gradient`, so a slice costs no element and no path arithmetic. The
+ * gap between slices is the GROUND showing through, not a stroke: a stroke on
+ * a conic gradient has nothing to attach to. */
+.dmd .chart .chart-pie-face {
+  aspect-ratio: 1;
+  border-radius: var(--radius-pill, 999px);
+  margin-inline: auto;
+}
+.dmd .chart-donut .chart-pie-face {
+  /* The hole is a mask rather than a second circle, so whatever is behind the
+     chart shows through it and the centre total sits on the card's own ground
+     instead of on a disc that has to match it. */
+  -webkit-mask: radial-gradient(circle closest-side,
+    transparent calc(var(--ch-hole, 0.58) * 100%),
+    #000 calc(var(--ch-hole, 0.58) * 100%));
+  mask: radial-gradient(circle closest-side,
+    transparent calc(var(--ch-hole, 0.58) * 100%),
+    #000 calc(var(--ch-hole, 0.58) * 100%));
+}
+/* The hole carries a total, which is the whole reason a donut exists.
+   A FIGURE AND ITS LABEL ARE THE STAT TILE'S SHAPE, so they take the stat
+   tile's distance: the label belongs to the number, closer than anything else
+   in the chart is to anything. Measured at 0.00px before, which read as a
+   second line of the figure. */
+.dmd .chart-donut .chart-hole {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  row-gap: var(--space-3xs, 2px);
+  text-align: center;
+  pointer-events: none;
+}
+
+/* ── Heatmap: the only consumer of the sequential scale ──
+ * A hairline GAP in the ground colour, not a border on every cell. A border
+ * doubles at each shared edge and the grid reads twice as heavy as it should. */
+.dmd .chart-heatmap .chart-cells {
+  display: grid;
+  gap: var(--ch-cell-gap, 1px);
+  background: var(--ch-cell-gap-color, var(--c-surface, #fff));
+}
+.dmd .chart-heatmap .chart-cell {
+  border-radius: var(--ch-radius, var(--radius-sm, 2px));
+  aspect-ratio: 1;
+}
+
+/* ── A value crossing zero ──
+ * The column grows from the zero line in whichever direction its sign points,
+ * so the two halves are separate boxes and the line sits between them. */
+.dmd .chart .chart-diverge {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  flex: 1 1 0;
+  min-width: 0;
+}
+.dmd .chart .chart-diverge > .chart-diverge-up { display: flex; align-items: flex-end; flex: 0 0 auto; }
+.dmd .chart .chart-diverge > .chart-diverge-down { display: flex; align-items: flex-start; flex: 0 0 auto; }
+.dmd .chart .chart-diverge > .chart-diverge-up > *,
+.dmd .chart .chart-diverge > .chart-diverge-down > * { width: 100%; }
+.dmd .chart .chart-diverge > .chart-zero { flex: 0 0 auto; }
+
+/* ── A chart with nothing in it ──
+ * The plot keeps its box, so the card does not change height when the data
+ * arrives. A message centred in a collapsed plot is a card that jumps.
+ *
+ * LIGHTER THAN `surface-sunken`, WHICH MEASURED 1.48:1 ON THE CARD and read as
+ * a grey slab. `bg` is 1.15:1, which is the page's own ground showing through
+ * and the right idea for an absence. It is also under the 1.2 a shape needs to
+ * be found at all, so the EDGE carries it: a fill that cannot separate takes a
+ * hairline instead, the same way the neutral chip does. */
+.dmd .chart .chart-blank {
+  display: grid;
+  place-content: center;
+  text-align: center;
+  background: var(--c-bg, #fff);
+  border: var(--ch-grid-w, 1px) solid var(--ch-grid, var(--c-border-subtle, #ddd));
+  border-radius: var(--radius-md, 4px);
+}
+
+/* ── The value label on a series ──
+ * Figures in a column are the mono face's job. A single label beside its own
+ * bar is not a column, so it keeps the body face. */
+.dmd .chart .chart-value { color: var(--c-text, #111); }
+.dmd .chart .chart-tick { color: var(--ch-ink, var(--c-text-muted, #666)); white-space: nowrap; }
+
+/* ── FORCED COLORS ──
+ * Every fill here is a `background-color` or a gradient, and that mode
+ * disregards both. A chart would lose its data entirely, which is worse than
+ * losing a marker. An outline survives, so each series keeps its own shape and
+ * the direct label keeps its meaning. */
+@media (forced-colors: active) {
+  .dmd .chart .chart-col,
+  .dmd .chart .chart-seg,
+  .dmd .chart .chart-cell {
+    outline: 1px solid CanvasText;
+    outline-offset: -1px;
+  }
+  .dmd .chart .chart-svg .chart-path,
+  .dmd .chart .chart-svg .chart-path * { stroke: CanvasText; }
 }
 .dmd .nav-item {
   padding: var(--cmp-nav-item-padding, var(--space-xs, 8px) var(--space-sm, 12px));

@@ -178,6 +178,37 @@ export const KEYBOARD_CONTRACTS = [
 ]
 
 /** Every component that answers at least one key. */
+/* ── CHARTS ARE NOT WIDGETS, AND SAYING SO IS THE ENTRY ──
+ *
+ * A chart is a picture of data. It takes no focus and answers no keys, and
+ * the twelve types answer identically, so one note serves them all. An
+ * ABSENT entry reads as an oversight; a stated `none` is a decision.
+ *
+ * WHAT THEY DO OWE IS A NAME AND A TEXT ALTERNATIVE. A reader who cannot
+ * see the picture gets nothing from a div full of coloured boxes, and that
+ * is the failure a key list cannot describe.
+ *
+ * A SPARKLINE IN A TABLE ROW NEEDS THE OPPOSITE: the row already carries
+ * the name and the value in text, so labelling the line again reads the
+ * row twice. It takes `aria-hidden`.
+ *
+ * The one interactive thing here is a legend that FILTERS. That is a group
+ * of toggle buttons and it takes the button contract, which is why there
+ * is no key list here to half-describe it. */
+const CHART_NOTE = 'A chart is a picture of data: no focus, no keys. It owes a NAME and a text alternative instead. Give it `role="img"` with an `aria-label` carrying the figures, or put a table beside it. A sparkline inside a table row takes `aria-hidden` instead, because the row already carries its name and value in text. A legend that filters is a group of toggle buttons and takes the button contract.'
+/* ONE HOME, ELEVEN POINTERS. Twelve entries carrying the same note is one
+   rule stated twelve times, and the payload drift check counted 264 pairs of
+   it. `chart-column` states the contract; the rest name it. The pointers are
+   deliberately short: a restatement in different words is the fault, and a
+   pointer is not a restatement. */
+for (const t of ['column', 'bar', 'line', 'area', 'pie', 'donut', 'combo', 'stacked', 'grouped', 'scatter', 'heatmap', 'sparkline']) {
+  KEYBOARD_CONTRACTS.push({
+    component: 'chart-' + t, role: 'img', pattern: 'Not a widget',
+    keys: [], requires: [],
+    note: t === 'column' ? CHART_NOTE : 'As `chart-column`.',
+  })
+}
+
 export const INTERACTIVE_CONTRACTS = KEYBOARD_CONTRACTS.filter(c => c.keys.length > 0)
 
 /** Lookup by component name, for the emitters. */

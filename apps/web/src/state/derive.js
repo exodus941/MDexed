@@ -280,7 +280,18 @@ const kebab = s => s.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase()
 /* Component entries → CSS variables, so editing `input.padding` actually moves
    the input in the preview. Without this the matrix only affected the exported
    file and the preview quietly kept using the raw scales. */
-function buildComponentVars(components = [], { roles, spacing, rounded, typography, gradients, icons, ramps }) {
+/* ── THE REFERENCE NAMESPACES, IN ONE PLACE ──
+ *
+ * The resolver below knows five. The spec validator kept its own list of four
+ * and typed them by hand, so adding `borderWidths` to the resolver made every
+ * preset emit a document with two unresolved references — and the validator
+ * was right to warn, because its list said the group did not exist.
+ *
+ * A list with two homes disagrees the first time one of them grows. Both read
+ * this now, so a sixth namespace cannot be half-added. */
+export const REF_GROUPS = ['colors', 'typography', 'rounded', 'spacing', 'gradient', 'icons', 'borderWidths']
+
+function buildComponentVars(components = [], { roles, spacing, rounded, typography, gradients, icons, ramps, borderWidths }) {
   const spaceBy = Object.fromEntries(spacing.map(s => [s.name, s.value]))
   const roundBy = Object.fromEntries(rounded.map(r => [r.name, r.value]))
   const typeBy = Object.fromEntries(typography.map(t => [t.name, t]))
@@ -301,6 +312,13 @@ function buildComponentVars(components = [], { roles, spacing, rounded, typograp
     .replace(/\{rounded\.([\w-]+)\}/g, (m, k) => roundBy[k] ?? m)
     .replace(/\{gradient\.([\w-]+)\}/g, (m, k) => gradientBy[k] ?? m)
     .replace(/\{icons\.([\w-]+)\}/g, (m, k) => (icons?.sizes?.[k] != null ? `${icons.sizes[k]}px` : m))
+    /* A FIFTH NAMESPACE, BECAUSE THE BORDER WIDTHS WERE UNCITABLE. The radius
+       scale ships `hairline: 1` and `thick: 2` and emits `--border-hairline`
+       and `--border-thick` for both. A component entry had no reference for
+       either, so a stroke weight inside a component was a typed number every
+       time. That is the missing-token fault with the token already present.
+       A chart axis and a chart line are the first two consumers. */
+    .replace(/\{borderWidths\.([\w-]+)\}/g, (m, k) => (borderWidths?.[k] != null ? `${borderWidths[k]}px` : m))
 
   const vars = {}
   for (const c of components) {
@@ -439,7 +457,7 @@ export function buildCssVars(d, mode = 'light', { darkAliases = false } = {}) {
     Object.assign(vars, buildComponentVars(d.components, {
       roles: d.roles?.[mode] ?? {}, spacing: d.spacing ?? [], rounded: d.rounded ?? [],
       typography: d.typography ?? [], gradients: d.gradients ?? [], icons: d.icons,
-      ramps: d.ramps ?? {},
+      ramps: d.ramps ?? {}, borderWidths: d.borderWidths ?? {},
     }))
   }
   return vars

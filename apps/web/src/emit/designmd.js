@@ -2,6 +2,10 @@
 import { load as yamlLoad } from 'js-yaml'
 import { emitFrontmatter, SPEC_TOP_LEVEL, SPEC_COMPONENT_PROPS, SPEC_TYPOGRAPHY_PROPS } from './yaml.js'
 import { emitBody } from './markdown.js'
+/* One home for the reference namespaces. This file kept its own list of
+   four, so a fifth added to the resolver made every preset emit two
+   unresolved references and the validator was right to warn. */
+import { REF_GROUPS } from '../state/derive.js'
 
 /**
  * @returns {{ text: string, omitted: string[], dropped: Array }}
@@ -77,7 +81,7 @@ export function validate(text) {
   for (const ref of new Set(refs)) {
     const [group, ...rest] = ref.split('.')
     const key = rest.join('.')
-    if (!['colors', 'typography', 'rounded', 'spacing'].includes(group)) {
+    if (!REF_GROUPS.includes(group)) {
       warnings.push(`Reference \`{${ref}}\` does not point at a known token group.`)
     } else if (key && doc[group] && !(key in doc[group])) {
       warnings.push(`Reference \`{${ref}}\` points at a token that is not defined.`)
