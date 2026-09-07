@@ -9,11 +9,12 @@
  * does not ship, and the whole question here is about the distance between
  * three roles the palette decides.
  *
- * Six tables, and the three quiet ones matter as much as the three loud ones:
+ * Six tables. The three that must produce right matter as much as the
+ * three that must produce one:
  *
- *   ok        the shipped stripe, the selection one step further   silent
- *   okcell    the same, with the selection painted on the CELLS    silent
- *   plain     a ruled table with no stripe at all                  silent
+ *   ok        the shipped stripe, the selection one step further   right
+ *   okcell    the same, with the selection painted on the CELLS    right
+ *   plain     a ruled table with no stripe at all                  right
  *   band      a stripe two steps off the surface                   boundary + two-step
  *   order     the selection softer than the stripe                 order
  *   twostep   the selection at the accent                          two-step
@@ -106,8 +107,9 @@ const noStripe = () => {
   return out.join('\n')
 }
 
-const block = (id, title, inner) => [
+const block = (id, title, note, inner) => [
   '<h2>' + title + '</h2>',
+  '<p class="note">' + note + '</p>',
   '<div class="card"><table id="' + id + '">',
   '<thead><tr><th>Pick</th><th>Number</th><th>Account</th><th>Due</th></tr></thead>',
   '<tbody>', inner, '</tbody></table></div>',
@@ -123,7 +125,9 @@ const html = [
   '  :root { color-scheme: light }',
   '  body { font: 14px/1.5 system-ui, sans-serif; margin: 0; padding: 24px;',
   '         background: ' + V.bg + '; color: ' + V.text + ' }',
-  '  h2 { font-size: 13px; font-weight: 600; margin: 0 0 8px }',
+  '  h2 { font-size: 13px; font-weight: 600; margin: 0 0 4px }',
+  '  .note { font-size: 12.5px; line-height: 1.55; margin: 0 0 10px; max-width: 74ch;',
+  '          color: color-mix(in oklch, currentColor 62%, transparent) }',
   '  .card { background: ' + V.surface + '; padding: 16px; border-radius: 8px; margin-bottom: 24px }',
   '  table { border-collapse: collapse; width: 100% }',
   '  th, td { padding: 8px 12px; text-align: start }',
@@ -131,12 +135,18 @@ const html = [
   '</style>',
   '</head>',
   '<body>',
-  block('ok', 'SILENT — the shipped stripe, the selection one step further', onRow(V.stripe, V.selected)),
-  block('okcell', 'SILENT — the same, with the selection painted on the CELLS', onCells()),
-  block('plain', 'SILENT — a ruled table with no stripe at all', noStripe()),
-  block('band', 'FIRES — a stripe two steps off the surface', onRow(V.band, V.deep)),
-  block('order', 'FIRES — the selection softer than the stripe', onRow(V.selected, V.stripe)),
-  block('twostep', 'FIRES — the selection two steps off the stripe', onRow(V.stripe, V.loud)),
+  block('ok', 'RIGHT — stripe 1.04:1 and selection 1.15:1 against the surface',
+    'Ten rows. Every other row is filled with the stripe colour, 1.04:1 against the card. The two picked rows are filled with the selection colour, 1.15:1. The selection is further out than the stripe, so the picked rows stand out more than the rhythm.', onRow(V.stripe, V.selected)),
+  block('okcell', 'RIGHT — the same numbers, with the selection painted on the CELLS',
+    'The same numbers, with the selection painted on the cells instead of the row. This is how the app draws one, and the row own background is transparent on all ten rows. The first version of the check read the row, got transparent, and skipped the table.', onCells()),
+  block('plain', 'RIGHT — a ruled table with no stripe at all',
+    'Ten rows with a rule between them and no stripe. There is no stripe to measure, so the stripe rules say nothing about this table.', noStripe()),
+  block('band', 'WRONG — stripe 1.94:1 against the surface',
+    'The stripe at 1.94:1 against the card. Above about 1.6:1 a stripe divides the table into blocks instead of grouping its rows.', onRow(V.band, V.deep)),
+  block('order', 'WRONG — selection 1.04:1 and stripe 1.15:1, the wrong way round',
+    'The stripe at 1.15:1 and the selection at 1.04:1, so the stripe stands out more than the picked row. Every other row then competes with the one the reader chose.', onRow(V.selected, V.stripe)),
+  block('twostep', 'WRONG — the selection 7.01:1 off the stripe',
+    'The selection at the accent colour, 7.01:1 off the stripe. That is more than two ramp steps. Picked rows then read as darkened rather than as chosen.', onRow(V.stripe, V.loud)),
   '</body>',
   '</html>',
 ].join('\n')

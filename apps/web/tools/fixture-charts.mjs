@@ -13,14 +13,14 @@
  *   declares `aspect-ratio: auto` on purpose, because its height comes from
  *   how many bars it has.
  *
- * Eight plots. Four are correct and must stay silent, and each of the four
+ * Eight plots. Four are correct and must produce right. Each of the four
  * faults is injected on its own so a finding can be read by id rather than
  * counted:
  *
- *   ok-grid      gridlines one step under the axis          silent
- *   ok-zero      one line AT the axis weight, a zero line   silent
- *   ok-bar       aspect-ratio auto, height from its rows    silent
- *   ok-named     a chart with role=img and a label          silent
+ *   ok-grid      gridlines one step under the axis          right
+ *   ok-zero      one line AT the axis weight, a zero line   right
+ *   ok-bar       aspect-ratio auto, height from its rows    right
+ *   ok-named     a chart with role=img and a label          right
  *   bad-grid     gridlines in the axis colour               gridline
  *   bad-height   a stated height and no ratio               plot-shape
  *   bad-group    2:1 between groups and inside them         grouped-ratio
@@ -80,7 +80,9 @@ const groups = (inner, between) => {
     + one.repeat(4) + '</div>'
 }
 
-const block = (title, inner) => '<h2>' + title + '</h2>\n<div class="card">' + inner + '</div>'
+const block = (title, note, inner) => '<h2>' + title + '</h2>'
+  + '<p class="note">' + note + '</p>'
+  + '<div class="card">' + inner + '</div>'
 
 /* A plot: a grid layer and a series layer in one cell, which is the shape the
    system publishes. `plot` in the class, because the checks ask for it. */
@@ -122,44 +124,54 @@ const html = [
   '  :root { color-scheme: light }',
   '  body { font: 14px/1.5 system-ui, sans-serif; margin: 0; padding: 24px;',
   '         background: ' + V.bg + '; color: ' + V.text + ' }',
-  '  h2 { font-size: 13px; font-weight: 600; margin: 0 0 8px }',
+  '  h2 { font-size: 13px; font-weight: 600; margin: 0 0 4px }',
+  '  .note { font-size: 12.5px; line-height: 1.55; margin: 0 0 10px; max-width: 74ch;',
+  '          color: color-mix(in oklch, currentColor 62%, transparent) }',
   '  .card { background: ' + V.surface + '; padding: 16px; border-radius: 8px; margin-bottom: 24px }',
   '</style>',
   '</head>',
   '<body>',
 
-  block('SILENT — gridlines one step under the axis',
+  block('RIGHT — gridlines one step under the axis',
+    'The axis is #6d7c8a and the gridlines are #bac4ce, one ramp step apart. The gridlines read 2.42:1 against the axis, so the axis is the heavier line.',
     chart('ok-grid', plot({ ratio: '2 / 1', grid: V.grid }),
       ' role="img" aria-label="Invoices raised, six months, rising from 58 to 108 thousand"')),
 
-  block('SILENT — one line AT the axis weight, which is a zero line',
+  block('RIGHT — one line at the axis weight, which is a zero line',
+    'The same plot with one extra line across the middle, drawn in the axis colour. A zero line takes the axis weight because it is the axis, moved off the floor. One matching line is correct. A whole set of matching lines is not.',
     chart('ok-zero', plot({ ratio: '2 / 1', grid: V.grid, zero: true }),
       ' role="img" aria-label="Net movement, six months, crossing zero in July"')),
 
-  block('SILENT — a horizontal bar chart, height from its row count',
+  block('RIGHT — a bar chart whose height comes from its row count',
+    'A horizontal bar chart at aspect-ratio: auto and min-block-size 104px. Its height comes from how many bars it has, so it states no ratio.',
     '<div class="chart chart-bar" id="ok-bar" role="img" aria-label="Revenue by line, five lines">'
     + plot({ height: 'auto', grid: V.grid, body: cols(5, V.series) }).replace('min-block-size:140px', 'min-block-size:104px')
     + '</div>'),
 
-  block('SILENT — a chart named by a figure and its caption',
+  block('RIGHT — a chart named by a figure and its caption',
+    'A plot inside a figure with a figcaption. The caption is the name, so the plot needs no aria-label of its own.',
     '<figure style="margin:0">'
     + chart('ok-named', plot({ ratio: '2 / 1', grid: V.grid }))
     + '<figcaption>Invoices raised, six months</figcaption></figure>'),
 
-  block('FIRES — gridlines painted in the axis colour',
+  block('WRONG — gridlines painted in the axis colour',
+    'The same plot with the gridlines at #6d7c8a, which is the axis colour. They read 1.00:1 against the axis, so the plot is a grid of boxes rather than data on a ground.',
     chart('bad-grid', plot({ ratio: '2 / 1', grid: V.axis }),
       ' role="img" aria-label="Invoices raised, six months"')),
 
-  block('FIRES — a stated height and no aspect ratio',
+  block('WRONG — a stated height and no aspect ratio',
+    'A plot at height 140px with no aspect-ratio. A fixed height gives a different proportion at every width. Measured across one set: 3.36:1 to 10.82:1 from a single 140px.',
     chart('bad-height', plot({ height: '140px', grid: V.grid }),
       ' role="img" aria-label="Invoices raised, six months"')),
 
-  block('FIRES — a grouped chart at 2:1 rather than 3:1',
+  block('WRONG — a grouped chart at 2:1 rather than 3:1',
+    'Four groups of three bars. 8px inside a group and 16px between groups, so 2:1. Under 3:1 the groups run together and the category axis stops separating anything.',
     '<div class="chart chart-grouped" id="bad-group" role="img" aria-label="Raised, settled and written off, four months">'
     + plot({ ratio: '2 / 1', grid: V.grid, body: groups(8, 16) })
     + '</div>'),
 
-  block('FIRES — a plot in the tab order that answers no key',
+  block('WRONG — a plot with tabindex 0, which answers no key',
+    'The same plot with tabindex="0". It takes a tab stop and answers no key when a reader reaches it. A chart is a picture: no focus, no keys, and a name instead.',
     chart('bad-focus', plot({ ratio: '2 / 1', grid: V.grid, tabindex: 0 }),
       ' role="img" aria-label="Invoices raised, six months"')),
 

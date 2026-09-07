@@ -1,11 +1,11 @@
 /* ── THE FIXTURE THAT PROVES THE FIVE SPACING CHECKS ──
  *
  * The app's own twelve preview surfaces are the correct-code half of the proof
- * and every one of them is silent. This is the other half: a page where each
+ * and every one of them is right. This is the other half: a page where each
  * fault is injected on its own, beside the correct form of the same shape, so
  * a finding can be read by id rather than counted.
  *
- * Every case here has a SILENT twin, because a run that measured nothing reads
+ * Every case here has a correct twin, because a run that measured nothing reads
  * exactly like a passing check. Pointing these at correct code is what found
  * the one real bug in the batch: `px('none')` is 0, so a max-height guard
  * written with it matched every element in the document and reported 24
@@ -41,7 +41,8 @@ const V = {
   line: R['border-subtle'], edge: R.border, accent: R.accent, ink: R['text-muted'],
 }
 
-const block = (title, inner) => '<h2>' + title + '</h2>\n' + inner
+const block = (title, note, inner) => '<h2>' + title + '</h2>'
+  + '<p class="note">' + note + '</p>' + inner
 
 /* ── A separator above each item, or below the last one ── */
 const listRows = (side) => {
@@ -116,25 +117,53 @@ const html = [
   '  :root { color-scheme: light }',
   '  body { font: 14px/1.5 system-ui, sans-serif; margin: 0; padding: 24px;',
   '         background: ' + V.bg + '; color: ' + V.text + ' }',
-  '  h2 { font-size: 13px; font-weight: 600; margin: 24px 0 8px }',
+  '  h2 { font-size: 13px; font-weight: 600; margin: 24px 0 4px }',
+  '  .note { font-size: 12.5px; line-height: 1.55; margin: 0 0 10px; max-width: 74ch;',
+  '          color: color-mix(in oklch, currentColor 62%, transparent) }',
   '  .card { background: ' + V.surface + '; padding: 16px; border-radius: 8px }',
   '  button { font: inherit; padding: 6px 12px }',
   '</style>',
   '</head>',
   '<body>',
-  block('SILENT — a separator above each item', listRows('above')),
-  block('FIRES — a separator below each item, so the last lands on the card edge', listRows('below')),
-  block('SILENT — a collapsing row that owns the whole distance', fold('ok-nogap', 0)),
-  block('FIRES — a collapsing row with a gap charged above it', fold('bad-gap', 8)),
-  block('SILENT — stretched cards whose actions take the free space', cards('ok-feet', false)),
-  block('FIRES — stretched cards whose actions sit where the text ends', cards('bad-feet', true)),
-  block('SILENT — a rule centred in its own gap', ruled('ok-rule', 16, 16)),
-  block('FIRES — a rule sitting on one side of its gap', ruled('bad-rule', 4, 32)),
-  block('SILENT — a tab strip on one line', strip('ok-strip', 'flex-wrap:nowrap;overflow:hidden')),
-  block('FIRES — a tab strip folded onto two rows', strip('bad-wrap', 'flex-wrap:wrap')),
-  block('FIRES — a tab strip that declares a scroller', strip('bad-scroll', 'flex-wrap:nowrap;overflow-x:auto')),
-  block('SILENT — a wrapped run of buttons with one gap in both axes', buttonRun('ok-gap', 8, 8)),
-  block('FIRES — the same run 8px across and 24px down', buttonRun('bad-gap-axes', 8, 24)),
+  block('RIGHT — a separator above each item',
+    'Four rows. The rule is on each row top edge. The first row has nothing above it, so it draws none. The last row draws none at its bottom.',
+    listRows('above')),
+  block('WRONG — a separator below each item, so the last lands on the card edge',
+    'The same four rows with the rule on the bottom edge. The last row rule sits 0px from the card own border. Two 1px lines, 0px apart, separating nothing.',
+    listRows('below')),
+  block('RIGHT — a closed panel with no gap charged',
+    'A card with a closed panel. The panel is max-height 0. The card row-gap is 0px. The closed panel adds 0px to the card height.',
+    fold('ok-nogap', 0)),
+  block('WRONG — a collapsing row with a gap charged above it',
+    'The same card with row-gap 8px. The gap is charged even though the row is empty. The card is 8px taller than its visible content. Put the 8px in the panel padding instead.',
+    fold('bad-gap', 8)),
+  block('RIGHT — stretched cards with their buttons at the foot',
+    'Three cards, all 148px tall. The middle description takes two lines. Each button has margin-block-start: auto. All three buttons end 0px from their card foot.',
+    cards('ok-feet', false)),
+  block('WRONG — stretched cards whose actions sit where the text ends',
+    'The same three without margin-block-start: auto. Each button sits where its own text ends. The two short cards put theirs 21px higher than the middle one.',
+    cards('bad-feet', true)),
+  block('RIGHT — a rule centred in its own gap',
+    'A 1px rule between two sections. 16px above it and 16px below it. The boundary takes the same height whether or not the rule is drawn.',
+    ruled('ok-rule', 16, 16)),
+  block('WRONG — a rule sitting on one side of its gap',
+    'The same rule with 4px above and 32px below. It sits 8 times closer to the section above than to the one below.',
+    ruled('bad-rule', 4, 32)),
+  block('RIGHT — a tab strip on one line',
+    'Six tabs in a 320px card. flex-wrap: nowrap and overflow: hidden. One line. The tabs past 320px are clipped.',
+    strip('ok-strip', 'flex-wrap:nowrap;overflow:hidden')),
+  block('WRONG — a tab strip on two rows',
+    'The same six with flex-wrap: wrap. Two rows. Measured once at 92px tall for four tabs in a 248px pane. Swap the strip for a select at the width where it stops fitting.',
+    strip('bad-wrap', 'flex-wrap:wrap')),
+  block('WRONG — a tab strip with a horizontal scrollbar',
+    'The same six with overflow-x: auto. Tabs past 320px are reachable only by scrolling. A scrollbar also takes 10px of height from this strip and 0px from the one beside it.',
+    strip('bad-scroll', 'flex-wrap:nowrap;overflow-x:auto')),
+  block('RIGHT — a wrapped run of buttons with one gap in both axes',
+    'Four buttons in a 300px card. column-gap 8px, row-gap 8px. Two lines. The same 8px in both directions.',
+    buttonRun('ok-gap', 8, 8)),
+  block('WRONG — the same run 8px across and 24px down',
+    'The same four with column-gap 8px and row-gap 24px. The vertical distance is 3 times the horizontal one, so the two lines read as two separate rows of buttons.',
+    buttonRun('bad-gap-axes', 8, 24)),
   '</body>',
   '</html>',
 ].join('\n')
