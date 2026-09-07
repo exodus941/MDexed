@@ -644,7 +644,15 @@
    The split is the top-level division on the surface, so it takes the largest
    step rather than the panes taking a smaller rhythm: `2xl` against `md` is
    3.0:1, and against the strips' 4px it is 12:1. Both hold at one value. */
-.dmd .row.shell-split { align-items: stretch; gap: var(--space-2xl, 48px); }
+/* ── 32, NOT 48. THEIR CALL, AND IT COSTS THE RATIO ──
+ *
+ * Their instruction, 8 September 2026: "48px seems a bit heavy-handed."
+ * Cards inside each pane sit `md` apart, so `xl` against that is 2:1 where
+ * the proximity rule asks for 3. Measured before: 48px, 3:1. After: 32px,
+ * 2:1. Two panes cannot be mistaken for one another at any ratio, which is
+ * the argument for spending it here. Two tab strips can, and that pair keeps
+ * its own gutter. */
+.dmd .row.shell-split { align-items: stretch; gap: var(--space-xl, 32px); }
 
 /* A row that is allowed to wrap.
  *
@@ -3360,11 +3368,16 @@
  * on Record and Index. The column-gap was `lg` against the same 16, which is
  * 1.5:1 and also under the three to one a group boundary needs.
  *
- * `2xl` on both. The row-gap separates nothing at wide widths, because there
- * is one row, so raising it costs nothing until it matters. */
+ * `xl` on both, 32px. It was `2xl` at 48, and they called that heavy-handed
+ * on 8 September 2026. 32 against the 16 inside each column is 2:1, under
+ * the three a group boundary asks for. Two columns of cards cannot be
+ * mistaken for one another, which is why the ratio is spendable here.
+ *
+ * The row-gap separates nothing at wide widths, because there is one row, so
+ * it matches the column-gap and costs nothing until the columns stack. */
 .dmd .with-context {
   display: grid; align-items: start;
-  column-gap: var(--space-2xl, 48px); row-gap: var(--space-2xl, 48px);
+  column-gap: var(--space-xl, 32px); row-gap: var(--space-xl, 32px);
   grid-template-columns: minmax(0, 1fr) var(--context, 200px);
 }
 

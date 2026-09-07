@@ -71,7 +71,7 @@ const cards = (id, ragged) => {
     '<div style="background:' + V.surface + ';padding:16px;display:flex;flex-direction:column;row-gap:8px;flex:1 1 0;min-width:0">'
     + '<strong>Plan</strong>'
     + '<p style="margin:0">' + words + '</p>'
-    + '<div style="' + (pushed ? 'margin-block-start:auto;' : '') + 'display:flex;gap:8px">'
+    + '<div style="' + (pushed ? 'margin-block-start:auto;' : '') + 'display:flex;gap:8px;padding-block-start:8px">'
     + '<button>Choose</button></div>'
     + '</div>'
   return '<div id="' + id + '" style="display:flex;align-items:stretch;gap:16px">'
@@ -107,6 +107,13 @@ const buttonRun = (id, colGap, rowGap) => {
     + '</div></div>'
 }
 
+/* ── A button after a text block: 16px of clearance, or 8 ── */
+const clearance = (id, pad) =>
+  '<div class="card" id="' + id + '" style="width:320px;display:flex;flex-direction:column;row-gap:8px">'
+  + '<strong>Next step</strong>'
+  + '<p style="margin:0">Raise a credit note for INV-2291 before the period closes.</p>'
+  + '<div style="display:flex;gap:8px;padding-block-start:' + pad + 'px"><button>Open invoice</button></div>'
+  + '</div>'
 const html = [
   '<!doctype html>',
   '<html lang="en" data-theme="light">',
@@ -138,10 +145,10 @@ const html = [
     'The same card with row-gap 8px. The gap is charged even though the row is empty. The card is 8px taller than its visible content. Put the 8px in the panel padding instead.',
     fold('bad-gap', 8)),
   block('RIGHT — stretched cards with their buttons at the foot',
-    'Three cards, all 148px tall. The middle description takes two lines. Each button has margin-block-start: auto. All three buttons end 0px from their card foot.',
+    'Three cards, all 156px tall. The middle description takes two lines. Every button has margin-block-start: auto, so all three end 0px from their card foot. The action row also holds 8px of padding on top of the card 8px row gap: 16px minimum between the text and the button, and 37px on the two short cards where the margin takes the slack.',
     cards('ok-feet', false)),
   block('WRONG — stretched cards whose actions sit where the text ends',
-    'The same three without margin-block-start: auto. Each button sits where its own text ends. The two short cards put theirs 21px higher than the middle one.',
+    'The same three without margin-block-start: auto. Each button still clears its text by 16px. It sits where its own text ends, so the two short cards put theirs 21px above the card foot and the middle one 0px.',
     cards('bad-feet', true)),
   block('RIGHT — a rule centred in its own gap',
     'A 1px rule between two sections. 16px above it and 16px below it. The boundary takes the same height whether or not the rule is drawn.',
@@ -164,6 +171,14 @@ const html = [
   block('WRONG — the same run 8px across and 24px down',
     'The same four with column-gap 8px and row-gap 24px. The vertical distance is 3 times the horizontal one, so the two lines read as two separate rows of buttons.',
     buttonRun('bad-gap-axes', 8, 24)),
+
+  block('RIGHT — a button 16px below the text that explains it',
+    'A card with row-gap 8px. The action row carries 8px of its own padding, so the button sits 16px below the paragraph. A control needs more clearance than the card own rhythm.',
+    clearance('ok-clear', 8)),
+
+  block('WRONG — the same button 8px below the text',
+    'The same card with no padding on the action row, so the button sits 8px below the paragraph. At the card own step it reads as one more line of the paragraph rather than as something you press.',
+    clearance('bad-clear', 0)),
   '</body>',
   '</html>',
 ].join('\n')

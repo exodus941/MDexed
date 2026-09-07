@@ -172,7 +172,9 @@ export default function Dialog({ onInspect, layout, casing }) {
         <div style={{ padding: 'var(--space-lg, 24px)' }} className="stack-sm">
           <h3 className="t-h4" {...txt("h4")}>Invoices</h3>
           <p className="muted small" {...txt("body-sm", "text-muted")}>Page content sitting behind the dialog.</p>
-          <div className="row">
+          {/* `card-actions`, so the toolbar stands 16px clear of the line
+              that describes it. The stack publishes 12; the class adds 4. */}
+          <div className="row card-actions">
             <button className="btn btn-secondary btn-sm" {...ins('button-sm')}>Filter</button>
             <button className="btn btn-secondary btn-sm" {...ins('button-secondary')}>Export</button>
           </div>

@@ -533,7 +533,12 @@ export default function Charts({ onInspect, casing }) {
             <div className="chart-plot chart-blank">
               <div className="stack-sm" style={{ alignItems: 'center' }}>
                 <strong {...txt('body-md')}>{L('No invoices in this period')}</strong>
-                <button className="btn btn-secondary btn-sm" {...ins('button-secondary')}>{L('Clear the filter')}</button>
+                {/* `card-actions`, not a bare button. An action stands 16px
+                    clear of the text that explains it, and this stack
+                    publishes 12. The class makes up the 4. */}
+                <div className="row card-actions">
+                  <button className="btn btn-secondary btn-sm" {...ins('button-secondary')}>{L('Clear the filter')}</button>
+                </div>
               </div>
             </div>
           </div>

@@ -203,14 +203,22 @@ export default function Record({ onInspect, tabStyle, casing }) {
           </div>
           <div className="well stack-sm">
             {/* The same pair, wrapped rather than the well itself, because a
-                third child follows it. The label belongs to the sentence at 4px;
-                the button belongs to neither and keeps the well's own step. */}
+                third child follows it. The label belongs to the sentence at 4px.
+
+                THE BUTTON TAKES 16px, NOT THE WELL'S 12. This comment used to
+                read "the button belongs to neither and keeps the well's own
+                step". Their correction, 8 September 2026: a button after a text
+                block takes extra padding, so it separates itself as something
+                you press. Measured before: 12px. `card-actions` publishes the
+                16 and subtracts the container's 12, so the padding is 4. */}
             <div className="fact">
               <div className="caption muted" {...txt('overline', 'text-muted')}
                 style={{ textTransform: 'uppercase', letterSpacing: 'var(--font-overline-tracking)' }}>{L('Next step')}</div>
               <p className="small" {...txt('body-sm')}>Raise a credit note for INV-2291.</p>
             </div>
-            <button className="btn btn-secondary btn-sm" {...ins('button-secondary')}>{L('Open invoice')}</button>
+            <div className="row card-actions">
+              <button className="btn btn-secondary btn-sm" {...ins('button-secondary')}>{L('Open invoice')}</button>
+            </div>
           </div>
         </div>
       </div>

@@ -3793,8 +3793,67 @@ export const CHECKS = [
 
   {
     id: 'an-action-stands-clear-of-its-explanation',
-    where: 'manual',
-    line: 'An action stands clear of the text that explains it, by 16px. That is a step above the card own rhythm; 24 reads as a separated block rather than a card with an action in it.',
+    where: 'render',
+    line: 'An action stands clear of the text that explains it, by 16px. Measure to the button, not to its row.',
+    /* ── I MADE THIS A CHECKLIST LINE ON A BAD MEASUREMENT ──
+     *
+     * The probe measured from the text to the action ROW border box. The 16px
+     * lives inside that row as padding, so every correct case read 8 or 12 and
+     * a 16px floor looked like it would fire seven times.
+     *
+     * Re-measured to the BUTTON across six surfaces: 13 candidates, at 12, 16,
+     * 36.25, 110.78, 179.25, 187.14 and 251.84px. Two under 16. One was a real
+     * defect. The other is the page head, where the actions carry a transform
+     * that centres them on the heading cap band.
+     *
+     * FOUR GUARDS. Four words, so a one-word label above a field is not an
+     * explanation. The previous sibling holds no control, or this is a control
+     * row. The button is below the text. And a transformed row is placed by
+     * another rule. */
+    body: [
+      "const STEP = px(tokenValue('--space-md')) || 16",
+      "/* A text block is a run of words with no control in it. Four words, so a",
+      "   one-word label above a field is not mistaken for an explanation. */",
+      "for (const parent of all('*')) {",
+      "  const kids = Array.prototype.filter.call(parent.children, el => {",
+      "    const r = el.getBoundingClientRect()",
+      "    return r.width > 0 && r.height > 0",
+      "  })",
+      "  if (kids.length < 2) continue",
+      "  for (let i = 1; i < kids.length; i++) {",
+      "    const prev = kids[i - 1], row = kids[i]",
+      "    /* AN ACTION, NOT ANY CONTROL. A checkbox after a paragraph is a form",
+      "       field and a nav item is a destination. Both were reported before this",
+      "       line, and the rule is about neither. */",
+      "    const isAct = e => e.matches('button, a[href], [role=button], .btn')",
+      "      && !e.matches('.nav-item, .tab, [role=tab], input, select, textarea')",
+      "    const btn = isAct(row) ? row : [...row.querySelectorAll('*')].find(isAct)",
+      "    if (!btn) continue",
+      "    if (prev.matches(CONTROL) || prev.querySelector(CONTROL)) continue",
+      "    const words = prev.textContent.trim().split(/\\s+/).filter(Boolean)",
+      "    if (words.length < 4) continue",
+      "    const pr = prev.getBoundingClientRect(), br = btn.getBoundingClientRect()",
+      "    /* Stacked, and the button below the text. */",
+      "    if (br.top < pr.bottom - 0.5) continue",
+      "    /* ── A TRANSFORMED ROW IS PLACED BY ANOTHER RULE ──",
+      "       The actions beside a page heading carry a translate that centres them",
+      "       on its cap band, so their distance from the subtitle above is a",
+      "       by-product rather than a stated gap. Measured on one page head: 12px,",
+      "       and correct. Read the DECLARATION, not the distance. */",
+      "    if (getComputedStyle(row).transform !== 'none') continue",
+      "    /* AN OUT-OF-FLOW SIBLING SETS NO GAP. The Gallery tooltip specimen",
+      "       is an absolutely positioned span floating over its own trigger,",
+      "       measured 9.28px from the button and chosen by nobody. */",
+      "    if (/absolute|fixed/.test(getComputedStyle(prev).position)) continue",
+      "    /* MEASURE TO THE BUTTON, NEVER TO ITS ROW. The 16px lives inside the",
+      "       row as padding, so measuring to the row box reads 8 or 12 on correct",
+      "       code. That mistake is why this check was a checklist line for a day. */",
+      "    const gap = br.top - pr.bottom",
+      "    if (gap >= STEP - 0.5) continue",
+      "    fail(name(btn), 'this button sits ' + gap.toFixed(2) + 'px below the text that explains it, and the floor is ' + STEP + 'px. A control needs more clearance than the card own rhythm, or it reads as one more line of the paragraph. Put the difference in the action row own padding, so the container gap and the floor have one writer each.')",
+      "  }",
+      "}",
+    ],
   },
 
   {
