@@ -249,7 +249,7 @@ export default defineConfig(({ command }) => ({
        scales and the amount check. Then to 985 at 980.71, with the pairing
        check and the rule that a row taking a line of its own covers it. Then
        to 990 at 985.67, with the type-role check and the per-role classes. */
-    chunkSizeWarningLimit: 995,
+    chunkSizeWarningLimit: 1005,
   },
 
   server: {

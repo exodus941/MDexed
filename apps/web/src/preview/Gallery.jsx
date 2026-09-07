@@ -135,6 +135,13 @@ export default function Gallery({ onInspect, layout }) {
           <div className="field" {...ins('input-invalid')}><label className="label" {...txt("caption", "text-muted")}>Invalid</label><input className="input is-invalid" defaultValue="not-an-email" /></div>
           <div className="field" {...ins('input-disabled')}><label className="label" {...txt("caption", "text-muted")}>Disabled</label><input className="input" disabled defaultValue="Locked" /></div>
         </div>
+        {/* A TEXTAREA WAS DECLARED AND NEVER SHOWN. It takes the input's OWN
+            class, which is the sort of thing a reader cannot guess: the spec
+            names it `textarea` and there is no `.textarea`. */}
+        <div className="field" {...ins('textarea')}>
+          <label className="label" htmlFor="g-note" {...txt("caption", "text-muted")}>Note</label>
+          <textarea className="input" id="g-note" rows={3} defaultValue="Paid by transfer, reference on the remittance advice." />
+        </div>
       </Section>
 
       <Section txt={txt} title="Choices" note="Checkbox, switch and select — drawn from tokens, not native widgets">
@@ -144,6 +151,15 @@ export default function Gallery({ onInspect, layout }) {
           </label>
           <label className="with-icon" style={{ cursor: 'pointer' }} {...ins('checkbox')}>
             <Check />Attach a payment link
+          </label>
+          {/* THE THIRD STATE. A checkbox has three, and indeterminate is the
+              honest answer when some of the rows below a select-all are chosen
+              and some are not. Without it the box must lie in one direction.
+              It takes the SAME fill as checked — the MARK is what separates
+              them, a dash against a tick, so a reader who cannot tell two hues
+              apart still sees two shapes. */}
+          <label className="with-icon" style={{ cursor: 'pointer' }} {...ins('checkbox-indeterminate')}>
+            <Check mixed />Some line items are taxable
           </label>
           {/* The text sits at the other end of a `space-between` row rather than
               beside the control, so it cannot label it by position. Each switch
@@ -306,7 +322,95 @@ export default function Gallery({ onInspect, layout }) {
         </div>
       </Section>
 
+      {/* ── THE TABLE, WHICH WAS NOT ON THIS SURFACE AT ALL ──
+          This is called "every component this system ships, built correctly",
+          and the contract tells a builder to extract from it 1:1. There was no
+          table. Simulation run 13 built a financial dashboard and had to derive
+          one from the prose, which the same contract forbids.
+
+          One instance carries five declared names: the table, its header, its
+          cells, a selected row and a hover row. The figures follow the mono
+          rule too — an amount takes the face AND an end edge, a reference takes
+          the face alone, and a date with a month name stays in the body face. */}
+      <Section txt={txt} title="Table" note="Header, rows, a selected row, and the three kinds of figure">
+        <div className="card" {...ins('card')}>
+          <div className="table-scroll">
+            <table className="table" {...ins('table')}>
+              <thead {...ins('table-header')}>
+                <tr>
+                  <th scope="col">Date</th>
+                  <th scope="col">Reference</th>
+                  <th scope="col">Client</th>
+                  <th scope="col">Status</th>
+                  <th scope="col" className="num-col">Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr {...ins('table-cell')}>
+                  <td>6 Sep 2026</td>
+                  <td><span className="figure">INV-2043</span></td>
+                  <td>Northwind Trading</td>
+                  <td><span className="badge badge-success"><span className="dot" aria-hidden="true"></span>Paid</span></td>
+                  <td className="num-col"><span className="amount">1,480.00</span></td>
+                </tr>
+                <tr className="is-selected" {...ins('table-selected')}>
+                  <td>4 Sep 2026</td>
+                  <td><span className="figure">INV-2041</span></td>
+                  <td>Fabrikam Logistics</td>
+                  <td><span className="badge badge-warning"><span className="dot" aria-hidden="true"></span>Due</span></td>
+                  <td className="num-col"><span className="amount">-620.50</span></td>
+                </tr>
+                <tr className="is-hover" {...ins('table-hover')}>
+                  <td>1 Sep 2026</td>
+                  <td><span className="figure">INV-2038</span></td>
+                  <td>Contoso Insurance</td>
+                  <td><span className="badge badge-danger"><span className="dot" aria-hidden="true"></span>Overdue</span></td>
+                  <td className="num-col"><span className="amount">12,004.16</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </Section>
+
+      {/* ── A TAB STRIP AND THE CONTROL THAT FOLDS A NAVIGATION ──
+          `tab` and `nav-burger` were declared, styled, and rendered nowhere
+          here. The burger is a `summary` inside a `details`, which is the shape
+          its own CSS keys on, so a reader copying a bare button gets a control
+          that answers no key. */}
+      <Section txt={txt} title="Tabs and navigation" note="A strip with one tab current, and the control that folds a rail">
+        <div className="card stack-sm" {...ins('card')}>
+          <div className="row" role="tablist" aria-label="Invoice views" style={{ gap: 'var(--space-2xs, 4px)' }}>
+            <button className="tab is-selected" role="tab" aria-selected="true" {...ins('tab')}>Open</button>
+            <button className="tab" role="tab" aria-selected="false" {...ins('tab')}>Paid</button>
+            <button className="tab" role="tab" aria-selected="false" {...ins('tab')}>Draft</button>
+          </div>
+          <div className="divider"></div>
+          <div className="row" style={{ gap: 'var(--space-sm, 12px)' }}>
+            <details className="nav-collapse" style={{ display: 'block' }}>
+              <summary className="nav-summary btn btn-secondary" aria-label="Workspace menu" {...ins('nav-burger')}>
+                <span className="nav-burger" aria-hidden="true" style={{ display: 'flex' }}><span></span><span></span><span></span></span>
+                <span className="nav-label">Menu</span>
+              </summary>
+            </details>
+            <a className="nav-item is-selected with-icon" href="#gallery" aria-current="page" {...ins('nav-item-selected')}>
+              <Ico d={IconFolder} /><span>Current</span>
+            </a>
+            <a className="nav-item with-icon" href="#gallery" {...ins('nav-item')}>
+              <Ico d={IconStar} /><span>Another</span>
+            </a>
+          </div>
+        </div>
+      </Section>
+
       <Section txt={txt} title="Surfaces & elevation" note="flat, raised, overlay, sunken">
+        {/* card-compact and card-roomy were declared variants emitting their own
+            padding tokens, with no class consuming either and no instance here.
+            Both render now, so the padding step is visible beside the default. */}
+        <div className="cols-2" style={{ marginBottom: 'var(--space-md, 16px)' }}>
+          <div className="card card-compact" {...ins('card-compact')}><div className="caption" {...txt("caption", "text-muted")}>compact</div><p className="small" style={{ marginTop: 4 }} {...txt("body-sm")}>Tighter padding</p></div>
+          <div className="card card-roomy" {...ins('card-roomy')}><div className="caption" {...txt("caption", "text-muted")}>roomy</div><p className="small" style={{ marginTop: 4 }} {...txt("body-sm")}>Looser padding</p></div>
+        </div>
         <div className="cols-4">
           <div className="card card-flat" {...ins('card-flat')}><div className="caption" {...txt("caption", "text-muted")}>flat</div><p className="small" style={{ marginTop: 4 }} {...txt("body-sm")}>Border only</p></div>
           <div className="card" {...ins('card')}><div className="caption" {...txt("caption", "text-muted")}>raised</div><p className="small" style={{ marginTop: 4 }} {...txt("body-sm")}>Cards, panels</p></div>

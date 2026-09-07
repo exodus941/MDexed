@@ -300,6 +300,32 @@
   background: var(--cmp-button-danger-ghost-hover-background-color, var(--c-danger-subtle, #fbe9e7));
   color: var(--cmp-button-danger-ghost-hover-text-color, var(--c-danger, #c2453c));
 }
+
+/* ── THREE VARIANTS HAD NO ACTIVE APPEARANCE AT ALL ──
+ *
+ * The Accessibility section says every interactive element has a hover, a
+ * focus-visible, an active and a disabled appearance, and not to ship a control
+ * with only a resting state. Only `btn-primary` and `btn-secondary` had an
+ * `:active` rule. So a ghost, a danger and a danger-ghost stayed exactly as
+ * they were under the pointer, and the Gallery's forced `.is-active` specimen
+ * matched nothing — the dead-class check found it on a ghost.
+ *
+ * Each steps one further in the direction its own hover already goes, which is
+ * why none of them needs a new token: pressing is more of the same, not a
+ * different idea. */
+.dmd .btn-ghost:active, .dmd .btn-ghost.is-active {
+  background: var(--cmp-button-ghost-active-background-color, var(--c-accent-raised, #eddad6));
+  color: var(--cmp-button-ghost-active-text-color, var(--c-accent-active, #8f3324));
+}
+.dmd .btn-danger:active, .dmd .btn-danger.is-active {
+  background: var(--cmp-button-danger-active-background-color, var(--c-danger-hover, #a63a2f));
+  filter: brightness(0.94);
+}
+.dmd .btn-danger-ghost:active, .dmd .btn-danger-ghost.is-active {
+  background: var(--cmp-button-danger-ghost-active-background-color, var(--c-danger-subtle, #fbe9e7));
+  color: var(--cmp-button-danger-ghost-active-text-color, var(--c-danger-hover, #a63a2f));
+  filter: brightness(0.96);
+}
 /* THREE WAYS TO BE UNAVAILABLE, ONE APPEARANCE.
  *
  * `aria-disabled` joined this list when the pager's Previous arrow moved off
@@ -433,6 +459,30 @@
    an inline style, so the class was a label on a box rather than a rule — and
    a label nothing reads is how a stylesheet loses track of what it contains.
    The values move here unchanged. */
+/* ── THE MODAL HAD NO CLASS, ONLY INLINE STYLES ──
+ *
+ * The library declares `modal` and five `--cmp-modal-*` tokens ship for it, and
+ * they were read from a style object in Dialog.jsx. So the tokens worked and
+ * `.modal` did not exist, which means a reader writing `class="modal"` got
+ * nothing. Found while building the spec-name bridge: the row for `modal`
+ * claimed a class the stylesheet never defined, and a wrong bridge row is
+ * worse than an absent one.
+ *
+ * Only the token-driven declarations move here. The centring and the
+ * conditional text alignment stay with the component, because they belong to
+ * the stage and to a setting rather than to the component's own appearance. */
+.dmd .modal {
+  position: relative;
+  width: var(--cmp-modal-width, 400px);
+  max-width: 100%;
+  min-width: 0;
+  flex-shrink: 1;
+  background: var(--cmp-modal-background-color, var(--c-surface-raised, #fff));
+  border: var(--border-hairline, 1px) solid var(--c-border-subtle, #eee);
+  border-radius: var(--cmp-modal-rounded, var(--radius-lg, 16px));
+  padding: var(--cmp-modal-padding, var(--space-lg, 24px));
+  box-shadow: var(--cmp-modal-box-shadow, var(--shadow-modal, none));
+}
 .dmd .modal-stage {
   position: absolute; inset: 0; display: flex;
   align-items: center; justify-content: center;
@@ -1568,7 +1618,7 @@
    Left off entirely, these three had the browser default and looked like an
    unstyled page. The hover state carries the affordance instead. */
 .dmd .nav-item, .dmd a.btn { text-decoration: none; }
-.dmd .nav-item:hover { text-decoration: none; }
+.dmd .nav-item:hover, .dmd .nav-item.is-hover { text-decoration: none; }
 
 /* One band across a nav row. The links stood 38 from their padding and the
    call to action beside them 28, which is the "button two sizes short of the
@@ -1837,7 +1887,29 @@
 .dmd .table-rows-both tbody tr.is-selected > td {
   background: var(--cmp-table-row-selected-background-color, var(--c-selected));
 }
-.dmd .table tbody tr:hover > td {
+/* ── A SINGLE VALUE NEVER BREAKS; THE TABLE SCROLLS INSTEAD ──
+ *
+ * A table squeezed narrower than its content FITS, by wrapping every column,
+ * and nothing reports it: no overflow, no clip, every check green. Measured on
+ * one dashboard: all six columns at two lines, "6 Sep / 2026" and
+ * "TRF- / 40821". A cut value is worse than a scroll, and `.table-scroll` is
+ * already there to take it.
+ *
+ * Only what the system can KNOW is a single value. An amount, a figure and a
+ * marked numeric column are all one token by definition. Which prose column
+ * holds a name and which holds an unbreakable reference is the build's to say,
+ * so the rule stops here rather than guessing. */
+.dmd .table .num-col,
+.dmd .table .amount,
+.dmd .table .figure { white-space: nowrap; }
+
+/* PAIRED WITH A FORCIBLE CLASS, like every button state. The Gallery shows
+   states as forced `.is-*` classes so all of them are on screen at once, and
+   this rule answered only the real pseudo-class. A sample row written
+   `class="is-hover"` therefore painted nothing — a specimen that lies about the
+   state it claims. Found by the dead-class check on the new table sample. */
+.dmd .table tbody tr:hover > td,
+.dmd .table tbody tr.is-hover > td {
   background: var(--cmp-table-row-hover-background-color, transparent);
 }
 
@@ -2038,7 +2110,9 @@
     color var(--duration-normal, 250ms) var(--ease-standard, ease),
     border-color var(--duration-normal, 250ms) var(--ease-standard, ease);
 }
-.dmd .nav-item:hover { background: var(--cmp-nav-item-hover-background-color, var(--c-bg-subtle, #f4f4f4)); }
+/* Paired with the forcible class, so a specimen can show the state. */
+.dmd .nav-item:hover,
+.dmd .nav-item.is-hover { background: var(--cmp-nav-item-hover-background-color, var(--c-bg-subtle, #f4f4f4)); }
 /* ── THE SAMPLE READ TWO OF THE FOUR PROPERTIES IT SHIPS ──
  *
  * This rule took the fill and the text colour and stopped, so the selected

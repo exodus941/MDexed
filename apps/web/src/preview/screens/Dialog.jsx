@@ -59,25 +59,21 @@ function Modal({ ins, txt, layout, onInspect }) {
      *
      * `alertdialog` rather than `dialog`, because this one destroys something and
      * its message is the reason to stop. The role tells assistive technology to
-     * read the description without being asked. */
-    <div {...ins('modal')}
+     * read the description without being asked.
+     *
+     * THE APPEARANCE IS IN THE STYLESHEET NOW, under `.modal`. It was eight
+     * inline declarations reading `--cmp-modal-*`, so the tokens worked and the
+     * class did not exist. A reader told to write `class="modal"` got nothing.
+     *
+     * The centring note still applies: `flexShrink: 0` held this at 400px
+     * inside a 296px stage, so it overflowed equally on both sides and the clip
+     * took the left edge of every line. `.modal` states the shrink and the
+     * maximum. Only the text alignment stays inline, because it is a SETTING
+     * rather than the component's own appearance. */
+    <div {...ins('modal')} className="modal"
       role="alertdialog" aria-modal="true"
       aria-labelledby={TITLE_ID} aria-describedby={DESC_ID}
-      style={{
-      /* Centred by its parent now, not by a transform. See the stage below.
-         `flexShrink: 0` here held it at 400px inside a 296px stage, so it
-         overflowed equally on both sides and the clip took the left edge of
-         every line. It must be allowed to shrink, and `maxWidth` is what keeps
-         it inside the padding. */
-      position: 'relative', flexShrink: 1, minWidth: 0, maxWidth: '100%',
-      width: 'var(--cmp-modal-width, 400px)',
-      background: 'var(--cmp-modal-background-color, var(--c-surface-raised, #fff))',
-      borderRadius: 'var(--cmp-modal-rounded, var(--radius-lg, 16px))',
-      padding: 'var(--cmp-modal-padding, var(--space-lg, 24px))',
-      boxShadow: 'var(--cmp-modal-box-shadow, var(--shadow-modal, none))',
-      border: '1px solid var(--c-border-subtle, #eee)',
-      textAlign: centred ? 'center' : 'left',
-    }}>
+      style={{ textAlign: centred ? 'center' : 'left' }}>
       {/* Ghost, not secondary, and the medium size rather than small.
           A bordered box in the corner reads as a third action competing with
           Cancel and Delete, when dismissing is the quietest thing on the
