@@ -657,7 +657,13 @@
      mark and the label do not change size, only the box that catches the tap.
      A summary needs the box stated explicitly because it has no control
      height of its own to grow. */
-  .dmd .nav-item { min-height: 40px; display: flex; align-items: center; }
+  /* THE FLOOR IS THE PUBLISHED TOKEN, NOT A NUMBER TYPED HERE. This said 40px
+     while `states.touchTarget` publishes 44 and the render check enforces 44.
+     So five nav items measured 40 on a phone and `target-floor-on-a-finger`
+     reported every one of them, against a rule in this very file claiming 40
+     was the floor. A document that states a value and a stylesheet that types
+     another is two answers to one question. */
+  .dmd .nav-item { min-height: var(--target-min, 44px); display: flex; align-items: center; }
   /* The menu control used to take a 40px floor here, written when it was a bare
      disclosure with no control height of its own. It is a button now, and a
      button answers to the row it sits in: 40 beside three 28px buttons is the
