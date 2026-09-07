@@ -1107,6 +1107,53 @@
   top: calc((var(--target-min, 44px) - var(--cmp-button-sm-height, 28px)) / -2);
   bottom: calc((var(--target-min, 44px) - var(--cmp-button-sm-height, 28px)) / -2);
 }
+
+/* ── ON A FINGER, EVERY CONTROL CLEARS THE FLOOR ──
+ *
+ * The system published `--target-min` and a render check that enforces it, and
+ * shipped no CSS that reaches it. There IS a touch step in the responsive
+ * rules, and it has both of the faults this file keeps warning about: it is
+ * keyed on a WIDTH, and it is scoped to a NAMED LIST of four containers.
+ *
+ * ASK THE POINTER, NEVER THE WIDTH. A narrow window on a desktop is a mouse,
+ * and promoting there grows controls nobody will tap. A phone at 900px in
+ * landscape is a finger, and the width-keyed rule misses it entirely.
+ *
+ * AND NAME NO CONTAINERS. Simulation run 13 built a dashboard whose controls
+ * sat in none of the four, so 15 of them stayed under the floor: button-sm at
+ * 28, input and select at 36. Every control answers this, wherever it sits.
+ *
+ * HEIGHT AND LINE-HEIGHT ARE ONE DECISION, which is why `.btn` takes both.
+ * Raising the box alone leaves a 34px leading in a 44px box and pins the label
+ * to the top. Every size in this file states the pair; so does this.
+ */
+@media (pointer: coarse) {
+  .dmd .btn {
+    height: var(--target-min, 44px);
+    line-height: calc(var(--target-min, 44px) - 2px);
+  }
+  .dmd .btn.icon-only {
+    inline-size: var(--target-min, 44px);
+    padding: 0;
+  }
+  .dmd .input,
+  .dmd select.input,
+  .dmd textarea.input,
+  .dmd .select-trigger,
+  .dmd .nav-item,
+  .dmd .tab {
+    min-height: var(--target-min, 44px);
+  }
+  /* A WRAPPER THAT PINS A CONTROL TO A LINE BOX HAS TO LET GO OF IT.
+     The alert's action sits in a box one line tall, so its button centres on
+     the message's first line. Promoted to 44 inside a 19.08px wrapper it would
+     simply overflow. `height: auto` with the line box as a FLOOR keeps the
+     centring where the button is small and grows with it where it is not. */
+  .dmd .alert > .alert-action {
+    height: auto;
+    min-height: var(--line-box);
+  }
+}
 /* A RUN OF CHECKBOX ROWS TAKES THE WIDER GAP, SO EVERY TARGET MAKES 44.
  *
  * The arithmetic is forced and worth stating. A 28px box needs 8px of overhang

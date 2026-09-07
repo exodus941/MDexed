@@ -409,6 +409,18 @@ export function buildCssVars(d, mode = 'light', { darkAliases = false } = {}) {
   ;(d.dataviz?.diverging ?? []).forEach((hex, i) => { vars[`--chart-div-${i + 1}`] = hex })
   if (d.layout?.maxMeasure) vars['--measure'] = `${d.layout.maxMeasure}ch`
   for (const [name, w] of Object.entries(d.layout?.fixedWidths ?? {})) vars[`--width-${name}`] = `${w}px`
+  /* ── PUBLISH A SCALE, OR THE RULE IS UNUSABLE ──
+   *
+   * The Layout section printed a table of six container widths and no token
+   * carried any of them. So a build needing a page maximum had three choices:
+   * type 1140px, which the number check faults; invent `--container-xl`, which
+   * the token check faults; or declare its own property, which is legal and
+   * which nothing told it to do.
+   *
+   * Simulation run 13 took the second one and was correctly faulted for it.
+   * The value it wanted was in the document, in a table, beside a spacing
+   * table whose every row IS a token. */
+  for (const [name, w] of Object.entries(d.layout?.containers ?? {})) vars[`--container-${name}`] = `${w}px`
   /* Fills blend with what's behind them; borders and shadows can't.
      Read from the config, not `d.elevation` — that holds the shadow levels. */
   vars['--fill-blend'] = d.elevationCfg?.fillBlend ?? 'normal'

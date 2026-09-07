@@ -302,6 +302,14 @@ export function tailwindV4Css(state, derived) {
   for (const [k, v] of Object.entries(derived.motion.durations)) out.push(line(`--animate-duration-${k}`, v))
   out.push('')
   for (const b of state.layout?.breakpoints ?? []) out.push(line(`--breakpoint-${b.name}`, `${b.px}px`))
+  out.push('')
+  /* PUBLISH IT IN EVERY FORMAT, OR THE HOLE REOPENS ONE FILE ALONG. The
+     container widths, the named fixed widths and the reading measure reached
+     tokens.css and stopped, so a build importing any other format got none of
+     them. Tailwind's own `--container-*` namespace is what `max-w-xl` reads. */
+  for (const [k, w] of Object.entries(state.layout?.containers ?? {})) out.push(line(`--container-${k}`, `var(--container-${k})`))
+  for (const [k] of Object.entries(state.layout?.fixedWidths ?? {})) out.push(line(`--width-${k}`, `var(--width-${k})`))
+  out.push(line('--width-measure', 'var(--measure)'))
 
   return `${stamp('tailwind.css')}
 /* Tailwind v4. Import it once, after tokens.css:
@@ -373,6 +381,9 @@ ${block('shadow', Object.fromEntries(Object.entries(derived.elevation).filter(([
 ${block('duration', derived.motion.durations, '/** Motion durations. */')}
 ${block('easing', derived.motion.easings, '/** Motion curves. */')}
 ${block('breakpoint', Object.fromEntries((state.layout?.breakpoints ?? []).map(b => [b.name, `${b.px}px`])), '/** Breakpoints, in px. */')}
+${block('container', Object.fromEntries(Object.entries(state.layout?.containers ?? {}).map(([k, v]) => [k, `${v}px`])), '/** Content maximum per breakpoint. */')}
+${block('width', Object.fromEntries(Object.entries(state.layout?.fixedWidths ?? {}).map(([k, v]) => [k, `${v}px`])), '/** Named fixed widths: a rail, a field. Starting points, not constraints. */')}
+${block('measure', { text: `${state.layout?.maxMeasure ?? 68}ch` }, '/** The reading measure. Body copy never runs wider. */')}
 /** \`light\` or \`dark\`. */
 export type Mode = keyof typeof color
 
@@ -382,7 +393,7 @@ export type ColorRole = keyof typeof color.light
 /** Roles for one theme: \`theme('dark').surface\`. */
 export const theme = (mode: Mode) => color[mode]
 
-export default { color, scale, spacing, radius, typography, shadow, duration, easing, breakpoint, theme }
+export default { color, scale, spacing, radius, typography, shadow, duration, easing, breakpoint, container, width, measure, theme }
 `
 }
 
@@ -435,6 +446,14 @@ ${Object.entries(derived.motion.easings).map(([k, val]) => v(`ease-${k}`, val)).
 
 // ── Breakpoints ──
 ${(state.layout?.breakpoints ?? []).map(b => v(`bp-${b.name}`, `${b.px}px`)).join('\n')}
+
+// ── Widths ──
+// The container maximum per breakpoint, the named fixed widths, and the
+// reading measure. These reached tokens.css and no other format, so a Sass
+// build had the numbers only as prose in DESIGN.md.
+${Object.keys(state.layout?.containers ?? {}).map(k => v(`container-${k}`, `var(--container-${k})`)).join('\n')}
+${Object.keys(state.layout?.fixedWidths ?? {}).map(k => v(`width-${k}`, `var(--width-${k})`)).join('\n')}
+${v('measure', 'var(--measure)')}
 
 // ── Maps, for iterating ──
 ${map('colors', roles.map(r => [r, `var(--c-${r})`]))}
@@ -542,6 +561,16 @@ export function tokensJson(state, derived) {
      * a consumer that appends `px` produces a value CSS ignores. */
     number: Object.fromEntries(Object.entries(Z_LAYERS)
       .map(([k, v]) => [k, { $type: 'number', $value: Number(v) }])),
+    /* THE SAME HOLE, ONE GROUP ALONG. The container maximums, the named fixed
+       widths and the reading measure reached tokens.css and no other format, so
+       a Style Dictionary or Figma consumer had the numbers only as prose. */
+    container: Object.fromEntries(Object.entries(state.layout?.containers ?? {})
+      .map(([k, v]) => [k, { $type: 'dimension', $value: `${v}px` }])),
+    width: Object.fromEntries(Object.entries(state.layout?.fixedWidths ?? {})
+      .map(([k, v]) => [k, { $type: 'dimension', $value: `${v}px` }])),
+    measure: {
+      text: { $type: 'dimension', $value: `${state.layout?.maxMeasure ?? 68}ch` },
+    },
   }, null, 2) + '\n'
 }
 

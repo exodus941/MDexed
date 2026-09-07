@@ -535,8 +535,18 @@ function typographyBody(state, derived) {
 function layoutBody(state, derived) {
   const l = state.layout
   const spacing = table(['Token', 'Value'], derived.spacing.map(s => [`\`${s.name}\``, s.value]))
-  const bps = table(['Breakpoint', 'Min width', 'Container'],
-    l.breakpoints.map(b => [`\`${b.name}\``, `${b.px}px`, l.containers?.[b.name] ? `${l.containers[b.name]}px` : '—']))
+  /* A DOCUMENT THAT NAMES A VALUE MUST NAME THE PROPERTY. This table printed
+     six container widths and nothing said they were tokens, because they were
+     not. A build needing a page maximum could only type the number or invent a
+     token-shaped name, and the checkers fault both. They are emitted as
+     `--container-*` now, so the column says so. */
+  const bps = table(['Breakpoint', 'Min width', 'Container', 'Read the container as'],
+    l.breakpoints.map(b => [
+      `\`${b.name}\``,
+      `${b.px}px`,
+      l.containers?.[b.name] ? `${l.containers[b.name]}px` : '—',
+      l.containers?.[b.name] ? `\`var(--container-${b.name})\`` : '—',
+    ]))
 
   return joinBlocks(
     '**Spacing scale**', spacing,
