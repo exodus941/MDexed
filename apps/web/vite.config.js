@@ -252,8 +252,9 @@ export default defineConfig(({ command }) => ({
        Then to 1020 at 1015.85, with the card-flow rule and the check that a
        gap has one writer. Then to 1025 at 1022.24, with the tab rule and the
        published pointer minimum. Then to 1075 at 1069.19, with the twelve
-       chart components, their furniture and the Charts surface. */
-    chunkSizeWarningLimit: 1075,
+       chart components, their furniture and the Charts surface. Then to 1085 at
+       1078.10, with the marker elements and the aspect-ratio plots. */
+    chunkSizeWarningLimit: 1085,
   },
 
   server: {

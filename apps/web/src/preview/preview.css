@@ -1469,6 +1469,19 @@
    so the two groups read as one block. Proximity is decided by the ratio, never
    by the absolute value. */
 .dmd .stack-lg { display: flex; flex-direction: column; gap: var(--space-lg, 24px); --card-flow: 0px; }
+/* ── A SECTION BOUNDARY IS NOT ANOTHER ROW ──
+ *
+ * Proximity is a ratio. Cards inside a section sit `md` apart, so the gap
+ * between two SECTIONS has to beat that by three to one, or the new section
+ * reads as one more card. Measured on a surface with two sections: 16px above
+ * the second heading, identical to the gap between two cards.
+ *
+ * `2xl` is 48px, the first step that clears 3:1.
+ *
+ * A MARGIN ON THE HEADING WAS THE OTHER WAY, and it adds to the parent's gap.
+ * Two writers for one distance, wrong by the sum, and `one-writer-for-one-gap`
+ * would fault it correctly. A stack that owns the larger gap has one writer. */
+.dmd .stack-xl { display: flex; flex-direction: column; gap: var(--space-2xl, 48px); --card-flow: 0px; }
 
 /* An action row that pairs up when it has to break.
  *
@@ -2449,6 +2462,24 @@
   line-height: var(--font-caption-leading, 1.5);
   color: var(--ch-ink, var(--c-text-muted, #666));
 }
+/* ── MEASURE THE INK, NOT THE BOX ──
+ *
+ * The tick column is pulled up half a line so each label centres on the
+ * gridline it names. That overhang leaves the chart's BOX, so the ink started
+ * 9.72px above the box top. The card gave the title group 12px of clearance
+ * and the reader saw 2.28. On every card, which is why it read as none at all.
+ *
+ * Padding on the block axis absorbs exactly the overhang, top and bottom, so
+ * the box contains its own ink again and the 12px is the 12px. The INLINE axis
+ * stays at zero, because the container owns that inset and a chart's edges sit
+ * flush with it.
+ *
+ * Only where there IS a tick column. A chart without one has no overhang to
+ * absorb, and padding it would be space nobody asked for. */
+.dmd .chart:has(.chart-ticks) {
+  padding-block: calc(var(--ch-font, var(--font-caption-size, 12px))
+                      * var(--font-caption-leading, 1.5) / 2);
+}
 /* A sparkline has no furniture, so it has no inset either. The cell it sits in
    owns that distance. */
 .dmd .chart-sparkline { padding: 0; }
@@ -2527,6 +2558,20 @@
   position: relative;
   display: grid;
   grid-template-areas: 'plot';
+  /* ── AN ASPECT RATIO, NOT A TYPED HEIGHT ──
+
+     Every plot was 140px tall whatever its width, so they ran 3.36:1 to
+     10.82:1 and read as squashed. A chart is a shape, and its proportion is
+     the shape. 2:1 is the conventional reading proportion for a plot wider
+     than it is tall, and a ratio belongs to no length scale, so nothing is
+     invented by stating it.
+
+     A FLOOR AS WELL, because a narrow column would otherwise give a plot
+     too short to read a value in. Overridden inline where a specimen needs
+     a specific height, and ignored entirely by the horizontal bar chart,
+     whose height comes from its row count. */
+  aspect-ratio: var(--ch-aspect, 2 / 1);
+  min-block-size: 140px;
   /* NO `min-height: 0`. `.chart` is a flex column, so a plot with that floor
      shrinks to nothing: the horizontal bar chart measured 508.9 by 0 while its
      own grid row was 104px. It only looked right until `overflow: hidden`
@@ -2558,7 +2603,30 @@
   );
   background-position: bottom left;
 }
-/* A horizontal bar chart reads across, so its gridlines run the other way. */
+/* ── THE BAR CHART`S GRID BELONGS OVER ITS TRACKS, NOT OVER ITS LABELS ──
+
+   The grid layer spanned the whole plot, so its first line landed on the
+   plot`s left edge: a vertical rule down the outside of the label column,
+   where there is no axis and nothing to measure. It reads as a stray.
+
+   Moved inside the rows grid, in the TRACK column and spanning every row.
+   Its own start edge is then the value axis, which is where zero actually
+   is. `1 / -1` NEEDS EXPLICIT ROWS: with auto-placed rows `-1` is the end
+   of the explicit grid, and the layer collapses. The row count is set
+   inline, because only the markup knows it. */
+.dmd .chart-bar .chart-rows { position: relative; }
+.dmd .chart-bar .chart-rows > .chart-grid {
+  /* ABSOLUTE, or it collides with auto placement. An in-flow item holding
+     column 2 across every row leaves the labels and tracks nowhere to go,
+     and each track was pushed down a row: measured with the track left edge
+     equal to the plot`s, 49px left of where its own label ended. An
+     absolutely positioned grid item is still placed in its named area and
+     takes no part in flow. */
+  position: absolute;
+  grid-column: 2;
+  grid-row: 1 / -1;
+  border-inline-start: var(--ch-axis-w, 1px) solid var(--ch-axis, var(--c-border, #999));
+}
 .dmd .chart-bar .chart-grid {
   background-image: repeating-linear-gradient(
     to right,
@@ -2628,6 +2696,10 @@
  * THE LABEL COLUMN TAKES ITS CONTENT AND THE BAR SHRINKS, never the reverse.
  * A bar clipped to fit a name is a value nobody can read, and a long category
  * name is the reason to reach for this type at all. */
+/* A horizontal bar chart is as tall as its rows, so it takes no aspect and
+   no floor. Left in place they stretched a four-row chart to half its
+   width. */
+.dmd .chart-bar .chart-plot { aspect-ratio: auto; min-block-size: 0; }
 .dmd .chart-bar .chart-rows {
   display: grid;
   grid-template-columns: max-content minmax(0, 1fr);
@@ -2694,21 +2766,47 @@
   stroke: none;
   opacity: var(--ch-fill-op, 0.2);
 }
-.dmd .chart .chart-svg .chart-point,
-.dmd .chart .chart-svg .chart-point * {
-  stroke: none;
-  r: calc(var(--ch-marker, 8px) / 2);
+/* ── A MARKER IS AN ELEMENT, NOT AN SVG CIRCLE ──
+
+   `preserveAspectRatio="none"` is what lets a polyline fill a plot of any
+   shape, and it stretches everything else in the same viewBox with it. A
+   scatter marker measured 39.92 by 11.12: stretched 3.59 times, which is
+   exactly the plot`s 3.57:1 aspect. Seventeen ovals.
+
+   A DIV WITH EQUAL SIDES CANNOT BECOME AN OVAL. Percentage insets place it
+   in the plot, and a transform centres it on its own point, so nothing
+   about the plot`s shape can reach it. The paths keep the stretched
+   viewBox, because a path is the one thing that SHOULD fill the box. */
+.dmd .chart .chart-points { position: relative; }
+.dmd .chart .chart-point {
+  position: absolute;
+  inline-size: var(--ch-marker, 8px);
+  block-size: var(--ch-marker, 8px);
+  border-radius: var(--radius-pill, 999px);
+  transform: translate(-50%, -50%);
 }
-.dmd .chart-scatter .chart-svg .chart-dense .chart-point,
-.dmd .chart-scatter .chart-svg .chart-point.is-dense {
-  r: calc(var(--ch-marker-dense, 4px) / 2);
+/* A dense cloud at 8px is a solid shape. At 4px it is a distribution. */
+.dmd .chart-scatter .chart-point {
+  inline-size: var(--ch-marker-dense, 4px);
+  block-size: var(--ch-marker-dense, 4px);
 }
 
 /* ── Pie and donut ──
  * `conic-gradient`, so a slice costs no element and no path arithmetic. The
  * gap between slices is the GROUND showing through, not a stroke: a stroke on
  * a conic gradient has nothing to attach to. */
+/* ── A `margin-inline: auto` REMOVES THE STRETCH, AND `aspect-ratio` THEN
+   HAD NOTHING TO WORK FROM ──
+
+   Measured 0 by 0 on both the pie and the donut. A flex item stretches to
+   its container across the cross axis, and the auto margin cancels that.
+   Width fell back to the content, a disc has no content, so `aspect-ratio:
+   1` squared zero. The gradient was correct all along and painted nothing.
+
+   State the width. `min()` so it caps at the readable size and still
+   narrows below it, rather than overflowing a small card. */
 .dmd .chart .chart-pie-face {
+  inline-size: min(148px, 100%);
   aspect-ratio: 1;
   border-radius: var(--radius-pill, 999px);
   margin-inline: auto;

@@ -2189,6 +2189,84 @@ export const CHECKS = [
   },
 
   {
+    id: 'proximity-is-a-ratio',
+    where: 'render',
+    line: 'The gap between groups beats the gap inside one by three to one, or the two read as one thing.',
+    /* THE RULE EXISTED IN PROSE AND NOTHING ENFORCED IT, so it was broken on
+     * the first surface written after it.
+     *
+     * A charts surface put its section heading 16px below the card above it,
+     * which is exactly the gap between two cards. 1:1. A new section read as
+     * one more card, and the person reading it asked why the rule had not been
+     * obeyed. It had not been obeyed because nothing could see it.
+     *
+     * A CONTAINER'S GAP AGAINST ITS CHILD'S. Those are the two distances the
+     * rule is about: the space between groups, and the space inside one. Any
+     * deeper pair is a different question and is not asked here.
+     *
+     * A CHILD THAT PAINTS ITS OWN EDGE IS EXEMPT, and that is most of them. A
+     * card has a border and a fill, so it separates itself from its neighbour
+     * whatever the gap does. The ratio is the only signal when there is no
+     * other signal, which is where this check applies. Without that exemption
+     * it fires on every card in every stack in the product.
+     *
+     * BOTH AXES, keyed separately. A row of groups answers the same rule
+     * sideways, and a container can be right on one axis and wrong on the
+     * other. */
+    body: [
+      "const px = v => parseFloat(v) || 0",
+      "const between = els => {",
+      "  const rects = els.map(e => e.getBoundingClientRect())",
+      "  let min = Infinity",
+      "  for (let i = 0; i < rects.length; i++) for (let j = i + 1; j < rects.length; j++) {",
+      "    const a = rects[i], b = rects[j]",
+      "    const dx = Math.max(a.left - b.right, b.left - a.right)",
+      "    const dy = Math.max(a.top - b.bottom, b.top - a.bottom)",
+      "    if (dx < 0 && dy < 0) continue   /* stacked in z, not spaced */",
+      "    const d = dx >= 0 && dy >= 0 ? Math.min(dx, dy) : Math.max(dx, dy)",
+      "    if (d >= 0 && d < min) min = d",
+      "  }",
+      "  return min === Infinity ? 0 : min",
+      "}",
+      "const inner = el => between(Array.prototype.slice.call(el.children).filter(visible))",
+      "const paintsItsOwn = (el, parentBg) => {",
+      "  const cs = getComputedStyle(el)",
+      "  for (const side of ['Top', 'Right', 'Bottom', 'Left'])",
+      "    if (px(cs['border' + side + 'Width']) > 0) return true",
+      "  if (cs.backgroundImage && cs.backgroundImage !== 'none') return true",
+      "  const bg = cs.backgroundColor",
+      "  const clear = bg && bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent'",
+      "  return clear && bg !== parentBg",
+      "}",
+      "const isSpecimen = el => !!el.querySelector(':scope > * > .row-label, :scope > .row-label')",
+      "for (const box of all('*')) {",
+      "  const cs = getComputedStyle(box)",
+      "  if (!/flex|grid/.test(cs.display)) continue",
+      "  if (isSpecimen(box)) continue   /* a sheet showing three sizes shows three sizes */",
+      "  const byGap = new Map()",
+      "  for (const kid of box.children) {",
+      "    if (!visible(kid)) continue",
+      "    if (!/flex|grid/.test(getComputedStyle(kid).display)) continue",
+      "    const gi = inner(kid)",
+      "    if (gi <= 0) continue",
+      "    if (paintsItsOwn(kid, cs.backgroundColor)) continue",
+      "    const key = Math.round(gi * 100) / 100",
+      "    if (!byGap.has(key)) byGap.set(key, [])",
+      "    byGap.get(key).push(kid)",
+      "  }",
+      "  for (const entry of byGap) {",
+      "    const gi = entry[0], members = entry[1]",
+      "    if (members.length < 2) continue   /* one group has no next one */",
+      "    const go = between(members)",
+      "    if (go <= 0) continue",
+      "    const r = go / gi",
+      "    if (r >= 3) continue",
+      "    fail(name(members[0]), members.length + ' of these sit ' + round(go) + 'px apart and each holds its own contents ' + round(gi) + 'px apart, which is ' + (Math.round(r * 100) / 100) + ':1. Proximity is a ratio: under three to one the two distances read as one, so a group stops being told apart from the next. Raise the outer gap a step, or lower the inner one.')",
+      "  }",
+      "}",
+    ],
+  },
+  {
     id: 'one-writer-for-one-gap',
     where: 'render',
     line: 'A container publishes the distance between its children, or each child states its own. Never both.',

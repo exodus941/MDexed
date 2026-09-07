@@ -109,10 +109,26 @@ const LONG = [
  * samples drifting into looking like different kinds of thing. */
 function Spec({ title, note, children, txt, ins, span }) {
   return (
-    <div className="card stack-sm" {...ins('card')} style={span ? { gridColumn: '1 / -1' } : undefined}>
+    /* `stack-lg`, NOT `stack-sm`. The title group needs twice the clearance
+       from the chart below it, and the card's own flow is the one writer for
+       that distance. A margin on the group would add to this gap instead of
+       replacing it. 12px to 24. */
+    <div className="card stack-lg" {...ins('card')} style={span ? { gridColumn: '1 / -1' } : undefined}>
       <div>
         <h3 className="t-h6" {...txt('h6')}>{title}</h3>
-        {note && <p className="caption" {...txt('caption', 'text-muted')}>{note}</p>}
+        {/* ── THE FLAVOUR TEXT AND A CHART LABEL WERE THE SAME THING ──
+            Both measured 12px, weight 400, #46515d, 6.79:1. No hierarchy at
+            all, so an explanation and an axis label read as one kind of text.
+
+            This is a BYLINE, and the app already has a convention for one:
+            `.page-sub` is `body-sm` at `text-muted`, which is 14px. `caption`
+            was the wrong role, and it happens to be the chart label's role.
+
+            THE DIFFERENCE IS SIZE, NOT COLOUR, and that is a constraint rather
+            than a preference. `text-subtle` would give a second step and
+            measures 4.33:1 on the card, under the 4.5 that 12px text needs. A
+            chart label is furniture, and it is still text somebody reads. */}
+        {note && <p className="muted small" {...txt('body-sm', 'text-muted')}>{note}</p>}
       </div>
       {children}
     </div>
@@ -140,7 +156,12 @@ function Ticks({ max = MAX, steps = 4, txt, end }) {
  * rows flex, both hold the same count, and every child takes `flex: 1 1 0` and
  * the same gap. The algorithm is deterministic, so column five of the labels
  * lands under column five of the bars. */
-function Framed({ txt, steps = 3, max = MAX, height = 140, cats, axis = 'chart-axis-x', ticksEnd, endMax, children }) {
+/* NO DEFAULT HEIGHT. An inline `height` beats `aspect-ratio`, so passing one
+   here made the 2:1 apply to nothing. Measured across the set: 2.00, 3.33,
+   3.78 and 7.08 to one. The plot's proportion is the plot's shape, so the
+   stylesheet owns it and a height is an override for a specimen that needs
+   a specific one. */
+function Framed({ txt, steps = 3, max = MAX, height, cats, axis = 'chart-axis-x', ticksEnd, endMax, children }) {
   return (
     <div className="chart-frame">
       <Ticks txt={txt} steps={steps} max={max} />
@@ -191,8 +212,13 @@ export default function Charts({ onInspect, casing }) {
   const txt = (typeName, roleName = 'text') => inspectProps(text(typeName, roleName), onInspect)
 
   return (
-    <div className="stack">
-      <div className="page-header">
+    <div className="stack-xl">
+      {/* THE OUTER STACK OWNS THE SECTION GAP. Cards inside a section sit
+          `md` apart, so a section boundary has to beat that by three to one
+          or a new section reads as one more card. A margin on the heading
+          would add to this gap instead of replacing it. */}
+      <div className="stack">
+        <div className="page-header">
         <div className="row row-wrap page-head">
           <div className="page-title"><h2 {...txt('h2')}>{L('Charts')}</h2></div>
           <p className="muted small page-sub" {...txt('body-sm', 'text-muted')}>
@@ -209,7 +235,7 @@ export default function Charts({ onInspect, casing }) {
         note="The axis is heavier than a gridline. Gridlines on the value axis only. The plot is inset from the card, never from itself."
       >
         <div className="chart chart-column" {...ins('chart-column')}>
-          <Framed txt={txt} steps={4} height={200} cats={MONTHS}>
+          <Framed txt={txt} steps={4} cats={MONTHS}>
             <Cols vals={RAISED} />
           </Framed>
         </div>
@@ -228,9 +254,12 @@ export default function Charts({ onInspect, casing }) {
             bar shrinks. A bar clipped to fit a name is a value nobody reads. */}
         <Spec txt={txt} ins={ins} title={L('Bar')} note="Horizontal. The label column takes its content; the bar shrinks.">
           <div className="chart chart-bar" {...ins('chart-bar')}>
-            <div className="chart-plot" style={{ '--ch-grid-n': 4 }}>
-              <div className="chart-grid" />
-              <div className="chart-rows">
+            <div className="chart-plot">
+              {/* The row count reaches CSS here, because `grid-row: 1 / -1` on the
+                  grid layer needs an EXPLICIT row list. With auto-placed rows
+                  `-1` is the end of the explicit grid and the layer collapses. */}
+              <div className="chart-rows" style={{ '--ch-grid-n': 4, gridTemplateRows: 'repeat(4, auto)' }}>
+                <div className="chart-grid" />
                 {LINES.slice(0, 4).map((name, i) => (
                   <div key={name} style={{ display: 'contents' }}>
                     <span className="chart-row-label chart-tick">{L(name)}</span>
@@ -251,6 +280,16 @@ export default function Charts({ onInspect, casing }) {
                 <polyline className="chart-path" points={poly(RAISED)} style={{ stroke: 'var(--chart-1)' }} />
                 <polyline className="chart-path" points={poly(SETTLED)} style={{ stroke: 'var(--chart-2)' }} />
               </svg>
+              {/* The marker token was published and nothing painted it, which is
+                  the fault this whole section closes. */}
+              <div className="chart-points">
+                {[RAISED, SETTLED].flatMap((s, si) => s.map((v, i) => (
+                  <span className="chart-point" key={si + '-' + i}
+                    style={{ insetInlineStart: `${(i / (s.length - 1)) * 100}%`,
+                      insetBlockStart: `${100 - (v / MAX) * 100}%`,
+                      background: `var(--chart-${si + 1})` }} />
+                )))}
+              </div>
             </Framed>
             <Key items={[L('Raised'), L('Settled')]} txt={txt} />
           </div>
@@ -280,7 +319,10 @@ export default function Charts({ onInspect, casing }) {
 
         <Spec txt={txt} ins={ins} title={L('Donut')} note="The hole carries a total. That is the whole reason it exists.">
           <div className="chart chart-donut" {...ins('chart-donut')}>
-            <div style={{ position: 'relative', maxWidth: 148, marginInline: 'auto' }}>
+            {/* THE STAGE STATES ITS WIDTH. `margin-inline: auto` cancels the
+                flex stretch, so a `maxWidth` alone left this 0px wide and the
+                face inside it resolved `min(148px, 100%)` to zero. */}
+            <div style={{ position: 'relative', inlineSize: 'min(148px, 100%)', marginInline: 'auto' }}>
               <div className="chart-pie-face" style={{ background: conic(SPLIT) }} role="img"
                 aria-label={LINES.map((n, i) => `${n} ${SPLIT[i]} per cent`).join(', ')} />
               <div className="chart-hole">
@@ -356,12 +398,17 @@ export default function Charts({ onInspect, casing }) {
         <Spec txt={txt} ins={ins} title={L('Scatter')} note="Marker 8px, or 4px where the points overlap.">
           <div className="chart chart-scatter" {...ins('chart-scatter')}>
             <Framed txt={txt} max={100} axis="chart-axis-x chart-axis-y">
-              <svg className="chart-svg" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+              {/* ELEMENTS, NOT SVG CIRCLES. `preserveAspectRatio="none"` is what
+                  lets a path fill a plot of any shape, and it stretches every
+                  other thing in the same viewBox. These measured 39.92 by 11.12:
+                  stretched 3.59 times, which is the plot's own aspect. */}
+              <div className="chart-points">
                 {SCATTER.map(([x, y], i) => (
-                  <circle className="chart-point" key={i} cx={x} cy={100 - y} r="2"
-                    style={{ fill: `var(--chart-${i % 2 ? 4 : 2})` }} />
+                  <span className="chart-point" key={i}
+                    style={{ insetInlineStart: `${x}%`, insetBlockStart: `${100 - y}%`,
+                      background: `var(--chart-${i % 2 ? 4 : 2})` }} />
                 ))}
-              </svg>
+              </div>
             </Framed>
           </div>
         </Spec>
@@ -414,10 +461,13 @@ export default function Charts({ onInspect, casing }) {
         </Spec>
       </div>
 
+      </div>
+
       {/* ══ 3. THE SITUATIONS ══
           Not chart types. Shapes no sample ever has, and each is a decision
           somebody will otherwise invent. */}
-      <div className="page-header">
+      <div className="stack">
+        <div className="page-header">
         <div className="row row-wrap page-head">
           <div className="page-title"><h3 {...txt('h4')}>{L('Situations')}</h3></div>
           <p className="muted small page-sub" {...txt('body-sm', 'text-muted')}>
@@ -436,7 +486,7 @@ export default function Charts({ onInspect, casing }) {
               <div className="chart-ticks" {...txt('caption', 'text-muted')}>
                 {['40', '20', '0', '-20'].map(t => <span className="chart-tick figure" key={t}>{t}</span>)}
               </div>
-              <div className="chart-plot" style={{ height: 140, '--ch-grid-n': 3 }}>
+              <div className="chart-plot" style={{ '--ch-grid-n': 3 }}>
                 <div className="chart-grid" />
                 <div className="chart-cols" style={{ alignItems: 'stretch' }}>
                   {DIVERGE.map((v, i) => (
@@ -462,7 +512,7 @@ export default function Charts({ onInspect, casing }) {
             question. */}
         <Spec txt={txt} ins={ins} title={L('No results')} note="There is data. The filter excluded it, so the action is BACK.">
           <div className="chart chart-column" {...ins('chart-column')}>
-            <div className="chart-plot chart-blank" style={{ height: 140 }}>
+            <div className="chart-plot chart-blank">
               <div className="stack-sm" style={{ alignItems: 'center' }}>
                 <strong {...txt('body-md')}>{L('No invoices in this period')}</strong>
                 <button className="btn btn-secondary btn-sm" {...ins('button-secondary')}>{L('Clear the filter')}</button>
@@ -479,7 +529,7 @@ export default function Charts({ onInspect, casing }) {
           <div className="chart chart-column" {...ins('chart-column')} role="status" aria-busy="true">
             <div className="chart-frame" aria-hidden="true">
               <Ticks txt={txt} steps={3} />
-              <div className="chart-plot chart-axis-x" style={{ height: 140, '--ch-grid-n': 3 }}>
+              <div className="chart-plot chart-axis-x" style={{ '--ch-grid-n': 3 }}>
                 <div className="chart-grid" />
                 <div className="chart-cols">
                   {RAISED.map((v, i) => (
@@ -522,9 +572,9 @@ export default function Charts({ onInspect, casing }) {
             shrinks. */}
         <Spec txt={txt} ins={ins} span title={L('A long category name')} note="The label takes its content and the bar shrinks. Never the reverse.">
           <div className="chart chart-bar" {...ins('chart-bar')}>
-            <div className="chart-plot" style={{ '--ch-grid-n': 4 }}>
-              <div className="chart-grid" />
-              <div className="chart-rows">
+            <div className="chart-plot">
+              <div className="chart-rows" style={{ '--ch-grid-n': 4, gridTemplateRows: 'repeat(4, auto)' }}>
+                <div className="chart-grid" />
                 {LONG.map(([name, v]) => (
                   <div key={name} style={{ display: 'contents' }}>
                     <span className="chart-row-label chart-tick">{name}</span>
@@ -537,6 +587,7 @@ export default function Charts({ onInspect, casing }) {
             </div>
           </div>
         </Spec>
+        </div>
       </div>
     </div>
   )
