@@ -8,11 +8,9 @@ import { PRESETS, applyPreset } from './state/presets.js'
 import { check } from './color/contrast.js'
 import { migrate } from './state/migrate.js'
 import { nextBuild, describeBuild, isBuild } from './state/build.js'
-import { generateFile, validate } from './emit/designmd.js'
 import { parseFile } from './emit/parse.js'
 import { agentContract } from './emit/agents.js'
 import { serializeProject, parseProject, projectFilename, PROJECT_EXT } from './emit/project.js'
-import { isValidColor } from './color/convert.js'
 import { APP_CSS } from './ui/theme.js'
 import { loadDocumentFonts } from './type/fonts.js'
 import { Banner, Toggle, ResetButton, CloseButton, SectionHeader, SectionBreak, Collapsible, Strut, ConfirmDelete, numberFromText, PAD, BTN, MODAL_BTN } from './ui/controls.jsx'
@@ -132,7 +130,6 @@ const FolderOpen = () => I(<path d="m6 14 1.5-2.9A2 2 0 019.24 10H20a2 2 0 011.9
 const Wand = () => I(<><path d="M15 4V2" /><path d="M15 16v-2" /><path d="M8 9h2" /><path d="M20 9h2" /><path d="M17.8 11.8 19 13" /><path d="M15 9h0" /><path d="M17.8 6.2 19 5" /><path d="m3 21 9-9" /><path d="M12.2 6.2 11 5" /></>)
 const DriveDown = () => I(<><path d="M12 2v8" /><path d="m16 6-4 4-4-4" /><rect width="20" height="8" x="2" y="14" rx="2" /><path d="M6 18h.01" /><path d="M10 18h.01" /></>)
 const CloudUp = () => I(<><path d="M12 13v8" /><path d="M4 14.9A7 7 0 1115.71 8h1.79a4.5 4.5 0 012.5 8.24" /><path d="m8 17 4-4 4 4" /></>)
-const Eye = () => I(<><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></>)
 /* Two menus sat side by side wearing the same three lines, with their labels
    hidden at this width, so there was no way to tell Project from UI without
    opening one. A hamburger means "a menu", which both of them are — it says
@@ -168,7 +165,9 @@ const PROJECT_ACTIONS = [
      path at all. */
   { id: 'newGuided', label: 'New (Guided)', Icon: Wand, hint: 'Answer eight questions and get a prompt for an agent' },
   { id: 'loadProject', label: 'Load', Icon: FolderOpen, hint: 'Open a DESIGN.md you saved earlier' },
-  { id: 'saveToDevice', label: 'Save to Device', Icon: DriveDown, hint: 'Download a dated copy of this document' },
+  /* "Save", not "Save to Device". The drive icon beside it already says
+     where it goes, and the words were spending width on saying it twice. */
+  { id: 'saveToDevice', label: 'Save', Icon: DriveDown, hint: 'Download a dated copy of this document' },
   { id: 'saveToCloud', label: 'Save to Cloud', Icon: CloudUp, hint: 'Save online and get a shareable link' },
 ]
 
@@ -877,52 +876,6 @@ function ThemeToggle({ value, onChange }) {
   )
 }
 
-/* ── Preview / export modal ── */
-function FileModal({ onClose }) {
-  const { state, derived } = useStore()
-  const { text, omitted, dropped } = useMemo(() => generateFile(state, derived), [state, derived])
-  const report = useMemo(() => validate(text), [text])
-  const [copied, setCopied] = useState(false)
-
-  return (
-    <div onClick={onClose} className="anim-fade modal-back" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-      <div onClick={e => e.stopPropagation()} className="anim-rise modal-panel" style={{ background: 'var(--surf)', border: '1px solid var(--bdr)', borderRadius: 12, width: '100%', maxWidth: 760, maxHeight: '84vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <div style={{ display: 'flex', alignItems: 'baseline', padding: '12px 16px', borderBottom: '1px solid var(--bdr)', gap: 12 }}>
-          <span style={{ fontFamily: 'var(--display)', fontWeight: 700, fontSize: 16, flex: 1 }}>DESIGN.md</span>
-          <span className="chip" style={{ color: report.ok ? 'var(--success)' : 'var(--danger)', borderColor: report.ok ? 'rgb(var(--success-rgb) / .3)' : 'rgb(var(--danger-rgb) / .3)' }}>
-            {report.ok ? 'Spec valid' : `${report.errors.length} error${report.errors.length === 1 ? '' : 's'}`}
-          </span>
-          <span className="chip">{(text.length / 1024).toFixed(1)} kB</span>
-          {/* This modal has no footer — the file itself fills it — so Copy is
-              its one action and takes the modal-action size where it stands. */}
-          <button className="btn-ghost" style={MODAL_BTN}
-            onClick={() => navigator.clipboard.writeText(text).then(() => { setCopied(true); setTimeout(() => setCopied(false), 1800) })}>
-            <Copy /><span className="lbl">{copied ? 'Copied' : 'Copy'}</span>
-          </button>
-          <span style={{ alignSelf: 'center', display: 'flex' }}>
-            <CloseButton onClick={onClose} label="Close" size={11} />
-          </span>
-        </div>
-
-        {(report.errors.length > 0 || report.warnings.length > 0 || dropped.length > 0) && (
-          <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--bdr)', display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 172, overflow: 'auto' }}>
-            {report.errors.map((e, i) => <Banner key={`e${i}`} tone="error">{e}</Banner>)}
-            {report.warnings.map((w, i) => <Banner key={`w${i}`} tone="warn">{w}</Banner>)}
-            {dropped.length > 0 && (
-              <Banner tone="info">
-                {dropped.length} component propert{dropped.length === 1 ? 'y' : 'ies'} outside the spec schema ({[...new Set(dropped.map(d => d.key))].join(', ')}) — written into the Components section as prose instead.
-              </Banner>
-            )}
-            {omitted.length > 0 && <Banner tone="info">Declared as omitted: {omitted.join(', ')}. Fill these in under Rationale.</Banner>}
-          </div>
-        )}
-
-        <pre style={{ flex: 1, overflow: 'auto', padding: 16, fontFamily: 'var(--mono)', fontSize: 12, lineHeight: 1.65, color: 'var(--text)', margin: 0, background: 'var(--bg)', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{text}</pre>
-      </div>
-    </div>
-  )
-}
-
 /* ── Save flash ──
    Autosave is invisible by nature, which is fine right up until you want to
    close the tab. A brief confirmation costs nothing and answers the question
@@ -1389,7 +1342,6 @@ const KIND_TAB = { component: 'components', role: 'roles', type: 'type' }
 function Shell() {
   const { state, derived, set, load, undo, redo, canUndo, canRedo, lastTag } = useStore()
   const [tab, setTab] = useState('colors')
-  const [showFile, setShowFile] = useState(false)
   const [showNew, setShowNew] = useState(false)
   const [showImport, setShowImport] = useState(false)
 
@@ -1892,7 +1844,6 @@ function Shell() {
     loadProject: () => fileInput.current?.click(),
     saveToDevice,
     saveToCloud: projectId ? copyShareUrl : saveToCloud,
-    previewFile: () => setShowFile(true),
   }[id]?.())
 
   /* Everything a developer needs, in one archive: the file for the agent, the
@@ -2006,8 +1957,6 @@ function Shell() {
       ? { tone: 'warn', text: `Imported ${label}. ${result.warnings.join(' ')}` }
       : { tone: 'success', text: `Imported ${label}.` })
   }
-
-  const swatches = [derived.roles.light.accent, derived.roles.light.bg, derived.roles.light.surface, derived.roles.light.text, derived.roles.light.success, derived.roles.light.warning, derived.roles.light.danger].filter(isValidColor)
 
   const Panel = TABS.find(t => t.id === tab)?.Panel ?? MetaTab
 
@@ -2163,9 +2112,9 @@ function Shell() {
            * re-measuring the row you touched rather than the fault you fixed. */}
           {hasWords && (
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flex: 1, minWidth: 0 }}>
-            {/* The wordmark, build number and palette are the first things to
-                go. The squircle already says which app this is, and the name
-                field is the only part of this group you can act on. */}
+            {/* The wordmark and build number are the first things to go. The
+                squircle already says which app this is, and the name field is
+                the only part of this group you can act on. */}
             {!barTrim && (
               <>
                 <span style={{ fontFamily: 'var(--display)', fontWeight: 700, fontSize: 16, letterSpacing: '-0.025em', whiteSpace: 'nowrap' }}>
@@ -2178,11 +2127,9 @@ function Shell() {
               <TitleField name={state.meta.name}
                 onCommit={next => set(s => ({ ...s, meta: { ...s.meta, name: next } }), 'meta:name')} />
             )}
-            {!barTrim && (
-              <div style={{ display: 'flex', gap: 4, marginLeft: 4, alignSelf: 'center' }}>
-                {swatches.map((hex, i) => <div key={i} className="swatch" style={{ width: 12, height: 12, background: hex, cursor: 'default' }} />)}
-              </div>
-            )}
+            {/* NO PALETTE HERE. Seven 12px swatches sat beside the name and
+                answered nothing anyone could act on. The Colour tab shows the
+                same seeds at a size you can read and click. */}
           </div>
           )}
 
@@ -2281,15 +2228,10 @@ function Shell() {
                 </button>
               )
             })}
-            {/* The accent in outline form, one step below the filled Export it
-                sits beside. Reading the file and shipping it are the same act
-                at two levels of commitment, so they share a colour. */}
-            {!barCompact && (
-              <button className="btn-outline" onClick={() => setShowFile(true)} title="Read the generated file before you export it"
-                style={{ padding: BTN.lg, flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                <Eye /><span className="lbl">Preview DESIGN.md</span>
-              </button>
-            )}
+            {/* NO PREVIEW BUTTON. It opened the generated file in a modal and
+                was the widest thing in this row. Their verdict: it serves zero
+                purpose. Export Payload hands over the same file, and it is the
+                action this app exists to produce. */}
             {/* Off-screen rather than hidden: a `display:none` input cannot be
                 opened by `.click()` in every browser. */}
             <input ref={fileInput} type="file" accept={`${PROJECT_EXT},.json,.md,.markdown,.txt,application/json,text/markdown`} onChange={loadProject}
@@ -2302,12 +2244,13 @@ function Shell() {
               dropdown into a 44px-tall slot, so it opened and was invisible.
               It also should not scroll out of reach: whatever else is too
               narrow to fit, the settings stay put. */}
-            {/* Preview DESIGN.md joins the menu here, because its own button is
-                hidden at this width. Without this it had no route at all on a
-                phone, which is worse than the crowding it was hidden to fix. */}
+            {/* The menu carries the project actions and nothing else. It used
+                to append Preview DESIGN.md, because that button was hidden at
+                this width and would otherwise have had no route on a phone.
+                With the button gone there is nothing to append. */}
             {barCompact && (
               <ProjectMenu projectId={projectId} onAction={runProjectAction}
-                items={[...PROJECT_ACTIONS, { id: 'previewFile', label: 'Preview DESIGN.md', Icon: Eye, hint: 'Read the generated file' }]} />
+                items={PROJECT_ACTIONS} />
             )}
             {/* Sits AFTER the Project menu, and outside the scrolling row.
              *
@@ -2590,7 +2533,6 @@ function Shell() {
 
       {/* Fix It opens this rather than changing the document. */}
       <FixPreview fix={pendingFix} onCancel={() => setPendingFix(null)} onConfirm={applyFinding} />
-      {showFile && <FileModal onClose={() => setShowFile(false)} />}
       {showImport && (
         <ImportModal onClose={() => setShowImport(false)}
           onApply={applyCssImport} onOpenDocument={openDocument} />
