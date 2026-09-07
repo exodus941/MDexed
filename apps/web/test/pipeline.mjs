@@ -3219,6 +3219,119 @@ line('\n- depth intensity -')
   assert(md.includes(dv.categorical[0]), 'and lists the actual colours')
 }
 
+/* ── THE FURNITURE HALF OF THE CHARTS SECTION ──
+ *
+ * The section shipped three colour scales and nothing else. Twelve chart types
+ * publish an axis colour, a gridline colour, a stroke weight, a marker size, a
+ * bar gap and an area fill, and the prose named none of them — so a reader who
+ * never opens the component tables learned the palette and invented all six.
+ *
+ * EVERY NUMBER IS READ OFF THE COMPONENT, and that is what is asserted here.
+ * A sentence that types a value is a copy of a decision, and it drifts the
+ * first time the decision moves. Three sentences in this file have already
+ * done exactly that.
+ */
+{
+  line('\n- the chart furniture reaches the reader -')
+  const { LAYOUT_COMPONENTS: LC } = await import('../src/state/componentLayout.js')
+  const md = payloadTextFiles(state, derived)['DESIGN.md']
+  const css = payloadTextFiles(state, derived)['tokens.css']
+
+  /* Each rule, by the words a reader would search for. */
+  const RULES = [
+    ['A CHART IS MOSTLY FURNITURE', 'the colour is the easy half'],
+    ['THE AXIS IS HEAVIER THAN A GRIDLINE', 'the pair, and the direction'],
+    ['GRIDLINES BELONG TO THE VALUE AXIS ALONE', 'a category axis has no quantity to read against'],
+    ['A ZERO LINE IS NOT A GRIDLINE', 'it carries the axis weight'],
+    ['THE CONTAINER OWNS THE PLOT INSET', 'twenty plots doubly inset'],
+    ['ONE STROKE WEIGHT FOR EVERY LINE IN EVERY TYPE', 'one weight, not one per type'],
+    ['A SINGLE SERIES TAKES ONE COLOUR, NEVER FIVE', 'five colours say five things'],
+    ['AN ARRANGEMENT IS NOT A TYPE', 'stacked and grouped earn entries anyway'],
+    ['THE LEGEND IS THE DIRECT LABEL', 'the words are what make it certain'],
+    ['AND THE SITUATIONS ARE NOT OPTIONAL', 'six states nobody draws'],
+  ]
+  for (const [phrase, why] of RULES) {
+    assert(md.includes(phrase), `DESIGN.md states ${why}`)
+  }
+
+  /* ── THE VALUES COME FROM THE COMPONENTS, NEVER FROM THE PROSE ──
+     Read each one back out of the emitted sentence and compare it against the
+     component that publishes it. A sentence that hardcoded a value would pass
+     a phrase check and fail this. */
+  const byName = Object.fromEntries(derived.components.map(c => [c.name, c]))
+  const valOf = (name, key) => {
+    const hit = (byName[name]?.properties ?? []).find(p => p.key === key)
+    return hit ? String(hit.value) : null
+  }
+  const PREFIX = { colors: '--c-', spacing: '--space-', borderWidths: '--border-', rounded: '--radius-' }
+  const propOf = (name, key) => {
+    const m = /^\{([a-zA-Z]+)\.([\w-]+)\}$/.exec(valOf(name, key) || '')
+    return m && PREFIX[m[1]] ? 'var(' + PREFIX[m[1]] + m[2] + ')' : null
+  }
+  const NAMED = [
+    ['chart-column', 'axisColor', 'the axis colour'],
+    ['chart-column', 'gridColor', 'the gridline colour'],
+    ['chart-column', 'axisWidth', 'the hairline both draw at'],
+    ['chart-line', 'lineWidth', 'the one stroke weight'],
+    ['chart-line', 'markerSize', 'the marker size'],
+    ['chart-scatter', 'markerSizeDense', 'the dense marker size'],
+    ['chart-column', 'barGap', 'the gap between columns'],
+    ['chart-grouped', 'barGap', 'the gap inside a group'],
+    ['chart-grouped', 'groupGap', 'the gap between groups'],
+  ]
+  for (const [name, key, what] of NAMED) {
+    const prop = propOf(name, key)
+    assert(prop && md.includes('`' + prop + '`'),
+      `and names the property for ${what} (${prop})`)
+    /* ── A DOCUMENT THAT NAMES A PROPERTY MUST DECLARE IT ──
+       The mono family cost a build for exactly this: three names across four
+       files and no bridge between any pair, so the obvious guess resolved to
+       nothing, painted nothing and reported nothing. */
+    const bare = prop.replace(/^var\(|\)$/g, '')
+    assert(css.includes(bare + ':'),
+      `and ${bare} is declared in tokens.css`)
+  }
+  /* The area fill is a bare number rather than a reference: an opacity belongs
+     to no scale, which is exactly why it needs a published home. */
+  const fill = valOf('chart-area', 'fillOpacity')
+  assert(fill && md.includes('IS ' + fill + ' OF ITS SERIES COLOUR'),
+    `and states the area fill from the component (${fill})`)
+
+  /* ── THE ARRANGEMENT FIELDS, WHICH HAD NOWHERE TO LIVE ──
+     `components.js` says beside the gridline tokens that the value-axis rule
+     is an arrangement rather than a value, so it lives in LAYOUT_COMPONENTS.
+     It did not: there was no chart entry at all, so a builder decided where
+     the gridlines went, what proportion the plot took and how the series were
+     named, differently each time. */
+  const chart = LC.find(c => c.name === 'chart')
+  assert(!!chart, 'the chart publishes a composition entry of its own')
+  for (const k of ['gridlines', 'ratio', 'series', 'values'])
+    assert(chart.fields.some(f => f.k === k), `and a ${k} field`)
+  const field = k => chart.fields.find(f => f.k === k)
+  assert(field('gridlines').default === 'value',
+    'the gridlines default to the value axis, which is the rule the tokens assume')
+  assert(field('ratio').default === '2 / 1',
+    'and the plot to 2 / 1, which is the reading proportion for a plot wider than it is tall')
+  /* EVERY OPTION EMITS A DIFFERENT INSTRUCTION. An option that reads the same
+     as its neighbour is a decision the reader still has to make. */
+  for (const f of chart.fields) {
+    const said = f.options.map(o => o.sentence)
+    assert(new Set(said).size === said.length,
+      `no two ${f.k} options emit the same instruction (${said.length})`)
+    assert(said.every(s => s && s.length > 40),
+      `and each states a rule rather than a name`)
+  }
+  /* AND THE ARRANGEMENT REACHES THE READER, not only the panel. */
+  const composition = md.slice(md.indexOf('**Chart composition**'))
+  assert(md.includes('**Chart composition**'), 'the chart composition reaches DESIGN.md')
+  for (const f of chart.fields) {
+    const chosen = derived.componentLayout.chart[f.k]
+    const opt = f.options.find(o => o.value === chosen)
+    assert(composition.includes(opt.sentence.slice(0, 60)),
+      `and carries the ${f.k} instruction it is set to`)
+  }
+}
+
 /* ── THE KEYBOARD CONTRACT, AND THE GUARDS ITS CHECKS EARNED ──
  *
  * A render check cannot run here: it needs a real engine for
@@ -3262,6 +3375,53 @@ line('\n- depth intensity -')
       'a column whose values differ in width, where agreeing edges mean something really aligns them'],
     ['an-amount-lines-up-on-its-end-edge', 'endwise',
       'a column of equal-width amounts that declares its end alignment, and so is right for a reason'],
+    /* ── THE FOUR CHART CHECKS, PROVEN IN A BROWSER ──
+     *
+     * Two fixtures. The app's own Charts surface is the correct-code half —
+     * fourteen plots, twelve declaring 2 / 1 and two declaring auto because a
+     * horizontal bar chart's height comes from its row count — and
+     * `tools/fixture-charts.mjs` is the other, eight plots with each fault
+     * injected on its own.
+     *
+     * POINTING THEM AT CORRECT CODE FOUND TWO HOLES A CLEAN REPORT WOULD HAVE
+     * HIDDEN, and each is a guard below.
+     *
+     * THE GRIDLINE CHECK MEASURED NOTHING. It looked for child line elements,
+     * and every shipped chart paints its gridlines with a repeating gradient
+     * on one box. Measured: fourteen plots, an axis found on twelve, and zero
+     * gridlines read. A run that measured nothing is not a pass.
+     *
+     * THE FOCUS QUESTION AND THE NAME QUESTION ASK DIFFERENT ELEMENTS. A
+     * `tabindex` on the PLOT was invisible, because the one-element-per-chart
+     * guard the name pass needs skips anything inside another chart, and a
+     * plot always is. One filter cannot serve two questions.
+     *
+     * AND IT FOUND FIFTEEN REAL FINDINGS on its first run: fifteen charts on
+     * this system's own surface carrying no name at all, while the keyboard
+     * contract had said for as long as it existed that a chart owes one. */
+    ['a-gridline-is-quieter-than-its-axis', 'stopsOf',
+      'a gridline painted as a repeating gradient, which is how every shipped chart draws one and how the first version of the check went blind'],
+    ['a-gridline-is-quieter-than-its-axis', 'same.length === 1',
+      'a zero line, which carries the axis weight on purpose because it is the axis moved off the floor'],
+    ['a-gridline-is-quieter-than-its-axis', 'for (const kid of plot.querySelectorAll',
+      'a bar chart drawing its value axis on the grid layer inside its rows, where zero actually is'],
+    ['a-plot-is-a-shape-not-a-height', 'chart-bar',
+      'a horizontal bar chart, whose height comes from its row count and which declares aspect-ratio auto on purpose'],
+    ['a-plot-is-a-shape-not-a-height', 'stretched',
+      'a plot in a stretched track, where the height is the track s to decide and not the plot s to state'],
+    ['a-grouped-chart-states-a-ratio', 'el.children.length > 1',
+      'a group of one bar, which has no inner gap and so no ratio to take'],
+    ['a-grouped-chart-states-a-ratio', 'groups.length < 2',
+      'one group, which is not a run'],
+    ['a-chart-is-named-not-focused', 'for (const part of all',
+      'a tabindex on the PLOT, which the outermost-only guard the name pass needs cannot see'],
+    ['a-chart-is-named-not-focused', 'progressbar',
+      'a loading placeholder, which is a live region announcing a state rather than a picture of data'],
+    ['a-chart-is-named-not-focused', 'chart.querySelector(CONTROL)',
+      'an empty or no-results card, where role=img would make the message and its action presentational'],
+    ['a-chart-is-named-not-focused', 'hasWords(row)',
+      'a sparkline inside a table row, where the row already carries its name and its value in text'],
+
     /* ── THE ROW-PLANE CHECK, PROVEN IN A BROWSER ──
      *
      * Six tables in one fixture, and the numbers are recorded so a future
@@ -3502,6 +3662,35 @@ line('\n- depth intensity -')
   const { generatePalette, HARMONIES, INTENSITIES } = await import('../src/color/palette.js')
   const { audit } = await import('../src/a11y/audit.js')
 
+  /* ── A RANDOM SAMPLE GIVES A RANDOM VERDICT ──
+   *
+   * `generatePalette` shuffles its lightness rungs and jitters its hues with
+   * `Math.random`, so this block drew a fresh 252 palettes on every run and
+   * scored whichever ones it got. Measured over six consecutive runs on
+   * unchanged code: 8, 5, 2, 2, 1, 0 findings against a bar of 7. So it failed
+   * about one run in six on code nobody had touched, and a check that fires on
+   * correct code is a defect in the check.
+   *
+   * THE FIX IS NOT A HIGHER BAR. Raising it to fit the worst run seen is
+   * tuning the check to the code, and it throws away the discrimination that
+   * makes the number mean anything: the generator this replaced produced 27 of
+   * 90, which is 10.7%, and the bar has to sit below that.
+   *
+   * So the SAMPLE is pinned instead. `Math.random` is replaced by a seeded
+   * PRNG for the duration of the block, which makes the count a fact about the
+   * generator rather than a coin toss. A regression that raises the collision
+   * rate still fails; an unchanged codebase now prints the same number every
+   * time. Restored in a `finally`, or every block below inherits the stub. */
+  const realRandom = Math.random
+  let seed = 0x9e3779b9
+  Math.random = () => {
+    seed |= 0; seed = (seed + 0x6d2b79f5) | 0
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed)
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+  }
+  try {
+
   /* ── COUNT WHAT A READER SEES, WHICH IS THE ROLE, NOT THE SEED ──
    *
    * This block used to compare the SEEDS with the audit's own hue-and-lightness
@@ -3530,11 +3719,24 @@ line('\n- depth intensity -')
     bad += count(seeds, generatePalette(seeds, h.id, i.id)); runs++
   }
   assert(runs >= 100, `the sample is big enough to fire (${runs} palettes)`)
+  /* A PINNED SAMPLE THAT ALWAYS SAYS THE SAME THING PROVES NOTHING UNTIL THE
+     INSTRUMENT IS SHOWN TO FIRE ON IT.
+
+     AND THE INJECTION HAS TO SHARE A RAMP STEP, which is the rule this block
+     enforces working against my first attempt at breaking it. Accent and
+     danger on one hex is NOT a collision: they sit at different steps, so they
+     arrive at L 0.432 and L 0.276 and the lightness separates them. Accent and
+     success share a step, so one hue for the two is the real fault. */
+  const collide = SEEDS().map(s => (['accent', 'success'].includes(s.name)
+    ? { ...s, hex: '#0d7a70' } : s))
+  assert(count(collide, {}) > 0,
+    'the counter fires when two meanings on one ramp step are put on one hue')
   /* NOT ZERO, AND SAYING SO IS THE POINT. A status seed that lands on its own
      role's step BECOMES that role, so a pair the hue pass separated can
-     converge again through the anchor. Measured at 1 to 3 findings per 252
-     palettes across repeated runs, against 27 for the generator that scored
-     seeds. The bar is set where those two cannot be confused. */
+     converge again through the anchor. Measured on the pinned sample: 2 of
+     252, against 27 of 90 for the generator that scored seeds. The bar sits
+     where those two cannot be confused, which is well above 0.79% and well
+     below 10.7%. */
   assert(bad <= runs * 0.03, `a generated palette rarely reads as one colour twice (${bad} of ${runs}, bar ${Math.floor(runs * 0.03)})`)
 
   /* A PINNED BRAND IS THE CASE THEY HIT, and it has no hue to give: a green
@@ -3556,6 +3758,10 @@ line('\n- depth intensity -')
   /* A LOCK IS A DECISION. Moving a colour somebody pinned is worse than the
      collision it would clear. */
   assert(wroteALock === 0, `the generator never writes a locked seed (${wroteALock})`)
+  } finally { Math.random = realRandom }
+  /* AND THE STUB IS GONE. A block below that inherited it would measure a
+     sample this one chose, and say nothing about it. */
+  assert(Math.random === realRandom, 'the seeded PRNG is put back')
 }
 
 /* ── A PALETTE IS A SET OF RELATIONSHIPS, AND NOTHING MEASURED THEM ──

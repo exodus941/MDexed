@@ -298,6 +298,98 @@ function retiredBody(state) {
   )
 }
 
+/* ── THE FURNITURE, WHICH IS MOST OF A CHART ──
+ *
+ * The Charts section shipped three colour scales and stopped. Every value a
+ * plot's furniture needs is published on the twelve chart components, and the
+ * prose named none of them, so a reader who never opens the component tables
+ * learned the palette and invented an axis weight, a gridline colour, a plot
+ * inset, a bar gap, a line stroke, a marker size and an area fill.
+ *
+ * EVERY VALUE IS READ OFF THE COMPONENT, never restated. Twelve entries cite
+ * one decision; a sentence that types the reference here is a thirteenth copy
+ * of it, and it drifts the first time the decision moves.
+ *
+ * WHERE THE ARRANGEMENT LIVES INSTEAD. Which edge carries the gridlines, what
+ * proportion the plot takes, how the series are named and where the values are
+ * read: those are settings, and they are emitted with the other composition
+ * rules in the Components section. This states the rules a setting cannot.
+ */
+function chartFurniture (derived) {
+  const byName = Object.fromEntries((derived.components ?? []).map(c => [c.name, c]))
+  const val = (name, key) => {
+    const c = byName[name]
+    const hit = (c?.properties ?? []).find(x => x.key === key)
+    return hit ? String(hit.value) : null
+  }
+  /* ── A DOCUMENT THAT NAMES A ROLE MUST NAME THE PROPERTY ──
+   *
+   * A reader cannot write `colors.border`. They write a custom property, and
+   * only the document can join the two. The bare reference form would be a
+   * THIRD spelling in a file that already uses `{colors.x}` in its component
+   * tables and `var(--c-x)` in its prose. The mono family cost a build for
+   * exactly this: three names across four files and no bridge between any
+   * pair, so the obvious guess resolved to nothing and painted nothing. */
+  const PREFIX = { colors: '--c-', spacing: '--space-', borderWidths: '--border-', rounded: '--radius-' }
+  const ref = v => {
+    const m = /^\{([a-zA-Z]+)\.([\w-]+)\}$/.exec(v || '')
+    if (!m) return v || null
+    const prefix = PREFIX[m[1]]
+    return prefix ? 'var(' + prefix + m[2] + ')' : m[1] + '.' + m[2]
+  }
+  const axis = ref(val('chart-column', 'axisColor'))
+  const grid = ref(val('chart-column', 'gridColor'))
+  const axisW = ref(val('chart-column', 'axisWidth'))
+  const stroke = ref(val('chart-line', 'lineWidth'))
+  const marker = ref(val('chart-line', 'markerSize'))
+  const dense = ref(val('chart-scatter', 'markerSizeDense'))
+  const fill = val('chart-area', 'fillOpacity')
+  const barGap = ref(val('chart-column', 'barGap'))
+  const inGroup = ref(val('chart-grouped', 'barGap'))
+  const between = ref(val('chart-grouped', 'groupGap'))
+  const label = val('chart-column', 'typography')
+  const ink = ref(val('chart-column', 'textColor'))
+  /* A CHART SECTION FOR A SYSTEM THAT SHIPS NO CHARTS SAYS NOTHING. Every
+     chart type can be switched off, and the furniture rules are then about
+     components the reader does not have. */
+  if (!axis || !grid) return ''
+
+  return joinBlocks(
+    '**THE COLOUR IS THE EASY HALF. A CHART IS MOSTLY FURNITURE.** The three scales above say which series is which, and they answer none of the other questions a plot asks. Every one of those has a published value on the chart components below. The rules here are the ones no value can carry. An invented number is the commonest chart fault and the hardest to see: nothing errors, and the picture is simply somebody else\'s.',
+
+    '**THE AXIS IS HEAVIER THAN A GRIDLINE, AND THE GRIDLINES BELONG TO THE VALUE AXIS ALONE.** The axis takes `' + axis + '` and a gridline takes `' + grid + '`, one step apart on the neutral ramp and the right way round: an axis is the chart\'s own outline, and a gridline sits UNDER the data rather than beside it. A gridline in the axis colour turns a plot into a grid of boxes, which is the usual way a calm chart turns noisy. Both draw at `' + axisW + '`. A category axis has no quantity to read against, so it carries no gridlines at all.',
+
+    '**A ZERO LINE IS NOT A GRIDLINE.** It takes the AXIS weight and the axis colour, because it is the axis moved off the floor. Any chart whose values cross zero needs one, and a diverging scale without it asks the reader to guess where the middle is.',
+
+    '**THE CONTAINER OWNS THE PLOT INSET.** A chart\'s edges sit flush with the inner margins of whatever holds it, exactly as a table\'s do. Publish a padding on the chart as well and every plot is doubly inset: measured, 24px of card padding plus 16px of its own put the plot 17px inside the card\'s content edge, on twenty instances. The room the tick labels need is the frame\'s own tick COLUMN, which is content rather than padding.',
+
+    '**ONE STROKE WEIGHT FOR EVERY LINE IN EVERY TYPE.** `' + stroke + '`, the same way one mark size serves every button size. A per-type stroke means every rule that resizes a chart has to remember to restyle its line, and three of them will not. A marker is `' + marker + '`' + (dense ? ', dropping to `' + dense + '` only where the points are dense enough to overlap, which is a scatter and nothing else' : '') + '.',
+
+    /* A POINTER, NOT A SECOND COPY. The icon section owns non-scaling-stroke,
+       and the payload's own duplicate check caught this restating it. A reader
+       acts on whichever copy they meet first, and two copies of one rule drift
+       the moment either is edited. */
+    '**AND A CHART LINE IS DRAWN GEOMETRY, SO IT TAKES THE ICON STROKE RULE TOO.** A plot line, an area outline, a scatter marker and a sparkline are all SVG shapes, so the weight above only reaches the screen under the non-scaling-stroke rule stated for icons. Measured on chart lines in particular: 0.73px to 2.33px painted from that one value, with the lines getting heavier as the plot grew, which is backwards.',
+
+    '**A `viewBox` GIVES AN `<svg>` AN INTRINSIC RATIO, AND IT BEATS A PERCENTAGE HEIGHT.** `width: 100%; height: 100%` on a plot\'s SVG measured 478.9 by 478.9 inside a 140px box and painted 338px over the card below it, on five chart types. No geometric check can see that: an SVG at `overflow: visible` paints outside its box without the box growing, and every check reads boxes. Take it out of intrinsic sizing with `position: absolute` and `inset: 0`.',
+
+    '**A FLEX ITEM WHOSE OVERFLOW IS NOT VISIBLE HAS AN AUTOMATIC MINIMUM SIZE OF ZERO**, so `overflow: hidden` on a plot that sizes to its own content collapses it. Measured 508.9 by 0 with 104px of rows inside. It looked right until the clipping arrived, because the content painted outside a zero-height box.',
+
+    '**A SINGLE SERIES TAKES ONE COLOUR, NEVER FIVE.** Five colours on one series says the categories are five different things, and the category axis has already said they are one thing measured several times. Reach for the scale when there is more than one series, and for `--chart-1` alone when there is one.',
+
+    '**AN ARRANGEMENT IS NOT A TYPE, AND STACKED AND GROUPED EARN THEIR OWN ENTRIES ANYWAY.** Stacked, because its segments TOUCH, which is the case the palette is built around: every pair separated, not only the pairs that sit side by side in a legend. It states no bar gap of its own, since the gap between stacks is the column chart\'s `' + barGap + '` and the gap inside a stack is zero. Grouped, because it states a PROXIMITY RATIO rather than a value: `' + inGroup + '` inside a group against `' + between + '` between them, so a group reads as one object without anybody having to think about it. Under three to one the groups dissolve into one run of bars and the category axis stops meaning anything. Both numbers are stated together, because a ratio is not a value.',
+
+    /* The reason and the limit are stated once, in the categorical block, and
+       the filtering legend is stated once, in the keyboard contract. Both were
+       restated here until the duplicate check said so. */
+    '**THE LEGEND IS THE DIRECT LABEL, NOT DECORATION.** The categorical scale above gives the reason and states the limit. What follows from it is that naming a series is structural rather than a caption. Where a legend sits apart from the marks, give every entry a shape or a dash pattern as well as a fill, and set its label in `' + label + '` with `' + ink + '`, exactly as a tick label. A mark with no words beside it lands ON the baseline rather than beside it, so it takes the same lift every other mark takes.',
+
+    '**A FILLED AREA IS ' + fill + ' OF ITS SERIES COLOUR**, which keeps the line dominant and still clears the ground. At 0.5 the area competes with its own line; at 0.05 it is absent rather than subtle. An opacity belongs to no scale, which is exactly why it needs a published home. Give every filled series a hairline as well, or two touching areas separate by nothing.',
+
+    '**AND THE SITUATIONS ARE NOT OPTIONAL.** A chart type is a shape somebody looks up. A chart in a state nobody drew is a screen somebody builds wrongly, so each of these takes a rule of its own. No data at all, and the first run offers the action that would produce some. A filter that matched nothing, and the offer is a way BACK, which is clearing the filter rather than a way forward. Still loading, and the placeholder holds the SHAPE of the plot rather than a spinner, with every height derived from the type tokens of the label it stands in for, so the page does not assemble under the reader\'s hands when it resolves. A series crossing zero, which needs the zero line. A category name too long for its slot, which truncates against a value axis and takes its own line against a category axis, and that is the reason the horizontal bar chart exists. And one series more than the scale holds, which is the wrong form rather than a colour problem: group the tail into an Other, or split it into small multiples.'
+  )
+}
+
 /* ── Charts ──
  *
  * Published or not, a builder charting anything picks a palette. Unpublished,
@@ -340,7 +432,9 @@ function datavizBody(derived) {
     `**Diverging** — \`--chart-div-1\` to \`--chart-div-${dv.diverging.length}\`, with the middle at \`--chart-div-5\`. ${swatches(dv.diverging)}`,
     'Nine steps so the middle is the fifth and a reader can point at zero. The ends are the danger hue and the accent hue rather than danger and success: success at one end states that the positive direction is good, which is true of a profit and false of a temperature anomaly. Where your data really is a gain and a loss, swap the positive end for the success ramp and say so in the legend.',
 
-    'None of these is a status colour. A series that happens to be red is series two, not a failure. Where a chart shows both a series and a state, put the state in a mark or a label rather than in the fill, or the two colour languages collide in one picture.'
+    'None of these is a status colour. A series that happens to be red is series two, not a failure. Where a chart shows both a series and a state, put the state in a mark or a label rather than in the fill, or the two colour languages collide in one picture.',
+
+    chartFurniture(derived)
   )
 }
 

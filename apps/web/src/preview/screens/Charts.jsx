@@ -234,7 +234,8 @@ export default function Charts({ onInspect, casing }) {
         title={L('The furniture')}
         note="The axis is heavier than a gridline. Gridlines on the value axis only. The plot is inset from the card, never from itself."
       >
-        <div className="chart chart-column" {...ins('chart-column')}>
+        <div className="chart chart-column" {...ins('chart-column')}
+          role="img" aria-label="Invoices raised, April to September: 58, 74, 66, 91, 84 and 108 thousand">
           <Framed txt={txt} steps={4} cats={MONTHS}>
             <Cols vals={RAISED} />
           </Framed>
@@ -244,7 +245,8 @@ export default function Charts({ onInspect, casing }) {
       {/* ══ 2. THE TYPES ══ */}
       <div className="cols-2">
         <Spec txt={txt} ins={ins} title={L('Column')} note="One series, one colour.">
-          <div className="chart chart-column" {...ins('chart-column')}>
+          <div className="chart chart-column" {...ins('chart-column')}
+            role="img" aria-label="Invoices raised, April to September: 58, 74, 66, 91, 84 and 108 thousand">
             <Framed txt={txt} cats={MONTHS}><Cols vals={RAISED} /></Framed>
           </div>
         </Spec>
@@ -253,7 +255,8 @@ export default function Charts({ onInspect, casing }) {
             reason to reach for it. The label column takes its content and the
             bar shrinks. A bar clipped to fit a name is a value nobody reads. */}
         <Spec txt={txt} ins={ins} title={L('Bar')} note="Horizontal. The label column takes its content; the bar shrinks.">
-          <div className="chart chart-bar" {...ins('chart-bar')}>
+          <div className="chart chart-bar" {...ins('chart-bar')}
+            role="img" aria-label="Revenue by line: licences 34, services 26, support 18, training 13, other 9">
             <div className="chart-plot">
               {/* The row count reaches CSS here, because `grid-row: 1 / -1` on the
                   grid layer needs an EXPLICIT row list. With auto-placed rows
@@ -274,7 +277,8 @@ export default function Charts({ onInspect, casing }) {
         </Spec>
 
         <Spec txt={txt} ins={ins} title={L('Line')} note="Stroke 2px, marker 8px. One weight for every line in the system.">
-          <div className="chart chart-line" {...ins('chart-line')}>
+          <div className="chart chart-line" {...ins('chart-line')}
+            role="img" aria-label="Invoices raised against settled, April to September, both rising">
             <Framed txt={txt} cats={MONTHS}>
               <svg className="chart-svg" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
                 <polyline className="chart-path" points={poly(RAISED)} style={{ stroke: 'var(--chart-1)' }} />
@@ -296,7 +300,8 @@ export default function Charts({ onInspect, casing }) {
         </Spec>
 
         <Spec txt={txt} ins={ins} title={L('Area')} note="Fill at 0.2 of its own line. The only value in the set with no scale.">
-          <div className="chart chart-area" {...ins('chart-area')}>
+          <div className="chart chart-area" {...ins('chart-area')}
+            role="img" aria-label="Invoices raised, April to September, rising from 58 to 108 thousand">
             <Framed txt={txt} cats={MONTHS}>
               <svg className="chart-svg" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
                 <polygon className="chart-fill" points={`0,100 ${poly(RAISED)} 100,100`} style={{ fill: 'var(--chart-2)' }} />
@@ -310,7 +315,8 @@ export default function Charts({ onInspect, casing }) {
             against, so a gridline there is decoration on top of data. Which is
             why `chart-pie` publishes no axis token at all. */}
         <Spec txt={txt} ins={ins} title={L('Pie')} note="No axis and no gridlines, so it publishes neither.">
-          <div className="chart chart-pie" {...ins('chart-pie')}>
+          <div className="chart chart-pie" {...ins('chart-pie')}
+            role="img" aria-label="Revenue share: licences 34 per cent, services 26, support 18, training 13, other 9">
             <div className="chart-pie-face" style={{ maxWidth: 148, background: conic(SPLIT) }} role="img"
               aria-label={LINES.map((n, i) => `${n} ${SPLIT[i]} per cent`).join(', ')} />
             <Key items={LINES.map(L)} txt={txt} />
@@ -318,7 +324,8 @@ export default function Charts({ onInspect, casing }) {
         </Spec>
 
         <Spec txt={txt} ins={ins} title={L('Donut')} note="The hole carries a total. That is the whole reason it exists.">
-          <div className="chart chart-donut" {...ins('chart-donut')}>
+          <div className="chart chart-donut" {...ins('chart-donut')}
+            role="img" aria-label="Revenue share of 100 thousand: licences 34 per cent, services 26, support 18, training 13, other 9">
             {/* THE STAGE STATES ITS WIDTH. `margin-inline: auto` cancels the
                 flex stretch, so a `maxWidth` alone left this 0px wide and the
                 face inside it resolved `min(148px, 100%)` to zero. */}
@@ -338,7 +345,8 @@ export default function Charts({ onInspect, casing }) {
             two series measure different quantities. Both axes take the same
             weight, or the chart reads as though one series matters less. */}
         <Spec txt={txt} ins={ins} title={L('Column + line')} note="Two value axes, at one weight. The only type that needs a second.">
-          <div className="chart chart-combo" {...ins('chart-combo')}>
+          <div className="chart chart-combo" {...ins('chart-combo')}
+            role="img" aria-label="Invoices raised as columns against the settled rate as a line, April to September">
             <Framed txt={txt} cats={MONTHS} ticksEnd endMax={100}>
               <Cols vals={RAISED} />
               <svg className="chart-svg" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
@@ -354,7 +362,8 @@ export default function Charts({ onInspect, casing }) {
             every PAIR is separated, not only the pairs that sit side by side in
             a legend. */}
         <Spec txt={txt} ins={ins} title={L('Stacked')} note="Segments touch. Where the palette rule actually bites.">
-          <div className="chart chart-stacked" {...ins('chart-stacked')}>
+          <div className="chart chart-stacked" {...ins('chart-stacked')}
+            role="img" aria-label="Invoices raised and settled stacked by month, April to September">
             <Framed txt={txt} cats={MONTHS}>
               <div className="chart-cols">
                 {MONTHS.map((m, i) => (
@@ -376,7 +385,8 @@ export default function Charts({ onInspect, casing }) {
             the groups dissolve into one run of bars and the category axis stops
             meaning anything. */}
         <Spec txt={txt} ins={ins} title={L('Grouped')} note="4px inside a group, 16px between. 4:1, so a group reads as one object.">
-          <div className="chart chart-grouped" {...ins('chart-grouped')}>
+          <div className="chart chart-grouped" {...ins('chart-grouped')}
+            role="img" aria-label="Raised, settled and written off, April to July, three bars a month">
             <Framed txt={txt} cats={MONTHS.slice(0, 4)}>
               <div className="chart-cols">
                 {MONTHS.slice(0, 4).map((m, i) => (
@@ -396,7 +406,8 @@ export default function Charts({ onInspect, casing }) {
             a line, which is why it publishes a second, smaller size. A dense
             cloud at 8px is a solid shape; at 4px it is a distribution. */}
         <Spec txt={txt} ins={ins} title={L('Scatter')} note="Marker 8px, or 4px where the points overlap.">
-          <div className="chart chart-scatter" {...ins('chart-scatter')}>
+          <div className="chart chart-scatter" {...ins('chart-scatter')}
+            role="img" aria-label="Invoice value against days to settle, twelve invoices">
             <Framed txt={txt} max={100} axis="chart-axis-x chart-axis-y">
               {/* ELEMENTS, NOT SVG CIRCLES. `preserveAspectRatio="none"` is what
                   lets a path fill a plot of any shape, and it stretches every
@@ -417,7 +428,8 @@ export default function Charts({ onInspect, casing }) {
             shipped for as long as the palette and nothing has ever painted it,
             so it was published and untrustable. */}
         <Spec txt={txt} ins={ins} title={L('Heatmap')} note="The only consumer of the sequential scale, which shipped unpainted.">
-          <div className="chart chart-heatmap" {...ins('chart-heatmap')}>
+          <div className="chart chart-heatmap" {...ins('chart-heatmap')}
+            role="img" aria-label="Settlement rate by month and revenue line, six months by five lines">
             <div className="chart-cells" style={{ gridTemplateColumns: `repeat(${MONTHS.length}, minmax(0, 1fr))` }}>
               {HEAT.map((row, r) => row.map((step, c) => (
                 <span className="chart-cell" key={`${r}-${c}`} style={{ background: `var(--chart-seq-${step})` }} />
@@ -481,7 +493,8 @@ export default function Charts({ onInspect, casing }) {
             is not a gridline. A diverging chart needs one, and it carries the
             axis weight because it IS the axis, moved off the floor. */}
         <Spec txt={txt} ins={ins} title={L('Crossing zero')} note="A zero line is not a gridline. The only consumer of the diverging scale.">
-          <div className="chart chart-column" {...ins('chart-column')}>
+          <div className="chart chart-column" {...ins('chart-column')}
+            role="img" aria-label="Net movement by month, April to September, crossing zero in July">
             <div className="chart-frame">
               <div className="chart-ticks" {...txt('caption', 'text-muted')}>
                 {['40', '20', '0', '-20'].map(t => <span className="chart-tick figure" key={t}>{t}</span>)}
@@ -511,6 +524,11 @@ export default function Charts({ onInspect, casing }) {
             the filter excluded it. "Create" is the answer to a different
             question. */}
         <Spec txt={txt} ins={ins} title={L('No results')} note="There is data. The filter excluded it, so the action is BACK.">
+          {/* NO `role="img"` HERE, DELIBERATELY, and it is the one chart on
+              this surface that must not carry one. `role="img"` makes every
+              child presentational, so it would silence the message and the
+              button — the only two things in this card worth reading. A chart
+              that offers an action is a state, not a picture of data. */}
           <div className="chart chart-column" {...ins('chart-column')}>
             <div className="chart-plot chart-blank">
               <div className="stack-sm" style={{ alignItems: 'center' }}>
@@ -547,7 +565,8 @@ export default function Charts({ onInspect, casing }) {
             scale publishes. A sixth series is a chart asking to be two charts,
             and a palette that wraps gives two series one colour. */}
         <Spec txt={txt} ins={ins} title={L('Too many series')} note="Five is the published limit. A sixth is a chart asking to be two charts.">
-          <div className="chart chart-stacked" {...ins('chart-stacked')}>
+          <div className="chart chart-stacked" {...ins('chart-stacked')}
+            role="img" aria-label="Six series stacked, one more than the published scale holds">
             <Framed txt={txt} cats={MONTHS}>
               <div className="chart-cols">
                 {MONTHS.map((m, i) => (
@@ -571,7 +590,8 @@ export default function Charts({ onInspect, casing }) {
             exists at all. The label column takes its content and the bar
             shrinks. */}
         <Spec txt={txt} ins={ins} span title={L('A long category name')} note="The label takes its content and the bar shrinks. Never the reverse.">
-          <div className="chart chart-bar" {...ins('chart-bar')}>
+          <div className="chart chart-bar" {...ins('chart-bar')}
+            role="img" aria-label="Revenue by line with one long name, five lines">
             <div className="chart-plot">
               <div className="chart-rows" style={{ '--ch-grid-n': 4, gridTemplateRows: 'repeat(4, auto)' }}>
                 <div className="chart-grid" />

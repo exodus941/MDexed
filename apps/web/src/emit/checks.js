@@ -959,6 +959,241 @@ export const CHECKS = [
   },
 
   {
+    id: 'a-gridline-is-quieter-than-its-axis',
+    where: 'render',
+    line: 'A chart axis is heavier than its gridlines, and the gridlines come off the value axis alone.',
+    /* ── A GRIDLINE IN THE AXIS COLOUR TURNS A PLOT INTO A GRID OF BOXES ──
+     *
+     * The palette was published and the furniture was not, so a builder
+     * charting anything invented an axis weight and a gridline colour. Both
+     * have tokens now, and the pair only works in one direction: the axis is
+     * the plot's own outline and a gridline sits UNDER the data.
+     *
+     * READ THE PAINT, NEVER A CLASS NAME. A gridline is a line inside the plot
+     * and an axis is a line on its edge, and the computed style is the only
+     * thing that knows which is which. Asking for a class would approve any
+     * naming nobody thought of.
+     *
+     * THREE GUARDS. A plot with one line has no pair to compare. A line that
+     * paints nothing is not a gridline. And an axis on the edge of the plot is
+     * found by its POSITION rather than by its name, because a plot that draws
+     * its axis with a border has no element to ask.
+     */
+    body: [
+      "const lum = hex => { const c = hex.match(/[0-9a-f]{2}/gi)",
+      "  if (!c || c.length < 3) return null",
+      "  const v = c.slice(0, 3).map(h => { const s = parseInt(h, 16) / 255",
+      "    return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4) })",
+      "  return 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2] }",
+      "const hexOf = rgb => { const m = /rgba?\\(([^)]*)\\)/.exec(rgb || '')",
+      "  if (!m) return null",
+      "  const p = m[1].split(',').map(s => parseFloat(s))",
+      "  if (p.length < 3 || p.some(n => !isFinite(n))) return null",
+      "  if (p.length > 3 && p[3] === 0) return null",
+      "  return '#' + p.slice(0, 3).map(n => Math.round(n).toString(16).padStart(2, '0')).join('') }",
+      "const ratioOf = (a, b) => { const x = lum(a), y = lum(b)",
+      "  if (x == null || y == null) return null",
+      "  return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05) }",
+      "const axisOf = el => { const cs = getComputedStyle(el)",
+      "  for (const side of ['Bottom', 'Top', 'Left', 'Right']) {",
+      "    if (px(cs['border' + side + 'Width']) > 0 && cs['border' + side + 'Style'] !== 'none') {",
+      "      const c = hexOf(cs['border' + side + 'Color'])",
+      "      if (c) return c",
+      "    }",
+      "  }",
+      "  return null }",
+      "/* ── A GRIDLINE IS PAINTED, AND A GRADIENT IS HOW. Reading child elements",
+      "   alone measured nothing on the shipped charts: fourteen plots, an axis found",
+      "   on twelve, and zero gridlines, because a repeating gradient is one box and",
+      "   not a run of lines. That reads exactly like a pass. So ask both mechanisms,",
+      "   and read the gradient's own opaque stops. */",
+      "const stopsOf = el => { const img = getComputedStyle(el).backgroundImage",
+      "  if (!img || img === 'none' || !/gradient/.test(img)) return []",
+      "  const out = []",
+      "  for (const m of img.matchAll(/rgba?\\([^)]*\\)/g)) {",
+      "    const hex = hexOf(m[0])",
+      "    if (hex) out.push(hex)",
+      "  }",
+      "  return [...new Set(out)] }",
+      "for (const plot of all('[class*=plot]')) {",
+      "  const box = plot.getBoundingClientRect()",
+      "  if (box.width < 40 || box.height < 40) continue",
+      "  let axis = axisOf(plot)",
+      "  /* THE AXIS MAY BE ON A CHILD. A bar chart draws its value axis on the grid",
+      "     layer inside its rows, because that is where zero actually is. */",
+      "  if (!axis) for (const kid of plot.querySelectorAll('*')) { axis = axisOf(kid); if (axis) break }",
+      "  if (!axis) continue",
+      "  const grid = []",
+      "  for (const el of [plot, ...plot.querySelectorAll('*')]) {",
+      "    for (const hex of stopsOf(el)) grid.push({ el, hex, how: 'gradient' })",
+      "    if (el === plot) continue",
+      "    const r = el.getBoundingClientRect()",
+      "    if (!r.width || !r.height) continue",
+      "    const wide = r.width >= box.width * 0.9 && r.height <= 3",
+      "    const tall = r.height >= box.height * 0.9 && r.width <= 3",
+      "    if (!wide && !tall) continue",
+      "    const paint = hexOf(getComputedStyle(el).backgroundColor)",
+      "    if (paint) grid.push({ el, hex: paint, how: 'element' })",
+      "  }",
+      "  if (!grid.length) continue",
+      "  /* A SERIES IS PAINTED TOO, and a bar is not a gridline. Only the lines that",
+      "     span the plot and the gradients reach here, so what is left is furniture. */",
+      "  const same = grid.filter(g => { const r = ratioOf(g.hex, axis); return r != null && r < 1.02 })",
+      "  if (!same.length) continue",
+      "  /* A ZERO LINE IS NOT A GRIDLINE. It carries the axis weight on purpose,",
+      "     because it is the axis moved off the floor, so a single matching line is",
+      "     correct and a gridline SET matching is the fault. */",
+      "  if (same.length === 1 && same[0].how === 'element') continue",
+      "  fail(name(plot), 'the gridlines inside this plot are painted ' + same[0].hex + ', which is its own axis colour, so the plot reads as a grid of boxes rather than as data on a ground. An axis is the chart outline and a gridline sits UNDER the data: take the gridlines one step quieter than the axis. A single line matching the axis is a zero line and is right to.')",
+      "}",    ],
+  },
+
+  {
+    id: 'a-plot-is-a-shape-not-a-height',
+    where: 'render',
+    line: 'A chart plot states an aspect ratio, never a height, so it keeps its proportion at every width.',
+    /* ── A FIXED HEIGHT GIVES A DIFFERENT PROPORTION AT EVERY WIDTH ──
+     *
+     * Measured across one set: 3.36:1 to 10.82:1 from a single 140px, so the
+     * same chart read as a healthy plot on a wide card and as a strip on a
+     * narrow one. A chart is a shape, and its proportion is the shape.
+     *
+     * THE CHECK IS ABOUT THE DECLARATION, not the measured proportion. A plot
+     * whose ratio is correct at this width says nothing about the next one, and
+     * that is the whole fault. So it asks whether an `aspect-ratio` is in force
+     * and reports the plot that has none.
+     *
+     * TWO GUARDS, both earned on real shapes. A HORIZONTAL bar chart takes its
+     * height from its row count, so a ratio there would crush or stretch the
+     * rows; it declares `aspect-ratio: auto` and says so. And a plot inside a
+     * grid or flex track that stretches has its height decided by the track,
+     * so a ratio is not its to state.
+     */
+    body: [
+      "for (const plot of all('[class*=plot]')) {",
+      "  const box = plot.getBoundingClientRect()",
+      "  if (box.width < 40 || box.height < 40) continue",
+      "  const cs = getComputedStyle(plot)",
+      "  /* A ratio IS declared. Nothing to say. */",
+      "  if (cs.aspectRatio && cs.aspectRatio !== 'auto') continue",
+      "  /* THE ROW-COUNT CASE. A horizontal bar chart is as tall as it has bars,",
+      "     and its own class says which type it is. */",
+      "  if (plot.closest('[class*=chart-bar]')) continue",
+      "  /* A STRETCHED TRACK OWNS THE HEIGHT. Read the parent DECLARATION, not",
+      "     the geometry: a stretch container has decided its children fill it. */",
+      "  const p = plot.parentElement",
+      "  const pcs = p ? getComputedStyle(p) : null",
+      "  const stretched = pcs && /flex|grid/.test(pcs.display) &&",
+      "    /stretch|normal/.test(cs.alignSelf === 'auto' ? pcs.alignItems : cs.alignSelf)",
+      "  if (stretched && px(cs.height) > 0 && !/px/.test(cs.height)) continue",
+      "  /* A STATED HEIGHT IS THE FAULT ITSELF. */",
+      "  fail(name(plot), 'this plot states a height and no aspect ratio, so it takes a different proportion at every width. Measured across one set, a single fixed height produced 3.36:1 to 10.82:1. Give it an aspect-ratio with a minimum height instead, and cap the box at its track so the floor beats the ratio where the two disagree.')",
+      "}",
+    ],
+  },
+
+  {
+    id: 'a-grouped-chart-states-a-ratio',
+    where: 'render',
+    line: 'A grouped chart keeps at least three to one between the gap inside a group and the gap between groups.',
+    /* ── UNDER THREE TO ONE THE GROUPS DISSOLVE ──
+     *
+     * A grouped chart is the one arrangement that states a proximity ratio
+     * rather than a value: the published pair is the smallest step inside a
+     * group against the medium step between them. Under three to one the groups
+     * read as one run of bars and the category axis stops meaning anything.
+     *
+     * A CONTROL IS ONE OBJECT AND SO IS A BAR, which is why this reads the
+     * GROUP containers rather than every gap on the row. Comparing a bar's own
+     * gap against the distance to its neighbour is comparing two different
+     * kinds of thing, and that mistake cost a day on a header once.
+     *
+     * TWO GUARDS. One group is not a run. And a group of one bar has no inner
+     * gap, so there is no ratio to take.
+     */
+    body: [
+      "for (const row of all('[class*=chart-grouped] [class*=cols], [class*=chart-grouped] [class*=groups]')) {",
+      "  const groups = Array.prototype.filter.call(row.children, el => {",
+      "    const r = el.getBoundingClientRect()",
+      "    return r.width > 0 && r.height > 0 && el.children.length > 1",
+      "  })",
+      "  if (groups.length < 2) continue",
+      "  const between = px(getComputedStyle(row).columnGap)",
+      "  const inner = px(getComputedStyle(groups[0]).columnGap)",
+      "  if (!(inner > 0) || !(between > 0)) continue",
+      "  if (between / inner >= 3) continue",
+      "  fail(name(row), 'this grouped chart puts ' + inner + 'px inside a group and ' + between + 'px between them, a ratio of ' + (between / inner).toFixed(1) + ':1. Under three to one the groups dissolve into one run of bars and the category axis stops meaning anything. Take the between-groups gap up the scale until it clears three to one, and leave the inner gap where it is.')",
+      "}",
+    ],
+  },
+
+  {
+    id: 'a-chart-is-named-not-focused',
+    where: 'render',
+    line: 'A chart takes no focus and answers no keys. It owes a name and a text alternative instead.',
+    /* ── A CHART IS A PICTURE OF DATA, NOT A WIDGET ──
+     *
+     * The keyboard contract says so and nothing measured it. Two faults sit
+     * either side of the rule and both ship easily.
+     *
+     * A plot given a `tabindex` puts a stop in the tab order that answers no
+     * key when it is reached, which is worse than no stop at all.
+     *
+     * A plot with no NAME is a picture a screen reader cannot describe. The
+     * exception is a sparkline inside a table row: the row already carries its
+     * name and its value in text, so the mark takes `aria-hidden` and a second
+     * reading of the same number is noise.
+     */
+    body: [
+      "/* THE FOCUS PASS, over every part of the picture. A tabindex on the",
+      "   PLOT is the commonest form of this and the outermost-only guard",
+      "   below cannot see it. */",
+      "for (const part of all('[class*=chart]')) {",
+      "  const tab = part.getAttribute('tabindex')",
+      "  if (tab === null || Number(tab) < 0) continue",
+      "  /* A CONTROL INSIDE A CHART IS ALLOWED A TAB STOP. A legend that",
+      "     filters is a group of buttons, and it answers keys. */",
+      "  if (part.matches(CONTROL) || part.getAttribute('role') === 'button') continue",
+      "  fail(name(part), 'this is part of a chart, it is in the tab order, and it answers no key when a reader reaches it. That is worse than not being reachable. A chart is a picture of data: no focus, no keys. Take the tabindex off and give the chart a name instead. Where the chart has controls, put the tab stops on those.')",
+      "}",
+      "for (const chart of all('[class*=chart]')) {",
+      "  const box = chart.getBoundingClientRect()",
+      "  if (box.width < 40 || box.height < 24) continue",
+      "  /* ONE ELEMENT PER CHART. A frame inside a chart inside a card would",
+      "     otherwise report the same picture three times. */",
+      "  if (chart.parentElement && chart.parentElement.closest('[class*=chart]')) continue",
+
+      "  if (chart.getAttribute('aria-hidden') === 'true') continue",
+      "  /* ── A CHART ANNOUNCING A STATE IS NOT A PICTURE OF DATA ──",
+      "     Two of them, and both are correct code that this faulted first.",
+      "     A LOADING placeholder carries role=status and aria-busy, and its",
+      "     shapes are already aria-hidden: naming it as a picture would",
+      "     describe data that is not there yet. An EMPTY or NO-RESULTS chart",
+      "     holds a message and an action, and role=img would make both",
+      "     presentational and silence the only thing worth reading. Ask the",
+      "     PROPERTY: a live region says so, and an offered action is a",
+      "     control. */",
+      "  if (/^(status|alert|progressbar)$/.test(chart.getAttribute('role') || '')) continue",
+      "  if (chart.getAttribute('aria-busy') === 'true') continue",
+      "  if (chart.querySelector(CONTROL)) continue",
+      "  /* A SPARKLINE IN A ROW IS DELIBERATELY SILENT, because the row already",
+      "     says its name and its value in words. */",
+      "  const row = chart.closest('tr, [role=row]')",
+      "  if (row && hasWords(row)) continue",
+      "  const named = chart.getAttribute('aria-label') || chart.getAttribute('aria-labelledby')",
+      "    || (chart.getAttribute('role') === 'img' && hasWords(chart))",
+      "  const figure = chart.closest('figure')",
+      "  if (named || (figure && figure.querySelector('figcaption'))) continue",
+      "  /* A TABLE BESIDE THE CHART IS THE TEXT ALTERNATIVE, and it is the best",
+      "     one. A picture whose figures are also in a table needs nothing. */",
+      "  const near = chart.parentElement",
+      "  if (near && near.querySelector('table')) continue",
+      "  fail(name(chart), 'this chart carries no name, so a screen reader has a picture it cannot describe. Give it role=img with an aria-label carrying the figures, or put a table beside it, or wrap it in a figure with a figcaption. A sparkline inside a table row is the one exception and takes aria-hidden, because the row already says its name and value in text.')",
+      "}",
+    ],
+  },
+
+  {
     id: 'a-marked-item-says-so',
     where: 'render',
     line: 'The chosen item in a nav or a strip declares aria-current or aria-selected, not only a colour.',

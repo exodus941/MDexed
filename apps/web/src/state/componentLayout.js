@@ -143,6 +143,55 @@ LAYOUT_COMPONENTS.push(
     ],
   },
   {
+    name: 'chart',
+    label: 'Chart composition',
+    desc: 'The furniture around a plot. The axis weight, the gridline colour and the bar gaps are values, so they sit in the matrix above; where the gridlines go and how the series are named cannot be a value.',
+    /* ── THE FURNITURE PUBLISHED VALUES AND NO ARRANGEMENT ──
+     *
+     * Twelve chart types ship an axis colour, a gridline colour, a stroke
+     * weight, a marker size, a bar gap and an area fill. Not one of them could
+     * say which EDGE the gridlines belong to, what proportion the plot takes,
+     * or whether the series are named on the marks or in a legend. So a
+     * builder charting anything decided all three, differently each time.
+     *
+     * `components.js` says exactly this beside the gridline tokens: the
+     * gridlines belong to the value axis alone, and that is an arrangement
+     * rather than a value, so it lives here. It had nowhere to live. */
+    fields: [
+      {
+        k: 'gridlines', label: 'Gridlines', default: 'value',
+        options: [
+          { value: 'value', label: 'Value axis only', sentence: 'Draw gridlines from the VALUE axis only, in the published gridline colour, which is one step quieter than the axis. A category axis has no quantity to read against, so a line there separates nothing and turns the plot into a grid of boxes.' },
+          { value: 'none', label: 'None', sentence: 'Draw no gridlines. Label the value on each mark instead, or the reader has nothing to read a height against.' },
+        ],
+      },
+      {
+        k: 'ratio', label: 'Plot proportion', default: '2 / 1',
+        options: [
+          { value: '2 / 1', label: '2:1', sentence: 'Give every plot an `aspect-ratio` of 2 / 1, with a minimum height, and no stated height at all. A fixed height gives a different proportion at every width: measured across one set, 3.36:1 to 10.82:1 from a single 140px. A ratio belongs to no length scale, so stating one invents nothing. Where the ratio and the minimum height disagree, cap the box at its track and let the ratio give — the floor is the decision.' },
+          { value: '16 / 9', label: '16:9', sentence: 'Give every plot an `aspect-ratio` of 16 / 9, with a minimum height, and no stated height at all. A fixed height gives a different proportion at every width. Where the ratio and the minimum height disagree, cap the box at its track and let the ratio give — the floor is the decision.' },
+          { value: '1 / 1', label: '1:1', sentence: 'Give every plot an `aspect-ratio` of 1 / 1, with a minimum height, and no stated height at all. Use it where the plot is read as a field rather than as a trend: a scatter, a heatmap. Where the ratio and the minimum height disagree, cap the box at its track and let the ratio give.' },
+        ],
+      },
+      {
+        k: 'series', label: 'Series names', default: 'direct',
+        options: [
+          { value: 'direct', label: 'On the marks', sentence: 'Name each series where it sits — at the end of its line, inside its band, beside its slice. No categorical palette of five survives the loss of red-green vision, so the words are what make the picture certain, and a name on the mark needs no round trip to a key.' },
+          { value: 'legend-top', label: 'Legend above', sentence: 'Name the series in a legend above the plot, reading in the palette order. Each entry is a mark and its label, one icon gap apart, with the entries separated by at least three times that. Give every entry a shape or a dash pattern as well as a colour.' },
+          { value: 'legend-end', label: 'Legend at the end', sentence: 'Name the series in a legend at the END edge of the plot, reading in the palette order and stacked. Each entry is a mark and its label, one icon gap apart. Give every entry a shape or a dash pattern as well as a colour. It stacks above the plot below the medium breakpoint, where a side legend takes width the plot needs.' },
+        ],
+      },
+      {
+        k: 'values', label: 'Value labels', default: 'axis',
+        options: [
+          { value: 'axis', label: 'On the axis', sentence: 'Read values off the value axis. Centre each tick label on the gridline it names: distributing the label BOXES puts the two end labels half a line out, measured 9.72px on a 19.44px line. Extend the label column by half a line at each end instead, and remember that the overhang leaves the box — the clearance above a plot absorbs exactly that half line.' },
+          { value: 'marks', label: 'On the marks', sentence: 'Print the value on each mark, in the mono face, and drop the value axis to its zero line. Use it where there are few enough marks to label and the exact figure matters more than the trend.' },
+        ],
+      },
+    ],
+  },
+
+  {
     name: 'table',
     label: 'Table composition',
     desc: 'The conventions that make a table readable, which are otherwise guessed at.',
