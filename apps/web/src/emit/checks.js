@@ -4001,6 +4001,56 @@ export const CHECKS = [
     ],
   },
   {
+    id: 'a-control-size-is-a-token',
+    where: 'source',
+    line: 'A control states its size with the published token, never a number typed in the rule.',
+    /* ── THE FLOOR IS THE PUBLISHED TOKEN, AND A TYPED NUMBER CANNOT FOLLOW IT ──
+     *
+     * A rule that types a control height states a second answer to a question
+     * the token already answers. It reads as deliberate and it cannot move
+     * when the token moves.
+     *
+     * Measured on our own sheets the day this shipped. A nav call to action
+     * typed 40px, which was what the links beside it carried BEFORE the same
+     * file was corrected to read the touch token. So the correction reached
+     * the links and stopped twenty lines short of the button: two nav items
+     * at 44px and the action at 40, in one column, at every width.
+     *
+     * Nothing reported it. The row check measures a ROW, and a folded nav is
+     * a column, so the two heights never sat on one line. The floor check
+     * measures the pointer in use, and a desktop run compares against 24.
+     *
+     * TWO SCOPE DECISIONS, so it cannot fire on correct work. A SIZING
+     * property only, because a typed padding or gap answers to the spacing
+     * grid and a different check. And a BARE literal only: a calc, a max, a
+     * var and a percentage are all derived from something, so only a number
+     * standing alone is this fault.
+     *
+     * Measured against our own two stylesheets after the repair: zero.
+     */
+    body: [
+      "/* A CONTROL, asked by the words the system publishes for its own",
+      "   components. A heading or a card states a height for its own reasons;",
+      "   a control states one that a floor has an opinion about. */",
+      "const CTRL = /(^|[\\s>+~.])(btn|button|input|select|tab|nav-item|nav-list|checkbox|switch|chip|close|trigger|pager|seg)([\\s.:>[]|$)/",
+      "const SIZING = /(?:^|[;\\s])(height|min-height|inline-size|min-inline-size|width|min-width)\\s*:\\s*([^;}]+)/g",
+      "for (const f of files.filter(x => x.css)) {",
+      "  for (const block of f.bare.matchAll(/([^{}@]+)\\{([^{}]*)\\}/g)) {",
+      "    const selector = block[1].split(\",\").map(x => x.trim()).find(x => CTRL.test(x))",
+      "    if (!selector) continue",
+      "    for (const d of block[2].matchAll(SIZING)) {",
+      "      const value = d[2].trim()",
+      "      /* A BARE LITERAL ONLY. A calc, a max, a var and a percentage are all",
+      "         derived from something and can follow it; a number cannot. */",
+      "      if (!/^-?\\d+(\\.\\d+)?px$/.test(value)) continue",
+      "      fail(f.path, lineOf(f, block.index),",
+      "        selector + \" types \" + d[1] + \": \" + value + \". A control size is a published token, so a typed number is a second answer to a question the token already answers, and it cannot move when the token moves. This is how a touch floor gets missed: the correction reaches the rules that read the token and stops at the one that does not.\")",
+      "    }",
+      "  }",
+      "}",
+    ],
+  },
+  {
     id: 'a-mark-stays-inside-its-control',
     where: 'render',
     line: 'A control that draws its own mark keeps that mark inside its box.',

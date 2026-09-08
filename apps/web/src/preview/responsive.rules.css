@@ -728,9 +728,18 @@
      cannot give you equal boxes and equal baselines, so the row takes one
      size. Stated after the promotion, and more specific than it, so this is
      not decided by which line came last. */
+  /* AND THE FLOOR IS THE TOKEN HERE TOO. This typed 40px, which was the number
+     the nav item carried before the block above was corrected to read
+     `--target-min`. So the fix reached the links and stopped 20 lines short of
+     the button beside them. Measured at 1128px on the Landing nav: two items at
+     44px and the call to action at 40, in the same folded column, at every
+     width rather than only on a phone.
+     Nothing reported it. `one-height-per-control-row` measures a ROW, and a
+     folded nav is a column, so the two heights never sat on one line. */
   .dmd .nav-list > .btn,
   .dmd .header-nav .nav-list > .btn {
-    height: 40px; line-height: 38px;
+    height: var(--target-min, 44px);
+    line-height: calc(var(--target-min, 44px) - 2px);
     padding: 0 var(--space-md, 16px);
     font-size: var(--cmp-nav-item-font-size, var(--font-body-sm-size, 14px));
   }

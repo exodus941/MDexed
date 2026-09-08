@@ -1256,11 +1256,19 @@
  * label failed to load.
  *
  * `aspect-ratio: 1` states it once and follows every height the scale sets, so
- * a size step can never leave the shape behind. The explicit widths below stay
- * for browsers that need a used value, and they now agree with the ratio rather
- * than being the only thing holding it. */
+ * a size step can never leave the shape behind.
+ *
+ * NO WIDTH AT ALL, AND THE STATED ONES WERE WHAT BROKE THE SQUARE. Three rules
+ * used to type a width per size step, "for browsers that need a used value".
+ * A ratio only makes a size when the other axis is auto, so a stated width is
+ * the one thing that can defeat it. Those widths sat at (0,3,0) and the touch
+ * promotion sits at (0,2,0), so at a coarse pointer the HEIGHT went to 44 and
+ * the width stayed 28. Measured on 15 controls across two surfaces: 28x44.
+ *
+ * One writer, which is the height. Measured after: 28x28, 36x36 and 44x44 at a
+ * fine pointer, unchanged, and 44x44 at a coarse one. */
 .dmd .btn.icon-only {
-  width: var(--cmp-button-md-height, 36px); padding: 0;
+  padding: 0;
   aspect-ratio: 1;
   position: relative;
 }
@@ -1278,8 +1286,6 @@
  * and inherits the same line-height, so the baseline lands exactly where a
  * label's would. */
 .dmd .btn.icon-only::before { content: "\200B"; }
-.dmd .btn.icon-only.btn-sm { width: var(--cmp-button-sm-height, 28px); }
-.dmd .btn.icon-only.btn-lg { width: var(--cmp-button-lg-height, 44px); }
 /* A button standing in for a select: the value at the inline start, the
    chevron at the inline end.
  *
@@ -1525,9 +1531,28 @@
  * the other fifteen cleared 40, and the sweep had no opinion because nothing
  * was misaligned. A rule narrower than its problem misses instances as quietly
  * as a wide one fires on the innocent. Default first, then bound. */
-.dmd label:has(> .checkbox-input) > .checkbox-input {
-  top: calc((var(--target-min, 44px) - var(--cmp-button-sm-height, 28px)) / -2);
-  bottom: calc((var(--target-min, 44px) - var(--cmp-button-sm-height, 28px)) / -2);
+/* ── AND THE OVERHANG ASKS THE HOST, NEVER A TOKEN THE HOST MIGHT NOT USE ──
+ *
+ * This was written against `--cmp-button-sm-height`, which is the floor the
+ * label above states, so the two agreed and only for that one host. There are
+ * three hosts. The table's select-all cell derives its own height from the
+ * header's type and padding, states no floor, and matched neither rule.
+ * Measured at a coarse pointer: 60x43.22, which is 0.78px under the minimum,
+ * on two surfaces. It is the third instance-not-class miss this same overhang
+ * has produced, after the two named stack classes.
+ *
+ * A percentage in `top` resolves against the containing block's HEIGHT, so
+ * `100%` is whatever the host came out as, derived or stated. Half the shortfall
+ * each side makes the floor exactly. `min` against zero is what stops it: a
+ * host already at or above the minimum gets a positive number, so the overhang
+ * is zero rather than negative, and a wrapped three-line label stays where it
+ * is instead of growing another 16px.
+ *
+ * One writer, no host named, and the old arithmetic's answer is unchanged
+ * where it applied: a 28px label still reaches out 8px each side. */
+.dmd .checkbox-input, .dmd label:has(> .checkbox-input) > .checkbox-input {
+  top: min(0px, calc((var(--target-min, 44px) - 100%) / -2));
+  bottom: min(0px, calc((var(--target-min, 44px) - 100%) / -2));
 }
 
 /* ── ON A FINGER, EVERY CONTROL CLEARS THE FLOOR ──
@@ -1550,14 +1575,22 @@
  * to the top. Every size in this file states the pair; so does this.
  */
 @media (pointer: coarse) {
+  /* ── THE FLOOR AS A PROPERTY, SO THE NEXT CONTROL NEEDS NO NAME ──
+     The list below is a name list, and a name list approves whatever nobody
+     thought of. A rule that derives its own height cannot be promoted by being
+     named anyway: the tab-select parity calc weighs the same as its entry here
+     and comes later in the file, so it won and the select stayed 38.26px
+     beside a 44px tab. A control reading `max(its own height, --control-floor)`
+     is promoted by arithmetic instead, wherever it sits and whenever it is
+     written. Zero at rest, so it changes nothing on a mouse. */
+  .dmd { --control-floor: var(--target-min, 44px); }
   .dmd .btn {
     height: var(--target-min, 44px);
     line-height: calc(var(--target-min, 44px) - 2px);
   }
-  .dmd .btn.icon-only {
-    inline-size: var(--target-min, 44px);
-    padding: 0;
-  }
+  /* NO WIDTH HERE EITHER. The square comes from `aspect-ratio: 1` against the
+     height above, which is one writer at every size and every pointer. A
+     stated width was the thing that broke it: see the icon-only block. */
   .dmd .input,
   .dmd select.input,
   .dmd textarea.input,
@@ -3388,9 +3421,20 @@
   /* And the same HEIGHT, or the content below jumps when the swap happens.
      A tab's box is its line box plus its padding; the select's line box is the
      UA's `normal`, which measured 4px shorter. Derived from the same two
-     tokens the tab's line box comes from, so a type-scale change carries. */
-  min-height: calc(var(--font-body-sm-size, 14px) * var(--font-body-sm-leading, 1.58)
-                   + 2 * var(--space-xs, 8px));
+     tokens the tab's line box comes from, so a type-scale change carries.
+     ── AND THE PARITY BROKE AT A COARSE POINTER, BECAUSE THE TAB MOVED ──
+     A DERIVED CONSTANT IS STILL A CONSTANT. This calc is right about the type
+     scale and knows nothing about the touch promotion, which raises `.tab` to
+     44px. Both this rule and the promotion's `select.input` weigh (0,2,1), and
+     this one comes later, so it won: the tab measured 44 and the select 38.26
+     on two surfaces. The parity rule was the thing defeating the floor.
+     `max` takes whichever is larger, so the type scale still decides the
+     ordinary case and the floor decides the touch one. `--control-floor` is
+     set once on `.dmd` by the coarse block, so a control added tomorrow reads
+     the floor without being named in a list. */
+  min-height: max(calc(var(--font-body-sm-size, 14px) * var(--font-body-sm-leading, 1.58)
+                       + 2 * var(--space-xs, 8px)),
+                  var(--control-floor, 0px));
 }
 
 /* ── The empty state's mark ──

@@ -518,6 +518,28 @@ ${blocks}
     + '  theme=' + (document.documentElement.dataset.theme || 'system')
     + '  pointer=' + (matchMedia('(pointer: coarse)').matches ? 'coarse' : 'fine')
     + '  ' + ${checks.length} + ' checks')
+
+  /* ── A VERDICT NAMES ITS OWN COVERAGE, AND THE POINTER IS HALF OF IT ──
+   *
+   * The floor check asks the pointer, never the width, which is right and it
+   * means one run measures one floor. A desktop run compares every control
+   * against 24px and reports nothing, and that reads as a verdict about the
+   * touch case as well.
+   *
+   * Measured the day this was added, on twelve surfaces that had all passed
+   * on a mouse for weeks: 16 controls under the 44px floor at a coarse
+   * pointer. An icon-only button 28x44, because a stated width defeated its
+   * own aspect ratio. A select 38.26 beside a 44px tab, because a parity calc
+   * outweighed the promotion. A nav action 40 beside its own 44px links.
+   *
+   * So say which half was not measured. In a browser the other half needs
+   * device emulation, which the dev tools of every engine can do. */
+  const coarseRun = matchMedia('(pointer: coarse)').matches
+  console.log('  - UNMEASURED: the ' + (coarseRun ? 'fine' : 'coarse')
+    + '-pointer case. Every target floor above was compared against the '
+    + (coarseRun ? 'finger' : 'mouse') + ' minimum only. Run this again with '
+    + (coarseRun ? 'a mouse' : 'touch emulation on')
+    + ' before calling the targets clean.')
   for (const n of notes) console.log('  - ' + n)
   if (!findings.length) { console.log('PASS'); return { pass: true, findings: [] } }
 

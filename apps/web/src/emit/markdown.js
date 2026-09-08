@@ -1101,6 +1101,23 @@ function componentsBody(state, derived) {
        * both, and name the one that looks right and is not. */
       `Give the control ${target}px of hit area without changing how it looks, and there are exactly two ways. Stretch the CONTROL itself over the target — transparent, positioned, on top — and let a sibling paint the small box under it. Or make the wrapper a \`<label>\`, which does forward its clicks, and visually hide the input inside it. Padding a \`<span>\` wrapper is neither: a span cannot receive a press for the control inside it, so the reader still has only the small box to hit and nothing about the markup says so.`,
       `Or use a taller size for anything standing on its own. Reserve the short ones for rows and toolbars, where neighbours supply the clear space.`,
+      /* ── THE OVERHANG'S ARITHMETIC, AND WHY A TOKEN IS THE WRONG OPERAND ──
+       *
+       * "Stretch the control over the target" is the shape. This is the sum,
+       * and getting it from a token works for exactly the hosts that state
+       * that token. A table's select-all cell derives its height from the
+       * header's type and states none, so it came out 0.78px short.
+       */
+      `A stretched control reaches the floor by hanging out of its host on both sides, which costs no layout at all. Take half the shortfall each side: \`top: min(0px, calc((TARGET - 100%) / -2))\`, and the same for \`bottom\`. Ask the HOST, never a component token. A percentage there resolves against the containing block's height, so one rule reaches the floor from a host of any height, stated or derived. Two of three hosts in this system state no height of their own. The \`min\` against zero is what keeps a tall host where it is: a host already above the floor gets a positive number and no overhang, so a label wrapped to three lines does not grow another ${target / 4}px.`,
+      /* ── BOTH AXES, AND THE PROMOTION AS A PROPERTY ──
+       *
+       * Two faults a builder cannot see coming, both measured in this system.
+       * A target check that reads the height alone passes a control 28 wide
+       * and 44 tall. And a rule that DERIVES its own height cannot be promoted
+       * by being named in a list, because its own weight beats the promotion.
+       */
+      `A target is as small as its smaller SIDE, so state and check both. An icon-only button here measured 28 wide by 44 tall, and every height-only check reported it clean: a stated width had defeated its own \`aspect-ratio: 1\` while the promotion raised the height.`,
+      `Publish the floor as a custom property, set once on the root inside \`@media (pointer: coarse)\`, and let each control read \`max(its own height, that property)\`. A LIST of control selectors inside that query looks equivalent and is not. A control that derives its own height carries the same specificity as its entry in the list and may come later in the file, so it wins: a tab-strip select computed for parity with the tab measured 38.26px beside a 44px tab, and the parity rule was the thing defeating the floor. Ask the POINTER, never the width. A narrow window on a desktop is a mouse.`,
     ]),
   ] : []
 
@@ -1348,7 +1365,7 @@ function componentsBody(state, derived) {
     /* This was its own component in the preview for a long time, with a
        hardcoded box, and it stood taller than the small buttons beside it. An
        agent will make the same mistake unless the file says otherwise. */
-    'An icon-only button is a button. Same variant, same size entry, same height as any other button on its row — square, with width equal to that height, no label and an accessible name from `aria-label`. It is not a separate component with a size of its own.',
+    'An icon-only button is a button. Same variant, same size entry, same height as any other button on its row, square, no label, and an accessible name from `aria-label`. It is not a separate component with a size of its own. The square comes from `aspect-ratio: 1` against that height, and never from a stated width: a ratio only makes a size when the other axis is auto, so a typed width is the one thing that can break it. Measured here on 15 controls: 28 wide by 44 tall, because a per-size width outweighed the touch promotion that raised the height.',
 
     /* Figures. The mono family is named in this document and, until now,
        nothing said what it was for — so it would be used for code samples and

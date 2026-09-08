@@ -1880,6 +1880,14 @@ line('\n- prompt construction -')
     ['a loading state holds its own shape', ['aria-busy="true"', 'nothing moves when the data lands', 'opacity only']],
     ['loading is the fourth empty state', ['fourth** empty state']],
     ['aria-disabled and disabled are not interchangeable', ['removes the control from the tab order', 'keeps it reachable']],
+    /* ── FOUR TERMS FROM THE TOUCH FLOOR, EACH A FAULT THIS SYSTEM SHIPPED ──
+       Every one changes what a builder writes, so every one belongs in the
+       payload rather than with us. Measured at a coarse pointer over twelve
+       surfaces: 16 controls under the floor, from four mechanisms. */
+    ['a square comes from the ratio, never a stated width', ['a ratio only makes a size when the other axis is auto', 'aspect-ratio: 1']],
+    ['a target is as small as its smaller side', ['smaller side', '28 wide by 44 tall']],
+    ['the overhang asks its host, not a token', ['resolves against the containing block', 'min` against zero']],
+    ['the floor is a property, never a list of selectors', ['max(its own height', 'the parity rule was the thing defeating the floor']],
     ['the theme toggle is a visible lightbulb control', ['visible icon control carrying a lightbulb', 'same target size as any other control in its row']],
     /* ── THE MECHANISM, AND WHY THIS ASSERTION EXISTS AT ALL ──
      *
@@ -2427,6 +2435,12 @@ line('\n- project file -')
        which takes the weight of its heaviest argument and outranks whatever
        component stated that distance on purpose. */
     '.card > :is(.overline, .caption) + .title { margin-block-start: 0; }',
+    /* a-control-size-is-a-token: today's real fault, kept in the shape it
+       arrived in. The nav item beside it reads the touch token; this action
+       types the number that token used to hold, so it stayed 40px while the
+       links went to 44 — in one column, at every width. */
+    '.nav-item { min-height: var(--target-min, 44px); }',
+    '.nav-list > .btn { height: 40px; line-height: 38px; }',
   ].join('\n'))
   write('broken.html', [
     '<html data-theme="light">',                 /* hardcoded-theme */
@@ -4887,6 +4901,144 @@ function hueHex(h) {
     -0.0041960863 * L - 0.7034186147 * M + 1.7076147010 * S,
   ].map(v => Math.max(0, Math.min(1, gamma(v))))
   return '#' + rgb.map(v => Math.round(v * 255).toString(16).padStart(2, '0')).join('')
+}
+
+/* ── THE ALIGNMENT SECTION: RULES THAT STATED A CONSTANT AND NOTHING READ IT ──
+ *
+ * Each was measured before it was written. Three held with no assertion. The
+ * fourth was the instrument itself, and it was wrong three ways.
+ */
+{
+  line('\n- the alignment rules that had no check -')
+  const { SPACE_STEPS } = await import('../src/state/schema.js')
+  const PREVIEW = fs.readFileSync(new URL('../src/preview/preview.css', import.meta.url), 'utf8')
+  const button = COMPONENT_LIBRARY.find(c => c.name === 'button')
+  const avatar = COMPONENT_LIBRARY.find(c => c.name === 'avatar')
+
+  /* ── THE MARK IS ONE SIZE AT EVERY BUTTON SIZE ──
+     Their number, 28 August 2026: 14px. The cap-band rule centres a mark at
+     whatever size it is, so nothing is left for a size step to track. A
+     per-step mark is how the pairing breaks — three rules resized a button and
+     left its mark behind. */
+  assert(!!button && !!button.base.iconSize,
+    `the button states its mark size once, in its base (${button && button.base.iconSize})`)
+  {
+    const perStep = Object.entries(button.sizes || {})
+      .filter(([, v]) => v && Object.prototype.hasOwnProperty.call(v, 'iconSize'))
+      .map(([k]) => k)
+    assert(perStep.length === 0,
+      `and no size step restates it, so a rule that resizes the box cannot leave the mark behind (${perStep.join(', ') || 'none do'})`)
+  }
+
+  /* ── AN AVATAR IS NOT AN ICON, SO IT PUBLISHES ITS OWN GAP ──
+     It had none, so a row holding one fell back to the row default and put 8px
+     between a 32px disc and the name beside it. The icon gap is calibrated for
+     a 14px mark against a 14px label, and a disc is four times the mark. They
+     asked for 50% more, which is one step up the scale. */
+  {
+    assert(!!avatar.base.gap && avatar.base.gap !== button.base.gap,
+      `an avatar publishes its own gap rather than the mark gap (${avatar.base.gap} against ${button.base.gap})`)
+    const step = t => SPACE_STEPS.findIndex(x => `{spacing.${x.name}}` === t)
+    assert(step(avatar.base.gap) === step(button.base.gap) + 1,
+      `and it is exactly one step above it, never two (${step(button.base.gap)} to ${step(avatar.base.gap)})`)
+  }
+
+  /* ── TWO CONTROLS ARE EXCLUDED FROM THE CAP-BAND LIFT ──
+     An ICON-ONLY control has no label, so it has no baseline, and the lift
+     dropped a bell and a bulb out of their boxes. A SELECT TRIGGER puts its
+     chevron at the far end of a row that sets its own alignment, and
+     `align-self: baseline` pulled it to 10px above the cap line against 2.92
+     before. Both centre on their own box. Shipping without them is how I found
+     both, so the exclusions are asserted rather than remembered. */
+  {
+    const bare = PREVIEW.replace(/\/\*[\s\S]*?\*\//g, m => m.replace(/[^\n]/g, ' '))
+    const carrying = [...bare.matchAll(/([^{}@]+)\{([^{}]*)\}/g)]
+      .filter(b => /translateY\(calc\(\(100% - 0\.75em\)/.test(b[2]))
+    /* TWO RULES CARRY IT, and the second is not a mistake. A legend dot takes
+       the same transform: a mark with no text of its own would otherwise take
+       its baseline from its bottom margin edge and hang its whole height above
+       the line. So find the rule about CONTROLS rather than counting. */
+    assert(carrying.length === 2,
+      `the lift is stated in two places, the controls and the legend dot (${carrying.length})`)
+    const controls = carrying.find(b => /\.btn:not\(/.test(b[1]))
+    assert(!!controls, 'one of them is the control rule, found by the exclusion it carries')
+    /* BLANK WHAT IS INSIDE `:not()` BEFORE ASKING WHICH BRANCH THIS IS. The
+       `.with-icon` branches exclude `.btn` and `.nav-item` by name, so a plain
+       search for those words called five branches control branches and then
+       faulted three of them for lacking an exclusion they do not need. */
+    const branches = (controls ? controls[1] : '').split(',').map(x => x.trim())
+      .filter(x => /(^|\s)\.(btn|nav-item)\b/.test(x.replace(/:not\([^)]*\)/g, '')))
+    assert(branches.length === 2, `two branches name a control as their own subject (${branches.length})`)
+    for (const control of ['.icon-only', '.select-trigger']) {
+      assert(branches.length > 0 && branches.every(x => x.includes(`:not(${control})`)),
+        `every control branch of the lift excludes ${control} (${branches.length} branches)`)
+    }
+  }
+
+  /* ── AND THE INSTRUMENT TYPED THE FLOOR IT WAS MEASURING AGAINST ──
+   *
+   * `layout-tools.js` read `--target-min-pointer` for the mouse and typed 40
+   * for the finger, two lines under its own comment about not doing that. The
+   * document publishes 44 and the render check enforces 44, so the sweep would
+   * have passed a 40px control that the verifier fails.
+   *
+   * It also measured the HEIGHT alone, and asked a TAG LIST which things are
+   * targets. Both were blind to a real fault: an icon-only button 28 wide by
+   * 44 tall, and a select at 38.26 beside a 44px tab, because `select` was not
+   * in the list. And once the list widened, the DRAWN box was reported while
+   * the transparent control covering it went on being filtered out as unpainted
+   * — 23 correct controls at once.
+   *
+   * Measured at a coarse pointer over twelve surfaces: 16 controls under the
+   * floor, on a build that had passed on a mouse for weeks.
+   */
+  {
+    const tools = fs.readFileSync(new URL('../public/layout-tools.js', import.meta.url), 'utf8')
+    const bare = tools.replace(/\/\*[\s\S]*?\*\//g, m => m.replace(/[^\n]/g, ' '))
+    /* THE DECLARATION AND THE CHOICE ARE TWO LINES, so read both. Asking the
+       choice alone reported a fault on the repair, because the token name it
+       demanded sits on the line above. */
+    const lines = bare.split('\n')
+    const at = lines.findIndex(l => /const floor = coarse/.test(l))
+    const floorLine = at < 0 ? '' : lines[at]
+    const above = at < 0 ? '' : lines.slice(Math.max(0, at - 3), at).join(' ')
+    assert(/declaredTouch/.test(floorLine) && /getPropertyValue\('--target-min'\)/.test(above),
+      `the sweep reads the touch floor off the document rather than typing it (${floorLine.trim().slice(0, 58)})`)
+    assert(!/coarse \? 40/.test(bare),
+      'and the number it used to type is gone, not merely shadowed')
+    assert(/w < floor/.test(bare) && /h < floor/.test(bare),
+      'and it measures both axes, because a target is as small as its smaller side')
+    const list = bare.split('const INTERACTIVE =')[1] || ''
+    assert(/select/.test(list.slice(0, 320)),
+      'and it asks interactivity rather than a tag list, so a select counts as a target')
+    assert(/partnerOf/.test(bare),
+      'and a drawn ornament defers to the transparent control covering it, which is a SIBLING')
+  }
+
+  /* ── THE HIT AREA ASKS ITS HOST, NEVER A TOKEN THE HOST MIGHT NOT USE ──
+     The overhang was written against the small-button height, which is the
+     floor one of three hosts states. The table's select-all cell derives its
+     height from the header's type and came out 0.78px short. A percentage in
+     `top` resolves against the containing block's height, so one rule reaches
+     the floor from any host, and `min` against zero stops a tall row growing. */
+  {
+    const bare = PREVIEW.replace(/\/\*[\s\S]*?\*\//g, m => m.replace(/[^\n]/g, ' '))
+    /* THREE RULES STATE AN OVERHANG AND TWO ARE ABOUT SOMETHING ELSE. A stack
+       and the batch bar each reach out half their own gap, so a target fills
+       the space between two rows without covering the next one. Only the
+       DEFAULT is about reaching the floor, and it is the one whose selector
+       carries the bare class with no host in front of it. */
+    const rule = [...bare.matchAll(/([^{}@]+)\{([^{}]*)\}/g)]
+      .filter(b => /\.checkbox-input/.test(b[1]) && /(^|[;\s])top\s*:/.test(b[2]))
+    assert(rule.length === 3, `three rules state an overhang: the default and two hosts (${rule.length})`)
+    const dflt = rule.find(b => b[1].split(',').some(x => x.trim() === '.dmd .checkbox-input'))
+    assert(!!dflt, 'the default is the branch with no host in front of the class')
+    const decls = dflt ? dflt[2] : ''
+    assert(/min\(0px/.test(decls) && /100%/.test(decls),
+      'it asks the host height and clamps at zero, so a tall row keeps its own size')
+    assert(!/cmp-button-sm-height/.test(decls),
+      'and it names no component floor, because two of the three hosts do not state one')
+  }
 }
 
 line(`\n${failures === 0 ? 'ALL PASS' : `${failures} FAILURE(S)`}\n`)
