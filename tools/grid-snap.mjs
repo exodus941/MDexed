@@ -106,12 +106,66 @@ for (const path of files) {
       return `${prop}${sep}${quote}${next}${quote}`
     })
 
+  /* ── A CONDITIONAL VALUE IS STILL A VALUE, AND THE MATCHER ABOVE IS BLIND ──
+   *
+   * It requires the value to start with a digit or a quote. A ternary starts
+   * with an identifier, so `columnGap: dense ? 4 : 13` matches nothing and the
+   * whole declaration is skipped. It ships on whichever branch the reader is
+   * on. This was recorded as the third blind spot of this matcher and the
+   * matcher was never widened. Proven today: a literal fires, a px string
+   * fires, and a ternary exits zero.
+   *
+   * REPORTED, NEVER REWRITTEN. Snapping one branch of a conditional edits a
+   * decision rather than a length, and a codemod that rewrites control flow is
+   * a bigger bug than an off-grid pixel. So `--write` leaves these alone and
+   * `--check` counts them.
+   */
+  let conditional = 0
+  for (const [a, b] of regions) {
+    const chunk = before.slice(a, b)
+    for (const m of chunk.matchAll(/\b([a-z][A-Za-z]*)\s*:\s*([^,}]+)/g)) {
+      if (!LENGTH_PROPS.has(m[1])) continue
+      const v = m[2].trim()
+      /* The simple shapes are the first pass's business. */
+      if (/^\d/.test(v) || /^['"]/.test(v)) continue
+      if (!v.includes('?')) continue
+      const snap = TYPE_PROPS.has(m[1]) ? snapType : snapSpace
+      const nums = [...v.matchAll(/(?:^|[\s?:(])(\d+(?:\.\d+)?)(?:px)?(?=[\s:,)]|$)/g)].map(x => Number(x[1]))
+      const off = nums.filter(n => snap(n) !== n)
+      if (!off.length) continue
+      conditional++
+      console.log(`  ${relative(ROOT, path).replace(/\\/g, '/')}  ${m[1]}: ${v.slice(0, 44)}   off-grid ${off.join(', ')}   CONDITIONAL, not rewritten`)
+    }
+  }
+
   if (hits) {
     changed += hits
     touched++
     console.log(`  ${relative(ROOT, path).replace(/\\/g, '/')}  ${hits}`)
     if (WRITE) writeFileSync(path, after)
   }
+  if (conditional) { changed += conditional; if (!hits) touched++ }
 }
 
 console.log(`\n${changed} values across ${touched} files${WRITE ? ' — written' : ' — dry run, pass --write to apply'}`)
+
+/* ── A ONE-SHOT CODEMOD GUARDS NOTHING, AND THIS ONE WAS THE ONLY INSTRUMENT ──
+ *
+ * A stylesheet is not the whole surface: React reads a bare number in a style
+ * object as pixels, so `gap: 7` is a 7px gap no CSS file mentions. The CSS
+ * guards never saw those, and this file was run once and then forgotten. 650
+ * off-grid values had already shipped that way.
+ *
+ * Measured today, months later: one more had arrived. A sparkline typed 88 by
+ * 22 in the markup, where the 22 was a line box rounded to a whole pixel.
+ *
+ * So `--check` exits non-zero and the pre-commit hook runs it. A guard that
+ * always exits zero reports to nobody: the hook reads the code, and a report
+ * on stdout that nothing acts on is the same as silence.
+ */
+if (process.argv.includes('--check') && changed) {
+  console.error('\ngrid guard: ' + changed + ' inline style value(s) off the grid.')
+  console.error('A bare number in a style object is pixels, and no CSS guard can see it.')
+  console.error('Run `node tools/grid-snap.mjs --write` to snap them, then read the diff.')
+  process.exit(1)
+}

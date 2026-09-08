@@ -5341,5 +5341,89 @@ function hueHex(h) {
   }
 }
 
+/* ── SHIP NO FRACTIONAL PIXEL: THE TWO HALVES NOTHING WATCHED ──
+ *
+ * The type grid, the derived snap, the stroke weight and the fallback drift all
+ * have readers already. Two things did not.
+ *
+ * A SLIDER'S PARITY. A track and a thumb are centred by half their difference,
+ * so a 3px track under a 12px thumb asks for -4.5 and nothing lands on a whole
+ * pixel. Measured on both variants: 4 against 12 and 8 against 16, each wanting
+ * -4, each stating -4.
+ *
+ * AND THE INLINE HALF HAD NO GUARD AT ALL. `grid-snap.mjs` ran once as a
+ * codemod and 650 values had already shipped past the CSS guards. One more
+ * arrived in the months it sat unwatched: a sparkline typed 88 by 22 in the
+ * markup, where the 22 was a line box rounded to a whole pixel. It runs in the
+ * pre-commit hook now, and its ternary blind spot is closed.
+ */
+{
+  line('\n- ship no fractional pixel: the slider and the inline half -')
+  const theme = fs.readFileSync(new URL('../src/ui/theme.css', import.meta.url), 'utf8')
+    .replace(/\/\*[\s\S]*?\*\//g, m => m.replace(/[^\n]/g, ' '))
+  const groups = {}
+  for (const r of theme.matchAll(/([^{}]*input\[type=range\][^{}]*)\{([^{}]*)\}/g)) {
+    const sel = r[1].trim(), d = r[2]
+    const variant = (sel.match(/range\]([.a-z-]*)/) || [, ''])[1] || '(base)'
+    const h = (d.match(/height:\s*([\d.]+)px/) || [])[1]
+    const mt = (d.match(/margin-top:\s*(-?[\d.]+)px/) || [])[1]
+    groups[variant] = groups[variant] || {}
+    if (/track/.test(sel) && h) groups[variant].track = +h
+    if (/thumb/.test(sel)) { if (h) groups[variant].thumb = +h; if (mt) groups[variant].margin = +mt }
+  }
+  const pairs = Object.entries(groups).filter(([, g]) => g.track != null && g.thumb != null)
+  assert(pairs.length >= 2, `every slider variant states a track and a thumb (${pairs.length})`)
+  for (const [v, g] of pairs) {
+    const want = (g.track - g.thumb) / 2
+    assert(Number.isInteger(want),
+      `${v} centres its thumb on a whole pixel (track ${g.track}, thumb ${g.thumb}, wants ${want})`)
+    /* A VARIANT THAT MOVES THE TRACK MUST MOVE THE OFFSET. Changing one and
+       not the other is how the arithmetic goes wrong in silence. */
+    if (g.margin != null) assert(g.margin === want,
+      `${v} states the offset its own numbers ask for (${g.margin} against ${want})`)
+  }
+
+  /* THE GUARD IS IN THE HOOK, because a report nothing reads is silence. */
+  {
+    /* Three levels up: this file is apps/web/test, and the hook is at the repo
+       root. Two levels reached apps/ and threw. */
+    const hook = fs.readFileSync(new URL('../../../.githooks/pre-commit', import.meta.url), 'utf8')
+    assert(/grid-snap\.mjs --check/.test(hook),
+      'the grid guard runs in the pre-commit hook, in check mode')
+    assert(/exit 1/.test(hook.split('grid-snap.mjs --check')[1] || ''),
+      'and refuses the commit, rather than printing to nobody')
+    const guard = fs.readFileSync(new URL('../../../tools/grid-snap.mjs', import.meta.url), 'utf8')
+    assert(/--check/.test(guard) && /process\.exit\(1\)/.test(guard),
+      'the guard exits non-zero on a finding')
+    /* THE TERNARY SHAPE, which the first matcher could not see: it required a
+       value starting with a digit or a quote, and a ternary starts with a
+       letter. Proven by injection: literal fires, px string fires, ternary
+       exited zero. */
+    assert(/CONDITIONAL, not rewritten/.test(guard),
+      'and it reads a conditional value, which the digit-or-quote matcher skipped')
+    assert(/never rewritten|not rewritten/i.test(guard),
+      'reported rather than rewritten, because snapping one branch edits a decision')
+  }
+
+  /* AND THE SPARKLINE STATES NO SIZE IN THE MARKUP. Two typed numbers there
+     beat every rule in the stylesheet, so no rule could reach them. */
+  {
+    const jsx = fs.readFileSync(new URL('../src/preview/screens/Charts.jsx', import.meta.url), 'utf8')
+    assert(!/chart-sparkline[\s\S]{0,200}?width:\s*\d/.test(jsx),
+      'the sparkline states no width in the markup')
+    /* FOUR RULES NAME THAT CLASS, so find the one that SIZES it. Taking the
+       first match read the rule that sets the chart custom properties. */
+    const css2 = fs.readFileSync(new URL('../src/preview/preview.css', import.meta.url), 'utf8')
+    const rule = [...css2.matchAll(/\.dmd \.chart-sparkline \{([^}]*)\}/g)]
+      .map(m => m[1]).find(d => /block-size/.test(d)) || ''
+    assert(/block-size:\s*calc\(var\(--font-body-sm-size/.test(rule),
+      'and the stylesheet derives its height from the body tokens, not the caption')
+    /* NOT THE SPARKLINE'S OWN em OR lh. Both resolve against its caption font
+       at 12px, so they measured 19.44 and 19.08 against a row of 21.84. */
+    assert(!/block-size:\s*1lh/.test(rule) && !/block-size:\s*calc\(1em/.test(rule),
+      'and not from its own font, which is the caption rather than the row')
+  }
+}
+
 line(`\n${failures === 0 ? 'ALL PASS' : `${failures} FAILURE(S)`}\n`)
 process.exit(failures ? 1 : 0)

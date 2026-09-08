@@ -60,6 +60,18 @@ if ! node apps/web/tools/token-reader-guard.mjs; then
   exit 1
 fi
 
+# A stylesheet is not the whole surface. React reads a bare number in a style
+# object as pixels, so `gap: 7` is a 7px gap no CSS file mentions and no CSS
+# guard can see. This ran once as a codemod and 650 values had already shipped
+# that way. One more arrived in the months it sat unwatched.
+if ! node tools/grid-snap.mjs --check; then
+  echo
+  echo "pre-commit: grid guard failed. Commit refused."
+  echo "An inline style length is off the grid. A conditional one is reported"
+  echo "and never rewritten, because snapping a branch edits a decision."
+  exit 1
+fi
+
 # ── 2. The build number. Not blocking. ──
 # Advanced once per batch of commits, so it counts deploys rather than commits:
 # it bumps only when there is nothing unpushed, which means the first commit

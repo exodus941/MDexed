@@ -2885,7 +2885,30 @@
 }
 /* A sparkline has no furniture, so it has no inset either. The cell it sits in
    owns that distance. */
-.dmd .chart-sparkline { padding: 0; }
+/* ── A SPARKLINE'S SIZE WAS TWO NUMBERS TYPED IN THE MARKUP ──
+ *
+ * 88 by 22, inline, so no rule here could reach them. The 22 was a LINE BOX
+ * rounded to a whole pixel: the row's own body text measures 21.84, and the
+ * sparkline is meant to stand one line tall beside it. Derived from the body
+ * tokens it comes to 22.25, and a type-scale change now carries.
+ *
+ * NOT `1lh`, AND NOT `1em`. Both resolve against the SPARKLINE'S own font,
+ * which is the caption at 12px, so they measured 19.44 and 19.08 against a
+ * row of 21.84. The row carries its label's type, not the ornament's.
+ *
+ * NOT `aspect-ratio` EITHER. A table negotiates its own column widths, so an
+ * auto-width child with a ratio is squeezed: measured 81.2 by 20.3, and the
+ * three columns moved 201/160/121 to 231/113/139. A plot takes a ratio where
+ * its width comes from a grid. In a table cell it states both sides.
+ *
+ * The inline width was on the 4px grid and stays 88, as four line boxes. That
+ * is a column measure rather than a spacing step, so no space token fits it. */
+.dmd .chart-sparkline {
+  padding: 0;
+  display: block;
+  block-size: calc(var(--font-body-sm-size, 14px) * var(--font-body-sm-leading, 1.59));
+  inline-size: calc(var(--font-body-sm-size, 14px) * var(--font-body-sm-leading, 1.59) * 4);
+}
 
 /* ── THE FRAME IS ONE GRID, BECAUSE THE CATEGORY LABELS HAVE TO LINE UP ──
  *

@@ -458,8 +458,12 @@ export default function Charts({ onInspect, casing }) {
                 <tr key={name}>
                   <td {...txt('body-sm')}>{name}</td>
                   <td>
-                    <span className="chart chart-sparkline" {...ins('chart-sparkline')}
-                      style={{ display: 'block', width: 88, height: 22 }}>
+                    {/* No size here. 88 and 22 were typed, and the 22 was a
+                        LINE BOX approximated to a whole pixel: the row's own
+                        text measures 21.84. The stylesheet states both now,
+                        derived from the body tokens, so a type-scale change
+                        carries and no inline value beats the rule. */}
+                    <span className="chart chart-sparkline" {...ins('chart-sparkline')}>
                       <svg className="chart-svg" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
                         <polyline className="chart-path" points={poly(series, 100)} style={{ stroke: `var(--chart-${tone})` }} />
                       </svg>
