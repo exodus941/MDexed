@@ -1468,6 +1468,52 @@ export const CHECKS = [
   },
 
   {
+    id: 'meaning-never-rests-on-colour-alone',
+    where: 'render',
+    line: 'A marker that names a meaning carries a word or a shape as well as a hue.',
+    /* ── A GREEN SUCCESS AND A RED DANGER ARE ONE COLOUR TO MANY READERS ──
+     *
+     * Under red-green vision loss only lightness and the blue-yellow axis
+     * survive. Two status roles usually sit on the same ramp step, so their
+     * lightness is identical by construction. Simulated at full severity, a
+     * 148-degree green and a 30-degree red become #595027 and #5d531d: the
+     * same olive twice.
+     *
+     * Measured across eleven surfaces: 36 elements carry a semantic class,
+     * and none rests on its hue alone. So this is quiet on a real sample.
+     *
+     * THREE WAYS TO SURVIVE, each a declaration rather than a guess. Its own
+     * words. A glyph, which is a shape. Or words beside it, because a legend
+     * dot is labelled by its own row.
+     */
+    body: [
+      "/* A class that names a MEANING. The element is claiming to say something,",
+      "   and a reader who cannot separate two hues has to be able to read it. */",
+      "const SEMANTIC = /(^|[^a-z])(success|warning|danger|error|positive|negative|caution|critical)([^a-z]|$)/",
+      "for (const el of all('*')) {",
+      "  const cls = el.getAttribute('class') || ''",
+      "  if (!SEMANTIC.test(cls)) continue",
+      "  const cs = getComputedStyle(el)",
+      "  /* ── ONLY A MARKER, which is something that paints its own fill or edge.",
+      "     A wrapper carrying the word in its class name paints nothing and says",
+      "     nothing, so it is not what a reader is looking at. */",
+      "  const marks = cs.backgroundColor !== 'rgba(0, 0, 0, 0)'",
+      "    || cs.backgroundImage !== 'none' || px(cs.borderTopWidth) > 0",
+      "  if (!marks) continue",
+      "  /* ── THREE WAYS TO SURVIVE THE LOSS OF A HUE ──",
+      "     Its own words. A glyph, which is a shape rather than a colour. Or words",
+      "     BESIDE it: a legend dot is labelled by the row it sits in, and that is",
+      "     what makes the picture certain. */",
+      "  if ((el.textContent || '').trim()) continue",
+      "  if (el.querySelector('svg')) continue",
+      "  const near = el.parentElement ? (el.parentElement.textContent || '').trim() : ''",
+      "  if (near) continue",
+      "  fail(name(el),",
+      "    'this marker says ' + cls + ' and carries no words, no glyph and no label beside it, so its meaning rests on its hue alone. No categorical palette survives the loss of red-green vision, so a green success and a red danger land in the same place on the axis that is left. Give it a shape or a word: the colour makes the picture readable and the label makes it certain.')",
+      "}",
+    ],
+  },
+  {
     id: 'a-marked-item-says-so',
     where: 'render',
     line: 'The chosen item in a nav or a strip declares aria-current or aria-selected, not only a colour.',

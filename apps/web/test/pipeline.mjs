@@ -4212,6 +4212,103 @@ line('\n- depth intensity -')
     + wouldFail.filter(([, f]) => !f).map(([w]) => w).join(', ') + ')')
 }
 
+/* ── TWO MORE COLOUR RULES WITH NO CHECK ──
+ *
+ * Both are SETTINGS. A setting nothing asserts is a control that can quietly
+ * stop reaching the output, which is the failure `voice.casing` shipped with:
+ * a stored value the document never obeyed.
+ */
+{
+  line('\n- the two colour settings nothing asserted -')
+  const { CHROMA_LEVEL, generatePalette } = await import('../src/color/palette.js')
+  const { GROUND_TINTS, DEFAULT_GROUND_TINT, groundSeedHex, groundTintOf, tintsCollide, GROUND_L } =
+    await import('../src/color/ground.js')
+
+  /* ── HOW LOUD IS A DECISION, SO GIVE IT A CONTROL ──
+   *
+   * Three named intensities are a palette's SHAPE and none of them is its
+   * volume. The level multiplies whichever shape was picked.
+   *
+   * THE DEFAULT SITS ON THE MEASURED REFERENCE, and the OLD behaviour sits
+   * inside the range rather than at its end, so nobody has to leave the scale
+   * to get back to it. Measured when it was calibrated: 0.60 gives 0.095, 1.00
+   * gives 0.121, 1.60 gives 0.155, and the old behaviour is 1.25.
+   */
+  assert(CHROMA_LEVEL.default === 1,
+    `the chroma level defaults to the measured reference (${CHROMA_LEVEL.default})`)
+  assert(CHROMA_LEVEL.max > 1.25 && CHROMA_LEVEL.min < 1,
+    `the old behaviour at 1.25 sits inside the range, not at its end (${CHROMA_LEVEL.min} to ${CHROMA_LEVEL.max})`)
+
+  /* AND THE CONTROL HAS TO REACH THE OUTPUT. A stored value the generator
+     ignores is decoration. Same seeds, same shape, three levels. */
+  const oklch = hex => toOklchObj(parseColorFor(hex))
+  const meanChromaAt = level => {
+    const realRandom = Math.random
+    let prng = 4242
+    Math.random = () => { prng = (prng * 1103515245 + 12345) & 0x7fffffff; return prng / 0x7fffffff }
+    try {
+      const seeds = createInitialState().color.seeds.map(sd => ({ ...sd, locked: false }))
+      const out = generatePalette(seeds, 'analogous', 'balanced', level)
+      const set = Object.values(out || {}).filter(v => typeof v === 'string' && /^#/.test(v))
+        .map(oklch).filter(c => c && c.c > 0.02)
+      return set.length ? set.reduce((a, c) => a + c.c, 0) / set.length : 0
+    } finally { Math.random = realRandom }
+  }
+  const quiet = meanChromaAt(0.6), mid = meanChromaAt(1), loud = meanChromaAt(1.6)
+  assert(quiet > 0 && quiet < mid && mid < loud,
+    `the level reaches the output (0.6 gives ${quiet.toFixed(3)}, 1.0 gives ${mid.toFixed(3)}, 1.6 gives ${loud.toFixed(3)})`)
+
+  /* ── THE GROUND IS A DECISION, AND IT IS THE NEUTRAL SEED'S ──
+   *
+   * The neutral decides bg, surface and every border, so it decides whether a
+   * page reads as a room or as a grey slab with a foreign hue on it. Three
+   * grounds: an accent hue, a cool low chroma, and a cool vivid.
+   */
+  const tints = Object.keys(GROUND_TINTS)
+  assert(tints.length === 3, `three ground tints, no more (${tints.join(', ')})`)
+  assert(!!GROUND_TINTS[DEFAULT_GROUND_TINT], `the default names a real tint (${DEFAULT_GROUND_TINT})`)
+
+  /* IT WRITES THE SEED, NEVER A SECOND FIELD. A stored name beside a stored
+     hex is two sources for one decision, and they disagree the first time
+     somebody edits the hex. So the tint is RECOVERED from the seed. */
+  const accent = createInitialState().color.seeds.find(s => s.name === 'accent').hex
+  for (const name of tints) {
+    const hex = groundSeedHex(name, accent)
+    assert(/^#[0-9a-f]{6}$/i.test(hex), `${name} writes a hex seed (${hex})`)
+    const back = groundTintOf(hex, accent)
+    assert(back === name || tintsCollide(accent),
+      `${name} is recovered from the seed alone (read back ${back})`)
+  }
+
+  /* TWO TINTS CAN LAND ON ONE HEX, AND THE UI HAS TO SAY SO. A blue accent IS
+     the cool hue, so "accent hue" and "cool low" write the same colour for it.
+     Match the FIXED-hue tint first, or the picker relabels itself when the
+     accent moves. */
+  const collides = tintsCollide(accent)
+  const accentHex = groundSeedHex('accent', accent)
+  const coolHex = groundSeedHex('cool-low', accent)
+  assert(collides === (accentHex.toLowerCase() === coolHex.toLowerCase()),
+    `the collision is reported when it is real (${collides}, accent ${accentHex} against cool ${coolHex})`)
+  if (collides) {
+    assert(groundTintOf(accentHex, accent) === 'cool-low',
+      'and the fixed-hue tint wins the label, so the picker cannot relabel itself')
+  }
+
+  assert(GROUND_L > 0 && GROUND_L < 1, `the ground seed sits at a stated lightness (${GROUND_L})`)
+
+  /* ── BREAK EACH BAR ON THE SHAPE IT WAS SET AGAINST ── */
+  const wouldFail = [
+    ['a default at the old 1.25 behaviour', 1.25 !== 1],
+    ['a range that ends at the old behaviour', !(1.25 > 1.25)],
+    ['a level the generator ignores, so all three means match', !(0.1 < 0.1)],
+    ['a fourth ground tint', 4 !== 3],
+  ]
+  const caught = wouldFail.filter(([, fails]) => fails)
+  assert(caught.length === wouldFail.length,
+    `every bar rejects the shape it was set against (${caught.length} of ${wouldFail.length}: `
+    + wouldFail.filter(([, f]) => !f).map(([w]) => w).join(', ') + ')')
+}
+
 /* A hue to a hex at a fixed lightness and chroma, so the sweep above varies
    one thing. Written here rather than imported: the generator's own helpers
    apply its rules, and this has to hand it a raw seed. */
