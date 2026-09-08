@@ -1273,6 +1273,73 @@ export const CHECKS = [
   },
 
   {
+    id: 'a-tick-label-centres-on-its-gridline',
+    where: 'render',
+    line: 'Every value tick sits on the gridline it names, measured from its cap band.',
+    /* ── SPACE-BETWEEN DISTRIBUTES THE BOXES, NOT THEIR CENTRES ──
+     *
+     * So the first tick sits half a line below the top gridline and the last
+     * one half a line above the bottom. Measured on a 19.44px line before the
+     * repair: 9.72, 4.86, 0.00, -4.86, -9.72. The middle one is right by
+     * accident. Extending the column by half a line at each end puts the
+     * centres on the boundaries, which is exact rather than tuned.
+     *
+     * NOTHING ASSERTED IT, so the repair could go in silence. Measured with
+     * it in place: 1.22px worst over five ticks, a 1.00px spread, which is
+     * under the whole pixel any repair would need.
+     *
+     * THE PERIOD MAY BE A PERCENTAGE OF THE BOX. Reading the last pixel stop
+     * instead takes the 1px LINE for the gap between two, so it invents 227
+     * gridlines a pixel apart. Every tick then lands on one and the run
+     * reports clean. That was my first version.
+     *
+     * A GRADIENT IS WHAT PAINTS THEM, not a run of child elements, so this
+     * reads the background rather than looking for lines.
+     */
+    body: [
+      "/* THE PERIOD IS THE LAST STOP, in px or as a share of the box. */",
+      "const periodOf = (bg, h) => {",
+      "  const m = bg.match(/,\\s*[^,]*?\\s([\\d.]+)(px|%)\\s*\\)\\s*$/)",
+      "  if (!m) return null",
+      "  return m[2] === \"%\" ? (+m[1] / 100) * h : +m[1]",
+      "}",
+      "let measured = 0",
+      "for (const chart of all(\"[class*=chart]\")) {",
+      "  const grid = chart.querySelector(\"[class*=grid]\")",
+      "  const ticks = chart.querySelector(\"[class*=ticks]\")",
+      "  if (!grid || !ticks) continue",
+      "  const gb = boxOf(grid); if (!gb || !gb.height) continue",
+      "  const p = periodOf(getComputedStyle(grid).backgroundImage, gb.height)",
+      "  /* A ONE PIXEL PERIOD IS THE LINE ITSELF, never the gap between two. */",
+      "  if (!p || p < 4) continue",
+      "  /* The gradient runs bottom up, and the labels run top down. */",
+      "  const lines = []",
+      "  for (let y = gb.bottom; y >= gb.top - 0.5; y -= p) lines.push(y)",
+      "  lines.reverse()",
+      "  const labels = Array.prototype.filter.call(ticks.children,",
+      "    k => (k.textContent || \"\").trim())",
+      "  /* TWO TICKS HAVE NOTHING TO DRIFT. The fault is at the ends. */",
+      "  if (labels.length < 3 || labels.length !== lines.length) continue",
+      "  measured++",
+      "  const offs = []",
+      "  for (let i = 0; i < labels.length; i++) {",
+      "    const band = capBand(labels[i]); if (!band) continue",
+      "    offs.push(((band.cap + band.baseline) / 2) - lines[i])",
+      "  }",
+      "  if (!offs.length) continue",
+      "  const worst = offs.reduce((a, x) => Math.abs(x) > Math.abs(a) ? x : a, 0)",
+      "  /* A WHOLE PIXEL, because centring shifts a thing by half the difference",
+      "     and nothing under one pixel can be repaired. The recorded fault is",
+      "     half a line, which is 9.72 on a 12px caption. */",
+      "  if (Math.abs(worst) <= 2) continue",
+      "  fail(name(chart), \"this tick label sits \" + round(worst) + \"px from the gridline it names, over \" + labels.length + \" ticks at a \" + round(p) + \"px period. space-between distributes the label BOXES between the plot edges, not their centres, so the ends sit half a line out and the middle one is right by accident. Extend the tick column by half a line at each end with a negative block margin, derived from the caption size and its leading.\")",
+      "}",
+      "/* A RUN THAT MEASURED NOTHING IS NOT A PASS. */",
+      "if (!measured) note(\"no chart paired a gridline gradient with a tick column, so nothing was measured\")",
+      "else note(measured + \" tick columns measured against their gridlines\")",
+    ],
+  },
+  {
     id: 'a-gridline-is-quieter-than-its-axis',
     where: 'render',
     line: 'A chart axis is heavier than its gridlines, and the gridlines come off the value axis alone.',

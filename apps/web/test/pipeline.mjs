@@ -1900,6 +1900,10 @@ line('\n- prompt construction -')
        quote had drifted. They derive both halves now. */
     ['the selection direction is read off the figures', ['read the direction off the figures', 'two roles here move opposite ways']],
     ['the outline is measured on every ground it sits on', ['on a recessed band in light', 'every ground it can sit on']],
+    /* The tick mechanism. A builder reaching for space-between gets the ends
+       half a line out, and the middle one right by accident. */
+    ['a tick label centres on its gridline', ['distributes the label boxes', 'half a line at each end']],
+    ['the overhang leaves the box, so the chart absorbs it', ['showed 2.28', 'only where a tick column exists']],
     ['the theme toggle is a visible lightbulb control', ['visible icon control carrying a lightbulb', 'same target size as any other control in its row']],
     /* ── THE MECHANISM, AND WHY THIS ASSERTION EXISTS AT ALL ──
      *
@@ -5228,6 +5232,61 @@ function hueHex(h) {
       'and states the selected row\'s own signed step, derived')
     assert(/[\d.]+:1 on a recessed band in light/.test(md),
       'and measures the outline on the recessed ground, which is where it fails')
+  }
+}
+
+/* ── THE TWO CHART CONSTANTS NOTHING WAS READING ──
+ *
+ * Both turned out to be past EVIDENCE rather than live constants: 9.72 and
+ * 2.28 are the figures from before each repair, and both mechanisms are in
+ * place. Measured on the shipped Charts surface: the worst tick sits 1.22px
+ * from its gridline over five ticks, a 1.00px spread, under the whole pixel
+ * any repair would need. The clearance reads 28px to the ink.
+ *
+ * What was missing is the CHECK. Remove the negative margin and the ends go
+ * back to half a line out, in silence. Proven by injection in the browser: 0
+ * findings clean, 22 with the margin removed, the first at -9.94px.
+ */
+{
+  line('\n- the chart constants nothing was reading -')
+  const { CHECKS: CH2 } = await import('../src/emit/checks.js')
+  const tick = CH2.find(c => c.id === 'a-tick-label-centres-on-its-gridline')
+  assert(!!tick && tick.where === 'render',
+    `the tick check ships and runs in a browser (${tick?.where})`)
+  const text = (tick?.body || []).join('\n')
+  /* THE PERIOD MAY BE A PERCENTAGE, and reading the last pixel stop takes the
+     1px LINE for the gap between two. That invents 227 gridlines a pixel
+     apart, every tick lands on one, and the run reports clean. */
+  assert(/px\|%/.test(text),
+    'it reads the gradient period as a percentage as well as a length')
+  assert(/p < 4/.test(text),
+    'and rejects a one-pixel period, which is the line itself rather than a gap')
+  assert(/lines\.reverse\(\)/.test(text),
+    'the gradient runs bottom up and the labels top down, so one of them is reversed')
+  assert(/backgroundImage/.test(text) && !/querySelectorAll\(.[^)]*line/.test(text),
+    'it asks what PAINTS the gridlines, because a repeating gradient has no child elements')
+  assert(/labels\.length < 3/.test(text),
+    'two ticks have nothing to drift, so the fault needs three')
+  assert(/!measured/.test(text),
+    'and a run that measured no tick column says so rather than passing')
+
+  /* THE STYLESHEET SIDE: both halves of the mechanism, derived from the type
+     tokens rather than typed. A figure typed here is the thing that drifts. */
+  {
+    const css = fs.readFileSync(new URL('../src/preview/preview.css', import.meta.url), 'utf8')
+    const bare = css.replace(/\/\*[\s\S]*?\*\//g, m => m.replace(/[^\n]/g, ' '))
+    const col = [...bare.matchAll(/([^{}@]+)\{([^{}]*)\}/g)]
+      .find(b => /\.chart-ticks\s*\{/.test(b[0]) && /margin-block/.test(b[2]))
+    assert(!!col, 'the tick column states a block margin')
+    assert(/\/\s*-2\s*\)/.test(col ? col[2] : ''),
+      'and it is half a line, negative, so the column reaches past both plot edges')
+    assert(/font-caption-leading/.test(col ? col[2] : ''),
+      'derived from the caption leading, so a type-scale change carries')
+    const pad = [...bare.matchAll(/([^{}@]+)\{([^{}]*)\}/g)]
+      .find(b => /:has\(\.chart-ticks\)/.test(b[1]) && /padding-block/.test(b[2]))
+    assert(!!pad, 'and the chart absorbs that overhang in its own block padding')
+    assert(/:has\(/.test(pad ? pad[1] : ''),
+      'only where a tick column exists, because a chart without one has no overhang')
   }
 }
 
