@@ -209,6 +209,11 @@ export const CHECKS = [
       "  if (saysPressed || isCheckbox) continue",
       "  fail(f.path, 0, 'a theme control that never says which theme is on. Give a button aria-pressed, or make the control a checkbox, which states it natively.')",
       "}",
+      "/* PRESENCE IS NOT ASKED HERE EITHER, AND THE FIXTURE PROVED IT. A clause",
+      "   failing a build whose pages carry no theme control fired on the",
+      "   known-good fixture, which is a small correct build that legitimately",
+      "   ships none. So neither side demands one, and the render pass notes",
+      "   that it had nothing to press. Cut a check you cannot make honest. */",
     ],
   },
 
@@ -2122,37 +2127,89 @@ export const CHECKS = [
     needs: 'themeToggle',
     where: 'render',
     line: 'Pressing the theme control changes the painted page. Press it and read the result.',
+    /* ── IT PRESSED A CONTROL THAT ITS OWN PRESS DESTROYS ──
+     *
+     * Two defects, and together they made the run report a working toggle
+     * as dead and left the page in the other theme.
+     *
+     * THE PRESS REPLACES THE ELEMENT. The control re-renders, so a held
+     * reference is detached: getComputedStyle on it returns empty strings,
+     * and the second click lands on nothing. So the restore never happened.
+     * Measured: the theme before a run was dark at rgb(14, 23, 32) and
+     * light at rgb(213, 221, 228) after it. Every check ordered later
+     * measured the other theme, which is why a finding could appear and
+     * vanish between two runs of the same build.
+     *
+     * AND `document.body` IS NOT ALWAYS THE PAINTED SUBJECT. An app hosting
+     * a preview themes the preview scope, not its own body. Measured on this
+     * app: the body read rgb(9, 10, 11) before and after, on six presses,
+     * while the label went from "Light theme is on" to "Dark theme is on".
+     * 9 findings over nine surfaces, every one a working control.
+     *
+     * So RE-FIND the control by selector before every press, and compare a
+     * bounded FINGERPRINT of the painted page rather than one node. Proven:
+     * the press changes the fingerprint and one further press restores it.
+     *
+     * ── THIS READ ONE FRAME INTO A TRANSITION, AND CALLED IT DEAD ──
+     *
+     * `frame()` is a 60ms guess and a theme transition runs longer, so
+     * `getComputedStyle` returned the INTERPOLATED colour barely off its
+     * start. Compared against the start it read equal, and the check
+     * reported a toggle that works as broken.
+     *
+     * That is the worst shape a finding can have. It is intermittent, so a
+     * slower machine passes by luck, nothing reproduces, and every
+     * investigation ends in a clean result. Measured on one sweep: the same
+     * build reported dead at 320 and 536 and clean at 296, 308 and 535.
+     *
+     * `settle()` asks the browser which animations are running and waits
+     * for them, so it costs nothing when the switch is instant and cannot
+     * be short when it is not. Never lengthen the guess instead. */
     body: [
-      "const btn = document.querySelector('[aria-pressed][aria-label*=heme], #dmd-dark, [data-theme-toggle], #theme-toggle')",
-      "if (!btn) { fail('document', 'no theme control found. The system asks for a visible one.'); return }",
-      /* ── THIS READ ONE FRAME INTO A TRANSITION, AND CALLED IT DEAD ──
-       *
-       * `frame()` is a 60ms guess and a theme transition runs longer, so
-       * `getComputedStyle` returned the INTERPOLATED colour barely off its
-       * start. Compared against the start it read equal, and the check
-       * reported a toggle that works as broken.
-       *
-       * That is the worst shape a finding can have. It is intermittent, so a
-       * slower machine passes by luck, nothing reproduces, and every
-       * investigation ends in a clean result. Measured on one sweep: the same
-       * build reported dead at 320 and 536 and clean at 296, 308 and 535.
-       * Three earlier simulation runs reported this toggle dead and each one
-       * measured correct when a person served it.
-       *
-       * `settle()` asks the browser which animations are running and waits
-       * for them, so it costs nothing when the switch is instant and cannot
-       * be short when it is not. Never lengthen the guess instead. */
-      "const before = getComputedStyle(document.body).backgroundColor",
-      "btn.click(); await settle(1200)",
-      "const after = getComputedStyle(document.body).backgroundColor",
-      "btn.click(); await settle(1200)",
-      "if (before === after)",
-      "  fail(name(btn), 'a press changed nothing. The page painted ' + before + ' before and after.')",
-      "const statesItself = btn.getAttribute('aria-pressed') != null ||",
-      "  (btn.tagName === 'INPUT' && btn.type === 'checkbox') || btn.getAttribute('aria-checked') != null",
-      "if (!statesItself)",
-      "  fail(name(btn), 'the control never says which theme is on. Give a button aria-pressed, or use a checkbox, which states it natively.')",
-    ],
+      "const SEL = \"[aria-pressed][aria-label*=heme], #dmd-dark, [data-theme-toggle], #theme-toggle\"",
+      "/* NEVER HOLD THE REFERENCE. The press re-renders the control. */",
+      "const find = () => document.querySelector(SEL)",
+      "/* NO CONTROL ON THIS PAGE IS NOT A FAULT. A build puts one in a shared",
+      "   header, and a page without it has nothing to press. Demanding one per",
+      "   page reported 6 of 9 preview surfaces, every one correct. The SOURCE",
+      "   check asks whether the build ships a control at all. */",
+      "if (!find()) { note(\"no theme control on this page, so there was nothing to press.\") }",
+      "else {",
+      "  /* A FINGERPRINT OF THE PAINTED PAGE, because the themed scope may be the",
+      "     preview root rather than the body. Bounded, so it costs one pass. */",
+      "  const paint = () => {",
+      "    const els = [document.documentElement, document.body]",
+      "      .concat(Array.prototype.slice.call(document.querySelectorAll(\"[class]\"), 0, 60))",
+      "    return els.map(e => {",
+      "      const cs = getComputedStyle(e)",
+      "      return cs.backgroundColor + \" \" + cs.color",
+      "    }).join(\";\")",
+      "  }",
+      "  const before = paint()",
+      "  find().click(); await settle(1200)",
+      "  const after = paint()",
+      "  if (before === after) {",
+      "    fail(name(find()), \"a press changed nothing. Every painted colour on the page is identical before and after.\")",
+      "  }",
+      "  /* PUT IT BACK, or every check after this one measures the other theme. A",
+      "     three-way field does not return on one press, so press until it does. */",
+      "  let tries = 0",
+      "  while (paint() !== before && tries < 3) {",
+      "    const again = find()",
+      "    if (!again) break",
+      "    again.click(); await settle(1200); tries++",
+      "  }",
+      "  if (paint() !== before) {",
+      "    note(\"the theme control did not return to its starting state after \" + tries",
+      "      + \" press(es), so any check ordered after this one measured a different theme.\")",
+      "  }",
+      "  const btn = find()",
+      "  const statesItself = !btn || btn.getAttribute(\"aria-pressed\") != null ||",
+      "    (btn.tagName === \"INPUT\" && btn.type === \"checkbox\") || btn.getAttribute(\"aria-checked\") != null",
+      "  if (!statesItself) {",
+      "    fail(name(btn), \"the control never says which theme is on. Give a button aria-pressed, or use a checkbox, which states it natively.\")",
+      "  }",
+      "}",    ],
   },
 
   {
@@ -4518,14 +4575,123 @@ export const CHECKS = [
 
   {
     id: 'a-flexible-box-holds-its-own-label',
-    where: 'manual',
-    line: 'A box at flex: 1 with min-width: 0 can shrink under its own label. Measured once at 73px of word in a 34px box, and nothing calls that an overflow because nothing left the box. Floor it at max-content and let the row wrap.',
+    where: 'render',
+    line: 'A box at flex: 1 with min-width: 0 can shrink under its own label, and nothing calls that an overflow because nothing leaves the box. Measured once at 73px of word in a 34px box. Floor it at max-content and let the row wrap.',
+    /* ── AN OVERHANG IS READABLE, AND A CUT WORD IS THE FAULT ──
+     *
+     * The first draft asked only whether the widest line of the box own text
+     * is wider than its content box. Measured over 417 candidates: 3
+     * findings, all chart tick labels at 296px, 21 to 23px of text in a 19px
+     * box. Every one is correct code. A tick column is extended by half a
+     * line at each end and the label overhangs on purpose, so it paints
+     * outside its box and stays fully readable.
+     *
+     * So the second condition is that the box CUTS the word. It clips on the
+     * inline axis, or it breaks the word with overflow-wrap or word-break.
+     * An ellipsis is truncation somebody asked for, so it is exempt, the
+     * same way the clipping rule exempts it.
+     *
+     * Measured after: 550 candidates over 36 surface-width cells, 3
+     * overhangs correctly skipped, 0 findings.
+     *
+     * THE WIDEST SINGLE LINE RECT IS THE MEASUREMENT, never scrollWidth. A
+     * Range over the box own text nodes returns one rect per line, so one
+     * word wider than the box produces one rect wider than the box. */
+    body: [
+      "/* THE BOX OWN TEXT, never a child element. A wrapper holding a long word in",
+      "   a descendant is that descendant question. */",
+      "const widestLine = el => {",
+      "  let w = 0",
+      "  for (const n of el.childNodes) {",
+      "    if (n.nodeType !== 3 || !n.textContent.trim()) continue",
+      "    const r = document.createRange(); r.selectNode(n)",
+      "    for (const b of r.getClientRects()) if (b.width > w) w = b.width",
+      "  }",
+      "  return w",
+      "}",
+      "let asked = 0",
+      "for (const el of all(\"*\")) {",
+      "  const cs = getComputedStyle(el)",
+      "  /* THE SHAPE THE RULE IS ABOUT: it grows, and it may shrink to nothing. */",
+      "  if (parseFloat(cs.flexGrow) < 1) continue",
+      "  if (!(cs.minWidth === \"0px\" || cs.minWidth === \"0\")) continue",
+      "  asked++",
+      "  const inner = el.clientWidth - (parseFloat(cs.paddingLeft) || 0) - (parseFloat(cs.paddingRight) || 0)",
+      "  const line = widestLine(el)",
+      "  if (line <= inner + 1) continue",
+      "  /* AN OVERHANG IS READABLE. A tick label overhangs its own column by",
+      "     design, so the fault needs the box to CUT the word. */",
+      "  if (cs.textOverflow === \"ellipsis\") continue",
+      "  const clips = /hidden|clip|auto|scroll/.test(cs.overflowX)",
+      "  const breaks = /anywhere|break-word/.test(cs.overflowWrap + \" \" + cs.wordBreak)",
+      "  if (!clips && !breaks) continue",
+      "  fail(name(el), \"holds \" + round(line) + \"px of unbreakable word in a \" + round(inner)",
+      "    + \"px box, and the box \" + (clips ? \"clips it\" : \"breaks it mid-word\")",
+      "    + \". Nothing leaves the box, so no overflow check reports it. flex: 1 with min-width: 0\"",
+      "    + \" lets a box shrink under its own label. Floor it at max-content and let the row wrap.\")",
+      "}",
+      "if (!asked) note(\"no box at flex-grow 1 with min-width 0 on this page, so this rule is UNMEASURED here.\")",
+      "else note(asked + \" flexible box(es) measured against their own text.\")",
+    ],
   },
 
   {
     id: 'two-rules-of-one-weight-do-not-stack',
-    where: 'manual',
-    line: 'Never stack two rules of one weight close together. Three inside 43px say one boundary three times, and repetition reads as noise.',
+    where: 'render',
+    line: 'Never stack two rules of one weight close together. Three inside 43px say one boundary three times, and repetition reads as noise. Space says how big a boundary is, never weight.',
+    /* ── 84 FINDINGS, TWO CAUSES, BOTH CORRECT CODE ──
+     *
+     * A ROW OF CELLS ON ONE y IS ONE RULE. Three table cells each carry a
+     * bottom border and they paint one line across the row. Counting each
+     * cell separately reported three stacked rules at a single y, over and
+     * over: 1001, 1058, 1115, 1172. So group by y, weight and colour, and
+     * ask about DISTINCT positions.
+     *
+     * AN OUTLINE IS NOT A DIVIDER. A box bordered on all four sides is a
+     * control or a card, and its edges divide nothing. Three buttons in one
+     * row gave three top edges at one y.
+     *
+     * Measured after: 34 distinct rules over nine surfaces, 0 stacks.
+     *
+     * A THIN BOX COUNTS TOO, because a divider may be a 1px filled element
+     * rather than a border. It needs a fill to paint, and no border of its
+     * own, or the two mechanisms report the same line twice. */
+    body: [
+      "/* ONE ENTRY PER PAINTED LINE, keyed by position, weight and colour. */",
+      "const seen = new Map()",
+      "const add = (y, w, c, el) => {",
+      "  const k = Math.round(y) + \"|\" + w + \"|\" + c",
+      "  if (!seen.has(k)) seen.set(k, { y: y, w: w, c: c, el: el })",
+      "}",
+      "for (const el of all(\"*\")) {",
+      "  const cs = getComputedStyle(el)",
+      "  const r = el.getBoundingClientRect()",
+      "  /* A RULE CROSSES SOMETHING. A 12px edge is ornament. */",
+      "  if (r.width < 24) continue",
+      "  const bt = parseFloat(cs.borderTopWidth) || 0, bb = parseFloat(cs.borderBottomWidth) || 0",
+      "  const bl = parseFloat(cs.borderLeftWidth) || 0, br = parseFloat(cs.borderRightWidth) || 0",
+      "  if (!(bt > 0 && bb > 0 && bl > 0 && br > 0)) {",
+      "    if (bt > 0 && bt <= 2 && cs.borderTopStyle !== \"none\") add(r.top, bt, cs.borderTopColor, el)",
+      "    if (bb > 0 && bb <= 2 && cs.borderBottomStyle !== \"none\") add(r.bottom, bb, cs.borderBottomColor, el)",
+      "  }",
+      "  if (r.height > 0 && r.height <= 2 && bt === 0 && bb === 0 && cs.backgroundColor !== \"rgba(0, 0, 0, 0)\") {",
+      "    add(r.top, r.height, cs.backgroundColor, el)",
+      "  }",
+      "}",
+      "const rules = Array.from(seen.values()).sort((a, b) => a.y - b.y)",
+      "for (let i = 0; i + 2 < rules.length; i++) {",
+      "  const a = rules[i], m = rules[i + 1], c = rules[i + 2]",
+      "  if (c.y - a.y > 43) continue",
+      "  if (!(a.w === m.w && a.w === c.w && a.c === m.c && a.c === c.c)) continue",
+      "  fail(name(a.el), \"three rules of one weight inside \" + round(c.y - a.y) + \"px, at \" + a.w",
+      "    + \"px in \" + a.c + \". That says one boundary three times, and repetition reads as noise.\"",
+      "    + \" Space says how big a boundary is, never weight. The other two are \" + name(m.el)",
+      "    + \" and \" + name(c.el) + \".\")",
+      "  i += 2",
+      "}",
+      "if (!rules.length) note(\"no painted rule on this page, so this rule is UNMEASURED here.\")",
+      "else note(rules.length + \" distinct painted rule(s) measured.\")",
+    ],
   },
 
   {

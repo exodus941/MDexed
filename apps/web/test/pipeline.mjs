@@ -5882,5 +5882,110 @@ function hueHex(h) {
     'a page where the group never leaves the row says so, because neither half exists yet')
 }
 
+/* ── A FLEXIBLE BOX HOLDS ITS OWN LABEL ──
+ *
+ * The first draft asked only whether the widest line of the box's own text is
+ * wider than its content box. 417 candidates, 3 findings, all chart tick labels
+ * at 296px: 21 to 23px of text in a 19px box, every one correct code. A tick
+ * column is extended by half a line at each end, so the label overhangs on
+ * purpose and stays fully readable.
+ *
+ * So the second condition is that the box CUTS the word: it clips on the inline
+ * axis, or breaks the word. An ellipsis is truncation somebody asked for.
+ * Measured after: 550 candidates over 36 cells, 3 overhangs skipped, 0 findings.
+ * Proven by clipping a 460.64px word into a 122px box, which fires.
+ */
+{
+  line('\n- a flexible box holds its own label -')
+  const { CHECKS: CHF } = await import('../src/emit/checks.js')
+  const cf = CHF.find(x => x.id === 'a-flexible-box-holds-its-own-label')
+  assert(!!cf && cf.where === 'render', `the check ships and runs in a browser (${cf?.where})`)
+  const tf = (cf?.body || []).join('\n')
+  assert(/flexGrow\) < 1/.test(tf) && /minWidth === "0px"/.test(tf),
+    'it asks the shape the rule is about: it grows, and it may shrink to nothing')
+  assert(/createRange/.test(tf) && /getClientRects/.test(tf),
+    'and measures the widest single LINE rect, never scrollWidth')
+  assert(/nodeType !== 3/.test(tf),
+    'over the box own text nodes, so a long word in a descendant is that descendant question')
+  assert(/clips \|\| breaks|!clips && !breaks/.test(tf),
+    'an overhang is readable, so the fault needs the box to clip or break the word')
+  assert(/textOverflow === "ellipsis"/.test(tf),
+    'and an ellipsis is truncation somebody asked for')
+}
+
+/* ── TWO RULES OF ONE WEIGHT DO NOT STACK ──
+ *
+ * 84 findings on the first draft, two causes, all correct code.
+ *
+ * A ROW OF CELLS ON ONE y IS ONE RULE. Three table cells each carry a bottom
+ * border and paint one line across the row. Counting each cell separately
+ * reported three stacked rules at a single y, at 1001, 1058, 1115 and 1172.
+ *
+ * AN OUTLINE IS NOT A DIVIDER. A box bordered on all four sides is a control or
+ * a card, and its edges divide nothing. Three buttons in one row gave three top
+ * edges at one y.
+ *
+ * Measured after: 34 distinct rules over nine surfaces, 0 stacks. Proven by
+ * three 1px borders inside 32px, which fires once.
+ */
+{
+  line('\n- two rules of one weight do not stack -')
+  const { CHECKS: CHR } = await import('../src/emit/checks.js')
+  const cr = CHR.find(x => x.id === 'two-rules-of-one-weight-do-not-stack')
+  assert(!!cr && cr.where === 'render', `the check ships and runs in a browser (${cr?.where})`)
+  const tr = (cr?.body || []).join('\n')
+  assert(/new Map\(\)/.test(tr) && /Math\.round\(y\)/.test(tr),
+    'it keys one entry per painted line, so a row of cells on one y is one rule')
+  assert(/bt > 0 && bb > 0 && bl > 0 && br > 0/.test(tr),
+    'and a box bordered on all four sides is an outline, never a divider')
+  assert(/c\.y - a\.y > 43/.test(tr),
+    'the window is 43px, which is the distance the rule was measured at')
+  assert(/r\.width < 24/.test(tr),
+    'a rule crosses something, so a narrow edge is ornament')
+  assert(/i \+= 2/.test(tr),
+    'and one stack reports once rather than three times')
+}
+
+/* ── THE THEME CHECK PRESSED A CONTROL THAT ITS OWN PRESS DESTROYS ──
+ *
+ * Found while injecting a fault for another check: the reported colour did not
+ * match the colour I had just measured. Two defects, and together they made the
+ * run report a working toggle as dead AND leave the page in the other theme.
+ *
+ * THE PRESS REPLACES THE ELEMENT. The control re-renders, so a held reference
+ * is detached: getComputedStyle returns empty strings and the second click
+ * lands on nothing. Measured: the preview was dark at rgb(14, 23, 32) before a
+ * run and light at rgb(213, 221, 228) after it. Every check ordered later
+ * measured the other theme, which is how a finding appears and vanishes between
+ * two runs of one build.
+ *
+ * AND `document.body` IS NOT ALWAYS THE PAINTED SUBJECT. An app hosting a
+ * preview themes the preview scope. The body read rgb(9, 10, 11) before and
+ * after six presses while the control's own label changed. 9 findings over nine
+ * surfaces, every one a working control.
+ *
+ * Measured after: the theme is unchanged across nine verify() runs, and the
+ * check reports nothing.
+ */
+{
+  line('\n- the theme check puts the theme back -')
+  const { CHECKS: CHT } = await import('../src/emit/checks.js')
+  const ct = CHT.find(x => x.id === 'the-toggle-actually-toggles')
+  assert(!!ct, 'the check still ships')
+  const tt = (ct?.body || []).join('\n')
+  assert(/const find = \(\) => document\.querySelector\(SEL\)/.test(tt),
+    'it re-finds the control by selector, because the press re-renders it')
+  assert(!/const btn = document\.querySelector/.test(tt),
+    'and never holds the reference across a press')
+  assert(/const paint = \(\)/.test(tt) && /querySelectorAll\("\[class\]"\), 0, 60/.test(tt),
+    'it compares a bounded fingerprint of the painted page, not one node')
+  assert(/while \(paint\(\) !== before && tries < 3\)/.test(tt),
+    'it presses until the page is back, because a three-way field needs more than one')
+  assert(/measured a different theme/.test(tt),
+    'and says so when it could not restore, since every later check then reads the other theme')
+  assert(/nothing to press/.test(tt) && !/no theme control found/.test(tt),
+    'a page with no control is a note, not a fault: it reported 6 of 9 correct surfaces')
+}
+
 line(`\n${failures === 0 ? 'ALL PASS' : `${failures} FAILURE(S)`}\n`)
 process.exit(failures ? 1 : 0)
