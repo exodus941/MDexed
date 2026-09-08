@@ -6223,6 +6223,14 @@ function hueHex(h) {
    * the same logic replayed by hand found it. The root captured before the run
    * was a different element from the one in the page after it.
    */
+  /* ONE HELPER OUTSIDE THE SCOPE DEFEATS THE SCOPE. rows() queried the document
+     directly, so 11 findings survived a scoped run and every one sat in the
+     host's own interface. Measured after: the nine-surface run went 28 to 19. */
+  assert(!/for \(const parent of document\.querySelectorAll/.test(text),
+    'the row bander goes through the scope too, or a scoped run still measures the host')
+  assert(/for \(const parent of scope\(\)\.querySelectorAll/.test(text),
+    'and it resolves the scope the same lazy way every query does')
+
   assert(/let scopeLost = false/.test(text), 'a lost root is recorded rather than measured around')
   assert(/document\.contains\(SCOPE_EL\)/.test(text),
     'an element root is watched, because a re-render replaces it')

@@ -518,7 +518,10 @@ function describe (el) {
    one child per line by definition. */
 function rows () {
   const out = []
-  for (const parent of document.querySelectorAll('*')) {
+  /* SCOPED, like all(). This helper queried the document directly, so 11
+     findings survived a scoped run and every one was in the host's own
+     interface. One helper outside the scope defeats the scope. */
+  for (const parent of scope().querySelectorAll('*')) {
     const cs = getComputedStyle(parent)
     if (!/flex|grid/.test(cs.display)) continue
     const kids = Array.prototype.slice.call(parent.children).filter(visible)
