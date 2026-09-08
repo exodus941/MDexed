@@ -5290,5 +5290,56 @@ function hueHex(h) {
   }
 }
 
+/* ── ROWS, CONTROLS AND ICONS: TWO SHIPPED AND ONE CUT ──
+ *
+ * The payload taught both of these and nothing measured either. A square with
+ * no assertion was broken twice: 46x28 on a menu button whose label a width
+ * rule hid, and 28x44 on fifteen controls where a stated width defeated the
+ * ratio. A typed glyph had no check at all, in checks or in the suite.
+ *
+ * AND THE THIRD FIRED ON CORRECT CODE, so it is not here. "A control's height
+ * is STATED, never inherited" is right, and a per-rule source test faults 2 of
+ * our 10 padded control rules: `.nav-item` and `.tab` take their height from a
+ * LATER rule, which is legal and common. The render form needs a perturbation,
+ * and `one-height-per-control-row` already reports the symptom.
+ */
+{
+  line('\n- the rows section: the square and the typed glyph -')
+  const { CHECKS: CH3 } = await import('../src/emit/checks.js')
+  const sq = CH3.find(c => c.id === 'an-icon-only-control-is-square')
+  const gl = CH3.find(c => c.id === 'a-mark-is-never-a-typed-glyph')
+  for (const [c, what] of [[sq, 'the square check'], [gl, 'the typed-glyph check']]) {
+    assert(!!c && c.where === 'render', `${what} ships and runs in a browser (${c?.where})`)
+  }
+  {
+    const t = (sq?.body || []).join('\n')
+    /* CSS CANNOT ASK WHETHER A CHILD IS RENDERED, which is the whole reason
+       this is a render check rather than a selector. */
+    assert(/visibility|opacity/.test(t),
+      'it asks what the engine RENDERS, so a label hidden to a pixel is not words')
+    /* AND ICON-ONLY MEANS THERE IS AN ICON. Without that clause it faulted 60
+       swatches out of 62 findings and buried the 2 real ones. */
+    assert(/svg, img, \.icon/.test(t),
+      'and it requires a MARK, because a swatch is its colour and has no glyph to square')
+    assert(/0\.02/.test(t),
+      'a sub-pixel rounding is not an oblong, so the threshold is not exactly one')
+  }
+  {
+    const t = (gl?.body || []).join('\n')
+    assert(/String\.fromCharCode/.test(t),
+      'the glyph set is written as code points, so the file reads in any editor')
+    assert(/nodeType !== 3/.test(t),
+      'and it reads TEXT NODES, because a glyph inside a child element is that child')
+    assert(/button, a\[href\]/.test(t),
+      'scoped to pressable things: an ellipsis in a sentence is prose')
+  }
+  /* THE PAYLOAD TEACHES BOTH, and it did before either had a check. */
+  {
+    const md = payloadTextFiles(state, derived)['DESIGN.md'].toLowerCase()
+    assert(md.includes('aspect-ratio: 1'), 'the payload states the square as a ratio')
+    assert(md.includes('word space is not a gap'), 'and states that a word space is not a gap')
+  }
+}
+
 line(`\n${failures === 0 ? 'ALL PASS' : `${failures} FAILURE(S)`}\n`)
 process.exit(failures ? 1 : 0)

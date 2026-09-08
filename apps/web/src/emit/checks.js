@@ -4118,6 +4118,98 @@ export const CHECKS = [
     ],
   },
   {
+    id: 'an-icon-only-control-is-square',
+    where: 'render',
+    line: 'A pressable thing with a mark and no visible words is one to one, at every size.',
+    /* ── AN OBLONG READS AS A BUTTON WHOSE LABEL FAILED TO LOAD ──
+     *
+     * Measured before the repairs: 46x28 and 70x44 on a menu button, and
+     * 28x44 on fifteen controls where a stated width defeated the ratio.
+     * Nothing asserted the shape either time.
+     *
+     * CSS CANNOT ASK THIS, WHICH IS WHY IT IS A RENDER CHECK. A selector
+     * cannot ask whether a child is rendered, so a label hidden by a width
+     * rule leaves the markup unchanged and the class never arrives. Walk
+     * the descendants and ask what the engine renders.
+     *
+     * AND ICON-ONLY MEANS THERE IS AN ICON. Asking only about the words and
+     * the sides faulted every control that paints its own content: 55
+     * palette swatches at 63x40 and 5 seed swatches at 129x64, none holding
+     * a mark, all rectangles on purpose. 60 findings out of 62. A swatch IS
+     * its colour, and no glyph is there whose squareness could be asked.
+     *
+     * Measured on the shipped surfaces: 11 instances over 7 surfaces, worst
+     * ratio 1.000, and nothing lacking the class that should carry it.
+     */
+    body: [
+      "/* VISIBLE words, so a clipped screen-reader name does not count. A label",
+      "   hidden to a pixel has a box, and treating it as words is what let a",
+      "   menu button ship at 46x28 with the class never arriving. */",
+      "const showsWords = el => {",
+      "  const readable = n => { const b = n.getBoundingClientRect(), cs = getComputedStyle(n)",
+      "    return b.width > 4 && b.height > 4 && cs.visibility !== \"hidden\" && cs.opacity !== \"0\" }",
+      "  for (const n of el.childNodes) if (n.nodeType === 3 && n.textContent.trim()) return true",
+      "  for (const n of el.querySelectorAll(\"*\")) {",
+      "    const own = Array.prototype.filter.call(n.childNodes,",
+      "      x => x.nodeType === 3 && x.textContent.trim())",
+      "    if (own.length && readable(n)) return true",
+      "  }",
+      "  return false",
+      "}",
+      "for (const el of all(\"button, a[href], .btn, [role=button], .nav-item, .tab, summary\")) {",
+      "  const r = el.getBoundingClientRect()",
+      "  if (r.width < 4 || r.height < 4) continue",
+      "  /* A MARK, because that is the clause the code dropped last time. */",
+      "  if (!el.querySelector(\"svg, img, .icon\")) continue",
+      "  if (showsWords(el)) continue",
+      "  const ratio = r.width / r.height",
+      "  /* TWO PERCENT, because a sub-pixel rounding is not an oblong, and a",
+      "     verdict that flips on floating point noise is worse than none. */",
+      "  if (Math.abs(ratio - 1) <= 0.02) continue",
+      "  fail(name(el), \"this control holds a mark and no visible words, and measures \" + round(r.width) + \"x\" + round(r.height) + \", a ratio of \" + round(ratio) + \". An oblong reads as a button whose label failed to load. State the shape with aspect-ratio 1 and no width at all: a ratio only makes a size when the other axis is auto, so a stated width is the one thing that defeats it. Where a width rule hides the words, put the shape in the SAME block that hides them.\")",
+      "}",
+    ],
+  },
+  {
+    id: 'a-mark-is-never-a-typed-glyph',
+    where: 'render',
+    line: 'A mark comes from the icon set. A typed character is not an icon and a word space is not a gap.',
+    /* ── A TEXT GLYPH TAKES THE LABEL FONT AND THE LABEL SPACING ──
+     *
+     * Measured on one button reading a plus and then Add Seed: the plus took
+     * the label size instead of the mark size, took a word space instead of
+     * the icon gap, and would change shape with the typeface. The button had
+     * no display, no alignment and no gap, because as far as the code knew
+     * there was no mark in it at all.
+     *
+     * ASK THE DOM, NEVER THE SOURCE. A glyph can arrive from a data string,
+     * and a source scan reads only what somebody typed in a component.
+     *
+     * SCOPE IT TO THE CONTROLS, and to a glyph a set already draws. An
+     * ellipsis in a sentence is prose, and a plus inside a formula is a
+     * value. A pressable thing is where a mark belongs.
+     *
+     * Measured on the shipped surfaces and on the editor chrome: zero.
+     */
+    body: [
+      "/* THE GLYPHS AN ICON SET ALREADY DRAWS. A chevron, a cross, a tick, an",
+      "   arrow, a plus, a reload, an overflow run. Written as code points, so",
+      "   this file stays readable in any editor. */",
+      "const GLYPH = new RegExp(\"[\" + [0x2b, 0xd7, 0x2715, 0x2713, 0x21ba, 0x22ef,",
+      "  0x2192, 0x2190, 0x2191, 0x2193, 0x2039, 0x203a, 0xab, 0xbb]",
+      "  .map(c => String.fromCharCode(c)).join(\"\") + \"]\")",
+      "for (const el of all(\"button, a[href], .btn, [role=button], .nav-item, .tab, summary\")) {",
+      "  for (const n of Array.prototype.slice.call(el.childNodes)) {",
+      "    if (n.nodeType !== 3) continue",
+      "    const t = n.textContent",
+      "    if (!GLYPH.test(t)) continue",
+      "    fail(name(el), \"this control types \" + JSON.stringify(t.trim().slice(0, 20)) + \" where a mark belongs. A text glyph takes the LABEL size rather than the mark size, and a word space is roughly a quarter of the font size and answers to no spacing token. Use the icon set at the size token for this control step, and the three properties that travel with it: inline-flex, align-items centre, and the published icon gap.\")",
+      "    break",
+      "  }",
+      "}",
+    ],
+  },
+  {
     id: 'a-mark-stays-inside-its-control',
     where: 'render',
     line: 'A control that draws its own mark keeps that mark inside its box.',
