@@ -7,14 +7,14 @@
    unrecognised frontmatter key. Prose is the better channel for this content,
    and it keeps the file spec-legal. */
 import { PROSE_SECTIONS, CONTRAST_PAIRS, ROLE_GROUPS, TEXT_ROLES, SURFACE_ROLES, hasDark, hasLight, hasThemeToggle, themeOf } from '../state/schema.js'
-import { check } from '../color/contrast.js'
+import { check, flatten } from '../color/contrast.js'
 import { SPEC_COMPONENT_PROPS, collectComponents } from './yaml.js'
 import { LAYOUT_COMPONENTS, layoutRows, layoutSentences } from '../state/componentLayout.js'
 import { audit, REQUIREMENTS as A11Y_REQUIREMENTS } from '../a11y/audit.js'
 import { KEYBOARD_CONTRACTS, INTERACTIVE_CONTRACTS } from '../state/keyboard.js'
 import { COMPONENT_LIBRARY, classFor } from '../state/components.js'
 import { NEIGHBOUR_FLOOR } from '../color/dataviz.js'
-import { parseColor, toOklchObj } from '../color/convert.js'
+import { parseColor, toOklchObj, hexFrom, withAlpha } from '../color/convert.js'
 import { purposeOf } from '../color/modes.js'
 
 const cell = v => String(v ?? '').replace(/\|/g, '\\|').replace(/\n+/g, ' ').trim()
@@ -781,6 +781,72 @@ function layoutBody(state, derived) {
 }
 
 /* ── Elevation ── */
+/* ── GLASS ──
+ *
+ * Nothing is written while the treatment is off, which is the default. A
+ * reader told about a look the system has not asked for will use it.
+ *
+ * EVERY FIGURE IS DERIVED. The fill, the composited ground and the ratio
+ * come from the real palette, so none of them can go stale.
+ */
+function glassProse(state, derived) {
+  const g = state?.elevation?.glass
+  if (!g?.on) return null
+  const role = g.role ?? 'surface'
+  const alpha = g.opacity ?? 0.72
+  const blur = g.blur ?? 12
+  const pct = Math.round(alpha * 100)
+
+  /* THE WORST GROUND, computed rather than asserted. A floating panel can
+     end up over anything the page paints, so every surface role is a real
+     ground and the lowest ratio is the one a reader can meet. */
+  const GROUNDS = ['bg', 'bg-subtle', 'surface', 'surface-raised', 'surface-sunken']
+  const rows = []
+  for (const mode of ['light', 'dark']) {
+    const R = derived.roles?.[mode] ?? {}
+    const solid = R[role]
+    if (!solid || !R.text) continue
+    const fill = hexFrom(withAlpha(parseColor(solid), alpha))
+    if (!fill) continue
+    let worst = null
+    for (const name of GROUNDS) {
+      const ground = R[name]
+      if (!ground) continue
+      const over = flatten(fill, ground)
+      const r = check(R.text, over)
+      if (r.ratio == null) continue
+      if (!worst || r.ratio < worst.ratio) worst = { ratio: r.ratio, name, over }
+    }
+    if (worst) rows.push([mode, fill, worst.name, worst.over, worst.ratio.toFixed(2) + ':1'])
+  }
+
+  const F = String.fromCharCode(96, 96, 96)
+  return joinBlocks(
+    '**GLASS IS THREE PARTS, AND A TRANSLUCENT FILL IS ONLY ONE OF THEM.**',
+    'The fill is `' + role + '` at ' + pct + '%. The BLUR is what makes whatever shows through unreadable, so the text in front has no competition: without it a reader has two things to read in one place. The FALLBACK is the same role at FULL opacity.',
+    '**THE OPAQUE DECLARATION COMES FIRST.** `backdrop-filter` is unsupported in enough places that a build without it paints the raw translucent fill, and then everything behind reads straight through. So the fallback is the BASE rule and the translucent fill sits inside the query. A browser that understands neither the property nor the query still paints a surface a person can read.',
+    [
+      F + 'css',
+      '.glass {',
+      '  background-color: var(--glass-fallback);',
+      '}',
+      '@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {',
+      '  .glass {',
+      '    background-color: var(--glass-fill);',
+      '    -webkit-backdrop-filter: blur(var(--glass-blur));',
+      '    backdrop-filter: blur(var(--glass-blur));',
+      '  }',
+      '}',
+      F,
+    ].join('\n'),
+    '**TEXT ON GLASS HAS NO FIXED CONTRAST, SO MEASURE THE WORST GROUND.** Every other pair in this document measures one colour against one ground. Glass has none: a floating panel can end up over anything the page paints. Composite the fill over each surface role and read the LOWEST ratio, which is the one a reader can actually meet.',
+    rows.length
+      ? table(['Mode', 'Fill', 'Worst ground', 'Composited', 'Body text on it'], rows)
+      : null,
+    '**A BLUR DOES NOT RESCUE A RATIO.** It stops what is behind being READABLE, which is what keeps two texts from competing. It does nothing about the lightness of the ground, so the figures above hold at ' + blur + 'px and at every other blur. Where a ratio there is under 4.5, raise the opacity rather than the blur.',
+  )
+}
+
 function elevationBody(state, derived) {
   const e = state.elevation
   /* ── AT DEPTH ZERO A SHADOW IS A STRING OF ZEROES, AND `none` IS THE TRUTH ──
@@ -832,6 +898,7 @@ function elevationBody(state, derived) {
       e.darkStrategy === 'lighten' && 'In dark mode, raise the surface colour rather than deepening the shadow — shadows barely register against a dark background.',
       state.macros.depth === 0 && 'Depth is set to zero. Treat every surface as flat.',
     ]),
+    glassProse(state, derived),
     '**The stacking order is published. Do not invent one.**',
     '',
     'A shadow says a thing is raised. `z-index` says which raised thing wins. Nine layers, on a step of 100, so something new slots between two without renumbering the rest:',

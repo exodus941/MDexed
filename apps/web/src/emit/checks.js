@@ -426,6 +426,61 @@ export const CHECKS = [
   },
 
   {
+    id: 'a-backdrop-blur-has-an-opaque-fallback',
+    where: 'source',
+    line: 'A backdrop blur declares an opaque background outside its support query. Without it an unsupporting build shows everything behind.',
+    /* ── THE FALLBACK IS NOT OPTIONAL, AND IT MUST BE OPAQUE ──
+     *
+     * `backdrop-filter` is unsupported in enough places that a build without
+     * it paints the raw translucent fill. Whatever sits behind then reads
+     * straight through the surface, and the text on it competes with text it
+     * was never meant to share a place with.
+     *
+     * So the OPAQUE colour is the base declaration and the translucent fill
+     * sits inside the query. Written that way round, a browser that
+     * understands neither the property nor the query still paints something
+     * a person can read.
+     *
+     * A TRANSLUCENT FALLBACK IS THE SAME FAULT WRITTEN TWICE, so an 8-digit
+     * hex, an rgba or hsla under full alpha, and `transparent` all fail to
+     * count. A selector LIST is several rules and each answers for itself.
+     */
+    body: [
+      "/* Every rule that asks for a backdrop blur, and the selector it applies to. */",
+      "for (const f of files.filter(x => x.css)) {",
+      "  const blurred = new Set()",
+      "  const opaqueBase = new Set()",
+      "  for (const block of f.bare.matchAll(/([^{}]+)\\{([^{}]*)\\}/g)) {",
+      "    const selector = block[1].trim()",
+      "    const decls = block[2]",
+      "    /* A selector list is several rules. Each one answers for itself. */",
+      "    const parts = selector.split(',').map(x => x.trim()).filter(Boolean)",
+      "    if (/backdrop-filter\\s*:/.test(decls)) {",
+      "      for (const one of parts) blurred.add(one)",
+      "      continue",
+      "    }",
+      "    /* ── AN OPAQUE BASE, AND OPAQUE IS THE WHOLE POINT ──",
+      "       A background-color that is itself translucent is not a fallback: it is",
+      "       the same fault written twice. So an 8-digit hex, an rgba or hsla with",
+      "       an alpha under 1, and the keyword transparent all fail to count. */",
+      "    const bg = /background(-color)?\\s*:\\s*([^;]+)/.exec(decls)",
+      "    if (!bg) continue",
+      "    const value = bg[2].trim()",
+      "    if (/^transparent$/i.test(value)) continue",
+      "    if (/#[0-9a-fA-F]{4}(\\b|$)|#[0-9a-fA-F]{8}(\\b|$)/.test(value)) continue",
+      "    if (/(rgba|hsla)\\([^)]*[,\\s][0]?\\.[0-9]+\\s*\\)/.test(value)) continue",
+      "    if (/\\/\\s*0?\\.[0-9]+/.test(value)) continue",
+      "    for (const one of parts) opaqueBase.add(one)",
+      "  }",
+      "  for (const sel of blurred) {",
+      "    if (opaqueBase.has(sel)) continue",
+      "    fail(f.path, 1,",
+      "      sel + ' asks for a backdrop blur and no rule outside the support query gives it an opaque background. backdrop-filter is unsupported in enough places that such a build paints the raw translucent fill, and then everything behind reads straight through. Declare the opaque colour as the BASE rule and put the translucent fill inside the query, so a browser that understands neither still paints a surface a person can read.')",
+      "  }",
+      "}",
+    ],
+  },
+  {
     id: 'a-shadow-drawn-mark-survives-forced-colors',
     where: 'source',
     line: 'A state marked with box-shadow also has a forced-colors outline, or it vanishes in Windows High Contrast.',

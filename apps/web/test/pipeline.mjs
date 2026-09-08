@@ -2039,6 +2039,8 @@ line('\n- prompt construction -')
        warning in a plain row, and 12px under a page description. The term is
        copied out of the emitted document, never from what I meant to write. */
     ['an action stands clear of the prose that explains it', ['any action stands further from the prose that explains it']],
+    /* Glass reaches the reader only when the treatment is on, so these are
+       asserted against a state that has it on. See the glass block below. */
     ['and a mark size never comes from a neighbour', ['never take a mark size from a neighbour']],
     ['a delta belongs to its number', ['not to the tile']],
     ['an empty-state mark is drawn large', ['twice the largest icon step']],
@@ -2410,6 +2412,11 @@ line('\n- project file -')
        adds its own height and breaks the strip's rule where it sits. A
        transparent border on the siblings spends the same height. */
     '.tab.is-selected { border-bottom: 2px solid var(--c-accent); }',
+    /* a-backdrop-blur-has-an-opaque-fallback: a blur with no opaque base, so
+       a build without backdrop-filter paints the raw translucent fill and
+       everything behind reads straight through. */
+    '.hud { background-color: rgba(30, 41, 52, 0.6); backdrop-filter: blur(10px); }',
+
     /* a-side-is-named-logically: a physical side. It reads correctly today
        and cannot flip later, and the logical form costs this build nothing.
        The centring pair below is the exemption: an inset with a transform
@@ -4575,6 +4582,78 @@ line('\n- depth intensity -')
     const ln = audit(light, derive(light)).filter(f => /^glass:/.test(f.id)).length
     assert(hn === ln && hn > 0,
       `a 40px blur clears nothing a 0px blur does not (${hn} against ${ln})`)
+  }
+}
+
+/* ── PART C: GLASS REACHES THE READER ──
+ *
+ * A treatment we ship and never teach is one every receiving agent invents
+ * differently. So the payload states the three parts, gives the CSS to copy,
+ * and publishes the worst-ground figures computed from the real palette.
+ */
+{
+  line('\n- glass reaches the payload, and only when it is on -')
+  const { hexFrom, withAlpha } = await import('../src/color/convert.js')
+  const withGlass = () => {
+    const st = createInitialState()
+    st.elevation.glass = { on: true, role: 'surface', opacity: 0.72, blur: 12 }
+    return st
+  }
+
+  /* ── NOT A WORD WHILE IT IS OFF ──
+     A reader told about a look the system has not asked for will use it. */
+  {
+    const st = createInitialState()
+    const md = payloadTextFiles(st, derive(st))['DESIGN.md']
+    assert(!/GLASS IS THREE PARTS/.test(md), 'the document says nothing about glass while it is off')
+    assert(!/glass-fill|glass-fallback|glass-blur/.test(md),
+      'and names none of its tokens')
+  }
+
+  /* ── THE THREE PARTS, THE CSS, AND THE WORST GROUND ── */
+  {
+    const st = withGlass()
+    const md = payloadTextFiles(st, derive(st))['DESIGN.md']
+    for (const term of [
+      'GLASS IS THREE PARTS',
+      'THE OPAQUE DECLARATION COMES FIRST',
+      'TEXT ON GLASS HAS NO FIXED CONTRAST, SO MEASURE THE WORST GROUND',
+      'A BLUR DOES NOT RESCUE A RATIO',
+    ]) {
+      assert(md.includes(term), `the document states: ${term.slice(0, 44)}`)
+    }
+    /* The CSS to copy, in the order that matters: a reader who copies it must
+       get the opaque base BEFORE the query. */
+    const base = md.indexOf('background-color: var(--glass-fallback)')
+    const query = md.indexOf('@supports (backdrop-filter')
+    assert(base > 0 && query > base,
+      `the fallback is shown before the support query (${base}, ${query})`)
+    assert(md.includes('-webkit-backdrop-filter'),
+      'and the prefixed property is shown beside the standard one')
+
+    /* ── EVERY FIGURE IS DERIVED ──
+       The fill, the composited ground and the ratio come from the real
+       palette. A number a document computes cannot go stale. */
+    const d = derive(st)
+    const fill = hexFrom(withAlpha(parseColorFor(d.roles.light.surface), 0.72))
+    assert(md.includes(fill), `the light fill in the table is the real one (${fill})`)
+    const darkFill = hexFrom(withAlpha(parseColorFor(d.roles.dark.surface), 0.72))
+    assert(md.includes(darkFill), `and so is the dark one (${darkFill})`)
+    /* The table carries a ratio for each mode, so two rows. */
+    const rows = (md.match(/\|\s(light|dark)\s\|\s#[0-9a-f]{8}\s\|/gi) || [])
+    assert(rows.length === 2, `one row per mode (${rows.length})`)
+  }
+
+  /* ── AND THE READER'S BUILD IS CHECKED ──
+     Prose alone is a rule the next build breaks. Proven on a four-case
+     fixture: 2 of 2 on the fault, and silent on a correct rule and on a
+     selector list that gives both members the same opaque base. */
+  {
+    const { CHECKS } = await import('../src/emit/checks.js')
+    const c = CHECKS.find(x => x.id === 'a-backdrop-blur-has-an-opaque-fallback')
+    assert(!!c && c.where === 'source', `the fallback check ships and reads the source (${c?.where})`)
+    assert(c.body.some(l => /transparent/.test(l)) && c.body.some(l => /rgba\|hsla/.test(l)),
+      'and a translucent fallback does not count, which is the same fault written twice')
   }
 }
 
