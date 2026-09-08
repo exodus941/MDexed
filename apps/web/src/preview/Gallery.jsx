@@ -422,7 +422,14 @@ export default function Gallery({ onInspect, layout }) {
                 <span className="nav-label">Menu</span>
               </summary>
             </details>
-            <a className="nav-item is-selected with-icon" href="#gallery" aria-current="page" {...ins('nav-item-selected')}>
+            {/* `is-active`, NOT `is-selected`. The stylesheet marks a chosen
+                nav item with `.nav-item.is-active`, and `is-selected` belongs
+                to the table and the tab. So this specimen rendered
+                byte-identical to a plain nav item: same fill, same colour, no
+                shadow, same weight. Five published tokens had no demonstration
+                here. With the right class it gains the 4px accent edge,
+                measured rgb(15, 82, 141) inset. */}
+            <a className="nav-item is-active with-icon" href="#gallery" aria-current="page" {...ins('nav-item-selected')}>
               <Ico d={IconFolder} /><span>Current</span>
             </a>
             <a className="nav-item with-icon" href="#gallery" {...ins('nav-item')}>

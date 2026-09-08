@@ -5477,5 +5477,61 @@ function hueHex(h) {
   }
 }
 
+/* ── REACH FOR THE PRIMITIVE: A CLASS THAT STYLES NOTHING WHERE IT SITS ──
+ *
+ * The browser tool that asks this ran once and was wired to nothing. Run again
+ * months later: three faults, each of which read as done in the markup.
+ *
+ *   A nav specimen carried the TABLE selection class, so a sample the gallery
+ *   exists to show rendered byte-identical to a plain item. Five published
+ *   tokens had no demonstration. With the right class it gains the 4px accent
+ *   edge, measured rgb(15, 82, 141) inset.
+ *
+ *   A chrome readout carried the document figure class, so it took the body
+ *   face while its markup asked for the mono one.
+ *
+ *   A chrome button carried the document secondary class, so it fell back to
+ *   the browser grey at rgb(107, 107, 107) on a 112px box.
+ *
+ * IT IS A RENDER CHECK NOW. A build-time version reported 49 findings and 46
+ * were correct code, because a panel may render a document sample inside its
+ * own preview root. Only the DOM knows which stylesheet applies where.
+ */
+{
+  line('\n- a class styles something where it sits -')
+  const { CHECKS: CH5 } = await import('../src/emit/checks.js')
+  const c5 = CH5.find(x => x.id === 'a-class-styles-something-where-it-sits')
+  assert(!!c5 && c5.where === 'render', `the check ships and runs in a browser (${c5?.where})`)
+  const t5 = (c5?.body || []).join('\n')
+  assert(/querySelectorAll\("style"\)/.test(t5),
+    'it reads the stylesheet TEXT as well as the CSSOM, because three of five sheets can throw')
+  assert(/sels\.length < 20/.test(t5),
+    'and a run that read no rules fails loudly rather than reporting clean')
+  assert(/!naming\.length/.test(t5),
+    'a class no stylesheet mentions is a HOOK, so it is skipped rather than reported')
+  assert(/not\|has\|is\|where/.test(t5),
+    'a class read inside a functional pseudo is being excluded, not used')
+  assert(/hover\|focus/.test(t5),
+    'and a state cannot match at rest, so the state comes off before asking')
+  assert(/querySelector\(n\)/.test(t5),
+    'an ANCESTOR class is alive when it reaches a descendant, which counting subjects alone called dead')
+
+  /* THE THREE REPAIRS, so none can drift back. */
+  {
+    const gal = fs.readFileSync(new URL('../src/preview/Gallery.jsx', import.meta.url), 'utf8')
+    assert(/nav-item is-active with-icon/.test(gal),
+      'the nav specimen carries the class the stylesheet marks a chosen item with')
+    /* BLANK THE COMMENTS FIRST. The replacement comment QUOTES the rule it
+       removed, so a raw scan found its own explanation and faulted the fix. */
+    const th = fs.readFileSync(new URL('../src/ui/theme.css', import.meta.url), 'utf8')
+      .replace(/\/\*[\s\S]*?\*\//g, m => m.replace(/[^\n]/g, ' '))
+    assert(!/\.seed-lock:hover > span/.test(th),
+      'the seed-lock hover rule is gone, because its child is an svg and nothing set a base opacity')
+    const cm = fs.readFileSync(new URL('../src/casual/CasualMode.jsx', import.meta.url), 'utf8')
+    assert(!/className="btn-secondary"/.test(cm),
+      'and the chrome reaches for a class the chrome defines')
+  }
+}
+
 line(`\n${failures === 0 ? 'ALL PASS' : `${failures} FAILURE(S)`}\n`)
 process.exit(failures ? 1 : 0)

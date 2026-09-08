@@ -3559,6 +3559,110 @@ export const CHECKS = [
   },
 
   {
+    id: 'a-class-styles-something-where-it-sits',
+    where: 'render',
+    line: 'Every class on an element is reached by some rule, or it is a name that styles nothing here.',
+    /* ── A PRIMITIVE ONLY EXISTS IN THE CONTEXT THAT DEFINES IT ──
+     *
+     * An app that hosts a document has two class sets, and reaching for the
+     * wrong one fails in silence. No build error, no console message, no
+     * missing element. The class is real somewhere, so nothing reads as
+     * wrong, and the markup says the work is done.
+     *
+     * Found by hand in a browser tool that ran once and was wired to
+     * nothing. Run again today, after months: three faults.
+     *
+     *   a nav specimen carried the TABLE selection class, so a sample the
+     *   gallery exists to show rendered byte-identical to a plain item, and
+     *   five published tokens had no demonstration
+     *
+     *   a chrome readout carried the document figure class, so it took the
+     *   body face while its markup asked for the mono one
+     *
+     *   a chrome button carried the document secondary class, so it fell
+     *   back to the browser grey at rgb(107, 107, 107)
+     *
+     * ASK THE DOM, NEVER THE SOURCE. A build-time version reported 49
+     * findings and 46 were correct code, because a panel may render a
+     * document sample inside its own preview root.
+     */
+    body: [
+      "/* ── READ THE TEXT AS WELL AS THE CSSOM ──",
+      "   Measured once in a dev server: five sheets, three throwing on access and",
+      "   two empty, zero rules read, and a confident report of zero findings. An",
+      "   injected fault carrying five dead classes came back clean. */",
+      "const sels = []",
+      "const collect = list => { for (const r of list) {",
+      "  if (r.cssRules) collect(r.cssRules)",
+      "  else if (r.selectorText) for (const one of r.selectorText.split(\",\")) sels.push(one.trim())",
+      "} }",
+      "for (const sheet of document.styleSheets) {",
+      "  try { collect(sheet.cssRules) } catch (e) { /* read from the text below */ }",
+      "}",
+      "const texts = []",
+      "for (const n of document.querySelectorAll(\"style\")) texts.push(n.textContent || \"\")",
+      "for (const n of document.querySelectorAll(\"link[rel=stylesheet]\")) {",
+      "  try { texts.push(await (await fetch(n.href)).text()) } catch (e) { /* cross-origin */ }",
+      "}",
+      "const bare = texts.join(String.fromCharCode(10))",
+      "  .replace(/\\/\\*[\\s\\S]*?\\*\\//g, m => m.replace(/[^\\n]/g, \" \"))",
+      "for (const m of bare.matchAll(/([^{}@]+)\\{[^{}]*\\}/g)) {",
+      "  for (const one of m[1].split(\",\")) {",
+      "    const t = one.trim()",
+      "    if (t && !/^@|^\\d/.test(t)) sels.push(t)",
+      "  }",
+      "}",
+      "/* A RUN THAT READ NO RULES IS NOT A CLEAN RESULT. */",
+      "if (sels.length < 20) {",
+      "  fail(\"(the check itself)\", \"read only \" + sels.length + \" selectors, so nothing was measured. Three of five sheets can throw on cssRules access, which is why the stylesheet TEXT is read as well.\")",
+      "  return",
+      "}",
+      "",
+      "/* WHAT SITS INSIDE A FUNCTIONAL PSEUDO IS NOT A NAME BEING USED. A class",
+      "   read inside :not() is being excluded, and counting it called four correct",
+      "   classes dead. */",
+      "const blanked = t => t.replace(/:(not|has|is|where)\\([^()]*\\)/g,",
+      "  m => new Array(m.length + 1).join(\" \"))",
+      "/* AND A STATE CANNOT MATCH AT REST. A rule on :hover is alive and",
+      "   unmatchable now, so drop the state before asking whether it reaches. */",
+      "const STATE = /::?(hover|focus|focus-visible|focus-within|active|disabled|checked|indeterminate|placeholder|before|after|first-line|selection|target|visited|open|marker|backdrop)\\b(\\([^()]*\\))?/g",
+      "const norm = t => blanked(t).replace(STATE, \"\").replace(/\\s+/g, \" \").trim()",
+      "const names = (t, cls) => blanked(t).indexOf(\".\" + cls) >= 0",
+      "const compoundWith = (t, cls) => {",
+      "  const parts = norm(t).split(/\\s+|>|\\+|~/).filter(Boolean)",
+      "  for (const part of parts) if (part.indexOf(\".\" + cls) >= 0) return part",
+      "  return \"\"",
+      "}",
+      "",
+      "let scanned = 0",
+      "for (const el of all(\"[class]\")) {",
+      "  scanned++",
+      "  for (const cls of Array.prototype.slice.call(el.classList)) {",
+      "    const naming = sels.filter(t => names(t, cls))",
+      "    /* A CLASS NO STYLESHEET MENTIONS IS A HOOK. A test id or a behaviour",
+      "       marker is not this question business, and reporting them buries the",
+      "       findings. */",
+      "    if (!naming.length) continue",
+      "    let alive = false",
+      "    for (const t of naming) {",
+      "      const n = norm(t)",
+      "      if (!n) continue",
+      "      try { if (el.matches(n)) { alive = true; break } } catch (e) { /* unsupported */ }",
+      "      /* AN ANCESTOR CLASS IS DOING ITS JOB. A row selection class styles the",
+      "         CELL, so the class on the row is alive when the row holds such a",
+      "         cell. Counting only the subject called that dead. */",
+      "      const c = compoundWith(t, cls)",
+      "      try { if (c && el.matches(c) && el.querySelector(n)) { alive = true; break } } catch (e) { /* unsupported */ }",
+      "    }",
+      "    if (alive) continue",
+      "    fail(name(el), \"the class \" + JSON.stringify(cls) + \" reaches nothing on this element, and \" + naming.length + \" rule(s) name it elsewhere. A class that exists in another context styles nothing here and fails in silence: no build error, no console message, and markup that reads as done. An app hosting a document has two class sets. Check which stylesheet applies where this element sits, and what that class actually sets.\")",
+      "  }",
+      "}",
+      "if (!scanned) fail(\"(the check itself)\", \"nothing carried a class, so nothing was measured\")",
+      "else note(scanned + \" elements measured against \" + sels.length + \" selectors\")",
+    ],
+  },
+  {
     id: 'an-inline-box-has-no-size',
     where: 'render',
     line: 'Anything that paints a box states a display. An inline box has no width or height.',

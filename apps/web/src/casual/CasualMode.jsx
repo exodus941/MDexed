@@ -89,16 +89,21 @@ const Glyph = ({ d, size = 20 }) => (
 /* A door. Icon above the words rather than beside them, because the two cards
    sit side by side and a leading icon eats width the description needs. */
 function Door({ icon, title, note, primary, onClick }) {
+  /* `btn-outline`, NOT `btn-secondary`. A PRIMITIVE ONLY EXISTS IN THE CONTEXT
+     THAT DEFINES IT: `theme.css` defines primary, outline, ghost, fill and
+     field, and `btn-secondary` belongs to the PREVIEW set under `.dmd`. So this
+     button carried a class no chrome rule reaches and fell back to the
+     browser's own grey: measured rgb(107, 107, 107) on a 112px box, with twelve
+     rules naming the class and none matching it. */
   return (
-    <button onClick={onClick} className={primary ? 'btn-primary' : 'btn-secondary'}
+    <button onClick={onClick} className={primary ? 'btn-primary' : 'btn-outline'}
       style={{
         ...MODAL_BTN,
-        /* A 50% BASIS, NEVER ZERO. `btn-secondary` carries a 2px border and
-           `btn-primary` a 1px one, and a zero basis floors at the border width
-           under `box-sizing: border-box`. The free space then split evenly on top
-           of two different floors: 286 against 288. A 50% basis makes both
-           over-run and shrink by the same amount, so the border cancels.
-           Measured 0.06px apart. */
+        /* A 50% BASIS, NEVER ZERO. Both classes carry a 1px border, and a zero
+           basis floors at the border width under `box-sizing: border-box`. The
+           free space then split evenly on top of two floors: 286 against 288.
+           A 50% basis makes both over-run and shrink by the same amount, so the
+           border cancels. Measured 0.06px apart. */
         flex: '1 1 50%', minWidth: 0, textAlign: 'left',
         display: 'flex', flexDirection: 'column', alignItems: 'flex-start',
         /* 12 between the glyph and the title, 4 between title and note. One gap
@@ -452,8 +457,8 @@ export default function CasualWizard({ onClose, onBack, leaving }) {
           )}
           {step === LAST && (
             <>
-              <button className="btn-secondary" style={MODAL_BTN} onClick={() => save('md')}>Save as .md</button>
-              <button className="btn-secondary" style={MODAL_BTN} onClick={() => save('txt')}>Save as .txt</button>
+              <button className="btn-outline" style={MODAL_BTN} onClick={() => save('md')}>Save as .md</button>
+              <button className="btn-outline" style={MODAL_BTN} onClick={() => save('txt')}>Save as .txt</button>
               <button className="btn-primary" style={MODAL_BTN} onClick={copy}>
                 {copyState === 'done' ? 'Copied' : 'Copy'}
               </button>
@@ -530,7 +535,7 @@ function BrandColours({ value, onChange }) {
             call to action says what it does, in words, at the size of a button
             somebody is meant to press. */}
         {value.length < BRAND_MAX && (
-          <button onClick={() => setOpen(value.length)} className="btn-secondary"
+          <button onClick={() => setOpen(value.length)} className="btn-outline"
             style={{
               height: SWATCH, padding: `0 ${PAD.sub}px`, borderRadius: 8,
               display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 550,

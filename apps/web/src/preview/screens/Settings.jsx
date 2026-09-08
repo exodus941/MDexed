@@ -151,7 +151,13 @@ export default function Settings({ onInspect, casing, theme, mode, onToggleTheme
             <div className="row" style={{ alignItems: 'flex-end' }}>
               <div className="field" style={{ flex: 1 }} {...ins('input-error')}>
                 <label className="label" htmlFor={BILLING_ID} {...txt("caption", "text-muted")}>Billing contact</label>
-                <input id={BILLING_ID} className="input is-error" defaultValue="billing@northwind"
+                {/* `is-invalid`, not `is-error`. The stylesheet paints an
+                    invalid field with `.input.is-invalid`, and `.is-error`
+                    styles a field NOTE. So this field carried a class that
+                    reaches nothing on an input, and rendered the ordinary
+                    border: measured rgb(114, 130, 143), the same as the field
+                    beside it. Form.jsx had it right all along. */}
+                <input id={BILLING_ID} className="input is-invalid" defaultValue="billing@northwind"
                   aria-invalid="true" aria-describedby={BILLING_ERR_ID} />
               </div>
               <button className="btn btn-secondary" {...ins('button-secondary')}>Verify</button>

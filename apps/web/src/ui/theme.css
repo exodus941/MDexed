@@ -508,9 +508,20 @@ label.check input[type=checkbox]:not(.dmd *){flex-shrink:0;margin:0}
    second export button beside it. Both rivals are gone, so Export Payload took
    the accent and this class went with them. Green in the chrome now means one
    thing only, which is a passing check. */
-/* An unlocked seed shows its open padlock only on hover — the affordance is
-   discoverable without all five swatches shouting at once. */
-.seed-lock:hover > span{opacity:1!important}
+/* ── THE HOVER REVEAL NEVER EXISTED, AND THE COMMENT DESCRIBED IT ANYWAY ──
+ *
+ * This read: an unlocked seed shows its open padlock only on hover. The rule
+ * was `.seed-lock:hover > span { opacity: 1 !important }` and it reached
+ * nothing, twice over. The button's child is an `<svg>`, so `> span` matched
+ * no element. And nothing set a base opacity, so there was no faint state to
+ * reveal from.
+ *
+ * The affordance is the COLOUR, and it works: the button paints `--accent`
+ * when locked and `--dim` when not. So the rule is gone rather than repointed,
+ * because repointing it would add a fade nobody asked for.
+ *
+ * A stale rule is worse than no rule, and this one described a behaviour the
+ * reader cannot find. */
 /* --bdr2, not --bdr. A control's boundary at 1.28:1 against its own surface
    is a line you cannot see — this app's audit demands 3:1 of exactly that, and
    the chrome was failing its own check. --bdr2 roughly doubles the separation,

@@ -611,7 +611,12 @@ export default function ColorPanel() {
               onChange={e => setChromaLevel(Number(e.target.value))}
               title="How saturated the whole run is. 1.00 is the reference level, measured against palettes people find agreeable. 1.25 is what this generator used to do."
               style={{ flex: 1, minWidth: 0 }} />
-            <span className="figure" style={{ fontSize: 12, color: 'var(--text)', flex: '0 0 auto', minWidth: 32, textAlign: 'end' }}>
+            {/* NO `figure` CLASS HERE. That one is `.dmd`-scoped, so in the
+                chrome it reached nothing and the readout took the body face
+                while looking as though it had asked for the mono one. A
+                PRIMITIVE ONLY EXISTS IN THE CONTEXT THAT DEFINES IT, and the
+                chrome defines no figure class. The family is stated instead. */}
+            <span style={{ fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--text)', flex: '0 0 auto', minWidth: 32, textAlign: 'end' }}>
               {chromaLevel.toFixed(2)}
             </span>
           </label>
