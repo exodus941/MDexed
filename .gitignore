@@ -53,3 +53,8 @@ apps/web/public/*/
 # they moved. It is NOT the reason builds were dying with EPERM: dist/ itself
 # sits inside a synced folder, and the fix for that is tools/clean-dist.mjs.
 apps/web/local/
+
+# A generated copy of the shipped browser verifier, written by hand while
+# proving a render check fires. It is emitted from checks.js on every export,
+# so a committed copy goes stale the moment a check changes.
+apps/web/public/VERIFY-BROWSER.js
