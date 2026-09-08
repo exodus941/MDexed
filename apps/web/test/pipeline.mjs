@@ -6283,5 +6283,34 @@ function hueHex(h) {
   assert(/UNMEASURED/.test(tfg), 'a page with no figure says so')
 }
 
+/* ── A CHECKBOX BOX IS NOT AN ICON BESIDE A LABEL ──
+ *
+ * The rule was already written down and the check had not read it. A drawn
+ * checkbox box is filled and square, so the mark finder picks it up and
+ * compares it against the cap band. The reader sees the BOX, and the tick
+ * inside it is ornament: its size answers to control sizing, the 24px minimum
+ * and the 44px target.
+ *
+ * Measured: 5 findings on this app, every one a checkbox at 4.76px above the
+ * cap against 1.24 below. The test is a SIBLING native input, which is exact,
+ * because a container holding one IS the control's own row. After: 2 findings,
+ * and the nine-surface scoped run went 19 to 16.
+ *
+ * Retested by injection: a label holding an svg shifted 6px fires with -2
+ * above and 6 below.
+ */
+{
+  line('\n- a checkbox box is not an icon beside a label -')
+  const { CHECKS: CHIC } = await import('../src/emit/checks.js')
+  const cic = CHIC.find(x => x.id === 'icon-on-the-cap-band')
+  assert(!!cic, 'the icon check still ships')
+  const tic = (cic?.body || []).join('\n')
+  assert(/:scope > input\[type=checkbox\], :scope > input\[type=radio\]/.test(tic),
+    'it skips a mark that sits beside a native checkbox or radio, which is that control own box')
+  assert(/mark\.parentElement\.querySelector/.test(tic),
+    'asking the SIBLING, because the control and its drawn box share a container')
+  assert(/svg, img/.test(tic), 'and a real icon is still found first')
+}
+
 line(`\n${failures === 0 ? 'ALL PASS' : `${failures} FAILURE(S)`}\n`)
 process.exit(failures ? 1 : 0)
