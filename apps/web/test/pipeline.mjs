@@ -4657,6 +4657,74 @@ line('\n- depth intensity -')
   }
 }
 
+/* ── A RULE THAT MATCHES NOTHING IS A TOKEN STILL UNREAD ──
+ *
+ * Consuming 22 unread colour tokens took the count from 79 to 57. Two of my
+ * new selectors reached no element on any of eleven surfaces, so those tokens
+ * were no more read than before:
+ *
+ *   .dmd .textarea                the element is <textarea class="input">
+ *   .dmd .btn-danger.btn-ghost    the class is .btn-danger-ghost
+ *
+ * ASKING THE DOM IS THE ONLY WAY TO SEE THAT. A rule sits in the stylesheet,
+ * reads correctly, and matches nothing. The guard counts a token as read the
+ * moment its NAME appears, so it cannot tell the difference.
+ */
+{
+  line('\n- every rule consuming a token reaches a real element -')
+  const fs = await import('node:fs')
+  const css = fs.readFileSync(new URL('../src/preview/preview.css', import.meta.url), 'utf8')
+
+  /* ── THE TWO SELECTORS I GOT WRONG, PINNED ──
+     Written as the shape that FAILED, so reinstating either fails here. */
+  assert(!/\.dmd \.textarea\s*\{/.test(css),
+    'no rule targets .textarea, which this preview never renders')
+  assert(/\.dmd textarea\.input\s*\{/.test(css),
+    'the textarea is named by its tag and the class it carries')
+  assert(!/\.dmd \.btn-danger\.btn-ghost\s*\{/.test(css),
+    'no rule targets .btn-danger.btn-ghost, which is two classes for one')
+  assert(/\.dmd \.btn-danger-ghost\s*\{/.test(css),
+    'the danger ghost is one class, as the preview writes it')
+
+  /* ── THE TOKEN AND THE SAMPLE HAD DISAGREED ──
+     The component publishes three indeterminate colours, so the state CAN
+     differ from checked. The sample rendered `checkbox is-on` for both, with a
+     comment saying the MARK is what separates them. The tokens win on whether
+     a build MAY differ, so the sample carries the class and the fallbacks are
+     the CHECKED values. Nothing moves by default. */
+  const icons = fs.readFileSync(new URL('../src/preview/icons.jsx', import.meta.url), 'utf8')
+  assert(/is-indeterminate/.test(icons),
+    'the indeterminate sample carries its own class')
+  assert(/--cmp-checkbox-indeterminate-background-color, var\(--cmp-checkbox-checked-background-color/.test(css),
+    'and its fallback is the checked fill, so the default renders as it did')
+
+  /* ── A CONDITIONAL TOKEN IS READ WITH A FALLBACK ON PURPOSE ──
+   *
+   * I wrote an assertion here that every token the preview READS must be one
+   * the system publishes. It reported four findings and all four were correct
+   * code. `--cmp-card-background-image` is dropped by the emitter when it is
+   * `none`, under a rule whose own comment says why, and a ghost active state
+   * is one a build may add rather than one we ship.
+   *
+   * So the question cannot be asked statically, and the check is gone. Cut a
+   * check you cannot make honest.
+   *
+   * ── AND THE COUNT COMES FROM THE GUARD, NEVER FROM A SECOND SCAN ──
+   *
+   * My own recount gave 58 against the guard's 57, because the guard reads the
+   * whole preview directory and I read one stylesheet. One scorer, two
+   * callers, or the two disagree and neither is trusted.
+   */
+  const record = JSON.parse(fs.readFileSync(new URL('../tools/token-reader.json', import.meta.url), 'utf8'))
+  const st = createInitialState()
+  const published = new Set()
+  for (const m of payloadTextFiles(st, derive(st))['tokens.css'].matchAll(/(--cmp-[\w-]+)\s*:/g)) published.add(m[1])
+  assert(record.published === published.size,
+    `the recorded published count is current (${published.size} against ${record.published})`)
+  assert(record.unread < 79,
+    `the unread count has fallen from the 79 it started at (${record.unread})`)
+}
+
 /* A hue to a hex at a fixed lightness and chroma, so the sweep above varies
    one thing. Written here rather than imported: the generator's own helpers
    apply its rules, and this has to hand it a raw seed. */

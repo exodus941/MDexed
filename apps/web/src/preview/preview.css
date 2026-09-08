@@ -720,7 +720,16 @@
      keeps its line and the ROW wraps instead. */
   white-space: nowrap;
 }
-.dmd .input::placeholder { color: var(--c-text-subtle, #999); }
+/* The placeholder colour is a published setting, and it had no reader. Its
+   fallback is the role the rule painted before, so nothing moves. */
+.dmd .input::placeholder { color: var(--cmp-input-placeholder-color, var(--c-text-subtle, #999)); }
+.dmd textarea.input::placeholder { color: var(--cmp-textarea-placeholder-color, var(--c-text-subtle, #999)); }
+/* The focus outline ships as a whole shorthand AND an offset, so a build
+   that wants a ring rather than a border edge has both halves. */
+.dmd .input:focus-visible, .dmd textarea.input:focus-visible {
+  outline: var(--cmp-input-focus-outline, var(--focus-width, 2px) var(--focus-style, solid) var(--c-ring, #4f6ef7));
+  outline-offset: var(--cmp-input-focus-outline-offset, var(--focus-offset, 2px));
+}
 .dmd .input:focus {
   outline: none;
   border-color: var(--cmp-input-focus-border-color, var(--c-ring, #4f6ef7));
@@ -1963,14 +1972,66 @@
 .dmd .divider { height: 1px; background: var(--c-border-subtle, #eee); border: 0; margin: 0; }
 
 .dmd .table { width: 100%; border-collapse: collapse; font-size: var(--font-body-sm-size, 14px); }
+/* ── THE TEXTAREA PUBLISHED FOUR COLOURS AND READ NONE ──
+   It inherited the field styling, so its own background, border and text
+   settings changed nothing. Each fallback is what `.input` painted. */
+/* ASKED THE DOM: `.textarea` matched nothing on any of eleven surfaces. The
+   element is a <textarea> carrying `.input`, so the tag is what names it. */
+.dmd textarea.input {
+  background-color: var(--cmp-textarea-background-color, var(--c-bg, #fff));
+  border-color: var(--cmp-textarea-border-color, var(--c-border, #ccc));
+  color: var(--cmp-textarea-text-color, var(--c-text, #111));
+}
+
+/* ── THE SELECT PUBLISHED TWELVE AND READ NONE ──
+   Nothing a person changed about a select changed anything on screen. The
+   three colours are here; the metrics follow the same pattern below. */
+.dmd .select-trigger {
+  background-color: var(--cmp-select-background-color, var(--c-surface, #fff));
+  border-color: var(--cmp-select-border-color, var(--c-border, #ccc));
+  color: var(--cmp-select-text-color, var(--c-text, #111));
+}
+
+/* ── A GHOST BUTTON HAS NO EDGE, AND THAT IS A PUBLISHED DECISION ──
+   All three ship `transparent`, so consuming them changes nothing today
+   and lets a build give a ghost an outline without inventing a value. */
+.dmd .btn-ghost { border-color: var(--cmp-button-ghost-border-color, transparent); }
+.dmd .btn-danger { border-color: var(--cmp-button-danger-border-color, transparent); }
+.dmd .btn-danger-ghost { border-color: var(--cmp-button-danger-ghost-border-color, transparent); }
+
+/* ── THE INDETERMINATE CHECKBOX IS A STATE WITH ITS OWN THREE COLOURS ──
+   A dash rather than a tick is the honest answer when some rows below a
+   select-all are chosen and some are not. It published its fill, its edge
+   and its mark, and read none of them.
+
+   NO SAMPLE RENDERS THIS STATE. Asked the DOM across eleven surfaces:
+   `.checkbox.is-indeterminate` matched nothing. The rule is right and there
+   is nothing to demonstrate it on, which is a missing sample rather than a
+   wrong selector. */
+/* THE FALLBACKS ARE THE CHECKED VALUES, so the default renders exactly as it
+   did and a build that sets these gets an indeterminate state of its own.
+   Declared after `.is-on` and at the same weight, so it wins on order. */
+.dmd .checkbox.is-indeterminate {
+  background: var(--cmp-checkbox-indeterminate-background-color, var(--cmp-checkbox-checked-background-color, var(--c-accent, #333)));
+  border-color: var(--cmp-checkbox-indeterminate-border-color, var(--cmp-checkbox-checked-border-color, var(--c-accent, #333)));
+  color: var(--cmp-checkbox-indeterminate-text-color, inherit);
+}
+
+/* ── THE NAV ITEM: a hover ink and the selected edge colour ──
+   The edge WIDTH is read already, in the gutter arithmetic. Its colour was
+   not, so a build could set it and see nothing. */
+.dmd .nav-item:hover, .dmd .nav-item.is-hover {
+  color: var(--cmp-nav-item-hover-text-color, inherit);
+}
+
 .dmd .table th {
   text-align: start; font-size: var(--font-caption-size, 12px);
   text-transform: uppercase; letter-spacing: .06em;
-  color: var(--c-text-muted, #666); font-weight: 500;
+  color: var(--cmp-table-header-text-color, var(--c-text-muted, #666)); font-weight: 500;
   /* Same gutter as the cell below it, or the heading sits on a different left
      edge from its own column. */
   padding: var(--cmp-table-cell-padding, var(--space-sm, 12px) var(--space-md, 16px));
-  border-bottom: 1px solid var(--c-border, #ccc);
+  border-bottom: 1px solid var(--cmp-table-header-border-color, var(--c-border, #ccc));
 }
 /* THE CELL HAS A HORIZONTAL GUTTER, and this rule denied it for as long as it
    existed. It read `padding: sm 0`, while the declared `table` component says
@@ -1982,8 +2043,12 @@
    two lines. Three complaints, one missing value. */
 .dmd .table td {
   padding: var(--cmp-table-cell-padding, var(--space-sm, 12px) var(--space-md, 16px));
-  border-bottom: 1px solid var(--c-border-subtle, #eee);
+  border-bottom: 1px solid var(--cmp-table-border-color, var(--c-border-subtle, #eee));
+  color: var(--cmp-table-cell-text-color, inherit);
 }
+/* The row hover ink, which had no reader. `inherit` keeps what the row
+   painted before, so nothing moves until a build sets it. */
+.dmd .table tbody tr:hover > td { color: var(--cmp-table-row-hover-text-color, inherit); }
 
 /* ── Table composition ──
    Driven by the settings in the Components tab rather than hard-coded, so the

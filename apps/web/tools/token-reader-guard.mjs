@@ -72,13 +72,22 @@ if (published.size < 100 || css.length < 10000) {
   process.exit(1)
 }
 
-/* A TOKEN READ THROUGH A COMPUTED NAME COUNTS AS READ. Some families are
-   consumed by prefix, so a stylesheet naming the prefix reads them all. */
-const readsIt = name => {
-  if (css.includes(name)) return true
-  const prefix = name.slice(0, name.lastIndexOf('-') + 1)
-  return prefix.length > 7 && css.includes(prefix)
-}
+/* ── NAMED OR NOT NAMED, AND NOTHING IN BETWEEN ──
+ *
+ * The first version excused a PREFIX match, on the theory that a family might
+ * be read through a computed name. CSS has no string concatenation for a
+ * custom property NAME, so that cannot happen in a stylesheet, and no file in
+ * the preview computes one either.
+ *
+ * So the exemption answered a question nothing asks, and it approved whatever
+ * shared a stem: `--cmp-button-sm-tracking` passed because `--cmp-button-sm-`
+ * appears elsewhere for a height. Measured: it excused 40 of 79.
+ *
+ * AND IT SURVIVED A FIX THAT REPORTED SUCCESS. The script removing it stopped
+ * at an earlier step whose needle had already changed, so this block stayed
+ * and the guard recorded 39 where the honest figure is 79. A partly applied
+ * run is not a run. */
+const readsIt = name => css.includes(name)
 
 const unread = [...published].filter(n => !readsIt(n)).sort()
 

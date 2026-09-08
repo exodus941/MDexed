@@ -163,7 +163,11 @@ export const Check = ({ on, mixed, label }) => {
       {/* Every value moved to preview.css, for the reason the switch's did:
           the class was in four rules there and none of them gave it a box, so
           it styled nothing while the source read as though it did. */}
-      <span className={`checkbox${filled ? ' is-on' : ''}`} aria-hidden="true">
+      {/* THE THIRD STATE CARRIES ITS OWN CLASS. It kept `is-on` alone, so the
+          three indeterminate colour tokens the component publishes reached no
+          rule and a build could not give the state its own look. The fill is
+          still the checked one by fallback, so nothing moves by default. */}
+      <span className={`checkbox${filled ? ' is-on' : ''}${mixed && !on ? ' is-indeterminate' : ''}`} aria-hidden="true">
         {on && <svg aria-hidden="true" focusable="false" width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3.4} strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>}
         {mixed && !on && <svg aria-hidden="true" focusable="false" width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3.4} strokeLinecap="round"><line x1="5" y1="12" x2="19" y2="12" /></svg>}
       </span>
