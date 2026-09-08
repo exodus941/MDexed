@@ -375,6 +375,25 @@
   .dmd .shell-split.stack-narrow { --split-left: 100%; }
   .dmd .stack-narrow-rev { flex-direction: column-reverse; }
   .dmd .stack-narrow > .btn, .dmd .stack-narrow-rev > .btn { width: 100%; }
+  /* ── A BUTTON STACKED UNDER ITS OWN EXPLANATION TAKES THE CLEARANCE ──
+
+     Side by side there is no vertical distance to state. Stacked, the row
+     row-gap of 8px is what lands between a paragraph and the action it
+     explains, and the floor is the md step. Measured on Form at a 296px
+     pane: a destructive button 8.00px under its own warning, which is the
+     case that rule exists for.
+
+     ONE WRITER: the row gap BECOMES the clearance, rather than a margin on
+     the button adding to it.
+
+     Scoped by two declarations, so it cannot reach a pane split. The row
+     holds a button as a DIRECT child, and something that is not a button
+     holds a paragraph. A shell split has no direct button child, and a row
+     of two buttons holds no paragraph. */
+  .dmd .stack-narrow:has(> .btn):has(> :not(.btn) p),
+  .dmd .stack-narrow-rev:has(> .btn):has(> :not(.btn) p) {
+    row-gap: var(--space-md, 16px);
+  }
   /* A nested action group stacks with its parent rather than staying a row
      inside a column. Otherwise a footer reads as two unrelated groups: one
      button alone on a line, then a right-aligned pair under it. */
@@ -839,8 +858,14 @@
        is one writer. Above this threshold the rule does not apply at all,
        which is correct: the actions rejoin the title's line there and take
        their cap-band transform instead, and a margin would join the flex line
-       and grow it. */
-    margin-top: var(--space-sm, 12px);
+       and grow it.
+
+       THE FLOOR IS 16px, NOT 12. An action stands clear of the text that
+       explains it by the md step, and this row lands under the page
+       description. It shipped at --space-sm and measured 12.00px on Index
+       and Form at a 296px pane. The parent row-gap here is 0, so this
+       margin IS the clearance and there is still one writer. */
+    margin-top: var(--space-md, 16px);
   }
   /* `align-items: stretch`, because `.row` declares BASELINE and a column
      flex box reads that as a cross-axis instruction: every pair shrank to its

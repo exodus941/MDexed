@@ -2402,6 +2402,10 @@ line('\n- project file -')
        once as the push and once as a floor. The later one wins and the other
        was never doing the job its author thought. */
     '.actions { margin-block-start: auto; margin-block-start: var(--space-md); }',
+    /* an-underline-is-not-a-border: a chosen tab marked by a border, which
+       adds its own height and breaks the strip's rule where it sits. A
+       transparent border on the siblings spends the same height. */
+    '.tab.is-selected { border-bottom: 2px solid var(--c-accent); }',
     /* a-side-is-named-logically: a physical side. It reads correctly today
        and cannot flip later, and the logical form costs this build nothing.
        The centring pair below is the exemption: an inset with a transform

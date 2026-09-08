@@ -255,8 +255,10 @@ export default defineConfig(({ command }) => ({
        chart components, their furniture and the Charts surface. Then to 1085 at
        1078.10, with the marker elements and the aspect-ratio plots. Then to
        1135 at 1130.07, with twelve new checks: the row planes, the chart
-       furniture, and the spacing batch. */
-    chunkSizeWarningLimit: 1135,
+       furniture, and the spacing batch. Then to 1145 at 1140.00, with three
+       more: a logical side, one mark size per control, and an underline that
+       is not a border. */
+    chunkSizeWarningLimit: 1145,
   },
 
   server: {

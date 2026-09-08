@@ -527,6 +527,50 @@ export const CHECKS = [
   },
 
   {
+    id: 'an-underline-is-not-a-border',
+    where: 'source',
+    line: 'Never build an underline from a border. Use box-shadow: inset 0 -2px 0, which adds no height.',
+    /* ── A BORDER ADDS HEIGHT, AND A TRANSPARENT ONE COSTS THE SAME ──
+     *
+     * A 2px border makes the marked item 2px taller and pushes it past its
+     * own container rule, breaking that line where the item sits. Giving the
+     * unmarked siblings a transparent border spends the same 2px, so they
+     * sit wrong too.
+     *
+     * TWO SCOPE DECISIONS. A STATE selector only, because a bottom border is
+     * the ordinary way to draw a divider. And 2px or more, because a
+     * hairline under a chosen item is the strip own rule showing through.
+     *
+     * Measured in our own stylesheets: zero. We obey it, so the fault it
+     * exists for lives in the broken fixture.
+     */
+    body: [
+      "/* A STATE SELECTOR, because a bottom border is the ordinary way to draw a",
+      "   DIVIDER. Only a selector naming a chosen state is claiming to draw a",
+      "   marker, and only then is the added height a fault. */",
+      "const STATE = /(is-selected|is-active|is-current|aria-selected|aria-current|\\.selected|\\.active|\\.current)/",
+      "for (const f of files.filter(x => x.css)) {",
+      "  for (const block of f.bare.matchAll(/([^{}]+)\\{([^{}]*)\\}/g)) {",
+      "    const selector = block[1].trim()",
+      "    if (!STATE.test(selector)) continue",
+      "    /* A ROW is separated by a rule, so its bottom border is a divider and",
+      "       the selection bar beside it is a pseudo-element. Not this rule. */",
+      "    if (/(^|[\\s>+~])(tr|td|th|li)([\\s.:\\[]|$)/.test(selector)) continue",
+      "    for (const d of block[2].matchAll(/(^|[;\\s])border-(bottom|block-end)(-width)?\\s*:\\s*([^;]+)/g)) {",
+      "      const value = d[4].trim()",
+      "      const w = parseFloat(value)",
+      "      /* A HAIRLINE IS A LINE, NOT AN UNDERLINE. One pixel under a chosen",
+      "         item is the strip own rule showing through. Two or more is a mark,",
+      "         and a mark drawn as a border adds its own height. */",
+      "      if (!(w >= 2)) continue",
+      "      fail(f.path, lineOf(f, block.index),",
+      "        selector + ' marks a chosen state with a ' + w + 'px bottom border. A border adds its own height, so the marked item stands taller than its siblings and its own container rule breaks where it sits. A TRANSPARENT border on the others costs the same height. Draw it with box-shadow: inset 0 -' + w + 'px 0, which paints in the same place and joins no box.')",
+      "    }",
+      "  }",
+      "}",
+    ],
+  },
+  {
     id: 'a-side-is-named-logically',
     where: 'source',
     line: 'Name a side logically, never physically. margin-inline-start, not margin-left; text-align: end, not right.',
@@ -3684,6 +3728,51 @@ export const CHECKS = [
   },
 
   {
+    id: 'a-control-holds-one-mark-size',
+    where: 'render',
+    line: 'One mark size per control. A mark takes its size from its own control, never from a neighbour.',
+    /* ── I SIZED ONE CHEVRON WRONGLY TWICE, FROM TWO NEIGHBOURS ──
+     *
+     * Adding a chevron to a menu button, I took 10px from a picker in a
+     * panel, then 12px from the menus beside it in the same bar. The
+     * button own folder mark is 14px, which is the published size. So one
+     * control carried two marks at two sizes, and the second attempt made
+     * it worse rather than better.
+     *
+     * Measured across the whole app: exactly one control holds two marks,
+     * and it reads 14 and 14. Injecting the 10px version gives a spread of
+     * 4 and this fires.
+     *
+     * TWO EXEMPTIONS, both declared rather than guessed. An avatar is not a
+     * mark: it publishes its own size and its own gap. And a specimen row
+     * exists to show three sizes, so it carries a marker saying so.
+     */
+    body: [
+      "/* A CONTROL IS A LEAF, so its marks are ornament rather than siblings in a",
+      "   layout. Two of them at two sizes is one control speaking twice. */",
+      "const MARKED = CONTROL + ', .tab, .nav-item, .select-trigger, .chip, .badge'",
+      "for (const c of all(MARKED)) {",
+      "  /* An AVATAR is not a mark. It publishes its own size and its own gap. */",
+      "  const marks = Array.prototype.slice.call(c.querySelectorAll('svg'))",
+      "    .filter(m => visible(m) && !m.closest('.avatar') && boxOf(m))",
+      "  if (marks.length < 2) continue",
+      "  /* A SPECIMEN ROW EXISTS TO SHOW THREE SIZES, so it cannot be faulted for",
+      "     showing three sizes. It says so on itself. */",
+      "  if (c.closest('[data-specimen], .specimen, .sizes')) continue",
+      "  const sizes = marks.map(m => {",
+      "    const r = m.getBoundingClientRect()",
+      "    return Math.max(r.width, r.height)",
+      "  })",
+      "  const spread = Math.max.apply(null, sizes) - Math.min.apply(null, sizes)",
+      "  /* WHOLE PIXELS. Half a pixel of difference is not visible, and a",
+      "     threshold below one fires on sub-pixel rounding. */",
+      "  if (spread < 1) continue",
+      "  fail(name(c),",
+      "    'this control holds ' + marks.length + ' marks at ' + sizes.map(round).join(', ') + 'px, a spread of ' + round(spread) + 'px. A mark takes its size from its OWN control and never from a neighbour: the published size is one value at every control size, so one control cannot carry two. Read the marks the control already has before adding one.')",
+      "}",
+    ],
+  },
+  {
     id: 'a-mark-stays-inside-its-control',
     where: 'render',
     line: 'A control that draws its own mark keeps that mark inside its box.',
@@ -3901,6 +3990,12 @@ export const CHECKS = [
       "    if (prev.matches(CONTROL) || prev.querySelector(CONTROL)) continue",
       "    const words = prev.textContent.trim().split(/\\s+/).filter(Boolean)",
       "    if (words.length < 4) continue",
+      "    /* ── AN EXPLANATION IS PROSE, AND THE MARKUP SAYS SO ──",
+      "       A word count cannot tell a sentence that explains an action from a",
+      "       readout in a pager bar. Measured at a 296px pane: four findings, and",
+      "       two were a readout span and a specimen span. A paragraph is the",
+      "       element prose is written in, so ask for one. */",
+      "    if (!(prev.matches('p') || prev.querySelector('p'))) continue",
       "    const pr = prev.getBoundingClientRect(), br = btn.getBoundingClientRect()",
       "    /* Stacked, and the button below the text. */",
       "    if (br.top < pr.bottom - 0.5) continue",
