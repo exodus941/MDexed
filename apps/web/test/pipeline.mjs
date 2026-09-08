@@ -5533,5 +5533,74 @@ function hueHex(h) {
   }
 }
 
+/* ── A DEMONSTRATION IS THE COMPONENT ──
+ *
+ * Eight rules here and almost nothing read any of them. Most are method: which
+ * situations to sample, where to put a sample, what a new one should spend its
+ * slots on. Three are measurable, and all three were satisfied and unasserted.
+ *
+ * A SAMPLE THAT CANNOT CHANGE PROVES THE SETTING WORKS. A numerals sample once
+ * set every amount in the mono face, so tabular and proportional both rendered
+ * at 64.81px, at the same left edge. The property moved and no pixel did.
+ *
+ * Measured today under both values: the three column figures move 5.91, 13.06
+ * and 4.28px. The two card figures do not move at all, which is the half a
+ * column can never show.
+ */
+{
+  line('\n- a demonstration is the component -')
+  const ty = fs.readFileSync(new URL('../src/panels/TypographyPanel.jsx', import.meta.url), 'utf8')
+
+  /* THE SAMPLE CARRIES BOTH CASES, or it teaches half the rule. A column takes
+     the mono face and tabular digits. A standalone figure keeps the body face
+     under BOTH settings, and that is the case the rule EXCLUDES. */
+  assert(/font-mono-family/.test(ty) && /tabular-nums/.test(ty),
+    'the numerals sample renders the column case, with the mono face and tabular digits')
+  assert(/proportional/.test(ty),
+    'and names the proportional case, so the setting has two visible answers')
+  /* THE FRAME IS THE RECESSED PLANE, AND ITS CONTENTS ARE THE DOCUMENT'S. A
+     sample painted in the editor's own surface reads as one more block of
+     options rather than a preview of the thing being designed. */
+  assert(/className="dmd entry-sample"/.test(ty),
+    'every sample sits under .dmd, which is what brings the document tokens in')
+  {
+    const th2 = fs.readFileSync(new URL('../src/ui/theme.css', import.meta.url), 'utf8')
+      .replace(/\/\*[\s\S]*?\*\//g, m => m.replace(/[^\n]/g, ' '))
+    const frame = (th2.match(/\.entry-sample\{[^}]*\}/) || [''])[0]
+    assert(/var\(--preview\)/.test(frame),
+      'and the frame takes the preview plane, never the panel surface beside it')
+    assert(/var\(--preview-bdr\)/.test(frame),
+      'including its edge, so two panels cannot drift into different kinds of thing')
+  }
+
+  /* ── AND THE MENU CHECK STAYS MANUAL, WITH THE MEASUREMENT KEPT ──
+   *
+   * A manual entry is not a safeguard, so I tried to promote it. The rule is
+   * exact and the shape is readable: a page head holding a title, with the
+   * menu INSIDE the action group rather than beside it. The exemption is a
+   * declaration rather than a name, because a nav row with no heading has no
+   * title to keep the control next to.
+   *
+   * Measured on the shipped surfaces: two page heads, both holding the title,
+   * the action group and the menu as siblings. Two more rows hold a menu and
+   * no heading, so they are exempt: a landing bar and a gallery specimen.
+   *
+   * THE LOGIC IS RIGHT AND I COULD NOT PROVE IT FIRES. Replayed by hand
+   * against the same DOM it reports exactly one hit. Inside the verifier it
+   * reports none, and its own instrument says why: "menus 2, with a control 1,
+   * on a page head 1, inside the group 0". The move is undone, or a second
+   * mounted tree is answering, before the check reads the parent.
+   *
+   * A CHECK I CANNOT BREAK ON PURPOSE IS A BLINDFOLD. So it goes back, and the
+   * measurement stays here so nobody writes it again without isolating that.
+   */
+  {
+    const c6 = (await import('../src/emit/checks.js')).CHECKS
+      .find(x => x.id === 'a-menu-control-is-a-sibling-of-the-action-group')
+    assert(!!c6 && c6.where === 'manual',
+      `the menu rule is still manual, because the render form could not be broken on purpose (${c6?.where})`)
+  }
+}
+
 line(`\n${failures === 0 ? 'ALL PASS' : `${failures} FAILURE(S)`}\n`)
 process.exit(failures ? 1 : 0)
