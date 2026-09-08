@@ -226,9 +226,9 @@ textarea:not(.dmd *){height:auto;min-height:var(--field-h);line-height:1.5}
 .dense input:not([type=range]):not([type=checkbox]):not([type=radio]),
 .dense select{height:var(--field-h-dense);line-height:var(--field-line-dense)}
 .dense textarea{height:auto;min-height:var(--field-h-dense)}
-.dense select{padding-right:28px;background-position:right 8px center;background-size:12px 12px}
+.dense select{padding-inline-end:28px;background-position:right 8px center;background-size:12px 12px}
 input:focus:not(.dmd *),textarea:focus:not(.dmd *),select:focus:not(.dmd *){border-color:var(--accent);background:var(--surf2)}
-select:not(.dmd *){-webkit-appearance:none;appearance:none;padding-right:32px;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238e969d' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");background-repeat:no-repeat;background-position:right 12px center;background-size:12px 12px}
+select:not(.dmd *){-webkit-appearance:none;appearance:none;padding-inline-end:32px;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238e969d' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");background-repeat:no-repeat;background-position:right 12px center;background-size:12px 12px}
 :root[data-ui-theme="light"] select{background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23596369' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>")}
 textarea:not(.dmd *){resize:vertical;min-height:88px;font-size:14px;line-height:1.6}
 /* A button label that donates its button's baseline.
@@ -793,7 +793,7 @@ input[type=range].hue-slider:not(.dmd *)::-moz-range-track{height:8px;border-rad
 input[type=range].hue-slider:not(.dmd *)::-webkit-slider-thumb{width:16px;height:16px;margin-top:-4px;background:hsl(var(--hue) 70% 55%);box-shadow:0 0 0 2px var(--surf),0 0 0 3px var(--thumb-ring)}
 input[type=range].hue-slider:not(.dmd *)::-moz-range-thumb{width:16px;height:16px;background:hsl(var(--hue) 70% 55%);box-shadow:0 0 0 2px var(--surf),0 0 0 3px var(--thumb-ring)}
 
-.num{font-family:var(--mono);font-size:12px;padding:4px 6px;text-align:right}
+.num{font-family:var(--mono);font-size:12px;padding:4px 6px;text-align:end}
 .num::-webkit-outer-spin-button,.num::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 .num[type=number]{-moz-appearance:textfield}
 

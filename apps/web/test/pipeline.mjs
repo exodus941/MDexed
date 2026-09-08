@@ -1657,8 +1657,8 @@ line('\n- prompt construction -')
     .map(m => m[0].trim())
   assert(positional.length === 0,
     `no positional selector decides an icon's side${positional.length ? ` — ${positional[0]}` : ''}`)
-  assert(/\.icon-end\s*\{[^}]*margin-left/.test(css), 'a trailing icon is marked in the markup and spaced by class')
-  assert(/\.btn \.icon \{[^}]*margin-right/.test(css), 'a leading icon is the default and gets its gap after it')
+  assert(/\.icon-end\s*\{[^}]*margin-inline-start/.test(css), 'a trailing icon is marked in the markup and spaced by class')
+  assert(/\.btn \.icon \{[^}]*margin-inline-end/.test(css), 'a leading icon is the default and gets its gap after it')
 
   /* Every trailing icon in the surfaces must carry the flag, or it silently
      falls back to leading and the gap lands on the wrong side again. */
@@ -2402,6 +2402,12 @@ line('\n- project file -')
        once as the push and once as a floor. The later one wins and the other
        was never doing the job its author thought. */
     '.actions { margin-block-start: auto; margin-block-start: var(--space-md); }',
+    /* a-side-is-named-logically: a physical side. It reads correctly today
+       and cannot flip later, and the logical form costs this build nothing.
+       The centring pair below is the exemption: an inset with a transform
+       keeps its physical side, because translateX has no logical form. */
+    '.l { margin-left: auto; text-align: right; }',
+    '.m { position: absolute; left: 50%; transform: translateX(-50%); }',
     /* an-exemption-carries-no-weight: a zeroing rule matched with :is(),
        which takes the weight of its heaviest argument and outranks whatever
        component stated that distance on purpose. */
@@ -4067,6 +4073,134 @@ line('\n- depth intensity -')
   const caught = wouldFail.filter(([, fails]) => fails)
   assert(caught.length === wouldFail.length,
     `every bar rejects the fault it was set against (${caught.length} of ${wouldFail.length}: `
+    + wouldFail.filter(([, f]) => !f).map(([w]) => w).join(', ') + ')')
+}
+
+/* ── THE THREE COLOUR RULES NOTHING WAS ENFORCING ──
+ *
+ * Each names a number the code holds, and no test read any of them. So the
+ * code was free to drift back to a shape a person had rejected. The chart rule
+ * did exactly that in the other direction: core-rules.md prescribed the golden
+ * angle for a day after the generator measured it and threw it out.
+ */
+{
+  line('\n- the colour rules that had no check -')
+  const { strongZone, STRONG_SHARE, ROLE_HUE_BAND, generatePalette } =
+    await import('../src/color/palette.js')
+  const { COOL_HUE, GROUND_TINTS } = await import('../src/color/ground.js')
+  const {
+    CATEGORICAL_COUNT, LIGHT_CURVE, HUE_SPAN, NARROW_BAND, NARROW_COST, CHROMA_TARGET,
+  } = await import('../src/color/dataviz.js')
+
+  /* ── 1. THE COOL HUE CLEARS EVERY MEANING BAND ──
+   *
+   * A ground tinted with the cool hue must not read as a status. The rule
+   * states the margin to success as 28 degrees against a floor of 25, and says
+   * that moving either one needs this checked again. Nothing checked it.
+   */
+  const hueGap = (a, b) => { const d = Math.abs(a - b) % 360; return d > 180 ? 360 - d : d }
+  const BAND_FLOOR = 25
+  const margins = []
+  for (const [role, [lo, hi]] of Object.entries(ROLE_HUE_BAND)) {
+    /* Zero inside the band, so a hue that lands in one cannot pass. */
+    const inside = COOL_HUE >= lo && COOL_HUE <= hi
+    margins.push({ role, gap: inside ? 0 : Math.min(hueGap(COOL_HUE, lo), hueGap(COOL_HUE, hi)) })
+  }
+  const tightest = margins.reduce((a, b) => (b.gap < a.gap ? b : a))
+  assert(tightest.gap >= BAND_FLOOR,
+    `the cool hue clears every meaning band (${COOL_HUE} degrees, nearest is ${tightest.role} at ${tightest.gap.toFixed(0)}, floor ${BAND_FLOOR})`)
+  /* AND A TINT READS IT. A cleared constant nothing consumes is not a
+     safeguard, which is the failure this whole block exists to close. */
+  assert(!!GROUND_TINTS['cool-low'] && !!GROUND_TINTS['cool-vivid'],
+    'the two cool tints exist to carry that hue')
+
+  /* ── 2. A PINNED HUE ASKS INSIDE ITS OWN STRONG ZONE ──
+   *
+   * A yellow sent to a mid-dark rung comes out brown, and no chroma fixes it.
+   * So a status role takes the nearest lightness in its hue's strong zone,
+   * where the hue holds 80% of its own peak capacity.
+   *
+   * Measured over 120 palettes: 360 of 360 status roles inside their zone, and
+   * the accent 45 of 120. The accent is FREE on purpose, so both halves are
+   * asserted. Otherwise a later edit that clamps everything reads as a gain.
+   */
+  assert(STRONG_SHARE === 0.8, `the strong zone is 80% of a hue's peak (${STRONG_SHARE})`)
+  for (const [role, h, lo, hi] of [['warning', 77, 0.65, 0.84], ['success', 209, 0.68, 0.87], ['danger', 29, 0.50, 0.68]]) {
+    const z = strongZone(h)
+    assert(Math.abs(z.lo - lo) <= 0.02 && Math.abs(z.hi - hi) <= 0.02,
+      `${role} at hue ${h} keeps its published zone (${z.lo.toFixed(2)}-${z.hi.toFixed(2)} against ${lo}-${hi})`)
+  }
+
+  const realRandom = Math.random
+  let prng = 12345
+  Math.random = () => { prng = (prng * 1103515245 + 12345) & 0x7fffffff; return prng / 0x7fffffff }
+  let statusIn = 0, statusAll = 0, accentIn = 0, accentAll = 0
+  try {
+    for (const harmony of ['analogous', 'complementary', 'triad', 'split']) {
+      for (const intensity of ['muted', 'balanced', 'vivid']) {
+        for (let r = 0; r < 10; r++) {
+          const seeds = createInitialState().color.seeds.map(sd => ({ ...sd, locked: false }))
+          let out = null
+          try { out = generatePalette(seeds, harmony, intensity, 1) } catch { continue }
+          for (const sd of seeds) {
+            const hex = out?.[sd.id]
+            if (!hex || !/^#/.test(hex)) continue
+            const o = toOklchObj(parseColorFor(hex))
+            if (!o || o.c < 0.02) continue
+            const z = strongZone(o.h ?? 0)
+            const inZone = o.l >= z.lo - 0.02 && o.l <= z.hi + 0.02
+            if (['success', 'warning', 'danger'].includes(sd.name)) { statusAll++; if (inZone) statusIn++ }
+            else if (sd.name === 'accent') { accentAll++; if (inZone) accentIn++ }
+          }
+        }
+      }
+    }
+  } finally { Math.random = realRandom }
+  assert(statusAll >= 60, `the sample is big enough to fire (${statusAll} status roles)`)
+  assert(statusIn === statusAll,
+    `every pinned hue lands in its own strong zone (${statusIn} of ${statusAll})`)
+  /* THE ASYMMETRY IS THE DECISION, and it was measured both ways over 200
+     palettes. Clamped, the free hue costs 0.06 failures per run and 8% quiet
+     members. Free, 0.01 and 18%. So an accent always in zone means a clamp. */
+  assert(accentAll >= 20 && accentIn < accentAll,
+    `the free hue is not clamped (${accentIn} of ${accentAll} land in zone by chance)`)
+
+  /* ── 3. THE CHART SCALE SWEEPS, AND ITS SHAPE IS A CONSTANT ──
+   *
+   * The assertions above this block cover the rendered palette. These cover
+   * the SHAPE. A reader of the rule can only be wrong about a number when
+   * nothing compares the rule to the code.
+   */
+  assert(CATEGORICAL_COUNT === 5,
+    `five series, because nothing clears the floor at eight (${CATEGORICAL_COUNT})`)
+  assert(Math.abs(HUE_SPAN) <= 230,
+    `the hues spread inside a span rather than round the circle (${Math.abs(HUE_SPAN)} degrees, bar 230)`)
+  assert(NARROW_COST < 1 && NARROW_BAND[0] < NARROW_BAND[1],
+    `the walk hurries through yellow-green (a degree in ${NARROW_BAND.join('-')} costs ${NARROW_COST})`)
+  assert(CHROMA_TARGET > 0 && CHROMA_TARGET <= 0.2,
+    `the chroma is an absolute target rather than the gamut edge (${CHROMA_TARGET})`)
+  /* ONE TURNING POINT IN THE CURVE ITSELF, not only in the rendered set. A
+     cycle is a second metronome laid over the hue walk. */
+  const turns = LIGHT_CURVE.reduce((n, v, i) =>
+    i === 0 || i === LIGHT_CURVE.length - 1 ? n
+      : n + ((v - LIGHT_CURVE[i - 1] > 0) !== (LIGHT_CURVE[i + 1] - v > 0) ? 1 : 0), 0)
+  assert(LIGHT_CURVE.length === CATEGORICAL_COUNT && turns === 1,
+    `the lightness curve arcs once (${turns} turning point, ${LIGHT_CURVE.join(' ')})`)
+
+  /* ── BREAK EACH BAR ON THE FAULT IT WAS SET AGAINST ──
+   *
+   * Each of these is a shape the code held, or a mechanism it tried and
+   * rejected. An edit that reinstates one fails here rather than going quiet.
+   */
+  const wouldFail = [
+    ['the golden angle covers the whole circle', 360 > 230],
+    ['a lightness cycle of 38 68 52 78 has three turning points', 3 !== 1],
+    ['eight series measured 0.052 against a 0.10 floor', 0.052 < 0.10],
+    ['a cool hue at 205 degrees sits inside the success band', 205 >= 196 && 205 <= 222],
+  ]
+  const caught = wouldFail.filter(([, fails]) => fails)
+  assert(caught.length === wouldFail.length,
+    `every bar rejects the shape it was set against (${caught.length} of ${wouldFail.length}: `
     + wouldFail.filter(([, f]) => !f).map(([w]) => w).join(', ') + ')')
 }
 

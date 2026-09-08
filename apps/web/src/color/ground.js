@@ -27,7 +27,7 @@
  * danger 18-40 — that a ground tinted with it cannot be read as a status. */
 import { toOklchObj, fromOklch, toHex, parseColor } from './convert.js'
 
-const COOL_HUE = 250
+export const COOL_HUE = 250
 
 /* Held from the shipped neutral seed, so a tint changes hue and chroma only.
    Lightness is what the ramp's own curve is built around, and moving it here

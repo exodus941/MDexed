@@ -27,7 +27,7 @@
   .dmd .with-aside > .aside-rail {
     position: absolute; z-index: var(--z-dropdown);
     top: calc(var(--font-h2-size, 40px) * var(--font-h2-leading, 1.3));
-    right: 0; width: min(17rem, 82%);
+    inset-inline-end: 0; width: min(17rem, 82%);
   }
   /* A floating panel is a surface of its own, on the system's own overlay
      elevation. Flat, it would read as text lying on the page. */
@@ -105,7 +105,7 @@
      the panel hangs from its bottom edge. */
   .dmd .header-nav { position: relative; }
   .dmd .header-nav > .nav-fold {
-    position: absolute; top: 100%; right: 0; z-index: var(--z-dropdown); width: min(17rem, 82vw);
+    position: absolute; top: 100%; inset-inline-end: 0; z-index: var(--z-dropdown); width: min(17rem, 82vw);
   }
 
   /* The heading and the burger, side by side.
@@ -181,7 +181,7 @@
    * width where they genuinely stop fitting — which is the right width for a
    * long title and a short one alike. */
   .dmd .page-head > .page-title { order: 1; flex: 0 1 auto; min-width: 0; }
-  .dmd .page-head > .nav-collapse { order: 2; flex: 0 0 auto; margin-left: auto; }
+  .dmd .page-head > .nav-collapse { order: 2; flex: 0 0 auto; margin-inline-start: auto; }
   /* The byline keeps its base order of 9, so it sits BELOW the actions rather
      than between them and the title. Ordered 3 it split the header into three
      lines by construction: the actions could never reach the title's row,
@@ -365,7 +365,7 @@
      reverses itself the next time either file is edited. The margin still does
      its job wide, where the pairs dissolve and it holds the last button against
      the bar's right edge. */
-  .dmd .action-pairs > .pair > .btn.batch-end { margin-left: 0; }
+  .dmd .action-pairs > .pair > .btn.batch-end { margin-inline-start: 0; }
 
   .dmd .stack-narrow, .dmd .stack-narrow-rev { flex-direction: column; align-items: stretch; }
   /* A stacked pane is alone on its line, so it takes the whole line.
@@ -551,12 +551,12 @@
      group above, which pushes that group right — but here the group is on a
      line of its own and the menu button shares the title's line, so the button
      takes it. Measured before: 168px short of the edge at 548. */
-  .dmd .page-head > .nav-collapse { margin-left: auto; }
+  .dmd .page-head > .nav-collapse { margin-inline-start: auto; }
   /* WITH the group present, the group takes the slack and the button follows
      it. Two items both declaring `auto` split the free space, which parked the
      toggle in the middle of the row with the button at the far end. */
-  .dmd .page-head > .page-actions:not(:has(.btn:not(.icon-only))) ~ .nav-collapse { margin-left: 0; }
-  .dmd .page-head > .page-actions:has(.btn:not(.icon-only)) { margin-left: 0; }
+  .dmd .page-head > .page-actions:not(:has(.btn:not(.icon-only))) ~ .nav-collapse { margin-inline-start: 0; }
+  .dmd .page-head > .page-actions:has(.btn:not(.icon-only)) { margin-inline-start: 0; }
   /* The title SHARES the line here, so it grows into what is left rather than
      taking its content width. A long title otherwise claimed the whole line and
      pushed the menu button onto a row of its own: measured at 500px with the
@@ -824,7 +824,7 @@
    * Scoped to the header. `.action-pairs` is also the selection bar's, and its
    * own step was measured for a bar rather than for a heading. */
   .dmd .page-head > .page-actions:has(.btn:not(.icon-only)) {
-    order: 4; flex: 1 0 100%; margin-left: 0; transform: none;
+    order: 4; flex: 1 0 100%; margin-inline-start: 0; transform: none;
     /* THE LINE AND THE DISTANCE ARE ONE DECISION, so they go in one block.
        `flex: 1 0 100%` was set here AND in the narrow step, and the 12px was
        set only in the narrow step. So between the two thresholds the action

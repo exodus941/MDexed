@@ -364,9 +364,9 @@
   transform: translateY(calc((100% - 0.75em) / 2));
 }
 .dmd .btn .icon {
-  margin-right: var(--cmp-button-gap, var(--icon-gap, 8px)); margin-left: 0;
+  margin-inline-end: var(--cmp-button-gap, var(--icon-gap, 8px)); margin-inline-start: 0;
 }
-.dmd .btn .icon-end { margin-right: 0; margin-left: var(--cmp-button-gap, var(--icon-gap, 8px)); }
+.dmd .btn .icon-end { margin-inline-end: 0; margin-inline-start: var(--cmp-button-gap, var(--icon-gap, 8px)); }
 .dmd .btn:focus-visible {
   outline: var(--focus-width, 2px) var(--focus-style, solid) var(--c-ring, #4f6ef7);
   outline-offset: var(--focus-offset, 2px);
@@ -524,7 +524,7 @@
      touch and the eye reads one object. This is the same token every other
      icon-and-label pair in the system uses, which is also why it is the right
      one: an icon sits the same distance from its text everywhere. */
-  margin-right: var(--icon-gap, 8px);
+  margin-inline-end: var(--icon-gap, 8px);
 }
 .dmd .field-note.is-error { color: var(--c-danger, #c2453c); }
 
@@ -794,7 +794,7 @@
    middle. The gap is a margin because there is no flex gap to do it. */
 .dmd .badge > svg, .dmd .badge > .icon, .dmd .badge > .dot {
   vertical-align: middle; transform: translateY(-0.12em);
-  margin-right: var(--cmp-badge-gap, var(--icon-gap, 8px));
+  margin-inline-end: var(--cmp-badge-gap, var(--icon-gap, 8px));
 }
 .dmd .badge > .dot {
   display: inline-block; width: 6px; height: 6px; border-radius: 50%;
@@ -1062,7 +1062,8 @@
 .dmd .btn.icon-only::before { content: "\200B"; }
 .dmd .btn.icon-only.btn-sm { width: var(--cmp-button-sm-height, 28px); }
 .dmd .btn.icon-only.btn-lg { width: var(--cmp-button-lg-height, 44px); }
-/* A button standing in for a select: value on the left, chevron on the right.
+/* A button standing in for a select: the value at the inline start, the
+   chevron at the inline end.
  *
  * The markup asked for that with `justify-content: space-between`, which did
  * nothing at all, because `.btn` is deliberately `inline-block` — it has to be,
@@ -1075,7 +1076,7 @@
  * first flex item is the text you want the row to line up on. */
 .dmd .select-trigger {
   display: flex; align-items: center; justify-content: space-between;
-  text-align: left; gap: var(--icon-gap, 8px);
+  text-align: start; gap: var(--icon-gap, 8px);
   /* ONE mechanism centres the label. `.btn` sets `line-height` to its own
      height, which is how an inline-block centres a word — and this class turns
      it into a flex box, which centres by `align-items`. Both at once put the
@@ -1115,7 +1116,7 @@
    measured 16 by 16 and rendered none of it. Found by a paint check, not by
    looking: at this contrast the difference is easy to read past. */
 .dmd .input-icon > .icon { z-index: 1; pointer-events: none; }
-.dmd .input-icon > svg { position: absolute; left: var(--space-sm, 12px); color: var(--c-text-subtle, #999); pointer-events: none; }.dmd .input-icon > .input { padding-left: calc(var(--space-sm, 12px) + var(--icon-md, 16px) + var(--icon-gap, 8px)); }
+.dmd .input-icon > svg { position: absolute; inset-inline-start: var(--space-sm, 12px); color: var(--c-text-subtle, #999); pointer-events: none; }.dmd .input-icon > .input { padding-inline-start: calc(var(--space-sm, 12px) + var(--icon-md, 16px) + var(--icon-gap, 8px)); }
 
 /* Text on a row shares one baseline, including a button label and the initials
    in an avatar — both of those donate a real baseline now. Things with no text
@@ -1762,7 +1763,7 @@
  * the subtraction it now is: the title's own right margin plus the row's gap.
  * At the tightest fit the auto margin is zero and the distance is exactly 24. */
 .dmd .page-head { column-gap: var(--space-xs, 8px); align-items: center; }
-.dmd .page-head > .page-title { margin-right: calc(var(--space-lg, 24px) - var(--space-xs, 8px)); }
+.dmd .page-head > .page-title { margin-inline-end: calc(var(--space-lg, 24px) - var(--space-xs, 8px)); }
 /* ── AND THE GROUP MUST NOT GROW, OR THE AUTO MARGIN HAS NOTHING TO TAKE ──
  *
  * `.action-pairs` sets `flex: 1 1 auto`, and the comment on that line explains
@@ -1779,7 +1780,7 @@
  * One class, two opposite requirements. Split them by context rather than by
  * adding a second class: three classes here, so the narrow block's
  * `flex: 1 0 100%` still wins, and `responsiveCss` renders after this file. */
-.dmd .page-head > .page-actions { margin-left: auto; flex: 0 1 auto; }
+.dmd .page-head > .page-actions { margin-inline-start: auto; flex: 0 1 auto; }
 
 /* Navigation is not body copy. An underline in running text means "this is a
    link"; a whole nav bar of underlines means nothing and reads as damage.
@@ -1914,7 +1915,7 @@
 
 .dmd .table { width: 100%; border-collapse: collapse; font-size: var(--font-body-sm-size, 14px); }
 .dmd .table th {
-  text-align: left; font-size: var(--font-caption-size, 12px);
+  text-align: start; font-size: var(--font-caption-size, 12px);
   text-transform: uppercase; letter-spacing: .06em;
   color: var(--c-text-muted, #666); font-weight: 500;
   /* Same gutter as the cell below it, or the heading sits on a different left
@@ -1965,12 +1966,12 @@
    which property secretly produced it. */
 .dmd .table-dense td, .dmd .table-dense th { padding-block: var(--space-2xs, 4px); }
 .dmd .table-roomy td, .dmd .table-roomy th { padding-block: var(--space-md, 16px); }
-.dmd .table-rows-zebra td:first-child { padding-left: var(--space-xs, 8px); }
-.dmd .table-rows-zebra td:last-child { padding-right: var(--space-xs, 8px); }
+.dmd .table-rows-zebra td:first-child { padding-inline-start: var(--space-xs, 8px); }
+.dmd .table-rows-zebra td:last-child { padding-inline-end: var(--space-xs, 8px); }
 .dmd .table-rows-none td { border-bottom: 0; }
 /* Tabular figures so digits sit in columns between rows, which is the whole
    reason to right-align a number in the first place. */
-.dmd .table .num-col { text-align: right; font-variant-numeric: tabular-nums; }
+.dmd .table .num-col { text-align: end; font-variant-numeric: tabular-nums; }
 
 /* ── Figures ──
  * An AMOUNT takes the mono face and a right edge: the edge lines up the
@@ -1991,7 +1992,7 @@
    set by the BLOCK a run of text sits in, never by the run. It looked correct
    only because the cell around it happened to carry `.num-col`, and it would
    have failed silently the first time somebody used it anywhere else. */
-.dmd .amount { display: block; font-family: var(--font-code-family, ui-monospace, monospace); font-variant-numeric: tabular-nums; text-align: right; }
+.dmd .amount { display: block; font-family: var(--font-code-family, ui-monospace, monospace); font-variant-numeric: tabular-nums; text-align: end; }
 
 /* ── A list you work in ──
  *
@@ -2158,7 +2159,7 @@
   background: transparent; color: var(--c-accent-fg);
   border-color: color-mix(in srgb, var(--c-accent-fg) 55%, transparent);
 }
-.dmd .batch-bar .batch-end { margin-left: auto; }
+.dmd .batch-bar .batch-end { margin-inline-start: auto; }
 /* The select-all is a control in a control row, so the row is one height.
  *
  * Its box had no target at all: 16×16 inside a bar whose other five children
@@ -2193,7 +2194,7 @@
    more" and a 16px box asks for less than the published minimum. */
 .dmd .table .sel-col {
   width: 1%; min-width: var(--target-min, 44px);
-  padding-right: var(--space-xs, 8px);
+  padding-inline-end: var(--space-xs, 8px);
   position: relative;
 }
 
@@ -2208,7 +2209,7 @@
  * browser grows it to the content and gives the remainder elsewhere. Naming
  * the column that SHOULD grow is the other half: without it the remainder is
  * still shared, just among fewer columns. */
-.dmd .table .act-col { width: 1%; padding-left: var(--space-xs, 8px); }
+.dmd .table .act-col { width: 1%; padding-inline-start: var(--space-xs, 8px); }
 
 /* NO `width: 100%` on a content column.
  *
@@ -3330,10 +3331,10 @@
    this grid exists for. */
 .dmd .plan-row { padding: 0; }
 .dmd .plan-row > * { padding: var(--space-sm, 12px) var(--space-md, 16px); }
-/* The label column reads from the left edge of the table, so it keeps no
+/* The label column reads from the table's own inline start, so it keeps no
    padding on that side. */
-.dmd .plan-row > *:first-child { padding-left: 0; }
-.dmd .plan-row > *:last-child { padding-right: 0; }
+.dmd .plan-row > *:first-child { padding-inline-start: 0; }
+.dmd .plan-row > *:last-child { padding-inline-end: 0; }
 /* The stacked form, hidden until the columns stop fitting. Only one of the two
    forms is ever in the tree's flow, so neither leaves an empty container
    holding a gap. */

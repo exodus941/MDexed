@@ -527,6 +527,75 @@ export const CHECKS = [
   },
 
   {
+    id: 'a-side-is-named-logically',
+    where: 'source',
+    line: 'Name a side logically, never physically. margin-inline-start, not margin-left; text-align: end, not right.',
+    /* ── THE RULE REACHED THE READER AND NOTHING MEASURED THEIR BUILD ──
+     *
+     * The suite already asserts that this document never names a physical
+     * side in its own prose. That is half the job. A reader who ignores it
+     * produced a build nothing had an opinion about.
+     *
+     * Measured in our own stylesheets, which the same rule governs: 35
+     * declarations, mostly margin-left and text-align.
+     *
+     * TWO SCOPE DECISIONS, both to stop the rule being wider than its
+     * problem. The INLINE axis only, because direction never flips the block
+     * axis. And a rule declaring a transform keeps its inset, because
+     * translateX has no logical form and converting the inset alone breaks
+     * the pair.
+     */
+    body: [
+      "/* The inline axis only. Direction flips inline and never in the block axis,",
+      "   so faulting margin-top would be a rule wider than its problem. */",
+      "const INLINE = {",
+      "  'margin-left': 'margin-inline-start', 'margin-right': 'margin-inline-end',",
+      "  'padding-left': 'padding-inline-start', 'padding-right': 'padding-inline-end',",
+      "  'border-left': 'border-inline-start', 'border-right': 'border-inline-end',",
+      "  'border-left-width': 'border-inline-start-width',",
+      "  'border-right-width': 'border-inline-end-width',",
+      "  'border-left-color': 'border-inline-start-color',",
+      "  'border-right-color': 'border-inline-end-color',",
+      "  'border-left-style': 'border-inline-start-style',",
+      "  'border-right-style': 'border-inline-end-style',",
+      "  left: 'inset-inline-start', right: 'inset-inline-end',",
+      "}",
+      "const KEYWORD = {",
+      "  'text-align': { left: 'start', right: 'end' },",
+      "  float: { left: 'inline-start', right: 'inline-end' },",
+      "  clear: { left: 'inline-start', right: 'inline-end' },",
+      "}",
+      "for (const f of files.filter(x => x.css)) {",
+      "  for (const block of f.bare.matchAll(/([^{}]+)\\{([^{}]*)\\}/g)) {",
+      "    const decls = block[2]",
+      "    /* ── A TRANSFORM HAS NO LOGICAL FORM, SO THE PAIR IS EXEMPT ──",
+      "       The centring idiom is inset 50% plus translate -50%, and translateX is",
+      "       physical: negative is leftward in every direction. Convert the inset",
+      "       alone and the box lands off screen in a right-to-left build. That",
+      "       trades one miss for a worse one, so such a rule keeps its inset. */",
+      "    const hasTransform = /(^|[\\s;])transform\\s*:/.test(decls)",
+      "    for (const d of decls.matchAll(/(^|[;\\s])([a-z-]+)\\s*:\\s*([^;]+)/g)) {",
+      "      const prop = d[2].trim()",
+      "      const value = d[3].trim()",
+      "      let to = null",
+      "      if (INLINE[prop]) {",
+      "        if (hasTransform && (prop === 'left' || prop === 'right')) continue",
+      "        to = INLINE[prop]",
+      "      } else if (KEYWORD[prop]) {",
+      "        const word = value.split(/\\s+/)[0]",
+      "        if (!KEYWORD[prop][word]) continue",
+      "        to = prop + ': ' + KEYWORD[prop][word]",
+      "      }",
+      "      if (!to) continue",
+      "      fail(f.path, lineOf(f, block.index),",
+      "        block[1].trim() + ' names a physical side: ' + prop + '. Write it as ' + to",
+      "        + '. A physical side reads correctly today and cannot flip later. The logical form resolves identically in a left-to-right build, so it costs this build nothing and buys the other one for free.')",
+      "    }",
+      "  }",
+      "}",
+    ],
+  },
+  {
     id: 'an-auto-margin-cannot-also-hold-a-minimum',
     where: 'source',
     line: 'One writer per margin. An auto margin pushes and a stated margin spaces; the same side cannot do both.',

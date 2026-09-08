@@ -138,7 +138,7 @@ const LEVEL_REFERENCE = 1.03
  * accent is free by design and half the wheel collides with danger on that
  * axis. Only a ROLE STEP separates them, which the generator does not write.
  * See [[the-generator-scored-the-wrong-artefact]]. */
-const ROLE_HUE_BAND = {
+export const ROLE_HUE_BAND = {
   success: [196, 222],
   warning: [62, 92],
   danger: [18, 40],
@@ -217,9 +217,9 @@ function maxChroma(l, h) {
  *
  * @returns {{ lo: number, hi: number }}
  */
-const STRONG_SHARE = 0.8
+export const STRONG_SHARE = 0.8
 
-function strongZone(h, floor = 0.28, ceiling = 0.92) {
+export function strongZone(h, floor = 0.28, ceiling = 0.92) {
   let peak = -1
   for (let l = floor; l <= ceiling + 1e-9; l += 0.02) peak = Math.max(peak, maxChroma(l, h))
   let a = null, b = null
