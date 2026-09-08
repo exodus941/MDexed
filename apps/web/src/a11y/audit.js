@@ -26,8 +26,8 @@
  * — a dense data tool for mouse users — is a legitimate design system. What
  * isn't legitimate is failing it without knowing.
  */
-import { parseColor, toOklchObj, toHex } from '../color/convert.js'
-import { wcag, apca, check } from '../color/contrast.js'
+import { parseColor, toOklchObj, toHex, hexFrom, withAlpha } from '../color/convert.js'
+import { wcag, apca, check, flatten } from '../color/contrast.js'
 import { TEXT_ROLES, SURFACE_ROLES } from '../state/schema.js'
 import { converter, filterDeficiencyDeuter, filterDeficiencyProt, differenceEuclidean } from 'culori'
 
@@ -1216,6 +1216,71 @@ const STACKED_PLANES = [
   ['surface', 'selected', 'a selected row on a card'],
 ]
 
+/* ── TEXT ON GLASS HAS NO FIXED CONTRAST, SO MEASURE THE WORST GROUND ──
+ *
+ * Every other pair here measures one colour against one ground. A glass
+ * surface has none: whatever the page paints behind it shows through, and a
+ * floating panel can end up over anything.
+ *
+ * So composite the fill over the WORST ground the system can put behind it
+ * and measure the text on that. Which ground is worst depends on the text:
+ * light text is worst over the lightest surface a page paints, and dark text
+ * over the darkest. Both are surface roles, so both are really reachable.
+ *
+ * A BLUR DOES NOT RESCUE A RATIO. It stops what shows through being READABLE,
+ * which is what keeps two texts from competing. It does nothing about the
+ * lightness of the ground, so a low ratio stays low however heavy the blur.
+ *
+ * Nothing to check when the treatment is off, which is the default.
+ */
+function glassContrast (state, derived, mode) {
+  const glass = state?.elevation?.glass
+  if (!glass?.on) return []
+  const R = derived.roles?.[mode] ?? {}
+  const role = glass.role ?? 'surface'
+  const solid = R[role]
+  if (!solid) return []
+  const alpha = glass.opacity ?? 0.72
+  /* The grounds a page can really put behind a floating panel. */
+  /* NAME the ground as well as its value: a finding that says "over
+     #313d49" tells a reader nothing about which surface to look at. */
+  const grounds = ['bg', 'bg-subtle', 'surface', 'surface-raised', 'surface-sunken']
+    .map(n => [n, R[n]]).filter(([, v]) => v)
+  if (!grounds.length) return []
+  const fill = hexFrom(withAlpha(parseColor(solid), alpha))
+  if (!fill) return []
+
+  const out = []
+  for (const textRole of TEXT_ROLES) {
+    const ink = R[textRole]
+    if (!ink) continue
+    /* THE WORST GROUND, not the nearest. Composite over each and keep the
+       lowest ratio, which is the one a reader can actually meet. */
+    let worst = null
+    for (const [name, g] of grounds) {
+      const over = flatten(fill, g)
+      const r = check(ink, over)
+      if (r.ratio == null) continue
+      if (!worst || r.ratio < worst.ratio) worst = { ratio: r.ratio, ground: name, hex: g, over }
+    }
+    if (!worst) continue
+    /* 4.5 is the body-text bar. A role that is exempt elsewhere in this file
+       is exempt here too, for the same reason. */
+    if (textRole === 'text-subtle') continue
+    if (worst.ratio >= 4.5) continue
+    out.push({
+      req: 'colour', id: `glass:${mode}:${textRole}`, level: worst.ratio < 3 ? FAIL : WARN,
+      criterion: '1.4.3 Contrast (minimum) (AA)',
+      tab: 'depth', entry: 'glass', mode,
+      title: `${textRole} on glass falls to ${worst.ratio.toFixed(2)}:1 over ${worst.ground} in ${mode}`,
+      detail: `Glass has no fixed ground: the fill is ${role} at ${Math.round(alpha * 100)}% and whatever the page paints behind it shows through. Composited over ${worst.ground} it becomes ${worst.over}, and ${textRole} reads ${worst.ratio.toFixed(2)}:1 on that. A blur stops what is behind being READABLE and does nothing about its lightness, so this ratio holds however heavy the blur.`,
+      fix: `Raise the glass opacity until the worst ground stops mattering, or restrict the treatment to a surface the page never floats over a light ${mode === 'light' ? 'ground' : 'panel'}. 4.5:1 is the body bar and 3:1 the large-text one.`,
+      measured: `${worst.ratio.toFixed(2)}:1 on ${worst.over}, which is the fill over ${worst.ground} (${worst.hex})`,
+    })
+  }
+  return out
+}
+
 function planeCollision (derived, mode) {
   const R = derived.roles?.[mode] ?? {}
   const out = []
@@ -1399,6 +1464,7 @@ export function audit(state, derived) {
       ...hairlineChecks(derived, mode),
       ...meaningCollision(derived, mode),
       ...planeCollision(derived, mode),
+      ...glassContrast(state, derived, mode),
       ...rowPlaneOrder(derived, mode),
       ...fillSitsOnItsGround(derived, mode),
       ...paletteStructure(derived, mode),

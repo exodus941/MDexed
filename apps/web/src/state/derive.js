@@ -4,7 +4,7 @@
 import { buildRamps, resolveRef, RAMP_STEPS, DARK_FLOOR } from '../color/ramp.js'
 import { gradientCss } from '../color/modes.js'
 import { buildDataviz } from '../color/dataviz.js'
-import { parseColor, toRgb255 } from '../color/convert.js'
+import { parseColor, toRgb255, withAlpha, hexFrom } from '../color/convert.js'
 import { buildTypeScale } from '../type/scale.js'
 import { stackFor } from '../type/fonts.js'
 import { expandComponents } from './components.js'
@@ -451,6 +451,29 @@ export function buildCssVars(d, mode = 'light', { darkAliases = false } = {}) {
   if (d.elevationCfg?.scrim) {
     vars['--scrim-opacity'] = String(d.elevationCfg.scrim.opacity ?? 0.55)
     vars['--scrim-blend'] = d.elevationCfg.blendMode ?? 'normal'
+    /* ── THE BLUR EXISTED IN STATE AND REACHED NO TOKEN ──
+       The panel applied it inline in its own preview, so it looked wired.
+       An exported build got a scrim with no blur whatever the setting
+       said. A published setting that reaches nothing is decoration. */
+    vars['--scrim-blur'] = (d.elevationCfg.scrim.blur ?? 0) + 'px'
+  }
+  /* ── GLASS PUBLISHES ITS THREE PARTS AND ITS FALLBACK ──
+     The fill is the role at the stated opacity. The FALLBACK is the same
+     role at full opacity, because a build with no backdrop-filter paints
+     the raw translucent fill and everything behind reads through it.
+     Nothing is published when the treatment is off: a token for a look a
+     system has not asked for is a look a builder will use. */
+  const glass = d.elevationCfg?.glass
+  if (glass?.on) {
+    const role = glass.role ?? 'surface'
+    const solid = d.roles?.[mode]?.[role]
+    if (solid) {
+      /* withAlpha takes a PARSED colour, so a hex string spread through it
+         becomes a character map and serialises to null. Parse, then write. */
+      vars['--glass-fill'] = hexFrom(withAlpha(parseColor(solid), glass.opacity ?? 0.72))
+      vars['--glass-fallback'] = solid
+      vars['--glass-blur'] = (glass.blur ?? 12) + 'px'
+    }
   }
 
   if (d.components?.length) {

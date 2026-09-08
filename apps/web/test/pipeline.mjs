@@ -4468,6 +4468,116 @@ line('\n- depth intensity -')
   }
 }
 
+/* ── GLASS, AND THE BLUR THAT REACHED NO TOKEN ──
+ *
+ * `scrim.blur` sat in state, 0 to 24px, and the Depth panel applied it inline
+ * in its own preview. So it looked wired while an exported build got a scrim
+ * with no blur whatever the setting said. Same class as the 86 published
+ * tokens no stylesheet reads, in the state layer instead of the CSS.
+ */
+{
+  line('\n- glass publishes three parts, a fallback, and its own contrast floor -')
+  const { audit } = await import('../src/a11y/audit.js')
+  const fs = await import('node:fs')
+
+  const withGlass = (o) => {
+    const st = createInitialState()
+    st.elevation.glass = { on: true, role: 'surface', opacity: 0.72, blur: 12, ...(o || {}) }
+    return st
+  }
+
+  /* ── OFF BY DEFAULT, AND OFF MEANS NO TOKEN ──
+     A token for a look a system has not asked for is a look a builder uses. */
+  {
+    const st = createInitialState()
+    assert(st.elevation.glass?.on === false, 'glass is off by default')
+    const css = payloadTextFiles(st, derive(st))['tokens.css']
+    const found = (css.match(/--glass-[a-z-]+:/g) || [])
+    assert(found.length === 0, `and publishes no glass token while it is off (${found.length})`)
+  }
+
+  /* ── THE BLUR THAT EXISTED AND REACHED NOTHING ── */
+  {
+    const st = createInitialState()
+    st.elevation.scrim.blur = 8
+    const css = payloadTextFiles(st, derive(st))['tokens.css']
+    const m = /--scrim-blur:\s*([^;]+);/.exec(css)
+    assert(m && m[1].trim() === '8px', `the scrim blur reaches a token (${m ? m[1].trim() : 'ABSENT'})`)
+  }
+
+  /* ── THREE PARTS AND A FALLBACK ──
+     The fill is the role at the stated opacity. The FALLBACK is the same role
+     at FULL opacity, because a build with no backdrop-filter paints the raw
+     translucent fill and everything behind reads straight through. */
+  {
+    const st = withGlass()
+    const css = payloadTextFiles(st, derive(st))['tokens.css']
+    const get = (n, from = css) => { const m = new RegExp(n + ':\\s*([^;]+);').exec(from); return m ? m[1].trim() : null }
+    assert(get('--glass-fill') === '#e6ecf1b8',
+      `the fill is the surface at 72% (${get('--glass-fill')})`)
+    assert(get('--glass-fallback') === '#e6ecf1',
+      `the fallback is the same role at full opacity (${get('--glass-fallback')})`)
+    assert(get('--glass-blur') === '12px', `the blur is published (${get('--glass-blur')})`)
+    const dark = css.slice(css.indexOf('data-theme="dark"'))
+    assert(get('--glass-fill', dark) === '#1e2934b8',
+      `and the dark mode carries its own fill (${get('--glass-fill', dark)})`)
+  }
+
+  /* ── THE OPAQUE DECLARATION COMES FIRST ──
+     A browser that understands neither the property nor the query still has to
+     paint a surface a person can read, so the fallback is the BASE rule and
+     the translucent fill sits inside the @supports. */
+  {
+    const cssSrc = fs.readFileSync(new URL('../src/preview/preview.css', import.meta.url), 'utf8')
+    const base = cssSrc.indexOf('.dmd .glass {')
+    const supports = cssSrc.indexOf('@supports (backdrop-filter')
+    assert(base > 0 && supports > base,
+      `the opaque fallback is declared before the @supports block (${base}, ${supports})`)
+    const block = cssSrc.slice(base, supports)
+    assert(/--glass-fallback/.test(block) && !/--glass-fill/.test(block),
+      'the base rule paints the fallback and never the translucent fill')
+    assert(/-webkit-backdrop-filter/.test(cssSrc),
+      'and the prefixed property ships beside the standard one')
+    assert(/\.dmd \.scrim \{[^}]*backdrop-filter/.test(cssSrc.replace(/\r?\n/g, ' ')),
+      'the scrim consumes its blur token')
+  }
+
+  /* ── TEXT ON GLASS HAS NO FIXED GROUND, SO THE AUDIT MEASURES THE WORST ──
+     Measured at four opacities: 0.9 gives nothing, 0.72 gives one finding at
+     4.45:1, 0.5 gives two, and 0.25 gives two with the worst at 3.90:1. */
+  {
+    const clean = createInitialState()
+    assert(audit(clean, derive(clean)).filter(f => /^glass:/.test(f.id)).length === 0,
+      'no glass finding while the treatment is off')
+    const rows = []
+    for (const opacity of [0.9, 0.72, 0.5, 0.25]) {
+      const st = withGlass({ opacity })
+      const g = audit(st, derive(st)).filter(f => /^glass:/.test(f.id))
+      rows.push({ opacity, n: g.length, worst: g.length ? g[0].measured : null })
+    }
+    assert(rows[0].n === 0, `at 90% opacity the ground stops mattering (${rows[0].n} findings)`)
+    assert(rows[3].n > 0, `at 25% it does not (${rows[3].n} findings: ${rows[3].worst})`)
+    /* MONOTONIC: a thinner fill can only make the worst ground worse. A count
+       that fell as the fill thinned would mean the measurement was backwards. */
+    const worstOf = o => {
+      const st = withGlass({ opacity: o })
+      const g = audit(st, derive(st)).filter(f => /^glass:/.test(f.id))
+      return g.length ? Math.min(...g.map(f => parseFloat(f.measured))) : 99
+    }
+    const a = worstOf(0.72), b = worstOf(0.5), c = worstOf(0.25)
+    assert(a > b && b > c,
+      `a thinner fill only makes the worst ground worse (${a} then ${b} then ${c})`)
+    /* AND A BLUR DOES NOT RESCUE A RATIO. It stops what is behind being
+       READABLE and does nothing about its lightness. */
+    const heavy = withGlass({ opacity: 0.25, blur: 40 })
+    const light = withGlass({ opacity: 0.25, blur: 0 })
+    const hn = audit(heavy, derive(heavy)).filter(f => /^glass:/.test(f.id)).length
+    const ln = audit(light, derive(light)).filter(f => /^glass:/.test(f.id)).length
+    assert(hn === ln && hn > 0,
+      `a 40px blur clears nothing a 0px blur does not (${hn} against ${ln})`)
+  }
+}
+
 /* A hue to a hex at a fixed lightness and chroma, so the sweep above varies
    one thing. Written here rather than imported: the generator's own helpers
    apply its rules, and this has to hand it a raw seed. */

@@ -881,6 +881,43 @@
 .dmd .alert-warning { background-color: var(--cmp-alert-warning-background-color, var(--c-warning-subtle, #f7efe0)); color: var(--cmp-alert-warning-text-color, var(--c-warning, #c08a2e)); border-color: var(--cmp-alert-warning-border-color, currentColor); }
 .dmd .alert-danger  { background-color: var(--cmp-alert-danger-background-color, var(--c-danger-subtle, #f7e8e7));   color: var(--cmp-alert-danger-text-color, var(--c-danger, #c2453c));   border-color: var(--cmp-alert-danger-border-color, currentColor); }
 
+/* ── GLASS ──
+ *
+ * A translucent fill on its own is not glass. Three parts:
+ *
+ *   the FILL      a surface role below full opacity
+ *   the BLUR      what makes whatever shows through unreadable
+ *   the FALLBACK  the same role at full opacity
+ *
+ * THE BLUR IS THE POINT. Without it the text behind competes with the text
+ * in front, and a reader has two things to read in one place.
+ *
+ * AND THE FALLBACK IS NOT OPTIONAL. `backdrop-filter` is unsupported in
+ * enough places that a build without it paints the raw translucent fill, so
+ * everything behind reads straight through. So the OPAQUE colour is the base
+ * declaration and the translucent one is inside the @supports.
+ *
+ * Written that way round on purpose: a browser that understands neither the
+ * property nor the query still gets a surface a person can read.
+ */
+.dmd .glass {
+  background-color: var(--glass-fallback, var(--c-surface, #fff));
+}
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+  .dmd .glass {
+    background-color: var(--glass-fill, var(--c-surface, #fff));
+    -webkit-backdrop-filter: blur(var(--glass-blur, 12px));
+    backdrop-filter: blur(var(--glass-blur, 12px));
+  }
+}
+
+/* The scrim carries its own blur, which reached no token until now. The
+   panel applied it inline in its own preview, so it looked wired while an
+   exported build got a scrim with no blur at all. */
+.dmd .scrim {
+  -webkit-backdrop-filter: blur(var(--scrim-blur, 0px));
+  backdrop-filter: blur(var(--scrim-blur, 0px));
+}
 /* ── Structure ── */
 /* Icon + label pairings, wherever they appear. One gap token governs them all.
  *

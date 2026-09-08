@@ -434,6 +434,39 @@ export function DepthPanel() {
           </div>
         </div>
 
+        {/* ── GLASS ──
+            A translucent fill on its own is not glass. The BLUR is what makes
+            whatever shows through unreadable, so the text in front has no
+            competition. Off by default: it is a look, and a system that has
+            not asked for it should publish no token for it.
+
+            The audit measures text on it against the WORST ground the page
+            can put behind it, because glass has no fixed ground. */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr 1fr 1fr', gap: 12, marginBottom: 12, alignItems: 'end' }}>
+          <div>
+            <label>Glass</label>
+            <div style={{ display: 'flex', alignItems: 'center', height: 32 }}>
+              <input type="checkbox" checked={!!state.elevation.glass?.on}
+                onChange={e => setElev('glass', { ...(state.elevation.glass ?? {}), on: e.target.checked })} />
+            </div>
+          </div>
+          <NumField label="Glass opacity" value={state.elevation.glass?.opacity ?? 0.72} min={0} max={1} step={0.02}
+            disabled={!state.elevation.glass?.on}
+            onChange={v => setElev('glass', { ...(state.elevation.glass ?? {}), opacity: v })} />
+          <NumField label="Glass blur" value={state.elevation.glass?.blur ?? 12} min={0} max={40} suffix="px"
+            disabled={!state.elevation.glass?.on}
+            onChange={v => setElev('glass', { ...(state.elevation.glass ?? {}), blur: v })} />
+          <div>
+            <label>Glass surface</label>
+            <select value={state.elevation.glass?.role ?? 'surface'}
+              disabled={!state.elevation.glass?.on}
+              onChange={e => setElev('glass', { ...(state.elevation.glass ?? {}), role: e.target.value })}>
+              {['bg', 'bg-subtle', 'surface', 'surface-raised', 'surface-sunken'].map(r => (
+                <option key={r} value={r}>{r}</option>
+              ))}
+            </select>
+          </div>
+        </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 12 }}>
           <NumField label="Scrim opacity" value={state.elevation.scrim?.opacity ?? 0.55} min={0} max={1} step={0.05}
             onChange={v => setElev('scrim', { ...state.elevation.scrim, opacity: v })} />

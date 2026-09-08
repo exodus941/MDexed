@@ -183,7 +183,10 @@ export default function Dialog({ onInspect, layout, casing }) {
           ))}
         </div>
 
-        <div style={{
+        {/* The class carries the BLUR, which reached no token until now and
+            so reached no element either. The inline values stay: they were
+            already right and they are what the Depth panel drives. */}
+        <div className="scrim" style={{
           position: 'absolute', inset: 0,
           background: 'var(--c-neutral-950, #111)',
           opacity: 'var(--scrim-opacity, .55)',

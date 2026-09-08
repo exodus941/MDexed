@@ -843,6 +843,21 @@ export const createInitialState = () => ({
        cannot — CSS has no border-blend-mode — so there is no control for it. */
     fillBlend: 'normal',
     scrim: { color: 'neutral.950', opacity: 0.55, blur: 0 },
+    /* ── GLASS IS A TREATMENT FOR A SURFACE, NOT A COLOUR ──
+
+       Three values, because a translucent fill on its own is not glass.
+       The FILL is a surface role at less than full opacity. The BLUR is
+       what makes what shows through unreadable, which is the whole point:
+       without it the text behind competes with the text in front.
+
+       AND THE FALLBACK IS NOT OPTIONAL. `backdrop-filter` is unsupported
+       in enough places that a build without it paints the raw translucent
+       fill, so whatever sits behind reads straight through. The fallback
+       is the same role at full opacity.
+
+       Off by default. It is a look, and a system that has not asked for
+       it should not publish a token for it. */
+    glass: { on: false, role: 'surface', opacity: 0.72, blur: 12 },
   },
 
   motion: {
