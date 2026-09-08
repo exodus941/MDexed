@@ -38,6 +38,16 @@ if ! node tools/primitives-guard.mjs; then
   exit 1
 fi
 
+# ── 1d. A drifted var() fallback. Blocking. ──
+# A fallback is what PAINTS when the token is missing, so one that differs
+# from the shipped value states a second design nobody chose. Measured before
+# this guard: 19 of them, including --radius-lg at 16px where the token ships
+# 8, which is a second corner radius living in the same file as the first.
+if ! node apps/web/tools/fallback-drift-guard.mjs; then
+  echo
+  echo "pre-commit: fallback guard failed. Commit refused."
+  exit 1
+fi
 # ── 2. The build number. Not blocking. ──
 # Advanced once per batch of commits, so it counts deploys rather than commits:
 # it bumps only when there is nothing unpushed, which means the first commit

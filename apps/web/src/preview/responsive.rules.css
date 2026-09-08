@@ -26,7 +26,7 @@
   }
   .dmd .with-aside > .aside-rail {
     position: absolute; z-index: var(--z-dropdown);
-    top: calc(var(--font-h2-size, 40px) * var(--font-h2-leading, 1.3));
+    top: calc(var(--font-h2-size, 40px) * var(--font-h2-leading, 1.33));
     inset-inline-end: 0; width: min(17rem, 82%);
   }
   /* A floating panel is a surface of its own, on the system's own overlay
@@ -225,7 +225,7 @@
      so they are no longer siblings and `~` cannot reach across. Every surface
      holds exactly one of each, which is what makes this safe. */
   .dmd:has(.nav-collapse:not([open])) .nav-fold { grid-template-rows: 0fr; }
-  .dmd .nav-fold { transition: grid-template-rows var(--duration-normal, 200ms) var(--ease-standard, ease); }
+  .dmd .nav-fold { transition: grid-template-rows var(--duration-normal, 250ms) var(--ease-standard, ease); }
   .dmd .nav-burger { display: flex; }
   .dmd .nav-summary { cursor: pointer; }
 
@@ -590,7 +590,7 @@
      read 6.08px out at a width where the button is 44 tall. */
   .dmd .page-head > .page-actions,
   .dmd .page-head > .nav-collapse {
-    margin-top: calc((var(--font-h2-size, 40px) * var(--font-h2-leading, 1.2)
+    margin-top: calc((var(--font-h2-size, 40px) * var(--font-h2-leading, 1.33)
                       - var(--cmp-button-lg-height, 44px)) / 2);
   }
   /* How an action row breaks when it stops fitting.

@@ -9,6 +9,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "node test/pipeline.mjs",
+    "check:fallbacks": "node tools/fallback-drift-guard.mjs",
     "bump": "node scripts/bump-build.mjs"
   },
   "dependencies": {
