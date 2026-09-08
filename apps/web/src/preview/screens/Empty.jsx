@@ -48,9 +48,17 @@ function State({ ins, txt, L, mark, tone, title, body, primary, secondary, prima
       <span className="empty-mark" style={{ color: `var(--c-${tone})` }} {...ins('avatar')}>
         <Ico d={mark} size="lg" />
       </span>
+      {/* THE TITLE AND ITS MESSAGE ARE ONE CHILD, NOT TWO.
+          Left as two children of the `stack-sm` they took the stack's 12px
+          row-gap AND the byline default's 4px margin, and a gap and a margin
+          add: measured 16px on all three states. Wrapped, the pair owns its own
+          4px and the stack's 12px separates it from the mark above and the
+          actions below. One writer each, and the ratio the system asks for. */}
       <div className="stack-sm" style={{ alignItems: 'center', maxWidth: '38ch' }}>
-        <strong className="t-h5" {...txt('h5')}>{L(title)}</strong>
-        <p className="muted small" {...txt('body-sm', 'text-muted')}>{body}</p>
+        <div>
+          <strong className="t-h5" {...txt('h5')}>{L(title)}</strong>
+          <p className="muted small" {...txt('body-sm', 'text-muted')}>{body}</p>
+        </div>
       </div>
       {/* The way out. One primary, and a secondary only where there genuinely
           is a second thing to do — an empty state with two equal buttons asks

@@ -148,13 +148,18 @@ export default function Record({ onInspect, tabStyle, casing }) {
        * consult. Same collapse, different meaning, its own class. */}
       <div className="with-context" style={{ '--context': '200px' }}>
         <div className="stack">
+          {/* THE TITLE AND ITS NOTE ARE ONE CHILD. Two children of the
+              `stack-sm` took its 12px row-gap AND the byline default's 4px
+              margin, and the two add: measured 16px. One writer each now. */}
           <div className="card stack-sm" {...ins('card')}>
-            <strong className="t-h6" {...txt('h6')}>{L('Reconciliation notes')}</strong>
-            <p className="muted small" {...txt('body-sm', 'text-muted')}>
-              Three invoices from October remain unmatched against the bank feed. Two are
-              duplicates raised during the migration and can be voided. The third needs a
-              credit note before the quarter closes.
-            </p>
+            <div>
+              <strong className="t-h6" {...txt('h6')}>{L('Reconciliation notes')}</strong>
+              <p className="muted small" {...txt('body-sm', 'text-muted')}>
+                Three invoices from October remain unmatched against the bank feed. Two are
+                duplicates raised during the migration and can be voided. The third needs a
+                credit note before the quarter closes.
+              </p>
+            </div>
           </div>
 
           {/* A short list of events, each a row with a mark, a line and a time.

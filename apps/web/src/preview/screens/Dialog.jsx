@@ -170,8 +170,13 @@ export default function Dialog({ onInspect, layout, casing }) {
           before that it clipped. A floor sized to the dialog removes both. */}
       <div style={{ position: 'relative', minHeight: '20rem', borderRadius: 'var(--radius-lg, 16px)', overflow: 'hidden', border: '1px solid var(--c-border-subtle, #eee)' }}>
         <div style={{ padding: 'var(--space-lg, 24px)' }} className="stack-sm">
-          <h3 className="t-h4" {...txt("h4")}>Invoices</h3>
-          <p className="muted small" {...txt("body-sm", "text-muted")}>Page content sitting behind the dialog.</p>
+          {/* THE TITLE AND ITS BYLINE ARE ONE CHILD. Two children of the
+              `stack-sm` took its 12px row-gap AND the byline default's 4px
+              margin, and the two add: measured 16px. One writer each now. */}
+          <div>
+            <h3 className="t-h4" {...txt("h4")}>Invoices</h3>
+            <p className="muted small" {...txt("body-sm", "text-muted")}>Page content sitting behind the dialog.</p>
+          </div>
           {/* `card-actions`, so the toolbar stands 16px clear of the line
               that describes it. The stack publishes 12; the class adds 4. */}
           <div className="row card-actions">

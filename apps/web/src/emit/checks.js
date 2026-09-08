@@ -3552,6 +3552,12 @@ export const CHECKS = [
       "    const m = parseFloat(getComputedStyle(kid).marginBlockStart) || 0",
       "    if (m < smallestStep) continue   /* a correction, not a distance */",
       "    if (declaredAuto(kid)) continue",
+      "    /* A SPECIMEN SHEET IS EXEMPT. Two unrelated samples in a row are not",
+      "       a group, so a shape rule that spaces a pair reaches them and the",
+      "       container gap is added to it. Measured on one: a heading specimen",
+      "       above a caption specimen at 12 + 4. The marker is the one the sheet",
+      "       already carries, and three other checks read the same list. */",
+      "    if (kid.closest('[data-specimen], .specimen, .sizes')) continue",
       "    fail(name(kid), 'sits ' + round(gap + m) + 'px below its previous sibling, because its container publishes a ' + round(gap) + 'px row-gap AND it states a ' + round(m) + 'px margin. A gap and a margin add, so this distance is the sum of two writers rather than a value anybody chose. One of them owns it.')",
       "  }",
       "}",
@@ -4622,8 +4628,66 @@ export const CHECKS = [
 
   {
     id: 'a-byline-belongs-to-its-heading',
-    where: 'manual',
-    line: 'A byline belongs to its heading, not under it. Two sources fed one gap — a row gap of 8 plus a margin of 4 — and 12px made the line read as a floating paragraph. Zero the row gap and let each wrapping child state its own distance.',
+    where: 'render',
+    line: 'A byline belongs to its heading, not under it. The distance is one small step and it has ONE writer: either the container publishes it or the byline states its own margin, never both.',
+    /* ── IT WAS A CHECKLIST LINE AND THE MECHANISM WAS ALREADY CHECKED ──
+     *
+     * `one-writer-for-one-gap` asks the half about two writers, and it was
+     * reporting SIX live faults on this app when I came to write this: a
+     * `stack-sm` publishing a 12px row-gap under a byline default that adds
+     * 4, measured 16 in five title groups and one specimen sheet.
+     *
+     * THE FIVE WERE REAL AND THE FIX IS STRUCTURAL. A gap belongs to the
+     * container and a margin to the child, and a child cannot ask what its
+     * parent declared. So the pair becomes ONE child of the stack: it then
+     * owns its 4px and the stack still separates it from what follows.
+     * Measured after: 44 pairs, every container gap 0, every margin 2 or 4.
+     *
+     * THE SIXTH WAS A SPECIMEN SHEET, which is correct code. A heading
+     * specimen above a caption specimen is two samples, not a pair, so the
+     * shape rule reached them and the container gap was added to it.
+     *
+     * THIS CHECK ASKS THE OTHER HALF: the STEP. The distance has to be
+     * findable and small. At 0 the byline reads as a second line of the
+     * heading, and at 12 it reads as a floating paragraph. Both were shipped
+     * faults here.
+     *
+     * READ THE DECLARATION, NEVER THE GEOMETRY. An inline heading reports
+     * its INK box, so a `strong` above a byline measures 6.19px box to box
+     * where the declared distance is 4. Half the line leading sits in
+     * between and no repair can remove it.
+     *
+     * A SECONDARY TYPE CLASS IS THE SUBJECT, never a bare paragraph. Body
+     * copy under a heading is a different distance, and a run over nine
+     * surfaces with `p` in the list returned 46 pairs of which 12 were card
+     * flow rather than bylines. */
+    body: [
+      "const STEP = px(tokenValue(\"--space-2xs\")) || 4",
+      "const HEAD = \"h1, h2, h3, h4, h5, h6, .t-h1, .t-h2, .t-h3, .t-h4, .t-h5, .t-h6\"",
+      "const BY = \".caption, .small, .muted, .subtle, .t-caption\"",
+      "let seen = 0",
+      "for (const h of all(HEAD)) {",
+      "  const by = h.nextElementSibling",
+      "  if (!by || !visible(by) || !by.matches(BY)) continue",
+      "  /* A SPECIMEN SHEET IS EXEMPT. Two samples in a run are not a pair. */",
+      "  if (by.closest(\"[data-specimen], .specimen, .sizes\")) continue",
+      "  seen++",
+      "  const ps = getComputedStyle(h.parentElement)",
+      "  const gap = ps.rowGap === \"normal\" ? 0 : parseFloat(ps.rowGap) || 0",
+      "  const m = parseFloat(getComputedStyle(by).marginBlockStart) || 0",
+      "  const d = gap + m",
+      "  if (d > STEP + 0.5) {",
+      "    fail(name(by), \"sits \" + round(d) + \"px under its heading, and the byline step is \" + STEP",
+      "      + \"px. At that distance the line reads as a paragraph of its own rather than as part of the title. The pair is one group, so give it one small step.\" + (gap > 0 && m > 0",
+      "      ? \" Here a \" + round(gap) + \"px container gap and a \" + round(m) + \"px margin add: wrap the pair so it is ONE child of that container.\"",
+      "      : \"\"))",
+      "  } else if (d < 0.5) {",
+      "    fail(name(by), \"touches its heading. At zero it reads as a second line of the title rather than as a byline. One small step, which is \" + STEP + \"px here.\")",
+      "  }",
+      "}",
+      "if (!seen) note(\"no heading-and-byline pair on this page, so this rule is UNMEASURED here. The subject is a secondary type class directly after a heading.\")",
+      "else note(seen + \" heading-and-byline pair(s), against a \" + STEP + \"px step.\")",
+    ],
   },
 
   {

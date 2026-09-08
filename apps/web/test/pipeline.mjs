@@ -5722,5 +5722,80 @@ function hueHex(h) {
   }
 }
 
+/* ── A BYLINE BELONGS TO ITS HEADING ──
+ *
+ * The other checklist line I had left as manual, and the mechanism half was
+ * already checked. `one-writer-for-one-gap` was reporting SIX live faults when
+ * I came to write this: a `stack-sm` publishing a 12px row-gap under the byline
+ * default's 4px margin, measured 16px.
+ *
+ * FIVE WERE REAL, and the fix is structural. A gap belongs to the container and
+ * a margin to the child, and a child cannot ask what its parent declared, so
+ * neither one can subtract the other. The pair becomes ONE child of the stack:
+ * it owns its 4px and the stack still separates it from what follows. Three
+ * empty states, a record card and a dialog page head. Measured after: 44 pairs,
+ * every container gap 0, every margin 2 or 4.
+ *
+ * THE SIXTH WAS A SPECIMEN SHEET, which is correct code. A heading specimen
+ * above a caption specimen is two samples, not a pair. That check now skips on
+ * the marker three others already read, and it still fires on an injected 20px
+ * doubled gap outside a sheet.
+ *
+ * THE STEP IS THE OTHER HALF, and this check asks it. At 0 the byline reads as
+ * a second line of the heading and at 12 as a floating paragraph. Both were
+ * shipped faults here. Proven both ways from the source: a 12px margin fires,
+ * a 0px margin fires, and nine surfaces are silent.
+ */
+{
+  line('\n- a byline belongs to its heading -')
+  const { CHECKS: CHB } = await import('../src/emit/checks.js')
+  const cb = CHB.find(x => x.id === 'a-byline-belongs-to-its-heading')
+  assert(!!cb && cb.where === 'render', `the check ships and runs in a browser (${cb?.where})`)
+  const tb = (cb?.body || []).join('\n')
+  assert(/tokenValue\("--space-2xs"\)/.test(tb),
+    'it reads the step off the token rather than stating 4px')
+  assert(/\.caption, \.small, \.muted, \.subtle/.test(tb),
+    'the subject is a secondary type class, so body copy under a heading is not a byline')
+  assert(!/, p"|"p,/.test(tb),
+    'and a bare paragraph is out: with p in the list, 12 of 46 pairs were card flow')
+  assert(/data-specimen/.test(tb),
+    'a specimen sheet is exempt, because two samples in a run are not a pair')
+  assert(/ps\.rowGap/.test(tb) && /marginBlockStart/.test(tb),
+    'it reads the DECLARED distance, because an inline heading reports its ink box')
+  assert(/d < 0\.5/.test(tb),
+    'and it fires at zero too, where the byline reads as a second line of the title')
+  assert(/UNMEASURED/.test(tb), 'a page with no such pair says so')
+
+  /* AND THE ONE-WRITER CHECK KEEPS THE SPECIMEN GUARD, or the sixth finding
+     comes back on correct code. */
+  const ow = CHB.find(x => x.id === 'one-writer-for-one-gap')
+  assert(/data-specimen/.test((ow?.body || []).join('\n')),
+    'one-writer-for-one-gap skips a specimen sheet, which was its only false positive')
+
+  /* THE FIVE STRUCTURAL REPAIRS, so none can drift back. Each pair is ONE
+     child of the stack that publishes the gap. */
+  {
+    const files = {
+      'screens/Empty.jsx': 'strong className="t-h5"',
+      'screens/Record.jsx': "strong className=\"t-h6\" {...txt('h6')}>{L('Reconciliation notes')}",
+      'screens/Dialog.jsx': 'h3 className="t-h4"',
+    }
+    for (const [rel, needle] of Object.entries(files)) {
+      const src = fs.readFileSync(new URL('../src/preview/' + rel, import.meta.url), 'utf8')
+      const at = src.indexOf(needle)
+      assert(at > 0, `${rel} still holds the pair`)
+      /* THE TAG THAT OPENS THE PAIR IS A BARE DIV, never the gapped stack.
+         Blank the JSX comments first: each repair carries a note that names
+         `stack-sm`, and a raw scan finds its own explanation. */
+      const before = src.slice(0, at - 1)
+        .replace(/\{\/\*[\s\S]*?\*\/\}/g, m => m.replace(/[^\n]/g, ' '))
+      const tags = before.match(/<[a-zA-Z][^>]*>/g) || []
+      const last = tags[tags.length - 1] || ''
+      assert(last.trim() === '<div>',
+        `${rel} opens the pair with a bare div (${last.trim().slice(0, 40)}), so the stack gap cannot add to the byline margin`)
+    }
+  }
+}
+
 line(`\n${failures === 0 ? 'ALL PASS' : `${failures} FAILURE(S)`}\n`)
 process.exit(failures ? 1 : 0)
