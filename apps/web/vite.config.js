@@ -257,8 +257,9 @@ export default defineConfig(({ command }) => ({
        1135 at 1130.07, with twelve new checks: the row planes, the chart
        furniture, and the spacing batch. Then to 1145 at 1140.00, with three
        more: a logical side, one mark size per control, and an underline that
-       is not a border. */
-    chunkSizeWarningLimit: 1145,
+       is not a border. Then to 1155 at 1149.23, with alpha: compositing in the
+       contrast layer, the opacity field, and the glass treatment. */
+    chunkSizeWarningLimit: 1155,
   },
 
   server: {
