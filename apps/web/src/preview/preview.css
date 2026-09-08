@@ -927,6 +927,166 @@
   -webkit-backdrop-filter: blur(var(--scrim-blur, 0px));
   backdrop-filter: blur(var(--scrim-blur, 0px));
 }
+/* ── EVERY COMPONENT READS ITS OWN TYPE ──
+ *
+ * The emitter expands a `typography` reference into four tokens per
+ * component: family, size, weight and tracking. The payload teaches all of
+ * them to a building agent, and 38 reached no rule here, so the sample could
+ * not demonstrate a setting the document tells a reader to use.
+ *
+ * THE FALLBACK IS `inherit`, which is what these components do today. One
+ * that inherits the document type keeps inheriting it, and a build stating
+ * its own gets its own. So nothing moves by default.
+ *
+ * NO GAP ON A BUTTON. It spaces its mark with `margin-inline-end`, which
+ * already reads `--cmp-button-gap`. A `gap` here would give one distance two
+ * writers and put the mark 16px from its label. Measured on the first
+ * attempt: 80 elements went from no gap to 8px on top of the margin.
+ */
+.dmd .alert {
+  font-family: var(--cmp-alert-font-family, inherit);
+  font-weight: var(--cmp-alert-font-weight, inherit);
+  letter-spacing: var(--cmp-alert-tracking, inherit);
+  gap: var(--cmp-alert-gap, var(--icon-gap, 8px));
+}
+.dmd .alert > .icon, .dmd .alert > svg {
+  width: var(--cmp-alert-icon-size, var(--icon-md, 16px));
+  height: var(--cmp-alert-icon-size, var(--icon-md, 16px));
+}
+.dmd .avatar {
+  font-family: var(--cmp-avatar-font-family, inherit);
+  font-weight: var(--cmp-avatar-font-weight, inherit);
+  letter-spacing: var(--cmp-avatar-tracking, inherit);
+}
+.dmd .badge {
+  font-family: var(--cmp-badge-font-family, inherit);
+  font-weight: var(--cmp-badge-font-weight, inherit);
+  letter-spacing: var(--cmp-badge-tracking, inherit);
+}
+.dmd .btn-sm {
+  font-family: var(--cmp-button-sm-font-family, inherit);
+  font-weight: var(--cmp-button-sm-font-weight, inherit);
+  letter-spacing: var(--cmp-button-sm-tracking, inherit);
+}
+.dmd .btn {
+  font-family: var(--cmp-button-md-font-family, inherit);
+  font-weight: var(--cmp-button-md-font-weight, inherit);
+  letter-spacing: var(--cmp-button-md-tracking, inherit);
+}
+.dmd .btn-lg {
+  font-family: var(--cmp-button-lg-font-family, inherit);
+  font-weight: var(--cmp-button-lg-font-weight, inherit);
+  letter-spacing: var(--cmp-button-lg-tracking, inherit);
+}
+.dmd .input {
+  font-family: var(--cmp-input-font-family, inherit);
+  font-weight: var(--cmp-input-font-weight, inherit);
+  letter-spacing: var(--cmp-input-tracking, inherit);
+}
+.dmd .input > .icon, .dmd .input > svg {
+  width: var(--cmp-input-icon-size, var(--icon-md, 16px));
+  height: var(--cmp-input-icon-size, var(--icon-md, 16px));
+}
+.dmd .nav-item {
+  font-family: var(--cmp-nav-item-font-family, inherit);
+  font-weight: var(--cmp-nav-item-font-weight, inherit);
+  letter-spacing: var(--cmp-nav-item-tracking, inherit);
+  gap: var(--cmp-nav-item-gap, var(--icon-gap, 8px));
+}
+.dmd .select-trigger {
+  font-family: var(--cmp-select-font-family, inherit);
+  font-weight: var(--cmp-select-font-weight, inherit);
+  letter-spacing: var(--cmp-select-tracking, inherit);
+  font-size: var(--cmp-select-font-size, inherit);
+  gap: var(--cmp-select-gap, var(--icon-gap, 8px));
+}
+.dmd .select-trigger > .icon, .dmd .select-trigger > svg {
+  width: var(--cmp-select-icon-size, var(--icon-md, 16px));
+  height: var(--cmp-select-icon-size, var(--icon-md, 16px));
+}
+.dmd .table td {
+  font-family: var(--cmp-table-font-family, inherit);
+  font-weight: var(--cmp-table-font-weight, inherit);
+  letter-spacing: var(--cmp-table-tracking, inherit);
+  font-size: var(--cmp-table-font-size, inherit);
+}
+.dmd .table th {
+  font-family: var(--cmp-table-header-font-family, inherit);
+  font-weight: var(--cmp-table-header-font-weight, inherit);
+  letter-spacing: var(--cmp-table-header-tracking, inherit);
+  font-size: var(--cmp-table-header-font-size, inherit);
+}
+.dmd textarea.input {
+  font-family: var(--cmp-textarea-font-family, inherit);
+  font-weight: var(--cmp-textarea-font-weight, inherit);
+  letter-spacing: var(--cmp-textarea-tracking, inherit);
+  font-size: var(--cmp-textarea-font-size, inherit);
+}
+.dmd .tooltip {
+  font-family: var(--cmp-tooltip-font-family, inherit);
+  font-weight: var(--cmp-tooltip-font-weight, inherit);
+  letter-spacing: var(--cmp-tooltip-tracking, inherit);
+}
+.dmd .tab {
+  font-family: var(--cmp-tab-font-family, inherit);
+  font-weight: var(--cmp-tab-font-weight, inherit);
+  letter-spacing: var(--cmp-tab-tracking, inherit);
+  gap: var(--cmp-tab-gap, var(--icon-gap, 8px));
+}
+
+/* ── AND THE RESET I ADDED FOR SVGs CAME BACK OUT ──
+ *
+ * `letter-spacing` inherits into every descendant, and an SVG shape has no
+ * text to space, so I reset it on marks. Measured: that turned 176 inert
+ * changes into 240, because every SVG in the tree ALREADY inherited the
+ * document tracking and the reset moved it the other way.
+ *
+ * The property paints nothing on a shape either way, so both directions are
+ * inert and the reset was pure noise. Adjust the measurement, never the
+ * code: count a tracking change on a text-bearing element only.
+ */
+
+/* THE SELECT'S OWN BOX. It published a padding and a radius and read
+   neither, so it took whatever `.btn` gave it. */
+.dmd .select-trigger {
+  padding: var(--cmp-select-padding, 0 var(--space-sm, 12px));
+  border-radius: var(--cmp-select-rounded, var(--radius-md, 4px));
+}
+
+/* ── THE NAV SELECTED EDGE PUBLISHED A COLOUR AND A WIDTH, AND ITS RULE
+      SET A box-shadow WITH NEITHER IN IT ──
+
+   The shorthand carried `none` by default, so a build setting either the
+   colour or the width changed nothing. Composed from the two tokens now,
+   and still `none` while the width is zero. A nav item has nothing
+   crossing it, so an inset shadow is the right mechanism here. */
+.dmd .nav-item.is-active {
+  box-shadow: var(--cmp-nav-item-selected-box-shadow,
+    inset var(--cmp-nav-item-selected-edge-width, 0) 0 0 var(--cmp-nav-item-selected-edge-color, transparent));
+}
+
+/* The checkbox and the switch space their box from its words on a label,
+   so the token belongs on the label rather than on the control. */
+.dmd label.with-icon:has(> .checkbox) { gap: var(--cmp-checkbox-gap, var(--icon-gap, 8px)); }
+.dmd label.with-icon:has(> .switch) { gap: var(--cmp-switch-gap, var(--icon-gap, 8px)); }
+
+/* ── AND THE MONO FACE IS RESTATED AFTER THEM ──
+ *
+ * The component type rules above are (0,2,0), and so are the mono families
+ * on `.amount` and `.figure`. Those are declared earlier in this file, so the
+ * table rule won on order and took the mono face off a column of figures.
+ * Measured: three cells went from JetBrains Mono to Manrope.
+ *
+ * A figure in a COLUMN of figures takes the mono face, because that is what
+ * stacks the digits over each other. It is the rule the face exists for.
+ *
+ * Restated here rather than given more weight: a third writer on one
+ * property is how two rules end up arguing. Position carries the meaning,
+ * so the mono declaration comes last.
+ */
+.dmd .amount, .dmd .figure, .dmd .table .amount, .dmd .table .figure {
+  font-family: var(--font-code-family, ui-monospace, monospace);
+}
 /* ── Structure ── */
 /* Icon + label pairings, wherever they appear. One gap token governs them all.
  *

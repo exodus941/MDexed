@@ -4725,6 +4725,67 @@ line('\n- depth intensity -')
     `the unread count has fallen from the 79 it started at (${record.unread})`)
 }
 
+/* ── EVERY PUBLISHED COMPONENT TOKEN NOW HAS A READER ──
+ *
+ * 359 published, 0 read by nothing. The payload teaches every one of them to a
+ * building agent, so a token the sample cannot demonstrate is a pointer rather
+ * than a preview.
+ *
+ * THE TYPE FALLBACK IS `inherit`, WHICH IS WHAT THESE COMPONENTS DO TODAY, so
+ * the whole batch moves almost nothing. Measured at a pinned pane width over
+ * eleven surfaces: 1483 elements, 0 family changes, 0 weight changes, and the
+ * largest tracking shift 0.024px.
+ */
+{
+  line('\n- every published component token has a reader -')
+  const fs = await import('node:fs')
+  const record = JSON.parse(fs.readFileSync(new URL('../tools/token-reader.json', import.meta.url), 'utf8'))
+  assert(record.unread === 0,
+    `no published component token is unread (${record.unread} of ${record.published})`)
+
+  const css = fs.readFileSync(new URL('../src/preview/preview.css', import.meta.url), 'utf8')
+
+  /* ── A GAP ON A BUTTON WOULD ADD TO THE MARGIN THAT ALREADY SPACES ITS MARK ──
+     The button spaces its icon with `margin-inline-end`, which reads the token
+     already. Declaring a `gap` too gives one distance two writers and puts the
+     mark 16px from its label. Measured on the first attempt: 80 elements. */
+  assert(/\.dmd \.btn \.icon \{[^}]*margin-inline-end: var\(--cmp-button-gap/.test(css.replace(/\r?\n/g, ' ')),
+    'the button mark is spaced by a margin, which reads the gap token')
+  const btnRules = css.match(/^\.dmd \.btn \{[^}]*\}/ms) || []
+  assert(!/\bgap:/.test(btnRules[0] || ''),
+    'and the button rule declares no gap of its own, so the distance has one writer')
+
+  /* ── THE MONO FACE IS RESTATED AFTER THE COMPONENT TYPE RULES ──
+     Both are (0,2,0), so order decides. The table rule won and took the mono
+     face off three cells: JetBrains Mono became Manrope. A figure in a COLUMN
+     of figures takes the mono face, because that is what stacks the digits. */
+  const tableType = css.indexOf('--cmp-table-font-family')
+  const monoRestated = css.indexOf('.dmd .amount, .dmd .figure, .dmd .table .amount')
+  assert(tableType > 0 && monoRestated > tableType,
+    `the mono face is declared after the table type rule (${tableType}, ${monoRestated})`)
+
+  /* ── AND THE RESET I ADDED FOR SVGs CAME BACK OUT ──
+     It turned 176 inert tracking changes into 240, because every SVG in the
+     tree already inherited the document tracking and the reset moved it the
+     other way. The property paints nothing on a shape either way. */
+  assert(!/\.dmd svg, \.dmd \.icon \{ letter-spacing: normal; \}/.test(css),
+    'no blanket letter-spacing reset on marks, which only moved inert values')
+
+  /* ── THREE WEIGHTS NOW SAY WHAT THE PREVIEW PAINTS ──
+     Each took its weight from a role carrying 400 while painting heavier. A
+     build reading the token alone got a lighter component than the preview
+     shows. The badge figure was measured and chosen: at 12px, 500 inks 3.6%
+     more pixels and reads 1.74:1 against its own fill where 400 reads 1.64. */
+  const st = createInitialState()
+  const v = buildCssVars(derive(st), 'light')
+  for (const [name, want] of [['badge', '500'], ['avatar', '600'], ['select', '500']]) {
+    assert(v['--cmp-' + name + '-font-weight'] === want,
+      `the ${name} states weight ${want} (${v['--cmp-' + name + '-font-weight']})`)
+  }
+  assert(v['--cmp-input-font-weight'] === '400',
+    `and a component that really is 400 keeps it (${v['--cmp-input-font-weight']})`)
+}
+
 /* A hue to a hex at a fixed lightness and chroma, so the sweep above varies
    one thing. Written here rather than imported: the generator's own helpers
    apply its rules, and this has to hand it a raw seed. */

@@ -290,7 +290,10 @@ export const COMPONENT_LIBRARY = [
     name: 'select', label: 'Select', group: 'Forms', on: true,
     base: {
       backgroundColor: '{colors.surface}', textColor: '{colors.text}', borderColor: '{colors.border}',
-      rounded: '{rounded.md}', height: '36px', padding: '0 {spacing.sm}', typography: 'body-sm',
+      /* THE WEIGHT IS STATED. `body-sm` carries 400 and a trigger paints 500,
+         because it is a button shell holding a value. A build reading the token
+         alone got a lighter select than the preview shows. */
+      rounded: '{rounded.md}', height: '36px', padding: '0 {spacing.sm}', typography: 'body-sm', fontWeight: '500',
       /* The chevron sits at the far end of the value, and its distance is a
          decision. Unpublished, every select in a build picks its own. */
       gap: '{spacing.xs}', iconSize: '{icons.md}',
@@ -389,7 +392,12 @@ export const COMPONENT_LIBRARY = [
      *
      * The vertical padding was a raw `2px`. It is `3xs` exactly, and a literal
      * in this file is the same defect the payload tells its reader to avoid. */
-    base: { rounded: '{rounded.full}', padding: '{spacing.3xs} {spacing.xs}', typography: 'caption', gap: '{spacing.xs}' },
+    /* THE WEIGHT IS STATED, because `caption` carries 400 and this paints
+       500. At 12px the heavier stem inks 3.6% more pixels and reads 1.74:1
+       against its own fill where 400 reads 1.64. That is apparent contrast
+       the nominal 7.16:1 never reports, and it is what keeps a thin stem
+       legible at badge size. */
+    base: { rounded: '{rounded.full}', padding: '{spacing.3xs} {spacing.xs}', typography: 'caption', fontWeight: '500', gap: '{spacing.xs}' },
     variants: {
       /* Outlined, not filled, and the palette leaves no choice.
        *
@@ -525,7 +533,10 @@ export const COMPONENT_LIBRARY = [
      * calibrated for a 14px mark against a 14px label; a disc is four times
      * the mark, and at the same distance the two read as touching. One step up
      * the scale, which is 12 against 8. */
-    base: { size: '32px', gap: '{spacing.sm}', rounded: '{rounded.full}', backgroundColor: '{colors.accent-raised}', textColor: '{colors.text}', typography: 'caption' },
+    /* THE WEIGHT IS STATED. `caption` carries 400 and the initials paint 600,
+       which is the emphasis a two-letter monogram needs to read as a name
+       rather than as small print. */
+    base: { size: '32px', gap: '{spacing.sm}', rounded: '{rounded.full}', backgroundColor: '{colors.accent-raised}', textColor: '{colors.text}', typography: 'caption', fontWeight: '600' },
   },
 
   /* ── CHARTS ──
