@@ -4786,6 +4786,89 @@ line('\n- depth intensity -')
     `and a component that really is 400 keeps it (${v['--cmp-input-font-weight']})`)
 }
 
+/* ── THE RESPONSIVE SECTION: THREE CHECKS, AND ONE I HAD TO REWRITE ──
+ *
+ * Each was measured against correct code first, and the third was unfireable
+ * as I first wrote it.
+ */
+{
+  line('\n- the responsive rules: two checks shipped, one cut -')
+  const { CHECKS } = await import('../src/emit/checks.js')
+  const get = id => CHECKS.find(c => c.id === id)
+
+  /* ── AND THE WRAP CHECK WAS CUT, WITH ITS MEASUREMENT ──
+   *
+   * The rule is right: flex-wrap is what the browser does when nobody made a
+   * decision, and it strands whichever item falls past the edge.
+   *
+   * THE CHECK COULD NOT ASK IT. Measured on five bare wraps in our own
+   * stylesheet, every one of them correct code:
+   *
+   *   .row-wrap       names itself
+   *   .action-pairs   names itself
+   *   .page-head      ordered in another FILE, with a full-width basis
+   *   .batch-bar      ordered in another file
+   *   .chart-key      a legend, which is a list that wraps
+   *
+   * My first version faulted the last three. Widening it to accept "the
+   * children are ordered somewhere" needs a cross-file inference from a class
+   * name to a rule about its descendants, and that is a guess dressed as a
+   * test. A check that fires on correct code three times in five costs more
+   * than the miss, so it went.
+   *
+   * The measurement stays here so nobody writes this one again.
+   */
+  {
+    const gone = CHECKS.find(c => c.id === 'a-row-wraps-only-when-told')
+    assert(!gone, `the wrap check is not shipped (${gone ? gone.where : "absent"})`)
+  }
+  /* ── A PAIR DISSOLVES WHEN THE ROW FITS ──
+     Measured on the shipped surfaces. At 1280 every pair computes
+     display: contents and all five rows are one line. At 320 every pair is
+     flex and the line count equals the pair count, and no line holds more than
+     two. So the check reads what the page IS rather than what width it is at. */
+  {
+    const c = get('a-pair-dissolves-when-a-row-fits')
+    assert(!!c && c.where === 'render', `the pair check ships and runs in a browser (${c?.where})`)
+    const text = c.body.join('\n')
+    assert(/contents/.test(text), 'it asks whether a pair has dissolved, which is a declaration')
+    assert(/> 2/.test(text), 'and a boxed pair holds two buttons at most')
+  }
+
+  /* ── AND THE THIRD WAS UNFIREABLE AS I FIRST WROTE IT ──
+   *
+   * I asked whether space-between produced UNEQUAL gaps. It cannot: the
+   * mechanism splits its free space evenly, so the gaps are equal by
+   * definition. Five shapes measured in a 520px row:
+   *
+   *   pure space-between      182.25, 182.25   1.00:1
+   *   with a declared gap     182.25, 182.25   1.00:1
+   *   one child grows         0, 0             skipped by the zero guard
+   *   an auto margin          0, 364.5         skipped, and slack is not a gap
+   *   a 64px margin           150.25, 214.25   1.43:1
+   *
+   * THE RECORDED FAULT WAS A UNIFORM GAP. 65.3px between a bell and the menu
+   * beside it, both the same kind of control, so the even split opened a hole
+   * inside one run. The gap on the other side was the same 65.3 and correct.
+   */
+  {
+    const c = get('space-between-spreads-every-gap')
+    assert(!!c && c.where === 'render', `the space-between check ships (${c?.where})`)
+    const text = c.body.join('\n')
+    assert(/tagName !== b.tagName/.test(text),
+      'it compares two ADJACENT LIKE controls, which is what reads as one run')
+    assert(!/max \/ min/.test(text),
+      'and it does not ask about an unequal gap, which space-between cannot produce')
+    assert(/kids.length < 3/.test(text),
+      'two items is the idiom and has no run to break')
+    /* THE MEASUREMENT THAT KILLED THE FIRST VERSION, kept so nobody writes it
+       again: an even split cannot reach the 3:1 a ratio question would need. */
+    const evenSplit = [182.25, 182.25]
+    assert(Math.max(...evenSplit) / Math.min(...evenSplit) === 1,
+      'a pure space-between row splits its slack evenly, so a ratio question is unfireable')
+  }
+}
+
 /* A hue to a hex at a fixed lightness and chroma, so the sweep above varies
    one thing. Written here rather than imported: the generator's own helpers
    apply its rules, and this has to hand it a raw seed. */

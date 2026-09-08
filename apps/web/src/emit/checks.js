@@ -3220,6 +3220,68 @@ export const CHECKS = [
   },
 
   {
+    id: 'space-between-spreads-every-gap',
+    where: 'render',
+    line: 'space-between splits its slack evenly, so it opens a hole inside a run of like controls. Start the row and give the end group an auto margin.',
+    /* ── MY FIRST QUESTION WAS UNFIREABLE, AND MEASURING PROVED IT ──
+     *
+     * I asked whether space-between produced UNEQUAL gaps. It cannot: the
+     * mechanism splits the free space evenly, so the gaps are equal by
+     * definition. Five shapes measured in a 520px row, and none reached 3:1.
+     *
+     * THE RECORDED FAULT WAS A UNIFORM GAP. A header put 65.3px between a
+     * bell and the menu beside it. Both are the same kind of control, so they
+     * read as one run, and the even split opened a hole inside it. The gap on
+     * the other side was the same 65.3 and correct, because a title and an
+     * action group really are two groups.
+     *
+     * Measured on the corrected question: 0 findings across eleven surfaces,
+     * and 161.38px between two ghost buttons on the recorded shape.
+     *
+     * THE PROXIMITY CHECK DOES NOT OWN THIS. It compares a group inner gap to
+     * the distance between groups, and 279px against 8px is 34:1, correctly
+     * silent. This is one level down from that.
+     */
+    body: [
+      "/* TWO ADJACENT LIKE CONTROLS READ AS ONE GROUP, and space-between splits its",
+      "   free space evenly across every gap, so it opens a hole inside that group.",
+      "   Measured once on a header: 65.3px between a bell and the menu beside it.",
+      "",
+      "   THE GAPS ARE EQUAL BY DEFINITION, so an unequal-gap question is",
+      "   unfireable. Five shapes measured in a 520px row and none reached 3:1. The",
+      "   fault is a UNIFORM gap too large for a pair that belongs together. */",
+      "const LIKE = '.btn, button, [role=button], .nav-item, .tab, [role=tab]'",
+      "for (const row of all('*')) {",
+      "  const cs = getComputedStyle(row)",
+      "  if (!cs.display.includes('flex')) continue",
+      "  if (cs.justifyContent !== 'space-between') continue",
+      "  if (cs.flexDirection.startsWith('column')) continue",
+      "  const kids = Array.prototype.slice.call(row.children).filter(visible).filter(boxOf)",
+      "  /* Two items is the idiom and has no group to open a hole in. */",
+      "  if (kids.length < 3) continue",
+      "  const boxes = kids.map(k => k.getBoundingClientRect())",
+      "  /* ONE LINE ONLY. A wrapped row is several runs. */",
+      "  let wrapped = false",
+      "  for (let i = 1; i < boxes.length; i++) if (boxes[i].top - boxes[0].top > 2) wrapped = true",
+      "  if (wrapped) continue",
+      "  const inner = px(cs.columnGap) || px(tokenValue('--icon-gap')) || 8",
+      "  for (let i = 1; i < kids.length; i++) {",
+      "    const a = kids[i - 1], b = kids[i]",
+      "    /* ── LIKE, AND THE TAG DECIDES IT ──",
+      "       A words div beside a button is two kinds of thing, and there is no",
+      "       group between them to break. Two controls of the same kind are a run,",
+      "       and a run is what a reader takes as one thing. */",
+      "    if (!a.matches(LIKE) || !b.matches(LIKE)) continue",
+      "    if (a.tagName !== b.tagName) continue",
+      "    const d = boxes[i].left - boxes[i - 1].right",
+      "    if (d <= inner * 3) continue",
+      "    fail(name(b),",
+      "      'this control sits ' + round(d) + 'px from the one before it, and both are the same kind, so a reader takes them as one run. The row uses space-between, which splits its free space evenly across every gap and so opens a hole INSIDE that run. Its own gap is ' + round(inner) + 'px. Start the row instead and give the group that belongs at the end an auto margin, so all the slack lands in one place.')",
+      "  }",
+      "}",
+    ],
+  },
+  {
     id: 'proximity-is-a-ratio',
     where: 'render',
     line: 'State both gaps together: the gap inside a group and the gap between groups. Proximity is a ratio, and a gutter between columns is a step of its own, never the row default. Three to one, or the two read as one thing.',
@@ -3708,6 +3770,71 @@ export const CHECKS = [
       "  const hole = (cR - cL) - filled",
       "  if (hole <= filled) continue",
       "  fail(name(el), 'this row of ' + paint.length + ' control(s) asked for the whole line, took ' + round(b.width) + 'px of it and filled ' + round(filled) + 'px. ' + round(hole) + 'px is empty. A row that takes a line of its own covers that line: pair the controls two per line and let the last labelled one absorb the slack. A group holding nothing but icon-only controls never needed a line at all — keep it beside the heading.')",
+      "}",
+    ],
+  },
+  {
+    id: 'a-pair-dissolves-when-a-row-fits',
+    where: 'render',
+    line: 'A broken action row pairs two per line. When the row fits, every pair dissolves into one flat row.',
+    /* ── THE PAIR MUST BE THE CONTAINER, AND BOTH WRONG ANSWERS LOOK RIGHT ──
+     *
+     * With flex: 1 1 0 on every button the count per line is emergent: five
+     * buttons rendered one, three, one. With a 50% basis a min-content floor
+     * pushes the two bases past the line and the row WRAPS instead of
+     * shrinking the partner, so one long label and two long labels render
+     * identically. Two children in their own container give both.
+     *
+     * Measured on the shipped surfaces. At 1280 every pair computes
+     * display: contents and all five rows are one line. At 320 every pair is
+     * flex and the line count equals the pair count: 2 pairs give 2 lines, 3
+     * give 3, and no line ever holds more than two.
+     *
+     * SO THIS READS WHAT THE PAGE IS, never what width it is at. It holds at
+     * any width the reader looks at.
+     */
+    body: [
+      "/* An action row that breaks, breaks into PAIRS: two per line, equal, across",
+      "   the whole width. When the row fits, the pairing dissolves so every button",
+      "   sits at its natural width in one flat row.",
+      "",
+      "   READ WHAT THE PAGE IS, not what width it is at. A pair at",
+      "   display: contents has dissolved and its buttons belong on one line. A pair",
+      "   that generates a box is holding a line, and a line holds two at most. */",
+      "for (const row of all('.action-pairs')) {",
+      "  const pairs = Array.prototype.slice.call(row.querySelectorAll(':scope > .pair')).filter(visible)",
+      "  if (!pairs.length) continue",
+      "  const dissolved = pairs.filter(p => getComputedStyle(p).display === 'contents')",
+      "  const boxed = pairs.filter(p => getComputedStyle(p).display !== 'contents')",
+      "  /* One mechanism at a time. Half dissolved is a row in two arrangements. */",
+      "  if (dissolved.length && boxed.length) {",
+      "    fail(name(row),",
+      "      'this action row holds ' + dissolved.length + ' dissolved pair(s) and ' + boxed.length + ' that still generate a box, so it is in two arrangements at once. Either the row fits and every pair dissolves, or it does not and every pair holds a line.')",
+      "    continue",
+      "  }",
+      "  const btns = all('.btn').filter(b => row.contains(b))",
+      "  if (!btns.length) continue",
+      "  const lines = {}",
+      "  for (const b of btns) {",
+      "    const t = Math.round(b.getBoundingClientRect().top)",
+      "    const key = Object.keys(lines).find(k => Math.abs(Number(k) - t) <= 2)",
+      "    lines[key == null ? t : key] = (lines[key == null ? t : key] || 0) + 1",
+      "  }",
+      "  const counts = Object.keys(lines).map(k => lines[k])",
+      "  if (dissolved.length === pairs.length) {",
+      "    /* Dissolved, so one flat row. A row that still breaks has not been",
+      "       dissolved because it fits: it has been dissolved too early. */",
+      "    if (counts.length > 1) {",
+      "      fail(name(row),",
+      "        'every pair here has dissolved, which says the row fits, and its ' + btns.length + ' buttons are on ' + counts.length + ' lines. A dissolved row is one flat row at natural widths. Keep the pairing until the row actually fits.')",
+      "    }",
+      "    continue",
+      "  }",
+      "  /* Boxed, so each pair holds a line and a line holds two at most. */",
+      "  const over = counts.filter(n => n > 2)",
+      "  if (over.length) {",
+      "    fail(name(row), 'a broken action row puts at most two buttons on a line, and a line here holds ' + Math.max.apply(null, over) + '. Two per line, equal, across the whole width: the pair has to be the CONTAINER, or the count per line is emergent and one long label pushes a third button up.')",
+      "  }",
       "}",
     ],
   },
