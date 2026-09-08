@@ -4524,8 +4524,94 @@ export const CHECKS = [
 
   {
     id: 'a-menu-control-is-a-sibling-of-the-action-group',
-    where: 'manual',
+    where: 'render',
     line: 'A menu control is a button in the action group, always rightmost, and a SIBLING of that group rather than a member. Inside it, it can only go where the group goes.',
+    /* ── I COULD NOT SEE THIS RULE, AND THE REASON WAS THE SELECTOR ──
+     *
+     * The first draft asked for a disclosure OR aria-expanded OR
+     * aria-haspopup. Measured on this app: 4 candidates, and 3 were wrong.
+     * Two chrome dropdowns and a readout, none of them navigation.
+     *
+     * SO ASK WHAT THE CONTROL OPENS. Nothing about it is reachable: the
+     * navigation list is not a child, not a sibling and not an
+     * aria-controls target. Measured 0 of 4, our own correct control
+     * included. That discriminator does not exist in the DOM.
+     *
+     * TWO SHAPES DO SAY MENU, and both are properties. A disclosure, which
+     * is a summary inside a details. Or a BURGER: three or four stacked
+     * bars of one size, wider than tall, with no words in any of them.
+     * Measured over every element on the page: exactly 1 match, at
+     * 16x2 three times, and it is the burger.
+     *
+     * THE HEAD TEST WAS THE OTHER HALF. Four levels of ancestor reached a
+     * wrapper three levels up and put every chrome dropdown on a page
+     * head. Two levels, with the heading a child or a grandchild.
+     *
+     * ONE OTHER ACTION IS ALREADY A GROUP. The floor was two, and a group of
+     * one action plus the menu still wraps as a unit, which is the whole
+     * reason the rule exists. Proven at a floor of one: the injected wrapper
+     * holding one button fires, and nine surfaces stay silent.
+     *
+     * A LANDING HEADER IS NOT A PAGE HEAD, and the two-level window is what
+     * says so. Its menu sits in a `.page-actions` inside `.header-nav` inside
+     * a bar row, and the nearest heading is three levels up in the page stack.
+     * That is site navigation, not a title row, so this rule does not govern
+     * it and the check correctly skips it.
+     *
+     * THE LIMIT: a menu built as a bare button, with no burger and no
+     * disclosure, is invisible here. Nothing in the DOM separates it from
+     * a filter dropdown. */
+    body: [
+      "const ACTION = \"button, a[href], [role=button], .btn\"",
+      "const HEADING = \"h1, h2, h3\"",
+      "/* A BURGER IS THREE STACKED BARS OF ONE SIZE. Read the boxes, never a class",
+      "   name: the reader names it whatever they like. */",
+      "const bars = el => {",
+      "  const kids = Array.prototype.slice.call(el.children)",
+      "  if (kids.length < 3 || kids.length > 4) return false",
+      "  if (el.textContent.trim()) return false",
+      "  const boxes = kids.map(k => k.getBoundingClientRect())",
+      "  if (boxes.some(b => !b.width || !b.height)) return false",
+      "  const w = boxes[0].width, h = boxes[0].height",
+      "  if (h >= w) return false",
+      "  return boxes.every(b => Math.abs(b.width - w) < 0.6 && Math.abs(b.height - h) < 0.6)",
+      "}",
+      "const menus = []",
+      "for (const s of all(\"details > summary\")) if (s.parentElement) menus.push(s.parentElement)",
+      "for (const el of all(ACTION)) {",
+      "  if (menus.some(m => m === el || m.contains(el))) continue",
+      "  if (Array.prototype.slice.call(el.querySelectorAll(\"*\")).some(bars)) menus.push(el)",
+      "}",
+      "let seen = 0",
+      "for (const ctrl of menus) {",
+      "  /* THE HEAD HOLDS THE HEADING AND THE CONTROL, at two levels at most. */",
+      "  let head = null",
+      "  for (let p = ctrl.parentElement, i = 0; p && i < 2; p = p.parentElement, i++) {",
+      "    const kids = Array.prototype.slice.call(p.children)",
+      "    if (kids.some(c => c.matches(HEADING) || c.querySelector(HEADING))) { head = p; break }",
+      "  }",
+      "  if (!head) continue",
+      "  seen++",
+      "  /* THE GROUP IS A RUN OF PRESSABLE SIBLINGS, never a class name. Walk from",
+      "     the control up to the head. A box on that path holding two or more OTHER",
+      "     actions IS the action group, so this control is a member of it. */",
+      "  for (let p = ctrl.parentElement; p && p !== head; p = p.parentElement) {",
+      "    const others = all(ACTION).filter(b => p.contains(b) && b !== ctrl && !ctrl.contains(b))",
+      "    if (others.length < 1) continue",
+      "    fail(name(ctrl), \"a menu control INSIDE the action group \" + name(p)",
+      "      + \", which holds \" + others.length + \" other action\" + (others.length === 1 ? \"\" : \"s\")",
+      "      + \". A menu control is a SIBLING of that group.\"",
+      "      + \" Inside it, it can only go where the group goes, so it loses the title row the moment the group wraps.\")",
+      "    break",
+      "  }",
+      "}",
+      "/* A RUN THAT MEASURED NOTHING IS NOT A PASS. A menu control belongs to",
+      "   the folded layout, so above the fold width it is display: none and this",
+      "   check reads zero of them. Measured on this app: shown at 296 and 640,",
+      "   hidden at 768, 1024 and 1536. Say so rather than printing a bare 0. */",
+      "if (!seen) note('no menu control on any page head. Above the width where the navigation folds there is none to place, so this rule is UNMEASURED here. Run again at your narrowest width.')",
+      "else note(seen + \" menu control(s) on a page head, of \" + menus.length + \" found. A menu with no burger and no disclosure is not measured.\")",
+    ],
   },
 
   {

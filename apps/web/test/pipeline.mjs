@@ -5573,32 +5573,28 @@ function hueHex(h) {
       'including its edge, so two panels cannot drift into different kinds of thing')
   }
 
-  /* ── AND THE MENU CHECK STAYS MANUAL, WITH THE MEASUREMENT KEPT ──
+  /* ── AND THE MENU CHECK IS NO LONGER MANUAL ──
    *
-   * A manual entry is not a safeguard, so I tried to promote it. The rule is
-   * exact and the shape is readable: a page head holding a title, with the
-   * menu INSIDE the action group rather than beside it. The exemption is a
-   * declaration rather than a name, because a nav row with no heading has no
-   * title to keep the control next to.
+   * The rule is exact and the shape is readable: a page head holding a title,
+   * with the menu INSIDE the action group rather than beside it.
    *
-   * Measured on the shipped surfaces: two page heads, both holding the title,
-   * the action group and the menu as siblings. Two more rows hold a menu and
-   * no heading, so they are exempt: a landing bar and a gallery specimen.
+   * Measured on nine surfaces: four hold a menu control, all four visible at a
+   * 567px pane, and none of them faults. Three sit on a page head as siblings
+   * of the action group. The fourth is a landing bar, whose nearest heading is
+   * three levels up in the page stack, so it is site navigation rather than a
+   * title row and the rule does not govern it.
    *
-   * THE LOGIC IS RIGHT AND I COULD NOT PROVE IT FIRES. Replayed by hand
-   * against the same DOM it reports exactly one hit. Inside the verifier it
-   * reports none, and its own instrument says why: "menus 2, with a control 1,
-   * on a page head 1, inside the group 0". The move is undone, or a second
-   * mounted tree is answering, before the check reads the parent.
-   *
-   * A CHECK I CANNOT BREAK ON PURPOSE IS A BLINDFOLD. So it goes back, and the
-   * measurement stays here so nobody writes it again without isolating that.
+   * IT IS A RENDER CHECK NOW. It sat manual because I could not break it on
+   * purpose, and the reason was the injection rather than the rule: a move in
+   * the live DOM is undone by React during settle(), so the check read correct
+   * markup. Inject in the SOURCE instead. The section at the end of this file
+   * owns the measurements and the assertions.
    */
   {
     const c6 = (await import('../src/emit/checks.js')).CHECKS
       .find(x => x.id === 'a-menu-control-is-a-sibling-of-the-action-group')
-    assert(!!c6 && c6.where === 'manual',
-      `the menu rule is still manual, because the render form could not be broken on purpose (${c6?.where})`)
+    assert(!!c6 && c6.where === 'render',
+      `the menu rule ships as a render check (${c6?.where})`)
   }
 }
 
@@ -5643,6 +5639,86 @@ function hueHex(h) {
       'the chart plot caps at its own track, so the floor beats the ratio')
     assert(/min-block-size:\s*140px/.test(plot),
       'and keeps the floor, because a plot too short to read a value in is the fault it prevents')
+  }
+}
+
+/* ── A MENU CONTROL IS A SIBLING OF THE ACTION GROUP ──
+ *
+ * This rule sat as a checklist line because I could not make it fire, and the
+ * reason was never the rule. Three faults, each measured:
+ *
+ * THE SELECTOR. The first draft asked for a disclosure OR aria-expanded OR
+ * aria-haspopup. 4 candidates on this app and 3 were wrong: two chrome
+ * dropdowns and a readout, none of them navigation.
+ *
+ * WHAT IT OPENS IS NOT REACHABLE. The navigation list is not a child, not a
+ * sibling and not an aria-controls target. Measured 0 of 4, our own correct
+ * control included, so that discriminator does not exist in the DOM. Two
+ * shapes do say menu: a disclosure, and a BURGER read by its boxes — three or
+ * four bars of one size, wider than tall, no words. Exactly 1 match on the
+ * page, at 16x2 three times.
+ *
+ * THE HEAD WINDOW. Four levels of ancestor put every chrome dropdown on a
+ * page head. Two levels, with the heading a child or a grandchild.
+ *
+ * AND THE INJECTION WAS REVERTED BEFORE THE CHECK READ IT. Moving the control
+ * in the live DOM looked like an injection and React put it back during
+ * settle(), so the check read correct markup and reported nothing. The fix is
+ * to inject in the SOURCE. Proven both ways: the menu inside a 4-button group
+ * fires, a wrapper holding ONE other button fires, and nine surfaces are
+ * silent.
+ */
+{
+  line('\n- a menu control is a sibling of the action group -')
+  const { CHECKS: CH9 } = await import('../src/emit/checks.js')
+  const c9 = CH9.find(x => x.id === 'a-menu-control-is-a-sibling-of-the-action-group')
+  assert(!!c9 && c9.where === 'render', `the check ships and runs in a browser (${c9?.where})`)
+  const t9 = (c9?.body || []).join('\n')
+  assert(/details > summary/.test(t9), 'it admits the disclosure shape')
+  assert(/kids\.length < 3 \|\| kids\.length > 4/.test(t9),
+    'and a BURGER by its boxes, which is three or four bars')
+  assert(/Math\.abs\(b\.width - w\)/.test(t9) && /Math\.abs\(b\.height - h\)/.test(t9),
+    'measured as one size, so the reader can name the class anything')
+  assert(/if \(h >= w\) return false/.test(t9),
+    'and wider than tall, or a column of three dots would count')
+  assert(!/aria-expanded|aria-haspopup/.test(t9),
+    'it does NOT ask aria-expanded, which was 3 false positives out of 4 candidates')
+  assert(/i < 2/.test(t9),
+    'the head window is two levels, because four put a chrome dropdown on a page head')
+  assert(/others\.length < 1/.test(t9),
+    'one other action is already a group, because a group of two still wraps as a unit')
+  assert(/!ctrl\.contains\(b\)/.test(t9),
+    'and the control own subtree is not counted as an action beside it')
+  assert(/p !== head/.test(t9),
+    'the walk stops at the head, so the head own buttons never make it a group')
+  assert(/UNMEASURED/.test(t9),
+    'a run that saw no menu control says so, because the control is display: none above the fold width')
+
+  /* THE REPAIR IT GUARDS. The Dashboard menu is a SIBLING of its action
+     group. Blank the comments first: the note beside it quotes the rule, so a
+     raw scan finds its own explanation. */
+  {
+    const dash = fs.readFileSync(new URL('../src/preview/screens/Dashboard.jsx', import.meta.url), 'utf8')
+      .replace(/\/\*[\s\S]*?\*\//g, m => m.replace(/[^\n]/g, ' '))
+    const open = dash.indexOf('className="row page-actions')
+    assert(open > 0, 'the Dashboard head carries an action group')
+    /* Walk div tags from that opening tag to its match, so the test asks
+       CONTAINMENT rather than line order. */
+    let i = dash.indexOf('>', open) + 1, depth = 1, end = -1
+    while (i < dash.length && depth > 0) {
+      const nx = dash.slice(i).search(/<\/?div\b/)
+      if (nx < 0) break
+      i += nx
+      if (dash.slice(i, i + 5) === '</div') depth--
+      else depth++
+      i = dash.indexOf('>', i) + 1
+      if (depth === 0) end = i
+    }
+    assert(end > open, 'and the group closes, so the span is measurable')
+    assert(!/nav-collapse/.test(dash.slice(open, end)),
+      'the menu control sits OUTSIDE it, so the ladder can keep it on the title row')
+    assert(/<details className="nav-collapse">/.test(dash),
+      'and it is still there to place')
   }
 }
 
