@@ -258,8 +258,9 @@ export default defineConfig(({ command }) => ({
        furniture, and the spacing batch. Then to 1145 at 1140.00, with three
        more: a logical side, one mark size per control, and an underline that
        is not a border. Then to 1155 at 1149.23, with alpha: compositing in the
-       contrast layer, the opacity field, and the glass treatment. */
-    chunkSizeWarningLimit: 1155,
+       contrast layer, the opacity field, and the glass treatment. Then to 1165 at 1157.82, with the
+       twenty-two consumed colour tokens and the reader guard. */
+    chunkSizeWarningLimit: 1165,
   },
 
   server: {
