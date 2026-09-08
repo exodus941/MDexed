@@ -2035,7 +2035,11 @@ line('\n- prompt construction -')
        Every one of them was a stated value that did not survive contact with a
        second source, or a stated setting the demonstration ignored. */
     ['a byline sits close to its heading', ['belongs to that heading']],
-    ['a card action stands clear of the body', ['the action row stands further from the body']],
+    /* NOT a card rule. It shipped worded that way and measured 8px under a
+       warning in a plain row, and 12px under a page description. The term is
+       copied out of the emitted document, never from what I meant to write. */
+    ['an action stands clear of the prose that explains it', ['any action stands further from the prose that explains it']],
+    ['and a mark size never comes from a neighbour', ['never take a mark size from a neighbour']],
     ['a delta belongs to its number', ['not to the tile']],
     ['an empty-state mark is drawn large', ['twice the largest icon step']],
     ['a gap subtraction is written on the container', ['write the rule on the container']],
