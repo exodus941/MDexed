@@ -5797,5 +5797,90 @@ function hueHex(h) {
   }
 }
 
+/* ── A NAVIGATION ROW NEVER BECOMES A STRIP ──
+ *
+ * Three drafts, and only the DECLARATION can fire.
+ *
+ * COUNTING DISTINCT TOPS FAULTS EVERY RAIL. A column gives each item its own
+ * top, which is the shape the rule prescribes at a wide width. 10 findings over
+ * four widths, each a rail with items equal to lines: 6 of 6, 7 of 7, 4 of 4.
+ *
+ * AND IT FAULTS A NOWRAP ROW TOO. Two items of different heights on ONE flex
+ * line have two tops unless something stretches them. The app chrome carries
+ * two such rows: 4 items, 2 tops, flex-wrap nowrap. 54 findings over 27
+ * surface-width cells, all correct code.
+ *
+ * A REAL BREAK IS AN ITEM BELOW AN EARLIER ITEM'S BOTTOM. Exact, and on correct
+ * code it can never fire: every navigation row here declares nowrap, so that
+ * pass asked 0 candidates. A check that always measures nothing is not a check.
+ *
+ * SO READ THE DECLARATION. A row that PERMITS wrapping is the fault at every
+ * width. Measured after: 76 navigation rows over 36 cells, 0 permitting a wrap.
+ * Proven by injecting flex-wrap: wrap on the Landing nav, which fires once.
+ */
+{
+  line('\n- a navigation row never becomes a strip -')
+  const { CHECKS: CHN } = await import('../src/emit/checks.js')
+  const cn = CHN.find(x => x.id === 'nav-folds')
+  assert(!!cn && cn.where === 'render', `the check ships and runs in a browser (${cn?.where})`)
+  const tn = (cn?.body || []).join('\n')
+  assert(/column/.test(tn), 'it skips a COLUMN rail, which is the correct wide layout')
+  assert(/flexWrap === "nowrap"/.test(tn),
+    'and reads the declaration, because a row that permits wrapping is the fault at every width')
+  assert(/r\[i\]\.top >= r\[i - 1\]\.bottom/.test(tn),
+    'a non-flex row keeps the geometric break, measured against an earlier item bottom')
+  assert(!/tops\.length/.test(tn),
+    'it does NOT count distinct tops, which faulted every rail and every nowrap row')
+  assert(/UNMEASURED/.test(tn), 'and a page with no navigation row says so')
+
+  /* NOWRAP IS THE INITIAL VALUE, so correct code passes by not asking for wrap.
+     The check fails a build that STATES wrap on a nav row, and it does not
+     demand a stated nowrap. One row does state it, and that one is load-bearing:
+     a general `.row { flex-wrap: wrap }` in the narrow block reached the Landing
+     header and broke it, so the bar row states nowrap to win that. */
+  {
+    const rr = fs.readFileSync(new URL('../src/preview/responsive.rules.css', import.meta.url), 'utf8')
+      .replace(/\/\*[\s\S]*?\*\//g, m => m.replace(/[^\n]/g, ' '))
+    assert(/\.row\.bar-row \{[^}]*flex-wrap:\s*nowrap/.test(rr),
+      'the header bar row states nowrap, against the general row-wrap rule in the same block')
+    assert(/\.dmd \.row \{[^}]*flex-wrap:\s*wrap/.test(rr),
+      'and that general rule is real, which is why the bar row has to state its own')
+  }
+}
+
+/* ── STAYING WITH THE TITLE BEATS BEING RIGHTMOST ──
+ *
+ * Both halves cannot be asked at once. While the action group shares the row,
+ * the menu is deliberately NOT rightmost among the buttons, and faulting that
+ * would fault the rule. So the check asks only where the group has left the
+ * row: the menu is still on the title line, and it sits at the end of that line.
+ *
+ * Measured over four surfaces and five widths: the menu shares the title line
+ * on Dashboard and Settings at 296, 320, 480 and 640, the group is on its own
+ * line in all eight, and the menu right edge equals the head right edge
+ * exactly. Above 768 the control is display: none.
+ *
+ * Proven both branches from the source. `order: 9` sends the menu down with the
+ * group and fires. A 40px right margin leaves it short of the row end and fires
+ * with the measured 40.
+ */
+{
+  line('\n- staying with the title beats being rightmost -')
+  const { CHECKS: CHS } = await import('../src/emit/checks.js')
+  const cst = CHS.find(x => x.id === 'staying-with-the-title-beats-being-rightmost')
+  assert(!!cst && cst.where === 'render', `the check ships and runs in a browser (${cst?.where})`)
+  const ts = (cst?.body || []).join('\n')
+  assert(/if \(shares\) continue/.test(ts),
+    'it asks nothing while the group shares the row, because the menu is not last there by design')
+  assert(/paddingRight/.test(ts),
+    'and measures the row end from the head CONTENT edge, since a reader head carries padding')
+  assert(/acts\.length >= 2/.test(ts),
+    'the group is a run of pressable siblings, never a class name')
+  assert(/bars = el =>/.test(ts),
+    'and the menu detector is the same two shapes the sibling rule uses')
+  assert(/UNMEASURED/.test(ts),
+    'a page where the group never leaves the row says so, because neither half exists yet')
+}
+
 line(`\n${failures === 0 ? 'ALL PASS' : `${failures} FAILURE(S)`}\n`)
 process.exit(failures ? 1 : 0)

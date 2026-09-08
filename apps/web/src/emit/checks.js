@@ -4622,8 +4622,81 @@ export const CHECKS = [
 
   {
     id: 'staying-with-the-title-beats-being-rightmost',
-    where: 'manual',
-    line: 'Rightmost and stays-with-the-title cannot both hold in one wrapping row. Staying with the title wins: the action group takes a line of its own, and the menu sits at the right end of the row it is on.',
+    where: 'render',
+    line: 'Rightmost and stays-with-the-title cannot both hold in one wrapping row. Staying with the title wins: the action group takes a line of its own, and the menu sits at the end of the row it is on.',
+    /* ── THE TEST ONLY EXISTS WHERE THE GROUP HAS LEFT THE ROW ──
+     *
+     * Both halves of the rule cannot be asked at once. While the action group
+     * shares the row, the menu is deliberately NOT rightmost among the
+     * buttons, and faulting that would fault the rule.
+     *
+     * So the check asks two things, and only where the group is on another
+     * line. The menu is still on the title line. And it sits at the end of
+     * that line, measured against the head CONTENT edge rather than its
+     * border box, because a reader head carries padding and ours does not.
+     *
+     * Measured over four surfaces and five widths: the menu shares the title
+     * line on Dashboard and Settings at 296, 320, 480 and 640, the group is
+     * on its own line in all eight, and the menu right edge equals the head
+     * right edge exactly. Above 768 the control is display: none.
+     *
+     * THE DETECTOR IS THE SAME TWO SHAPES the sibling rule uses, a disclosure
+     * or a burger read by its boxes. Two bodies cannot share a helper, so it
+     * is repeated here. Change one, change both. */
+    body: [
+      "const HEADING = \"h1, h2, h3, h4, h5, h6, [class*=title]\"",
+      "const ACTION = \"button, a[href], [role=button], .btn\"",
+      "/* A BURGER IS THREE OR FOUR STACKED BARS OF ONE SIZE, wider than tall. */",
+      "const bars = el => {",
+      "  const kids = Array.prototype.slice.call(el.children)",
+      "  if (kids.length < 3 || kids.length > 4) return false",
+      "  if (el.textContent.trim()) return false",
+      "  const boxes = kids.map(k => k.getBoundingClientRect())",
+      "  if (boxes.some(b => !b.width || !b.height)) return false",
+      "  const w = boxes[0].width, h = boxes[0].height",
+      "  if (h >= w) return false",
+      "  return boxes.every(b => Math.abs(b.width - w) < 0.6 && Math.abs(b.height - h) < 0.6)",
+      "}",
+      "const menus = []",
+      "for (const sm of all(\"details > summary\")) if (sm.parentElement) menus.push(sm.parentElement)",
+      "for (const el of all(ACTION)) {",
+      "  if (menus.some(m => m === el || m.contains(el))) continue",
+      "  if (Array.prototype.slice.call(el.querySelectorAll(\"*\")).some(bars)) menus.push(el)",
+      "}",
+      "let asked = 0",
+      "for (const ctrl of menus) {",
+      "  const head = ctrl.parentElement",
+      "  if (!head) continue",
+      "  const title = head.querySelector(HEADING)",
+      "  if (!title) continue",
+      "  /* THE GROUP IS A RUN OF PRESSABLE SIBLINGS in a box of its own. */",
+      "  let group = null",
+      "  for (const box of Array.prototype.slice.call(head.children)) {",
+      "    if (box === ctrl || box.contains(ctrl) || !visible(box)) continue",
+      "    const acts = all(ACTION).filter(b => box === b || box.contains(b))",
+      "    if (acts.length >= 2) { group = box; break }",
+      "  }",
+      "  if (!group) continue",
+      "  const c = ctrl.getBoundingClientRect(), g = group.getBoundingClientRect()",
+      "  /* WHILE THE GROUP SHARES THE ROW the menu is deliberately not last. */",
+      "  const shares = g.top < c.bottom - 0.5 && g.bottom > c.top + 0.5",
+      "  if (shares) continue",
+      "  asked++",
+      "  const t = title.getBoundingClientRect()",
+      "  if (!(c.top < t.bottom - 0.5 && c.bottom > t.top + 0.5)) {",
+      "    fail(name(ctrl), \"the action group has taken a line of its own and the menu control went with it.\"",
+      "      + \" Staying with the title wins, so order the menu BEFORE the group and let the group wrap alone.\")",
+      "    continue",
+      "  }",
+      "  const hs = getComputedStyle(head)",
+      "  const edge = head.getBoundingClientRect().right - (parseFloat(hs.paddingRight) || 0)",
+      "  const short = round(edge - c.right)",
+      "  if (short > 1) fail(name(ctrl), \"the menu control stops \" + short + \"px short of the end of its own row,\"",
+      "    + \" and the action group is on another line. Nothing else is on this row to take that seat.\")",
+      "}",
+      "if (!asked) note(\"no page head where the action group has left the menu row, so this rule is UNMEASURED here. Both halves only exist once the group wraps.\")",
+      "else note(asked + \" page head(s) measured with the group on its own line.\")",
+    ],
   },
 
   {
@@ -4849,8 +4922,70 @@ export const CHECKS = [
   },
   {
     id: 'nav-folds',
-    where: 'manual',
-    line: 'No navigation list reflows. A rail is full or a menu button, never a strip between.',
+    where: 'render',
+    line: 'No navigation list reflows. A rail is full or a menu button, never a strip between. A navigation ROW must not permit wrapping, so it cannot become two lines at any width.',
+    /* ── THREE DRAFTS, AND ONLY THE DECLARATION CAN FIRE ──
+     *
+     * COUNTING DISTINCT TOPS FAULTS EVERY RAIL. A column gives each item its
+     * own top, which is the shape this rule prescribes at a wide width. 10
+     * findings over four widths, every one a rail with items equal to lines:
+     * 6 of 6, 7 of 7, 4 of 4.
+     *
+     * AND IT FAULTS A NOWRAP ROW TOO. Two items of different heights on ONE
+     * flex line have two tops unless something stretches them. Measured on
+     * the app chrome: two nav rows at flex-wrap: nowrap, 4 items, 2 tops,
+     * 54 findings over 27 surface-width cells. A nowrap row has one line by
+     * definition, so no geometry can prove otherwise.
+     *
+     * A REAL BREAK IS AN ITEM BELOW AN EARLIER ITEM BOTTOM. That is exact,
+     * and on correct code it can never fire: `nowrap` is the INITIAL value of
+     * flex-wrap, so a row nobody asked to wrap already reads nowrap and the
+     * geometric pass asked 0 candidates. A check that always measures nothing
+     * is not a check.
+     *
+     * SO THIS DOES NOT DEMAND A STATED NOWRAP. It fails a build that states
+     * WRAP on a navigation row. One row here states nowrap and that one is
+     * load-bearing: a general `.row { flex-wrap: wrap }` in the narrow block
+     * reached the Landing header, so the bar row states its own to win.
+     *
+     * SO READ THE DECLARATION. A row that PERMITS wrapping is the fault at
+     * every width. The geometry only shows it where the items happen not to
+     * fit, which is one width out of seven. Measured after: 76 navigation
+     * rows over 36 surface-width cells, 0 permitting a wrap.
+     *
+     * The geometric branch stays for a nav that is NOT a flex box, because
+     * inline items wrap with no flex-wrap to read. It asked 0 here. */
+    body: [
+      "const NAV = \"nav, [class*=nav-list], [role=navigation]\"",
+      "let asked = 0",
+      "for (const nav of all(NAV)) {",
+      "  const cs = getComputedStyle(nav)",
+      "  const isFlex = /flex|grid/.test(cs.display)",
+      "  /* A RAIL IS A COLUMN, and a column is the correct wide layout. */",
+      "  if (isFlex && /column/.test(cs.flexDirection)) continue",
+      "  const items = Array.prototype.slice.call(nav.children).filter(visible)",
+      "  if (items.length < 2) continue",
+      "  asked++",
+      "  if (isFlex) {",
+      "    if (cs.flexWrap === \"nowrap\") continue",
+      "    fail(name(nav), \"a navigation row that PERMITS wrapping, at flex-wrap: \" + cs.flexWrap",
+      "      + \", holding \" + items.length + \" items. A nav is one line of destinations.\"",
+      "      + \" Folded to two rows it reads as two controls rather than one list.\"",
+      "      + \" Declare flex-wrap: nowrap and let a menu button take the narrow width.\")",
+      "    continue",
+      "  }",
+      "  /* A BLOCK ROW HAS NO flex-wrap TO READ, so measure the break. An item whose",
+      "     top sits at or below an earlier item bottom is on a second line. */",
+      "  const r = items.map(el => el.getBoundingClientRect())",
+      "  let broke = false",
+      "  for (let i = 1; i < r.length; i++) if (r[i].top >= r[i - 1].bottom - 0.5) broke = true",
+      "  if (!broke) continue",
+      "  fail(name(nav), \"a navigation row on two lines, holding \" + items.length + \" items.\"",
+      "    + \" A nav is one line of destinations, so it is a full rail or a menu button.\")",
+      "}",
+      "if (!asked) note(\"no navigation ROW on this page, so this rule is UNMEASURED here. A column rail is the other correct answer and is not asked.\")",
+      "else note(asked + \" navigation row(s) measured.\")",
+    ],
   },
   {
     id: 'breakpoint-moves-a-row',

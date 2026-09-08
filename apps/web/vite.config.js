@@ -260,7 +260,7 @@ export default defineConfig(({ command }) => ({
        is not a border. Then to 1155 at 1149.23, with alpha: compositing in the
        contrast layer, the opacity field, and the glass treatment. Then to 1165 at 1157.82, with the
        twenty-two consumed colour tokens and the reader guard. */
-    chunkSizeWarningLimit: 1210,
+    chunkSizeWarningLimit: 1215,
   },
 
   server: {
