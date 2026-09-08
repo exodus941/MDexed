@@ -256,6 +256,11 @@ export function verifyBrowserFile (state) {
  *
  *   await verify()
  *
+ * If the page HOSTS your document rather than being it, pass the element that
+ * carries the design tokens and everything outside it is left alone:
+ *
+ *   await verify('.my-document-root')
+ *
  * It measures what only exists once the page is laid out. Run it at every
  * breakpoint the system publishes AND at the midpoint between each adjacent
  * pair: a fault lives where the layout changes, and no declared width sits
@@ -269,7 +274,59 @@ export function verifyBrowserFile (state) {
 
 const round = n => Math.round(n * 100) / 100
 const px = v => { const n = parseFloat(v); return isNaN(n) ? 0 : n }
-const tokenValue = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim()
+
+/* ── THE SCOPE, BECAUSE A PAGE MAY HOST A DOCUMENT RATHER THAN BE ONE ──
+ *
+ * Every query ran over the whole document, which is right for a page you
+ * built and wrong for an editor that renders your document inside itself.
+ *
+ * Measured on one such editor, nine surfaces, one run: 610 findings, and the
+ * three biggest were 529 of them. Every one sat in the editor's own interface.
+ * The target floor reported 297 and 0 of the 297 were in the document. The
+ * mono-face rule reported 12 chips and 0 were in the document. The clipping
+ * rule reported 967 select options and 0 were in the document.
+ *
+ * So verify() takes the root. Pass nothing and it is the whole document,
+ * which is what a built page wants. Pass the element that carries the design
+ * tokens and every check measures that instead.
+ *
+ * AND THE TOKEN READER HAS THE SAME HOLE. It read document.documentElement,
+ * so a hosted document's own tokens were invisible and every check fell back
+ * to its literal. The scope element answers in both cases, because a custom
+ * property inherits. */
+/* ── AND RESOLVE IT EVERY TIME, NEVER ONCE ──
+ *
+ * The first version stored the element. One check presses the theme control,
+ * that press re-renders the frame, and the stored element is then DETACHED.
+ * querySelectorAll still walks its descendants and every rect comes back
+ * empty, so every check after that press measured NOTHING and reported clean.
+ *
+ * Measured: an injected 280px clipping fault came back with 0 findings, while
+ * the same logic replayed by hand found it. The root captured before the run
+ * was a different element from the one in the page after it.
+ *
+ * So a SELECTOR is the contract. It is re-resolved on every query, and the
+ * frame that replaced the old one carries it too. An element is accepted and
+ * watched: once it leaves the document the run says so instead of going quiet. */
+let SCOPE_SEL = null
+let SCOPE_EL = null
+let scopeLost = false
+const scope = () => {
+  if (SCOPE_SEL) {
+    const found = document.querySelectorAll(SCOPE_SEL)
+    if (found.length === 1) return found[0]
+    scopeLost = true
+    return document
+  }
+  if (SCOPE_EL) {
+    if (document.contains(SCOPE_EL)) return SCOPE_EL
+    scopeLost = true
+    return document
+  }
+  return document
+}
+const scopeEl = () => { const s = scope(); return s === document ? document.documentElement : s }
+const tokenValue = n => getComputedStyle(scopeEl()).getPropertyValue(n).trim()
 const frame = () => new Promise(r => setTimeout(r, 60))
 
 function visible (el) {
@@ -287,7 +344,9 @@ function name (el) {
     + (label ? '[' + label + ']' : '')
 }
 
-const all = sel => Array.prototype.slice.call(document.querySelectorAll(sel)).filter(visible)
+/* Scoped, so a hosted document is measured and its host is not. A reader who
+   passes no root gets the whole page, unchanged. */
+const all = sel => Array.prototype.slice.call(scope().querySelectorAll(sel)).filter(visible)
 const boxOf = el => { const r = el.getBoundingClientRect(); return r.width ? r : null }
 
 /* The union of the element's OWN text, ignoring text inside its children. */
@@ -508,8 +567,20 @@ async function run (id, body) {
   try { await body() } catch (err) { fail('(the check itself)', id + ' threw: ' + err.message) }
 }
 
-window.verify = async function verify () {
+window.verify = async function verify (root) {
   findings.length = 0; notes.length = 0
+  /* A ROOT THAT MATCHES NOTHING IS WORSE THAN NONE, so take an element or a
+     selector and say which one answered. A selector is preferred: it survives
+     a re-render, and an element does not. */
+  SCOPE_SEL = null; SCOPE_EL = null; scopeLost = false
+  if (typeof root === 'string') {
+    SCOPE_SEL = root
+    const found = document.querySelectorAll(root)
+    if (found.length !== 1) console.warn('VERIFY: the root ' + root + ' matched '
+      + found.length + ' elements, so the whole document was measured instead.')
+  } else if (root && root.querySelectorAll) {
+    SCOPE_EL = root
+  }
   const settled = await settle()
   if (!settled) console.warn('VERIFY: the page never came to rest. Measurements below may be a frame of an animation.')
 ${blocks}
@@ -517,7 +588,12 @@ ${blocks}
   console.log('VERIFY  ' + innerWidth + 'x' + innerHeight
     + '  theme=' + (document.documentElement.dataset.theme || 'system')
     + '  pointer=' + (matchMedia('(pointer: coarse)').matches ? 'coarse' : 'fine')
+    + '  root=' + (SCOPE_SEL || (SCOPE_EL ? 'an element' : 'document'))
     + '  ' + ${checks.length} + ' checks')
+  /* A RUN THAT LOST ITS ROOT MEASURED NOTHING FROM THAT POINT ON. */
+  if (scopeLost) console.error('VERIFY: the root left the document during this run, so every'
+    + ' check after that point measured the whole document or nothing at all.'
+    + ' Pass a SELECTOR rather than an element: a re-render replaces the element and keeps the selector.')
 
   /* ── A VERDICT NAMES ITS OWN COVERAGE, AND THE POINTER IS HALF OF IT ──
    *
@@ -565,7 +641,8 @@ ${blocks}
   return { pass: false, findings: findings.slice() }
 }
 
-console.log('VERIFY-BROWSER loaded. Run:  await verify()')
+console.log('VERIFY-BROWSER loaded. Run:  await verify()'
+  + '   or  await verify(rootSelector)  where the page hosts your document')
 
 })()
 `

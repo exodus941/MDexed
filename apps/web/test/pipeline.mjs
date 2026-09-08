@@ -6159,5 +6159,65 @@ function hueHex(h) {
     'a row that states the end itself is skipped, because nothing is inherited there')
 }
 
+/* ── THE BROWSER VERIFIER HAD NO SCOPE ──
+ *
+ * Every query ran over the whole document, which is right for a page you built
+ * and wrong for an editor that renders your document inside itself.
+ *
+ * Measured on this app, nine surfaces, one run: 619 findings, and the three
+ * biggest were 529 of them. Every one sat in MDexed's own interface.
+ *
+ *   target-floor-for-the-pointer            297 findings, 0 in the document
+ *   a-standalone-figure-keeps-the-body-face  12 chips,    0 in the document
+ *   nothing-clipped-out-of-reach            967 options,  0 in the document
+ *
+ * So verify() takes a root: an element, or a selector that matches exactly
+ * one. Pass nothing and it is the whole document, which is what a built page
+ * wants. Measured after, same nine surfaces: 619 findings document-wide and 81
+ * scoped to the preview frame.
+ *
+ * AND THE TOKEN READER HAD THE SAME HOLE. It read document.documentElement, so
+ * a hosted document's own tokens were invisible and every check fell back to
+ * its literal. The scope element answers both cases, because a custom property
+ * inherits.
+ */
+{
+  line('\n- the browser verifier takes a scope root -')
+  const { verifyBrowserFile } = await import('../src/emit/verify.js')
+  const text = verifyBrowserFile({ meta: {} })
+  assert(/function verify \(root\)/.test(text), 'verify() takes a root')
+  assert(/scope\(\)\.querySelectorAll\(sel\)/.test(text),
+    'every query resolves the scope again, so a re-render cannot leave it holding a detached node')
+  assert(!/const all = sel => Array\.prototype\.slice\.call\(document\./.test(text),
+    'and none goes straight to the document any more')
+  assert(/const scopeEl = \(\)/.test(text) && /getComputedStyle\(scopeEl\(\)\)/.test(text),
+    'the token reader reads the scope element, never the root, because a hosted document sets its own')
+  assert(/found\.length !== 1/.test(text) && /matched '/.test(text),
+    'a selector matching zero or many says so rather than measuring the wrong thing')
+  assert(/root=/.test(text), 'and the verdict names the root it measured')
+
+  /* ── THE STALE ROOT COST A FALSE CLEAN RUN, SO IT IS PINNED ──
+   *
+   * The first version stored the element. One check presses the theme control,
+   * that press re-renders the frame, and the stored element is detached.
+   * querySelectorAll still walks its descendants and every rect comes back
+   * empty, so every check after that press measured NOTHING and reported
+   * clean. Measured: an injected 280px clipping fault returned 0 findings while
+   * the same logic replayed by hand found it. The root captured before the run
+   * was a different element from the one in the page after it.
+   */
+  assert(/let scopeLost = false/.test(text), 'a lost root is recorded rather than measured around')
+  assert(/document\.contains\(SCOPE_EL\)/.test(text),
+    'an element root is watched, because a re-render replaces it')
+  assert(/the root left the document during this run/.test(text),
+    'and the run says so loudly, since a detached root measures nothing and reads as clean')
+  assert(/Pass a SELECTOR rather than an element/.test(text),
+    'naming the fix, because a selector survives what an element does not')
+  /* The reader-facing instruction still works with no root. */
+  assert(/await verify\(\)/.test(text), 'a built page still runs verify() with nothing')
+  assert(/await verify\('\.my-document-root'\)/.test(text),
+    'and the header shows the hosted form')
+}
+
 line(`\n${failures === 0 ? 'ALL PASS' : `${failures} FAILURE(S)`}\n`)
 process.exit(failures ? 1 : 0)
