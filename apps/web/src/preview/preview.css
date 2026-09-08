@@ -3058,6 +3058,24 @@
   position: absolute;
   grid-column: 2;
   grid-row: 1 / -1;
+  /* ── AND AN ABSOLUTE ITEM WITH NO INSET SHRINK-WRAPS TO ITS CONTENT ──
+   *
+   * The comment above is right that `1 / -1` needs explicit rows, and the
+   * markup states them. That was not enough. An absolutely positioned box with
+   * no inset and no size takes its content, and this layer has no content, so
+   * it measured 1x0 inside a 104px rows box. Its computed inset read 52px top
+   * and 52px bottom: the grid area, collapsed to nothing at its centre.
+   *
+   * So the axis painted a 1px line of zero height, and the gridline gradient
+   * had no box to paint in. Both were absent on two bar charts, and every
+   * geometric check passed because the box existed.
+   *
+   * `inset: 0` on BOTH axes. The block axis gives the axis line its height.
+   * The inline axis gives the gradient its width, because a horizontal bar
+   * chart reads against a horizontal value axis, so its gridlines are
+   * VERTICAL and span the track. Measured after: 421.84x104 against a track
+   * of 421.84, and the start edge still exactly on the track's own. */
+  inset: 0;
   border-inline-start: var(--ch-axis-w, 1px) solid var(--ch-axis, var(--c-border, #999));
 }
 .dmd .chart-bar .chart-grid {

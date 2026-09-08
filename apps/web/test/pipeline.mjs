@@ -5425,5 +5425,57 @@ function hueHex(h) {
   }
 }
 
+/* ── SITUATIONS: A DECLARED LINE WITH NO AREA TO PAINT IN ──
+ *
+ * Of the ten rules here, eight already had a reader. Two did not, and one of
+ * those turned out to be a live fault rather than a missing assertion.
+ *
+ * `grid-row: 1 / -1` needs explicit rows, and the markup states them, so the
+ * template resolved. The INSET was the missing half: an absolutely positioned
+ * box with no inset takes its content, and a line layer has none. Two bar
+ * charts measured 1px by 0 inside a 104px row group, with a computed inset of
+ * 52px top and bottom. The axis was absent and the gradient had no box.
+ *
+ * Every geometric check passed, because the box existed and sat where the grid
+ * put it. `a-gridline-is-quieter-than-its-axis` compares two COLOURS and has
+ * no opinion about whether either reaches the screen.
+ */
+{
+  line('\n- a declared line needs area to paint in -')
+  const { CHECKS: CH4 } = await import('../src/emit/checks.js')
+  const c = CH4.find(x => x.id === 'a-declared-line-has-area-to-paint-in')
+  assert(!!c && c.where === 'render', `the check ships and runs in a browser (${c?.where})`)
+  const t = (c?.body || []).join('\n')
+  assert(/borderTopWidth|border" \+ side/.test(t),
+    'it reads the DECLARATION, so an axis is a border rather than a class name')
+  assert(/gradient/.test(t),
+    'and a gridline set is a repeating gradient, which is one box rather than a run of elements')
+  assert(/r\.width >= 1 && r\.height >= 1/.test(t),
+    'a line needs a length as well as a width, so both sides are asked')
+  assert(/!layers/.test(t),
+    'and a run that measured no layer says so rather than passing')
+
+  /* THE STYLESHEET SIDE. The rule needs both axes, and the comment has to name
+     the cause the old one missed. */
+  {
+    const css3 = fs.readFileSync(new URL('../src/preview/preview.css', import.meta.url), 'utf8')
+    const rule = (css3.match(/\.dmd \.chart-bar \.chart-rows > \.chart-grid \{[\s\S]*?\n\}/) || [''])[0]
+    assert(/inset:\s*0/.test(rule),
+      'the bar chart layer states inset 0 on both axes')
+    assert(/grid-row:\s*1 \/ -1/.test(rule),
+      'and keeps the row span, because the template resolves and was never the fault')
+  }
+
+  /* AND THE PAYLOAD CARRIES IT, because a builder puts an axis on an absolute
+     layer and reproduces this exactly. */
+  {
+    const md = payloadTextFiles(state, derived)['DESIGN.md'].toLowerCase()
+    assert(md.includes('needs area to paint it'),
+      'the payload states that a line layer needs area')
+    assert(md.includes('inset: 0` on both axes') || md.includes('inset: 0` on both'),
+      'and names both axes, with the reason for each')
+  }
+}
+
 line(`\n${failures === 0 ? 'ALL PASS' : `${failures} FAILURE(S)`}\n`)
 process.exit(failures ? 1 : 0)

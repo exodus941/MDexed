@@ -1340,6 +1340,56 @@ export const CHECKS = [
     ],
   },
   {
+    id: 'a-declared-line-has-area-to-paint-in',
+    where: 'render',
+    line: 'A layer that declares an axis or a gridline has area on both sides, or it paints nothing.',
+    /* ── A BOX THAT EXISTS IS NOT A BOX THAT PAINTS ──
+     *
+     * A bar chart put its axis and its gridlines on one absolutely
+     * positioned grid item. An absolute box with no inset and no size takes
+     * its CONTENT, and a layer has no content, so it measured 1x0 inside a
+     * 104px rows box. Its computed inset read 52px top and 52px bottom: the
+     * grid area, collapsed to nothing at its own centre.
+     *
+     * So the value axis was absent on two bar charts, and the gridline
+     * gradient had no box to paint in.
+     *
+     * EVERY GEOMETRIC CHECK PASSED, because the box existed and sat where
+     * the grid put it. The quieter-than-its-axis check compares two COLOURS
+     * and has no opinion about whether either one reaches the screen.
+     *
+     * AND THE COMMENT BESIDE IT NAMED A DIFFERENT CAUSE. It warned that
+     * `1 / -1` needs explicit rows, which is true, and the markup states
+     * them. The template resolved. The inset was the missing half.
+     *
+     * Measured after the repair: 32 layers over the charts surface, none
+     * with a dead axis.
+     */
+    body: [
+      "/* A LAYER DECLARES ITS LINE, so read the declaration rather than guessing",
+      "   from a class name. An axis is a border. A gridline set is a repeating",
+      "   gradient, which is one box rather than a run of elements. */",
+      "let layers = 0",
+      "for (const el of all(\"[class*=chart]\")) {",
+      "  const cs = getComputedStyle(el)",
+      "  const widths = [\"Top\", \"Right\", \"Bottom\", \"Left\"]",
+      "    .map(side => parseFloat(cs[\"border\" + side + \"Width\"]) || 0)",
+      "  const edges = widths.filter(w => w > 0).length",
+      "  const gradient = cs.backgroundImage.indexOf(\"gradient\") >= 0",
+      "  if (!edges && !gradient) continue",
+      "  layers++",
+      "  const r = el.getBoundingClientRect()",
+      "  /* ONE PIXEL ON EITHER SIDE. A line needs a length as well as a width, so",
+      "     a box thinner than a pixel on either axis paints nothing at all. */",
+      "  if (r.width >= 1 && r.height >= 1) continue",
+      "  fail(name(el), \"this layer declares \" + (edges ? edges + \" edge(s)\" : \"\") + (edges && gradient ? \" and \" : \"\") + (gradient ? \"a gradient\" : \"\") + \" and measures \" + round(r.width) + \"x\" + round(r.height) + \", so it paints nothing. An absolutely positioned box with no inset takes its CONTENT, and a line layer has none. State inset 0 on both axes: the block side gives an axis its length and the inline side gives a gradient its width. Every geometric check passes on this, because the box exists and sits where the grid put it.\")",
+      "}",
+      "/* A RUN THAT MEASURED NOTHING IS NOT A PASS. */",
+      "if (!layers) note(\"no chart layer declared an edge or a gradient, so nothing was measured\")",
+      "else note(layers + \" chart layers measured for area\")",
+    ],
+  },
+  {
     id: 'a-gridline-is-quieter-than-its-axis',
     where: 'render',
     line: 'A chart axis is heavier than its gridlines, and the gridlines come off the value axis alone.',
