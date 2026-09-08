@@ -5602,5 +5602,49 @@ function hueHex(h) {
   }
 }
 
+/* ── A RATIO AND A MINIMUM FIGHT, AND THE RATIO WINS BY WIDENING ──
+ *
+ * A 140px floor at 2:1 asks for 280px of width, so inside a 296px pane the
+ * plot grew past its own track: 56px of overflow at 296, 44 at 308, 32 at 320.
+ * The floor is the decision, so the ratio has to give.
+ *
+ * The cap is in place and its measurement sits in the comment beside it.
+ * Nothing read either. So this asks the shape rather than the instance: any
+ * rule stating a ratio AND a block minimum has to cap its inline size.
+ *
+ * Measured across three stylesheets: two rules state both, and the second
+ * turns the ratio off, so one needs the cap and has it.
+ */
+{
+  line('\n- a ratio with a minimum caps its inline size -')
+  const sheets = ['../src/preview/preview.css', '../src/ui/theme.css', '../src/preview/responsive.rules.css']
+    .map(rel => fs.readFileSync(new URL(rel, import.meta.url), 'utf8')
+      .replace(/\/\*[\s\S]*?\*\//g, m => m.replace(/[^\n]/g, ' ')))
+  let both = 0, capped = 0, ratioOff = 0
+  for (const css of sheets) {
+    for (const m of css.matchAll(/([^{}@]+)\{([^{}]*)\}/g)) {
+      const d = m[2]
+      const ratio = d.match(/(?:^|[;\s])aspect-ratio\s*:\s*([^;}]+)/)
+      if (!ratio) continue
+      if (!/(?:^|[;\s])(min-height|min-block-size|min-width|min-inline-size)\s*:\s*(?!0\b)[^;}]+/.test(d)) continue
+      both++
+      /* A RULE THAT TURNS THE RATIO OFF HAS NO RATIO TO FIGHT. */
+      if (/^\s*auto\b/.test(ratio[1])) { ratioOff++; continue }
+      if (/(?:^|[;\s])(max-inline-size|max-width)\s*:/.test(d)) capped++
+    }
+  }
+  assert(both >= 1, `at least one rule states a ratio and a minimum together (${both})`)
+  assert(capped + ratioOff === both,
+    `every one of them caps its inline size or turns the ratio off (${capped} capped, ${ratioOff} off, of ${both})`)
+  /* AND THE CAP IS ON THE PLOT, which is the instance the fault came from. */
+  {
+    const plot = (sheets[0].match(/\.dmd \.chart \.chart-plot \{[^}]*\}/) || [''])[0]
+    assert(/max-inline-size:\s*100%/.test(plot),
+      'the chart plot caps at its own track, so the floor beats the ratio')
+    assert(/min-block-size:\s*140px/.test(plot),
+      'and keeps the floor, because a plot too short to read a value in is the fault it prevents')
+  }
+}
+
 line(`\n${failures === 0 ? 'ALL PASS' : `${failures} FAILURE(S)`}\n`)
 process.exit(failures ? 1 : 0)
