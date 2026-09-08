@@ -1888,6 +1888,14 @@ line('\n- prompt construction -')
     ['a target is as small as its smaller side', ['smaller side', '28 wide by 44 tall']],
     ['the overhang asks its host, not a token', ['resolves against the containing block', 'min` against zero']],
     ['the floor is a property, never a list of selectors', ['max(its own height', 'the parity rule was the thing defeating the floor']],
+    /* Three more from the same session, each a mechanism a builder reaches for
+       that looks equivalent to the right one. */
+    /* The leading asymmetry itself is stated ONCE, in the spacing section, and
+       this rule points at it rather than restating it. The duplicate check
+       caught the restatement at 0.83 overlap, which is what it is for. */
+    ['a one-line slot is not the cap band', ['a box exactly one line tall', 'needs the font']],
+    ['a box in a baseline row declares itself out', ['align-self: flex-start` on that button', '4.63 against 7.13']],
+    ['a shared row class publishes the inside-a-group gap', ['gap for a run of like things', '1.0:1, so five things read as one run']],
     ['the theme toggle is a visible lightbulb control', ['visible icon control carrying a lightbulb', 'same target size as any other control in its row']],
     /* ── THE MECHANISM, AND WHY THIS ASSERTION EXISTS AT ALL ──
      *
@@ -4954,12 +4962,26 @@ function hueHex(h) {
     const bare = PREVIEW.replace(/\/\*[\s\S]*?\*\//g, m => m.replace(/[^\n]/g, ' '))
     const carrying = [...bare.matchAll(/([^{}@]+)\{([^{}]*)\}/g)]
       .filter(b => /translateY\(calc\(\(100% - 0\.75em\)/.test(b[2]))
-    /* TWO RULES CARRY IT, and the second is not a mistake. A legend dot takes
-       the same transform: a mark with no text of its own would otherwise take
-       its baseline from its bottom margin edge and hang its whole height above
-       the line. So find the rule about CONTROLS rather than counting. */
-    assert(carrying.length === 2,
-      `the lift is stated in two places, the controls and the legend dot (${carrying.length})`)
+    /* THREE RULES CARRY IT, and none is a mistake. Assert the SET, never the
+       count, so a fourth addition says which one it is.
+
+       The CONTROLS rule is the one with the two exclusions. A LEGEND DOT has
+       no text of its own, so without the lift it takes its baseline from its
+       bottom margin edge and hangs its whole height above the line. An ALERT'S
+       mark used to be centred in a one-line slot, which put it on the line
+       box's centre rather than the cap band's: measured 5.5px above the cap
+       against 0 below the baseline, on five alerts. */
+    const homes = carrying.map(b => b[1].trim().split(',')[0].trim())
+    for (const [what, needle] of [
+      ['the controls', /\.btn:not\(/],
+      ['the legend dot', /chart-key|\.dot/],
+      ['an alert mark', /\.alert/],
+    ]) {
+      assert(carrying.some(b => needle.test(b[1])),
+        `the cap-band lift reaches ${what} (${homes.length} rules carry it)`)
+    }
+    assert(carrying.length === 3,
+      `and nothing else carries it (${carrying.length}: ${homes.join(' | ').slice(0, 70)})`)
     const controls = carrying.find(b => /\.btn:not\(/.test(b[1]))
     assert(!!controls, 'one of them is the control rule, found by the exclusion it carries')
     /* BLANK WHAT IS INSIDE `:not()` BEFORE ASKING WHICH BRANCH THIS IS. The

@@ -113,7 +113,11 @@ export default function Index ({ onInspect, casing, layout }) {
        * filter and a sort are not fields you type into — they are controls you
        * press that open a list. The button is the right primitive, and it
        * brings the row to one height for free. */}
-      <div className="row row-wrap row-controls">
+      {/* `row-groups`, because the two children ARE groups: a field with its
+          own mark, and an action group with its own gap. On the plain `.row`
+          gap this read 8px between them against 8px inside, 1.0:1, so five
+          things looked like one run. See the primitive for the ratio. */}
+      <div className="row row-wrap row-controls row-groups">
         {/* No inline display or centring: `label.input.with-icon` states both,
             so a second copy here would be the hand-rolling the guard exists to
             catch. `min-width` floors it at its own content — measured, it shrank

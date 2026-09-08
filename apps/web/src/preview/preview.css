@@ -685,6 +685,25 @@
  * button beside it. Count what the row holds, then choose. */
 .dmd .row.row-controls { align-items: center; }
 
+/* ── A ROW HOLDING TWO GROUPS NEEDED A PRIMITIVE AND HAD NONE ──
+ *
+ * `.row` publishes the gap for a run of like things, 8px, and that is the gap
+ * INSIDE a group. A row whose children are groups needs the between-groups
+ * number, and nothing published one. So the toolbar on the index sat at 8px
+ * between a search field and its action group, with 8px inside each: 1.0:1,
+ * where the rule wants three. A reader cannot tell two groups from five items.
+ *
+ * A missing token gets invented. This is the token.
+ *
+ * BOTH AXES, because here a line break IS a group boundary. That is the
+ * opposite of a wrapped run of buttons, where one gap serves both axes because
+ * the pairs are not groups anybody reads.
+ *
+ * The ratio is the rule and CSS cannot compute it: no selector can ask what
+ * gap a descendant declared. This states the outer step, and a group inside it
+ * must stay at or under a third of it. 24 against 8 is exactly 3:1. */
+.dmd .row.row-groups { gap: var(--space-lg, 24px); }
+
 .dmd label.input.with-icon {
   display: inline-flex; gap: var(--cmp-input-gap, var(--space-2xs, 4px));
   height: var(--cmp-input-height, 36px);
@@ -853,10 +872,33 @@
 
    (No backticks in this comment: it lives inside a template literal, and one
    stray backtick ends the string and turns the CSS below into JavaScript.) */
+/* ── AND THE SLOT CENTRED THE MARK ON THE LINE BOX, NOT ON THE CAP BAND ──
+ *
+ * The paragraph above is right that the mark belongs to the FIRST line, and
+ * the slot is the wrong instrument for putting it there. A line box carries
+ * more leading below the baseline than above the cap, so its centre sits above
+ * the cap band's centre. Measured on five alerts: 5.5px above the cap line
+ * against 0 below the baseline, so the mark sat 2.75px high. `iconOffCentre`
+ * had been reporting exactly that.
+ *
+ * No formula in `em` can fix it inside the slot, because the distance from a
+ * line box's top to the cap line needs the FONT'S ascent, which CSS cannot
+ * name. The published rule anchors on the BASELINE instead, which CSS does
+ * know, so the row has to declare the baseline for the mark's lift to land.
+ * Measured after: 2.75 above and 2.75 below, on all five, including the one
+ * whose message wraps to three lines.
+ *
+ * THE ACTION KEEPS ITS SLOT, AND `align-self` IS WHY IT CAN. A button taller
+ * than a line is centred correctly by the slot: 5.5 against 6.25, which is
+ * 0.375px off and below any threshold worth a repair. Under the row's new
+ * baseline it went to 4.63 against 7.13, so it declares `flex-start` for
+ * itself and stays exactly where it was. Two children, two alignments, one
+ * row. Three other variants were measured and each moved the action further:
+ * -1.25 against 13 for a cap-band transform on it, and the same for a strut. */
 .dmd .alert {
   --line-box: calc(1em * var(--font-body-sm-leading, 1.55));
   display: flex;
-  align-items: flex-start;
+  align-items: baseline;
   gap: var(--icon-gap, 8px);
   background-color: var(--cmp-alert-background-color, var(--c-bg-subtle, #f4f4f4));
   color: var(--cmp-alert-text-color, var(--c-text, #111));
@@ -873,6 +915,18 @@
   align-items: center;
   flex-shrink: 0;
 }
+/* The mark sits between the first line's cap height and its baseline, which is
+   the rule every other mark in this file obeys. See the block above the alert
+   for the measurement and for why the slot could not do it. */
+.dmd .alert > .icon,
+.dmd .alert > svg {
+  vertical-align: baseline;
+  align-self: baseline;
+  transform: translateY(calc((100% - 0.75em) / 2));
+}
+/* The action is a BOX, not a mark, so it keeps the slot that centres it on the
+   line. Declared for itself, because the row is on the baseline for the mark. */
+.dmd .alert > .alert-action { align-self: flex-start; transform: none; }
 .dmd .alert > .alert-body { flex: 1; min-width: 0; }
 /* ── A PUBLISHED TOKEN THAT NOTHING READS IS INVISIBLE ──
  *
@@ -1175,7 +1229,25 @@
 
    Three classes, because the narrow-width sheet restates `align-items: center`
    at two and a rule of equal weight cannot be relied on to come last. */
-.dmd .nav-item.with-icon { display: flex; align-items: baseline; }
+/* ── AND A BASELINE ROW INSIDE A FIXED-HEIGHT BOX PINS ITS OWN LABEL ──
+ *
+ * Two rules of ours pulling opposite ways, and both are right. The mark needs
+ * the ROW on the label's baseline or the cap-band lift has nothing to land on.
+ * The box needs its content CENTRED, because a nav item is floored at the
+ * touch target and its line is half that.
+ *
+ * Baseline alignment packs the single flex line to the top and leaves every
+ * pixel of slack underneath. Measured in a 44px item with a 21.84px line: the
+ * label sat 3 to 3.5px above the box centre, on 15 items across four surfaces.
+ * Nothing had ever run the fixed-height check on those surfaces.
+ *
+ * `align-content` decides where the LINE sits and `align-items` decides where
+ * the items sit within it, so the two compose instead of arguing. It needs
+ * `flex-wrap: wrap`, because `align-content` is ignored on a nowrap box. */
+.dmd .nav-item.with-icon {
+  display: flex; align-items: baseline;
+  flex-wrap: wrap; align-content: center;
+}
 .dmd .icon { flex-shrink: 0; }
 /* Per-component icon sizing overrides the global scale, so a small button can
    carry a smaller glyph than a large one. */
@@ -3347,6 +3419,17 @@
 .dmd .tab {
   display: inline-flex;
   align-items: baseline;
+  /* ── AND THE TOUCH FLOOR RAISES THIS BOX, SO ITS LABEL HAS TO CENTRE ──
+     A baseline row pins its single flex line to the top and leaves the slack
+     underneath. The tab's own padding makes a box the height of its content,
+     where that is invisible; the coarse-pointer floor takes it to 44px with a
+     22.26px line, and the label went 6px high. Measured at every one of 13
+     widths on a finger, and reported by nothing on a mouse.
+     `align-content` places the LINE and `align-items` places the items in it,
+     so the mark keeps the cap band. It needs `wrap`, because `align-content`
+     is ignored on a nowrap box. Same fix as the nav item above. */
+  flex-wrap: wrap;
+  align-content: center;
   gap: var(--cmp-tab-gap, var(--space-2xs, 4px));
   /* A strip is one line of destinations. A tab that shrinks is a tab whose
      label wraps, so it holds its content width and the strip scrolls. */
