@@ -2457,6 +2457,12 @@ line('\n- project file -')
        links went to 44 — in one column, at every width. */
     '.nav-item { min-height: var(--target-min, 44px); }',
     '.nav-list > .btn { height: 40px; line-height: 38px; }',
+    /* a-default-goes-first-in-the-file: the container-flow default written at
+       the BOTTOM, after components that state their own distance. Both weigh
+       the same, so order decides the tie and the default deletes whatever a
+       component chose. Measured once as a card action row falling from
+       34.25px off the foot to 12 on three cards. */
+    '.card > * + * { margin-block-start: var(--space-md); }',
   ].join('\n'))
   write('broken.html', [
     '<html data-theme="light">',                 /* hardcoded-theme */
@@ -5985,6 +5991,87 @@ function hueHex(h) {
     'and says so when it could not restore, since every later check then reads the other theme')
   assert(/nothing to press/.test(tt) && !/no theme control found/.test(tt),
     'a page with no control is a note, not a fault: it reported 6 of 9 correct surfaces')
+}
+
+/* ── A DEFAULT GOES FIRST IN THE FILE, AND ONLY A PARSER CAN ASK IT ──
+ *
+ * The render pass reads a computed value and has no opinion about which rule
+ * won or where it sat. Order in the file is the whole question.
+ *
+ * Measured on this stylesheet: the container-flow default sits at line 104 and
+ * the first other block-start margin at 172, over 13 such rules. The other two
+ * sheets publish no flow default and are skipped. The zeroing exemptions are
+ * not defaults and may follow it, which is why the check compares the first
+ * flow default against the first rule that is not one.
+ *
+ * The fault is in `broken.css` now, so the shipped check is proven both ways by
+ * the two fixtures above: it fires on the injected default written last, and
+ * stays quiet on the clean fixture, which publishes no flow default at all.
+ */
+{
+  line('\n- a default goes first in the file -')
+  const { CHECKS: CHD } = await import('../src/emit/checks.js')
+  const cd = CHD.find(x => x.id === 'a-default-goes-first-in-the-file')
+  assert(!!cd && cd.where === 'source', `the check ships and reads the source (${cd?.where})`)
+  const td = (cd?.body || []).join('\n')
+  assert(/f\.bare\b/.test(td), 'it reads the comment-blanked text, so a rule quoted in prose is not a rule')
+  assert(/margin\(-block-start\|-top\)/.test(td), 'and both spellings of the property')
+  assert(/flowAt < otherAt/.test(td),
+    'the flow default has to come first, because both weigh the same and order decides the tie')
+
+  /* AND OUR OWN STYLESHEET OBEYS IT, measured rather than assumed. */
+  {
+    const bare = fs.readFileSync(new URL('../src/preview/preview.css', import.meta.url), 'utf8')
+      .replace(/\/\*[\s\S]*?\*\//g, m => m.replace(/[^\n]/g, ' '))
+    let flowAt = -1, otherAt = -1
+    const re = /([^{}@]+)\{([^{}]*)\}/g
+    let m
+    while ((m = re.exec(bare))) {
+      if (!/(^|[;{\s])margin(-block-start|-top)\s*:/.test(m[2])) continue
+      if (/>\s*\*\s*\+\s*\*/.test(m[1])) { if (flowAt < 0) flowAt = m.index }
+      else if (otherAt < 0) otherAt = m.index
+    }
+    assert(flowAt >= 0, 'the preview stylesheet publishes a container-flow default')
+    assert(flowAt < otherAt, `and it sits ahead of every component stating its own distance (${flowAt} < ${otherAt})`)
+  }
+}
+
+/* ── AN ORNAMENT COLUMN TAKES ITS CONTENT ──
+ *
+ * The subject is a property of the cells, never a class: every cell in the
+ * column holds a pressable thing and none holds text.
+ *
+ * THE TEST IS ITS OWN CONTENT, not a comparison with another column. A
+ * row-action column holding three buttons is legitimately wider than a narrow
+ * data column, so "the narrowest column" is the wrong question. Measured on the
+ * one instance here: 16px of drawn box plus 28 and 16 of padding is 60, and the
+ * column measures 60.00 exactly.
+ *
+ * Proven by setting that column to 200px, which fires with 137.14px of slack.
+ */
+{
+  line('\n- an ornament column takes its content -')
+  const { CHECKS: CHO } = await import('../src/emit/checks.js')
+  const co = CHO.find(x => x.id === 'an-ornament-column-takes-its-content')
+  assert(!!co && co.where === 'render', `the check ships and runs in a browser (${co?.where})`)
+  const to = (co?.body || []).join('\n')
+  assert(/textContent\.trim\(\)\.length/.test(to),
+    'an ornament column holds words in no cell, which is a property rather than a class')
+  assert(/cells\.every/.test(to),
+    'and a control in every cell, so one stray button does not make a data column ornament')
+  assert(/content >= inner - 1/.test(to),
+    'a stretched child cannot answer this, so it says so rather than passing')
+  assert(/slack <= 2/.test(to),
+    'and the threshold is on the slack in whole pixels')
+
+  /* THE DECLARATION IT GUARDS. `width: 1%` means content and no more. */
+  {
+    const css = fs.readFileSync(new URL('../src/preview/preview.css', import.meta.url), 'utf8')
+    const rule = (css.match(/\.dmd \.table \.sel-col \{[^}]*\}/) || [''])[0]
+    assert(/width:\s*1%/.test(rule), 'the selection column takes width: 1%, which is its content and no more')
+    assert(/min-width:\s*var\(--target-min/.test(rule),
+      'with a floor at the touch target, because a 16px box asks for less than the minimum')
+  }
 }
 
 line(`\n${failures === 0 ? 'ALL PASS' : `${failures} FAILURE(S)`}\n`)

@@ -4563,8 +4563,64 @@ export const CHECKS = [
 
   {
     id: 'an-ornament-column-takes-its-content',
-    where: 'manual',
-    line: 'Shrink the ornament columns rather than growing a content one. A checkbox or row-action column takes width: 1%, and the slack spreads across the columns holding data.',
+    where: 'render',
+    line: 'Shrink the ornament columns rather than growing a content one. A checkbox or row-action column takes width: 1%, which means its content and no more, and the slack spreads across the columns holding data.',
+    /* ── AN ORNAMENT COLUMN HOLDS A CONTROL AND NO WORDS ──
+     *
+     * That is a property of the cells, never a class. Every cell in the
+     * column holds a pressable thing and none of them holds text.
+     *
+     * THE TEST IS ITS OWN CONTENT, not a comparison with another column. A
+     * row-action column holding three buttons is legitimately wider than a
+     * narrow data column, so "narrowest column" is the wrong question.
+     * Measured on the one instance here: 16px of drawn box plus 28 and 16 of
+     * padding is 60, and the column measures 60.00 exactly.
+     *
+     * A STRETCHED CHILD MAKES IT UNMEASURABLE, so say so rather than pass. A
+     * child at width: 100% reports the content as the whole inner width, and
+     * then the sum always equals the column. */
+    body: [
+      "const PRESS = \"button, input, select, [role=button], [role=checkbox], [role=switch], .btn, .checkbox, .switch\"",
+      "let asked = 0",
+      "for (const table of all(\"table\")) {",
+      "  const rows = Array.prototype.slice.call(table.querySelectorAll(\"tr\")).filter(visible)",
+      "  if (rows.length < 2) continue",
+      "  let cols = 0",
+      "  for (const r of rows) if (r.children.length > cols) cols = r.children.length",
+      "  for (let c = 0; c < cols; c++) {",
+      "    const cells = rows.map(r => r.children[c]).filter(Boolean).filter(visible)",
+      "    if (cells.length < 2) continue",
+      "    /* ORNAMENT: a control in every cell, and words in none. */",
+      "    if (cells.some(x => x.textContent.trim().length)) continue",
+      "    if (!cells.every(x => x.matches(PRESS) || x.querySelector(PRESS))) continue",
+      "    const cell = cells[0]",
+      "    const cs = getComputedStyle(cell)",
+      "    const pad = (parseFloat(cs.paddingLeft) || 0) + (parseFloat(cs.paddingRight) || 0)",
+      "    const box = cell.getBoundingClientRect()",
+      "    const inner = box.width - pad",
+      "    const kids = Array.prototype.slice.call(cell.children).filter(visible)",
+      "    if (!kids.length) continue",
+      "    const rects = kids.map(k => k.getBoundingClientRect())",
+      "    let lo = Infinity, hi = -Infinity",
+      "    for (const r of rects) { if (r.left < lo) lo = r.left; if (r.right > hi) hi = r.right }",
+      "    const content = hi - lo",
+      "    /* A STRETCHED CHILD CANNOT ANSWER THIS. */",
+      "    if (content >= inner - 1) {",
+      "      note(\"an ornament column whose child fills the cell, so its own content cannot be measured: \" + name(cell))",
+      "      continue",
+      "    }",
+      "    asked++",
+      "    const slack = round(box.width - (content + pad))",
+      "    if (slack <= 2) continue",
+      "    fail(name(cell), \"an ornament column \" + round(box.width) + \"px wide holding \" + round(content)",
+      "      + \"px of content plus \" + round(pad) + \"px of padding, so it has taken \" + slack",
+      "      + \"px of slack. A checkbox or row-action column takes its content and no more, at width: 1%,\"",
+      "      + \" and the slack belongs to the columns holding data.\")",
+      "  }",
+      "}",
+      "if (!asked) note(\"no ornament column on this page, so this rule is UNMEASURED here. One holds a control in every cell and words in none.\")",
+      "else note(asked + \" ornament column(s) measured against their own content.\")",
+    ],
   },
 
   {
@@ -5002,14 +5058,78 @@ export const CHECKS = [
 
   {
     id: 'a-default-goes-first-in-the-file',
-    where: 'manual',
+    where: 'source',
     line: 'A default that publishes a distance for a container children goes FIRST in the file. Written last it beats every component stating its own, because both sit at the same specificity and order decides a tie.',
+    /* ── A PARSER CAN ANSWER THIS EXACTLY, AND ONLY A PARSER CAN ──
+     *
+     * The render pass reads a computed value and has no opinion about which
+     * rule won or where it sat. Order in the file is the whole question, so
+     * it belongs on this side.
+     *
+     * A CONTAINER-FLOW DEFAULT is a child-sibling selector publishing the
+     * distance above each child. It cost this project a measured fault:
+     * written at the bottom it deleted the auto margin holding an action row
+     * on a stretched card foot, and a gap fell from 34.25px to 12 on three
+     * cards.
+     *
+     * THE ZEROING EXEMPTIONS ARE NOT DEFAULTS, so they may follow it. They
+     * declare a margin too, which is why the check compares the FIRST flow
+     * default against the first rule that is not one.
+     *
+     * Measured on this stylesheet: the default sits at line 104 and the first
+     * other block-start margin at 172, over 13 such rules. The other two
+     * sheets publish no flow default and are skipped. */
+    body: [
+      "const MARGIN = /(^|[;{\\s])margin(-block-start|-top)\\s*:/",
+      "const FLOW = />\\s*\\*\\s*\\+\\s*\\*/",
+      "for (const f of files.filter(f => f.css)) {",
+      "  let flowAt = -1, flowLine = 0, otherAt = -1, otherLine = 0, otherSel = \"\"",
+      "  const re = /([^{}@]+)\\{([^{}]*)\\}/g",
+      "  let m",
+      "  while ((m = re.exec(f.bare))) {",
+      "    const sel = m[1].trim(), decl = m[2]",
+      "    if (!MARGIN.test(decl)) continue",
+      "    const line = f.bare.slice(0, m.index).split(\"\\n\").length",
+      "    if (FLOW.test(sel)) { if (flowAt < 0) { flowAt = m.index; flowLine = line } }",
+      "    else if (otherAt < 0) { otherAt = m.index; otherLine = line; otherSel = sel.replace(/\\s+/g, \" \") }",
+      "  }",
+      "  if (flowAt < 0 || otherAt < 0 || flowAt < otherAt) continue",
+      "  fail(f.path, flowLine, \"this container-flow default sits AFTER a rule that states its own distance, at line \"",
+      "    + otherLine + \" (\" + otherSel.slice(0, 60) + \"). Both weigh the same, so order decides the tie and the default wins.\"",
+      "    + \" It then deletes whatever a component chose. Move the default to the top of the file, ahead of every component.\")",
+      "}",
+    ],
   },
 
   {
     id: 'alignment-is-stated-never-inherited',
     where: 'manual',
     line: 'Alignment is stated, never inherited from a group that may vanish. A header actions sat at the end only because a neighbouring group carried flex: 1, and that group is hidden at narrow widths: measured, 226px of empty bar beside them. Put the auto margin on the thing that must stay at the end.',
+    /* ── MEASURED, AND IT NEEDS A QUESTION THE DOM CANNOT ANSWER ──
+     *
+     * The shape is readable. A flex row whose last child sits at the row's
+     * content end, where neither the row nor that child declares it, and where
+     * a SIBLING absorbed the slack. Measured over nine surfaces: 69 candidates
+     * and 13 such rows.
+     *
+     * ALL 13 ARE CORRECT CODE, because the growth IS the mechanism there. A
+     * `.pair` grows its labelled button so the icon keeps its square, an alert
+     * grows its body so the action sits at the end, and a row grows its field
+     * so the button does. Faulting those contradicts the rules that ask for
+     * them.
+     *
+     * THE MISSING HALF IS "CAN THAT SIBLING VANISH", and only the CSS knows.
+     * The test is a rule inside a media or container query that sets
+     * display: none and matches the grower. The CSSOM route failed: 25
+     * condition blocks were found and 0 rules inside them read as
+     * display: none, while the source holds five. A dev server injects its
+     * sheets, and this project has already measured that reading the CSSOM
+     * alone returns nothing.
+     *
+     * So it needs the stylesheet TEXT plus selector matching, which is the
+     * machinery `a-class-styles-something-where-it-sits` already carries. It
+     * stays manual until that is shared rather than copied. Do not promote it
+     * on the geometry alone: 13 of 13 were correct code. */
   },
 
   /* ── THIS CHECK USED TO FORBID THE RIGHT ANSWER ──
