@@ -865,9 +865,21 @@
   flex-shrink: 0;
 }
 .dmd .alert > .alert-body { flex: 1; min-width: 0; }
-.dmd .alert-success { background-color: var(--cmp-alert-success-background-color, var(--c-success-subtle, #e6f2eb)); color: var(--cmp-alert-success-text-color, var(--c-success, #3f8f63)); }
-.dmd .alert-warning { background-color: var(--cmp-alert-warning-background-color, var(--c-warning-subtle, #f7efe0)); color: var(--cmp-alert-warning-text-color, var(--c-warning, #c08a2e)); }
-.dmd .alert-danger  { background-color: var(--cmp-alert-danger-background-color, var(--c-danger-subtle, #f7e8e7));  color: var(--cmp-alert-danger-text-color, var(--c-danger, #c2453c)); }
+/* ── A PUBLISHED TOKEN THAT NOTHING READS IS INVISIBLE ──
+ *
+ * The alert declares a `borderColor` on all four variants and the emitter
+ * publishes every one. No rule consumed them, and the base rule set
+ * `border: 1px solid currentColor`, so the border always took the TEXT colour.
+ * Setting the border colour in the editor changed nothing on screen, in the
+ * inline preview or in the preview pane. They found it.
+ *
+ * `currentColor` stays as the fallback, so a document that publishes no border
+ * colour paints exactly what it painted before. */
+.dmd .alert { border-color: var(--cmp-alert-border-color, currentColor); }
+.dmd .alert-info    { background-color: var(--cmp-alert-info-background-color, var(--c-bg-subtle, #f4f4f4));         color: var(--cmp-alert-info-text-color, var(--c-text, #111));          border-color: var(--cmp-alert-info-border-color, currentColor); }
+.dmd .alert-success { background-color: var(--cmp-alert-success-background-color, var(--c-success-subtle, #e6f2eb)); color: var(--cmp-alert-success-text-color, var(--c-success, #3f8f63)); border-color: var(--cmp-alert-success-border-color, currentColor); }
+.dmd .alert-warning { background-color: var(--cmp-alert-warning-background-color, var(--c-warning-subtle, #f7efe0)); color: var(--cmp-alert-warning-text-color, var(--c-warning, #c08a2e)); border-color: var(--cmp-alert-warning-border-color, currentColor); }
+.dmd .alert-danger  { background-color: var(--cmp-alert-danger-background-color, var(--c-danger-subtle, #f7e8e7));   color: var(--cmp-alert-danger-text-color, var(--c-danger, #c2453c));   border-color: var(--cmp-alert-danger-border-color, currentColor); }
 
 /* ── Structure ── */
 /* Icon + label pairings, wherever they appear. One gap token governs them all.
