@@ -232,10 +232,22 @@ export const COMPONENT_LIBRARY = [
        that shipped 400, 500, 400, so only the middle button was set in medium
        and no rule said why. Restating the weight after the role is what makes
        the three read as one control at three sizes. */
+    /* ── NO GAP PER SIZE. THE MARK GAP IS ONE VALUE ──
+
+       These read 2, 4 and 8px against the 8 the mark gap publishes, and
+       the preview paints 8 for all three. It is the per-size mark pattern
+       this system already rejected for the mark SIZE, and for the same
+       reason: every rule that resizes a button then has to remember to
+       resize its gap.
+
+       The small end was worse than untidy. 2px put a mark against its
+       own word, and the legend-dot rule calls that out at 4.
+
+       The base states `gap: {spacing.xs}`, which every size now takes. */
     sizes: {
-      sm: { height: '28px', padding: '0 {spacing.sm}',  typography: 'caption',  fontWeight: '500', gap: '{spacing.3xs}' },
-      md: { height: '36px', padding: '0 {spacing.md}',  typography: 'button',   fontWeight: '500', gap: '{spacing.2xs}' },
-      lg: { height: '44px', padding: '0 {spacing.lg}',  typography: 'body-md',  fontWeight: '500', gap: '{spacing.xs}' },
+      sm: { height: '28px', padding: '0 {spacing.sm}',  typography: 'caption',  fontWeight: '500' },
+      md: { height: '36px', padding: '0 {spacing.md}',  typography: 'button',   fontWeight: '500' },
+      lg: { height: '44px', padding: '0 {spacing.lg}',  typography: 'body-md',  fontWeight: '500' },
     },
     states: {
       hover:    { primary: { backgroundColor: '{colors.accent-hover}' }, secondary: { backgroundColor: '{colors.bg-subtle}' }, ghost: { backgroundColor: '{colors.accent-subtle}', textColor: '{colors.accent}' }, danger: { backgroundColor: '{colors.danger-hover}' }, 'danger-ghost': { backgroundColor: '{colors.danger-subtle}', textColor: '{colors.danger}' } },
@@ -258,7 +270,7 @@ export const COMPONENT_LIBRARY = [
       /* A field holds a leading mark often enough that the distance has to be
          published. Left unstated, the builder invents one per field. */
       rounded: '{rounded.md}', height: '36px', padding: '0 {spacing.sm}', typography: 'body-sm',
-      gap: '{spacing.2xs}', iconSize: '{icons.md}',
+      gap: '{spacing.xs}', iconSize: '{icons.md}',
     },
     states: {
       focus:    { _: { borderColor: '{colors.ring}', outline: '{focus.width} solid {colors.ring}', outlineOffset: '{focus.offset}' } },
@@ -281,7 +293,7 @@ export const COMPONENT_LIBRARY = [
       rounded: '{rounded.md}', height: '36px', padding: '0 {spacing.sm}', typography: 'body-sm',
       /* The chevron sits at the far end of the value, and its distance is a
          decision. Unpublished, every select in a build picks its own. */
-      gap: '{spacing.2xs}', iconSize: '{icons.md}',
+      gap: '{spacing.xs}', iconSize: '{icons.md}',
     },
   },
   {
@@ -452,7 +464,7 @@ export const COMPONENT_LIBRARY = [
   },
   {
     name: 'nav-item', label: 'Nav item', group: 'Navigation', on: true,
-    base: { rounded: '{rounded.md}', padding: '{spacing.xs} {spacing.sm}', typography: 'body-sm', textColor: '{colors.text-muted}', gap: '{spacing.2xs}', iconSize: '{icons.md}' },
+    base: { rounded: '{rounded.md}', padding: '{spacing.xs} {spacing.sm}', typography: 'body-sm', textColor: '{colors.text-muted}', gap: '{spacing.xs}', iconSize: '{icons.md}' },
     states: {
       hover:    { _: { backgroundColor: '{colors.bg-subtle}', textColor: '{colors.text}' } },
       selected: { _: { backgroundColor: '{colors.accent-subtle}', textColor: '{colors.accent}' } },
@@ -473,7 +485,7 @@ export const COMPONENT_LIBRARY = [
      underline is a shadow so it adds no height and breaks no line. */
   {
     name: 'tab', label: 'Tab', group: 'Navigation', on: true,
-    base: { padding: '{spacing.xs} {spacing.sm}', typography: 'body-sm', textColor: '{colors.text-muted}', gap: '{spacing.2xs}', iconSize: '{icons.md}' },
+    base: { padding: '{spacing.xs} {spacing.sm}', typography: 'body-sm', textColor: '{colors.text-muted}', gap: '{spacing.xs}', iconSize: '{icons.md}' },
     /* States come from TAB_STYLES, chosen by `components.tabStyle`. */
     states: {},
   },
