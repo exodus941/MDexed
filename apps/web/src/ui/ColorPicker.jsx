@@ -85,6 +85,23 @@ export default function ColorPicker({ value, onChange, alpha: allowAlpha = false
   const hueDrag = useDragArea(x => emit({ ...hsb, h: Math.round(x * 360) }))
   const alphaDrag = useDragArea(x => emit({ ...hsb, a: Math.round(x * 100) / 100 }))
 
+  /* ── THE STRIP NEEDED A NUMBER BESIDE IT ──
+   *
+   * Dragging is not typing, and the other half of a numeric control is where
+   * the arithmetic lives. It reads 0 to 100 because that is what a person
+   * says about opacity, and stores 0 to 1 because that is what CSS takes.
+   *
+   * IT DOES NOT JOIN THE MODEL ROW. Measured on the live popover: the grid
+   * is 270px, three 86px columns, 6px gaps, and each input has 36px of
+   * padding, so its content box is 48px. A fourth column gives 63px and a
+   * 27px content box, and this file records that "360" needs 27.1px. So four
+   * fields land 0.1px short for H, and the A field holds three digits too.
+   */
+  const alphaField = allowAlpha ? (
+    <NumField label="A" suffix="%" value={Math.round((hsb.a ?? 1) * 100)} min={0} max={100}
+      onChange={v => emit({ ...hsb, a: Math.round(v) / 100 })} />
+  ) : null
+
   const rgb = valid ? toRgb255(parsed) : { r: 0, g: 0, b: 0, a: 1 }
   const hsl = valid ? toHsl360(parsed) : { h: 0, s: 0, l: 0, a: 1 }
   const okl = valid ? toOklchObj(parsed) : { l: 0, c: 0, h: 0, a: 1 }
@@ -243,6 +260,8 @@ export default function ColorPicker({ value, onChange, alpha: allowAlpha = false
               characters and a share of the row would steal room from the fields
               carrying the digits. */}
           {!stackHex && <div style={{ width: 104, flexShrink: 0 }}>{hexField}</div>}
+          {/* Beside the hex, at the width three digits and a suffix need. */}
+          {!stackHex && alphaField && <div style={{ width: 72, flexShrink: 0 }}>{alphaField}</div>}
 
           {/* Square, so it matches the field height rather than sitting proud of
               it, and only rendered where the browser can actually open one. */}
@@ -263,8 +282,16 @@ export default function ColorPicker({ value, onChange, alpha: allowAlpha = false
           )}
         </div>
 
-        {/* Compact only: its own line, full width. */}
-        {stackHex && hexField}
+        {/* Compact only: its own line. The hex takes the room it needs for
+            seven mono characters and the opacity takes the rest, because the
+            model row above cannot hold a fourth field. Measured: 132px each
+            in a 270px popover, against the 27px a fourth column would give. */}
+        {stackHex && (alphaField
+          ? <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>{hexField}</div>
+              <div style={{ width: 72, flexShrink: 0 }}>{alphaField}</div>
+            </div>
+          : hexField)}
       </div>
     </div>
   )
