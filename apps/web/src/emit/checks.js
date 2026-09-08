@@ -5118,33 +5118,111 @@ export const CHECKS = [
 
   {
     id: 'alignment-is-stated-never-inherited',
-    where: 'manual',
+    where: 'render',
     line: 'Alignment is stated, never inherited from a group that may vanish. A header actions sat at the end only because a neighbouring group carried flex: 1, and that group is hidden at narrow widths: measured, 226px of empty bar beside them. Put the auto margin on the thing that must stay at the end.',
-    /* ── MEASURED, AND IT NEEDS A QUESTION THE DOM CANNOT ANSWER ──
+    /* ── THE GEOMETRY ALONE FAULTS CORRECT CODE, 13 TIMES OUT OF 13 ──
      *
-     * The shape is readable. A flex row whose last child sits at the row's
-     * content end, where neither the row nor that child declares it, and where
-     * a SIBLING absorbed the slack. Measured over nine surfaces: 69 candidates
-     * and 13 such rows.
+     * The shape is easy to read: a flex row whose last child sits at the
+     * content end, where neither the row nor that child declares it, and
+     * where a SIBLING absorbed the slack. Measured over nine surfaces: 69
+     * candidates and 13 such rows.
      *
-     * ALL 13 ARE CORRECT CODE, because the growth IS the mechanism there. A
-     * `.pair` grows its labelled button so the icon keeps its square, an alert
-     * grows its body so the action sits at the end, and a row grows its field
-     * so the button does. Faulting those contradicts the rules that ask for
-     * them.
+     * ALL 13 WERE CORRECT CODE, because the growth IS the mechanism there. A
+     * pair grows its labelled button so the icon keeps its square. An alert
+     * grows its body so the action sits at the end. A row grows its field so
+     * the button does. Faulting those faults the rules that ask for them.
      *
-     * THE MISSING HALF IS "CAN THAT SIBLING VANISH", and only the CSS knows.
-     * The test is a rule inside a media or container query that sets
-     * display: none and matches the grower. The CSSOM route failed: 25
-     * condition blocks were found and 0 rules inside them read as
-     * display: none, while the source holds five. A dev server injects its
-     * sheets, and this project has already measured that reading the CSSOM
-     * alone returns nothing.
+     * THE MISSING HALF IS WHETHER THAT SIBLING CAN VANISH, and only the CSS
+     * knows. The test is a rule inside a media or container query that sets
+     * display: none and reaches the grower.
      *
-     * So it needs the stylesheet TEXT plus selector matching, which is the
-     * machinery `a-class-styles-something-where-it-sits` already carries. It
-     * stays manual until that is shared rather than copied. Do not promote it
-     * on the geometry alone: 13 of 13 were correct code. */
+     * THE CSSOM CANNOT ANSWER IT IN A DEV SERVER. Measured: 25 condition
+     * blocks found and 0 rules inside them read as display: none, while the
+     * source holds 5. So read the stylesheet TEXT, find each at-rule block by
+     * its braces, and collect the selectors inside it that hide something.
+     * Measured that way: 5 sheets, 352,059 bytes, 6 hide selectors, matching
+     * the source. 13 candidates asked, 0 findings.
+     *
+     * getComputedStyle CANNOT SEE AN AUTO MARGIN. It reports the used value,
+     * so a flex child holding one reads back as 0px. The declaration comes
+     * from the inline style and the same stylesheet text. */
+    body: [
+      "const NL = String.fromCharCode(10)",
+      "/* THE STYLESHEET TEXT, because the CSSOM returned 0 of 5 in a dev server. */",
+      "const texts = []",
+      "for (const n of document.querySelectorAll(\"style\")) texts.push(n.textContent || \"\")",
+      "for (const n of document.querySelectorAll(\"link[rel=stylesheet]\")) {",
+      "  try { texts.push(await (await fetch(n.href)).text()) } catch (e) { /* cross-origin */ }",
+      "}",
+      "const bare = texts.join(NL).replace(/\\/\\*[\\s\\S]*?\\*\\//g, m => m.replace(/[^\\n]/g, \" \"))",
+      "if (!bare.length) { note(\"no stylesheet text could be read, so this rule is UNMEASURED here.\") }",
+      "else {",
+      "  /* WHAT A CONDITION BLOCK HIDES. Walk each at-rule by its braces. */",
+      "  const hide = []",
+      "  const AT = /@(media|container|supports)[^{]*\\{/g",
+      "  let at",
+      "  while ((at = AT.exec(bare))) {",
+      "    let i = at.index + at[0].length, depth = 1",
+      "    while (i < bare.length && depth > 0) {",
+      "      const ch = bare.charAt(i)",
+      "      if (ch === \"{\") depth++",
+      "      else if (ch === \"}\") depth--",
+      "      i++",
+      "    }",
+      "    const block = bare.slice(at.index + at[0].length, i - 1)",
+      "    for (const r of block.matchAll(/([^{}@]+)\\{([^{}]*)\\}/g)) {",
+      "      if (!/(^|[;\\s])display\\s*:\\s*none/.test(r[2])) continue",
+      "      for (const one of r[1].split(\",\")) { const t = one.trim(); if (t) hide.push(t) }",
+      "    }",
+      "  }",
+      "  /* WHO IS PUSHED TO THE END ON PURPOSE. An auto margin is a declaration and",
+      "     computed style reports its USED value, which is 0px on a flex child. */",
+      "  const autoSel = []",
+      "  for (const r of bare.matchAll(/([^{}@]+)\\{([^{}]*)\\}/g)) {",
+      "    if (!/margin(-inline-start|-left)\\s*:\\s*auto/.test(r[2])) continue",
+      "    for (const one of r[1].split(\",\")) { const t = one.trim(); if (t) autoSel.push(t) }",
+      "  }",
+      "  const hits = sel => el => { try { return el.matches(sel) } catch (e) { return false } }",
+      "  const statedEnd = el => {",
+      "    for (const prop of [\"margin-inline-start\", \"margin-left\"])",
+      "      if (el.style.getPropertyValue(prop) === \"auto\") return true",
+      "    return autoSel.some(sel => hits(sel)(el))",
+      "  }",
+      "  const canVanish = el => hide.some(sel => {",
+      "    try { return el.matches(sel) || !!el.querySelector(sel) } catch (e) { return false }",
+      "  })",
+      "  let asked = 0",
+      "  for (const row of all(\"*\")) {",
+      "    const cs = getComputedStyle(row)",
+      "    if (!/flex/.test(cs.display) || /column/.test(cs.flexDirection)) continue",
+      "    /* THE ROW MAY STATE IT ITSELF, and then nothing is inherited. */",
+      "    if (/end|between|around|evenly/.test(cs.justifyContent)) continue",
+      "    const kids = Array.prototype.slice.call(row.children).filter(visible)",
+      "    if (kids.length < 2) continue",
+      "    const endEdge = row.getBoundingClientRect().right - (parseFloat(cs.paddingRight) || 0)",
+      "    const last = kids[kids.length - 1]",
+      "    if (Math.abs(endEdge - last.getBoundingClientRect().right) > 1) continue",
+      "    if (parseFloat(getComputedStyle(last).flexGrow) > 0) continue",
+      "    /* A SIBLING ABSORBED THE SLACK, so the placement is that sibling own. */",
+      "    let grower = null",
+      "    for (const k of kids.slice(0, -1)) {",
+      "      if (parseFloat(getComputedStyle(k).flexGrow) > 0) { grower = k; break }",
+      "    }",
+      "    if (!grower) continue",
+      "    asked++",
+      "    if (statedEnd(last)) continue",
+      "    /* AND THE GROWTH IS THE MECHANISM unless that sibling can disappear. A",
+      "       pair, an alert body and a field row all grow on purpose: 13 of 13. */",
+      "    if (!canVanish(grower)) continue",
+      "    fail(name(last), \"sits at the end of its row only because \" + name(grower)",
+      "      + \" is growing beside it, and a condition block hides that sibling. When it goes,\"",
+      "      + \" this packs back to the start and leaves the row empty beside it. Measured once at\"",
+      "      + \" 226px of empty bar. Put the auto margin on the thing that must stay at the end.\")",
+      "  }",
+      "  if (!asked) note(\"no row where a sibling growth places the last child, so this rule is UNMEASURED here.\")",
+      "  else note(asked + \" such row(s) measured, against \" + hide.length + \" hide selector(s) read from \" + texts.length + \" sheet(s).\")",
+      "}",
+    ],
   },
 
   /* ── THIS CHECK USED TO FORBID THE RIGHT ANSWER ──

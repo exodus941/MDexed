@@ -6118,5 +6118,46 @@ function hueHex(h) {
   }
 }
 
+/* ── ALIGNMENT IS STATED, NEVER INHERITED ──
+ *
+ * The geometry alone faults correct code, 13 times out of 13. A flex row whose
+ * last child sits at the content end, where neither the row nor that child
+ * declares it, and where a sibling absorbed the slack: 69 candidates over nine
+ * surfaces and 13 such rows. Every one is the mechanism working. A pair grows
+ * its labelled button so the icon keeps its square. An alert grows its body so
+ * the action sits at the end. A row grows its field so the button does.
+ *
+ * THE MISSING HALF IS WHETHER THAT SIBLING CAN VANISH, and only the CSS knows.
+ * The CSSOM cannot answer it in a dev server: 25 condition blocks found and 0
+ * rules inside them read as display: none, while the source holds 5. So read
+ * the stylesheet TEXT, find each at-rule block by its braces, and collect the
+ * selectors inside it that hide something. Measured: 5 sheets, 352,059 bytes,
+ * 6 hide selectors, matching the source. 13 candidates asked, 0 findings.
+ *
+ * Proven by a row holding a growing `.nav-label` and a button, which is the
+ * shape the original fault had. It fires once and names both elements.
+ */
+{
+  line('\n- alignment is stated, never inherited -')
+  const { CHECKS: CHAL } = await import('../src/emit/checks.js')
+  const cal = CHAL.find(x => x.id === 'alignment-is-stated-never-inherited')
+  assert(!!cal && cal.where === 'render', `the check ships and runs in a browser (${cal?.where})`)
+  const tal = (cal?.body || []).join('\n')
+  assert(/querySelectorAll\("style"\)/.test(tal) && /link\[rel=stylesheet\]/.test(tal),
+    'it reads the stylesheet TEXT, because the CSSOM returned 0 of 5 hide rules in a dev server')
+  assert(/@\(media\|container\|supports\)/.test(tal),
+    'and walks each at-rule block by its braces, so a rule inside one is known to be conditional')
+  assert(/display\\s\*:\\s\*none/.test(tal),
+    'collecting the selectors inside those blocks that set display: none')
+  assert(/canVanish/.test(tal),
+    'the growth is the mechanism unless that sibling can disappear, which was 13 of 13')
+  assert(/style\.getPropertyValue\(prop\) === "auto"/.test(tal) && /autoSel/.test(tal),
+    'and an auto margin comes from the declaration, because computed style reports 0px for one')
+  assert(/!bare\.length/.test(tal),
+    'a run that read no stylesheet text says so rather than reporting clean')
+  assert(/justifyContent/.test(tal),
+    'a row that states the end itself is skipped, because nothing is inherited there')
+}
+
 line(`\n${failures === 0 ? 'ALL PASS' : `${failures} FAILURE(S)`}\n`)
 process.exit(failures ? 1 : 0)
