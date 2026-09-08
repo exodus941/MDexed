@@ -4,9 +4,50 @@
 import { wcagContrast } from 'culori'
 import { parseColor, toRgb255 } from './convert.js'
 
+/* ── A TRANSLUCENT COLOUR HAS NO RATIO UNTIL IT IS COMPOSITED ──
+ *
+ * Both formulas below read a colour's channels and had no opinion about its
+ * alpha, so a translucent value passed AA while failing it on screen by a
+ * factor of five. Measured before this:
+ *
+ *     #00000080 on white       reported 21:1      composited 4:1
+ *     #33333380 on white       reported 12.63:1   composited 2.85:1
+ *     #ffffff80 on #111111     reported 18.88:1   composited 5.33:1
+ *
+ * The foreground's ground IS the background, so that half is exact.
+ */
+export const alphaOf = c => {
+  const p = parseColor(c)
+  if (!p) return null
+  const a = toRgb255(p).a
+  return a == null ? 1 : a
+}
+
+/** Composite `c` over `over`, in sRGB, which is where the eye reads it. */
+export function flatten(c, over) {
+  const f = parseColor(c), g = parseColor(over)
+  if (!f) return null
+  const fr = toRgb255(f)
+  const a = fr.a == null ? 1 : fr.a
+  if (a >= 1 || !g) return c
+  const gr = toRgb255(g)
+  const mix = (x, y) => Math.round(x * a + y * (1 - a))
+  const hex = n => n.toString(16).padStart(2, 0)
+  return '#' + hex(mix(fr.r, gr.r)) + hex(mix(fr.g, gr.g)) + hex(mix(fr.b, gr.b))
+}
+
 /* ── WCAG 2.1 ── */
-export function wcag(fg, bg) {
-  const a = parseColor(fg), b = parseColor(bg)
+/**
+ * @param {string} fg
+ * @param {string} bg
+ * @param {{ under?: string }} [opts] the ground a TRANSLUCENT bg sits on.
+ *   Without it a translucent background cannot be measured, and a test that
+ *   cannot run returns null rather than a verdict.
+ */
+export function wcag(fg, bg, opts) {
+  const flatBg = flattenBg(bg, opts)
+  if (flatBg == null) return null
+  const a = parseColor(flatten(fg, flatBg)), b = parseColor(flatBg)
   if (!a || !b) return null
   const ratio = wcagContrast(a, b)
   return {
@@ -19,9 +60,21 @@ export function wcag(fg, bg) {
   }
 }
 
+/* ── A TRANSLUCENT BACKGROUND HAS NO KNOWN GROUND HERE ──
+ * Its ground is whatever the page puts behind it, which this layer cannot
+ * see. Return null so the caller says "not measured" rather than printing a
+ * number nobody can act on. A caller that knows the ground passes `under`. */
+function flattenBg(bg, opts) {
+  if (!parseColor(bg)) return null
+  if (alphaOf(bg) >= 1) return bg
+  const under = opts && opts.under
+  if (!under || alphaOf(under) < 1) return null
+  return flatten(bg, under)
+}
+
 /* Best of AA / AAA / fail, for a compact badge in the UI. */
-export function wcagGrade(fg, bg, { large = false } = {}) {
-  const r = wcag(fg, bg)
+export function wcagGrade(fg, bg, { large = false, under } = {}) {
+  const r = wcag(fg, bg, { under })
   if (!r) return { label: '—', pass: false, ratio: null }
   const aaa = large ? r.largeAAA : r.normalAAA
   const aa  = large ? r.largeAA  : r.normalAA
@@ -53,10 +106,12 @@ const luminance = hex => {
 
 const softClampBlack = y => (y > BLK_THRS ? y : y + Math.pow(BLK_THRS - y, BLK_CLMP))
 
-export function apca(textHex, bgHex) {
-  if (!parseColor(textHex) || !parseColor(bgHex)) return null
-  const yTxt = softClampBlack(luminance(textHex))
-  const yBg  = softClampBlack(luminance(bgHex))
+export function apca(textHex, bgHex, opts) {
+  const flatBg = flattenBg(bgHex, opts)
+  if (flatBg == null) return null
+  if (!parseColor(textHex)) return null
+  const yTxt = softClampBlack(luminance(flatten(textHex, flatBg)))
+  const yBg  = softClampBlack(luminance(flatBg))
   if (Math.abs(yBg - yTxt) < DELTA_Y_MIN) return 0
 
   let sapc, out
@@ -84,15 +139,18 @@ export function apcaUse(lc) {
 /** Combined report for one foreground/background pair. */
 export function check(fg, bg, opts) {
   const w = wcagGrade(fg, bg, opts)
-  const lc = apca(fg, bg)
+  const lc = apca(fg, bg, opts)
+  /* NOT MEASURED IS NOT A PASS. A translucent background with no stated
+     ground cannot be graded, and saying so beats printing a wrong number. */
+  if (w.ratio == null) return { ...w, lc: null, use: apcaUse(null), notMeasured: true }
   return { ...w, lc, use: apcaUse(lc) }
 }
 
 /** Pick whichever of two candidates reads better on `bg`. */
-export function bestOn(bg, candidates = ['#ffffff', '#000000']) {
+export function bestOn(bg, candidates = ['#ffffff', '#000000'], opts) {
   let best = candidates[0], bestLc = -1
   for (const c of candidates) {
-    const lc = Math.abs(apca(c, bg) ?? 0)
+    const lc = Math.abs(apca(c, bg, opts) ?? 0)
     if (lc > bestLc) { bestLc = lc; best = c }
   }
   return best

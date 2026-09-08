@@ -248,7 +248,12 @@ function PropRow({ entryName, propKey, defaultValue, override, onSet, onReset, d
                   refFor={COLOR_REF}
                   isRef={v => /^\{colors\./.test(String(v ?? ''))}
                   onPick={v => onSet(key, v)}
-                  onClose={() => setPicking(false)} />
+                  onClose={() => setPicking(false)}
+                  /* A component property is where a translucent value
+                     survives: it reaches tokens.css verbatim and the rule
+                     that reads it paints exactly that. A border or a fill
+                     at 20% is the case this exists for. */
+                  alpha />
               )}
             </>
           )}

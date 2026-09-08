@@ -56,12 +56,19 @@ export function paletteGroups({ seeds, roles, ramps, rampSteps, resolveRef }) {
  * @param refFor    wraps a swatch's reference on the way out, e.g. into
  *                  `{colors.accent}`. Identity by default.
  * @param isRef     is this value a palette reference rather than a literal?
+ * @param alpha     offer an opacity strip. OFF by default, because a
+ *                  translucent value only survives where the pipeline
+ *                  carries it: a component property reaches tokens.css
+ *                  verbatim, while a seed keeps its alpha at the ramp step
+ *                  and loses it at the role. Offering a control that drops
+ *                  its value is worse than not offering one.
  */
 export default function TokenColorPicker({
   value, resolved, groups, anchor, onPick, onClose,
   refFor = r => r,
   isRef = v => !/^#/.test(String(v ?? '')),
   note,
+  alpha = false,
 }) {
   /* An anchor can legitimately be missing: a ref that has not attached yet, or
      a swatch held in a ref array that a re-render has moved. The old fallback
@@ -103,7 +110,7 @@ export default function TokenColorPicker({
           {/* Always available — editing it detaches the value from the palette. */}
           {/* `stackHex` only here. This column is the one narrow enough that a
               fourth field on the row cuts the digits off. */}
-          <ColorPicker value={following ? resolved : value} onChange={onPick} compact stackHex />
+          <ColorPicker value={following ? resolved : value} onChange={onPick} compact stackHex alpha={alpha} />
           <p className="panel-note" style={{ fontSize: 10, marginTop: 8 }}>
             {note ?? (following
               ? <>Following <code style={{ fontFamily: 'var(--mono)', fontSize: 10 }}>{value}</code>. Adjusting this pins it to a literal colour.</>

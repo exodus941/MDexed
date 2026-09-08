@@ -33,6 +33,9 @@ function RefSwatch({ value, hex, groups, onPick, label }) {
       {open && (
         <TokenColorPicker value={value} resolved={hex} groups={groups} anchor={ref.current}
           onPick={next => { onPick(next); setOpen(false) }} onClose={() => setOpen(false)}
+          /* A scrim is translucent by its nature, and this group already
+             carries a blur for it. */
+          alpha
           note="Stored as a reference, so it follows the palette when the scale regenerates." />
       )}
     </>

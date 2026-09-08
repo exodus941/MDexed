@@ -4309,6 +4309,165 @@ line('\n- depth intensity -')
     + wouldFail.filter(([, f]) => !f).map(([w]) => w).join(', ') + ')')
 }
 
+/* ── A TRANSLUCENT COLOUR HAD NO CONTRAST, AND BOTH FORMULAS SAID IT DID ──
+ *
+ * `wcagContrast` and the APCA luminance both read a colour's channels and had
+ * no opinion about its alpha. So a translucent value passed AA while failing
+ * it on screen by a factor of five, and the audit reported nothing.
+ *
+ * Measured before the fix, and each figure is pinned below:
+ *
+ *     #00000080 on white       reported 21:1      composited 4:1
+ *     #33333380 on white       reported 12.63:1   composited 2.85:1
+ *     #ffffff80 on #111111     reported 18.88:1   composited 5.33:1
+ */
+{
+  line('\n- a translucent colour is composited before it is measured -')
+  const { flatten, alphaOf, wcag, apca } = await import('../src/color/contrast.js')
+
+  /* ── OPAQUE BEHAVIOUR IS UNCHANGED, and that is the half that could break
+     every other assertion in this file. Six pairs, measured before the edit
+     and pinned to the same numbers. */
+  const OPAQUE = [
+    ['#ffffff', '#111111', 18.88], ['#111111', '#ffffff', 18.88],
+    ['#3366ff', '#ffffff', 4.68], ['#005d59', '#e6faf8', 7.16],
+    ['#6d7c8a', '#e6ecf1', 3.6], ['#999999', '#ffffff', 2.85],
+  ]
+  for (const [fg, bg, want] of OPAQUE) {
+    const got = wcag(fg, bg).ratio
+    assert(Math.abs(got - want) < 0.01, `${fg} on ${bg} still reads ${want}:1 (${got})`)
+  }
+
+  /* ── A TRANSLUCENT FOREGROUND IS COMPOSITED OVER ITS BACKGROUND ──
+     Its ground IS the background, so this half is exact. */
+  const COMPOSITED = [
+    ['#00000080', '#ffffff', 4, 21],
+    ['#33333380', '#ffffff', 2.85, 12.63],
+    ['#ffffff80', '#111111', 5.33, 18.88],
+  ]
+  for (const [fg, bg, want, was] of COMPOSITED) {
+    const got = wcag(fg, bg).ratio
+    assert(Math.abs(got - want) < 0.02,
+      `${fg} on ${bg} reads ${want}:1 rather than the ${was}:1 it used to (${got})`)
+  }
+
+  /* ── NOT MEASURED IS NOT A PASS ──
+     A translucent BACKGROUND has no known ground at this layer: its ground is
+     whatever the page puts behind it. A test that cannot run returns null
+     rather than a verdict. A caller that knows the ground passes it. */
+  const blind = check('#ffffff', '#00000080')
+  assert(blind.ratio == null && blind.notMeasured === true,
+    `a translucent background with no ground is not measured (ratio ${blind.ratio}, notMeasured ${blind.notMeasured})`)
+  const grounded = check('#ffffff', '#00000080', { under: '#ffffff' })
+  assert(Math.abs(grounded.ratio - 4) < 0.02,
+    `and it measures once the ground is stated (${grounded.ratio}:1 on white)`)
+  assert(apca('#ffffff', '#00000080') === null,
+    'APCA declines the same pair rather than returning a number')
+
+  /* ── THE HELPERS ── */
+  assert(flatten('#00000080', '#ffffff') === '#7f7f7f',
+    `flatten composites in sRGB (${flatten('#00000080', '#ffffff')})`)
+  assert(flatten('#3366ff', '#ffffff') === '#3366ff',
+    'an opaque colour comes back untouched, so nothing moves where nothing is translucent')
+  assert(alphaOf('#000000') === 1 && alphaOf('nonsense') === null,
+    `alphaOf reports 1 for opaque and null for a colour it cannot parse (${alphaOf('#000000')}, ${alphaOf('nonsense')})`)
+
+  /* ── AND THE VALUE SURVIVES THE PIPELINE ──
+     A translucent component override reaches tokens.css verbatim. Measured on
+     two properties a person would actually set. */
+  {
+    const st = createInitialState()
+    st.components.overrides['alert-warning.borderColor'] = '#00000033'
+    st.components.overrides['card.backgroundColor'] = 'rgba(255,255,255,0.6)'
+    let d = null, err = null
+    try { d = derive(st) } catch (e) { err = e.message }
+    assert(!err, `derive survives a translucent override (${err || 'ok'})`)
+    if (d) {
+      const css = payloadTextFiles(st, d)['tokens.css']
+      for (const [name, want] of [
+        ['--cmp-alert-warning-border-color', '#00000033'],
+        ['--cmp-card-background-color', 'rgba(255,255,255,0.6)'],
+      ]) {
+        const m = new RegExp(name + ':\\s*([^;]+);').exec(css)
+        assert(m && m[1].trim() === want,
+          `${name} reaches tokens.css verbatim (${m ? m[1].trim() : 'ABSENT'})`)
+      }
+    }
+  }
+
+  /* ── BREAK EACH BAR ON THE NUMBER IT REPLACED ── */
+  const wouldFail = [
+    ['#00000080 on white reported 21:1', Math.abs(21 - 4) >= 0.02],
+    ['#33333380 on white reported 12.63:1', Math.abs(12.63 - 2.85) >= 0.02],
+    ['#ffffff80 on #111111 reported 18.88:1', Math.abs(18.88 - 5.33) >= 0.02],
+  ]
+  const caught = wouldFail.filter(([, fails]) => fails)
+  assert(caught.length === wouldFail.length,
+    `every bar rejects the number it replaced (${caught.length} of ${wouldFail.length})`)
+}
+
+/* ── THE ALPHA STRIP EXISTED AND NOBODY TURNED IT ON ──
+ *
+ * `ColorPicker` takes an `alpha` prop, draws a checkerboard strip when it is
+ * true, and defaults it to false. Six call sites and not one passed it.
+ *
+ * WHERE IT GOES ON IS DECIDED BY WHERE THE VALUE SURVIVES. Measured before
+ * wiring anything: a component property reaches tokens.css verbatim, and a
+ * seed keeps its alpha at the ramp step and loses it at the role. Offering a
+ * control that drops its value is worse than offering none.
+ */
+{
+  line('\n- the opacity strip reaches the two places a value survives -')
+  const { toHsb360, fromHsb360, hexFrom, withAlpha } = await import('../src/color/convert.js')
+  const fs = await import('node:fs')
+
+  /* ── THE EMIT PATH SERIALISES ALPHA ──
+     `emit` is hexFrom(fromHsb360(next)), so the strip's own output is what
+     these four numbers are. Anything less and the drag would round back to
+     opaque and the control would look broken. */
+  const hsb = toHsb360(parseColorFor('#fff4e1'))
+  const at = a => hexFrom(fromHsb360({ ...hsb, a }))
+  assert(at(1) === '#fff4e0', `an opaque drag stays six digits (${at(1)})`)
+  assert(at(0.5) === '#fff4e080', `half opacity writes eight (${at(0.5)})`)
+  assert(at(0.2) === '#fff4e033', `a fifth writes eight (${at(0.2)})`)
+  assert(at(0) === '#fff4e000', `and fully transparent writes eight (${at(0)})`)
+  assert(typeof withAlpha === 'function', 'the converter publishes withAlpha for callers that need it')
+
+  /* ── THE STRIP IS OFFERED WHERE THE VALUE SURVIVES, AND NOWHERE ELSE ──
+     A source check, because a rendered panel cannot say which of six call
+     sites passed the prop. Two on, four off, and each one deliberate. */
+  const src = f => fs.readFileSync(new URL('../src/' + f, import.meta.url), 'utf8')
+  const forwarded = src('ui/TokenColorPicker.jsx')
+  assert(/alpha = false,/.test(forwarded) && /alpha=\{alpha\}/.test(forwarded),
+    'TokenColorPicker takes the prop and forwards it, defaulting to off')
+
+  const ON = ['panels/ComponentsPanel.jsx', 'panels/system.jsx']
+  for (const f of ON) {
+    assert(/\balpha\b\s*(\/|>|\n)/.test(src(f)) || /\salpha\s*$/m.test(src(f)),
+      `${f} offers opacity`)
+  }
+  /* A SEED, A RAMP STEP AND A ROLE MUST NOT OFFER IT. The value is lost on the
+     way to a role, so the control would store something and paint nothing. */
+  const rolesSrc = src('panels/RolesPanel.jsx')
+  assert(!/<ColorPicker[^>]*\salpha\b/.test(rolesSrc), 'a role override does not offer it')
+  const colorSrc = src('panels/ColorPanel.jsx')
+  assert(!/<ColorPicker[^>]*\salpha\b/.test(colorSrc), 'a seed and a ramp step do not offer it')
+
+  /* ── AND THE REASON, MEASURED ──
+     A seed carrying alpha keeps it at the ramp step and loses it at the role.
+     That is what makes the four omissions correct rather than an oversight. */
+  {
+    const st = createInitialState()
+    st.color.seeds = st.color.seeds.map(sd => sd.name === 'accent' ? { ...sd, hex: '#3366ff80' } : sd)
+    const d = derive(st)
+    assert(/^#[0-9a-f]{8}$/i.test(d.ramps.accent.steps[500]),
+      `an alpha seed survives to the ramp step (${d.ramps.accent.steps[500]})`)
+    const eight = Object.values(d.roles.light).filter(v => typeof v === 'string' && /^#[0-9a-f]{8}$/i.test(v))
+    assert(eight.length === 0,
+      `and no role carries it, which is why a seed does not offer the strip (${eight.length} roles with alpha)`)
+  }
+}
+
 /* A hue to a hex at a fixed lightness and chroma, so the sweep above varies
    one thing. Written here rather than imported: the generator's own helpers
    apply its rules, and this has to hand it a raw seed. */
