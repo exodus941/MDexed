@@ -10,6 +10,7 @@
     "preview": "vite preview",
     "test": "node test/pipeline.mjs",
     "check:fallbacks": "node tools/fallback-drift-guard.mjs",
+    "check:readers": "node tools/token-reader-guard.mjs",
     "bump": "node scripts/bump-build.mjs"
   },
   "dependencies": {

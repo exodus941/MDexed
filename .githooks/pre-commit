@@ -48,6 +48,18 @@ if ! node apps/web/tools/fallback-drift-guard.mjs; then
   echo "pre-commit: fallback guard failed. Commit refused."
   exit 1
 fi
+# ── 1e. A published token nothing reads. Blocking, on a ratchet. ──
+# The alert published a border colour for all four variants and no rule
+# consumed them, so setting it in the editor changed nothing on screen.
+# 362 component tokens are published and 39 are read by nothing. The guard
+# stops a NEW one appearing rather than demanding zero, because a number
+# that can only fall is a guard somebody keeps.
+if ! node apps/web/tools/token-reader-guard.mjs; then
+  echo
+  echo "pre-commit: token-reader guard failed. Commit refused."
+  exit 1
+fi
+
 # ── 2. The build number. Not blocking. ──
 # Advanced once per batch of commits, so it counts deploys rather than commits:
 # it bumps only when there is nothing unpushed, which means the first commit
