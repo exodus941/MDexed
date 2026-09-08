@@ -6305,10 +6305,13 @@ function hueHex(h) {
   const cic = CHIC.find(x => x.id === 'icon-on-the-cap-band')
   assert(!!cic, 'the icon check still ships')
   const tic = (cic?.body || []).join('\n')
-  assert(/:scope > input\[type=checkbox\], :scope > input\[type=radio\]/.test(tic),
-    'it skips a mark that sits beside a native checkbox or radio, which is that control own box')
-  assert(/mark\.parentElement\.querySelector/.test(tic),
-    'asking the SIBLING, because the control and its drawn box share a container')
+  /* ASK THE HOLDER, NOT THE MARK'S PARENT. The tick is an svg INSIDE the drawn
+     box, and the mark finder takes an svg first, so its parent is that box and
+     holds no input. Two findings survived the narrower test: 17 to 15. */
+  assert(/el\.querySelector\('input\[type=checkbox\], input\[type=radio\]'\)/.test(tic),
+    'it skips a holder that contains a native checkbox or radio, which is that control own row')
+  assert(!/mark\.parentElement\.querySelector/.test(tic),
+    'never the mark PARENT, because the tick sits inside the drawn box and that box holds no input')
   assert(/svg, img/.test(tic), 'and a real icon is still found first')
 }
 
