@@ -1896,6 +1896,10 @@ line('\n- prompt construction -')
     ['a one-line slot is not the cap band', ['a box exactly one line tall', 'needs the font']],
     ['a box in a baseline row declares itself out', ['align-self: flex-start` on that button', '4.63 against 7.13']],
     ['a shared row class publishes the inside-a-group gap', ['gap for a run of like things', '1.0:1, so five things read as one run']],
+    /* Two sentences that QUOTED a figure beside their own derived one, and the
+       quote had drifted. They derive both halves now. */
+    ['the selection direction is read off the figures', ['read the direction off the figures', 'two roles here move opposite ways']],
+    ['the outline is measured on every ground it sits on', ['on a recessed band in light', 'every ground it can sit on']],
     ['the theme toggle is a visible lightbulb control', ['visible icon control carrying a lightbulb', 'same target size as any other control in its row']],
     /* ── THE MECHANISM, AND WHY THIS ASSERTION EXISTS AT ALL ──
      *
@@ -3985,6 +3989,53 @@ line('\n- depth intensity -')
   /* AND THE STUB IS GONE. A block below that inherited it would measure a
      sample this one chose, and say nothing about it. */
   assert(Math.random === realRandom, 'the seeded PRNG is put back')
+
+  /* ── THE ROLE STEP HOLDS A FREE ACCENT, AND THE RULE CLAIMED OTHERWISE ──
+   *
+   * The rule said half the wheel collides with danger on the axis that
+   * survives red-green loss, and named the role step as a partial mitigation.
+   * A sentence that says a thing collides and then says what separates it is
+   * asking to be measured.
+   *
+   * Walked: 72 accent hues, 5 degrees apart, against the audit's own 0.09
+   * floor. Not one falls under it. The worst pair is 0.131 at hue 25, which is
+   * 1.5 times the floor, and the lightness gap is 0.155 at every hue. The step
+   * is the whole answer.
+   *
+   * Pinned here because a flatter role ladder breaks it in silence: the hue
+   * pass would still pass, and only this figure would move.
+   */
+  {
+    const { filterDeficiencyDeuter, filterDeficiencyProt, differenceEuclidean } = await import('culori')
+    const { toOklchObj, hexFrom, parseColor } = await import('../src/color/convert.js')
+    const deuter = filterDeficiencyDeuter(1), prot = filterDeficiencyProt(1)
+    const dist = differenceEuclidean('oklab')
+    const seed0 = createInitialState().color.seeds.find(s => s.name === 'accent')
+    const ok = toOklchObj(parseColor(seed0.hex))
+    const rows = []
+    for (let h = 0; h < 360; h += 5) {
+      const s = createInitialState()
+      s.color.seeds.find(x => x.name === 'accent').hex = hexFrom({ ...ok, h, mode: 'oklch' })
+      const c = derive(s).roles.light
+      const A = parseColor(c.accent), D = parseColor(c.danger)
+      rows.push({ h,
+        worst: Math.min(dist(deuter(A), deuter(D)), dist(prot(A), prot(D))),
+        dl: Math.abs(toOklchObj(A).l - toOklchObj(D).l) })
+    }
+    assert(rows.length === 72, `the accent circle is walked at 5 degrees (${rows.length} hues)`)
+    const under = rows.filter(r => r.worst < 0.09)
+    assert(under.length === 0,
+      `no free accent hue collides with danger under red-green loss (${under.length} of ${rows.length} under the 0.09 floor)`)
+    const min = rows.reduce((a, r) => (r.worst < a.worst ? r : a))
+    assert(min.worst > 0.12,
+      `the closest the pair ever comes is well clear of the floor (${min.worst.toFixed(3)} at hue ${min.h})`)
+    /* THE STEP IS WHAT DOES IT, so pin the step and not only the outcome. A
+       ladder flattened to half this gap would put the worst pair under the
+       floor while every hue rule still passed. */
+    const meanDl = rows.reduce((s, r) => s + r.dl, 0) / rows.length
+    assert(meanDl > 0.13,
+      `and the role step is what holds it, at every hue (mean lightness gap ${meanDl.toFixed(3)})`)
+  }
 }
 
 /* ── A PALETTE IS A SET OF RELATIONSHIPS, AND NOTHING MEASURED THEM ──
@@ -5060,6 +5111,123 @@ function hueHex(h) {
       'it asks the host height and clamps at zero, so a tall row keeps its own size')
     assert(!/cmp-button-sm-height/.test(decls),
       'and it names no component floor, because two of the three hosts do not state one')
+  }
+}
+
+/* ── SIX COLOUR RULES STATED A CONSTANT AND NOTHING READ IT ──
+ *
+ * Found by asking a better question than my first one. A keyword probe said 29
+ * of 30 colour rules were covered, and it was wrong: an INTENSITIES hit
+ * belonged to the depth feature, not to chroma level. So take each rule's own
+ * NUMBERS and ask whether any reader holds them. Measured that way: 39 colour
+ * rules state a constant, 33 have a reader, 6 did not.
+ *
+ * FOUR OF THE SIX HAD DRIFTED, which is the whole reason for this block. A
+ * number a document states goes stale the moment the code moves, and only a
+ * check joins them.
+ *
+ * EVERY FIGURE IS A RANGE ACROSS THE SEVEN PALETTES, never one palette's
+ * value. A single number is what drifted, and it hid the relationship the rule
+ * is actually about.
+ */
+{
+  line('\n- the colour constants nothing was reading -')
+  const { wcag: wc } = await import('../src/color/contrast.js')
+  const { toOklchObj: ok3, parseColor: pc3 } = await import('../src/color/convert.js')
+  const R3 = (a, b) => wc(a, b).ratio
+  const L3 = h => toOklchObj(pc3(h)).l * 100
+  const palettes = [null, ...PRESETS].map(p => {
+    const s = p ? applyPreset(p.id, createInitialState()) : createInitialState()
+    return { id: p ? p.id : 'default', d: derive(s) }
+  })
+  assert(palettes.length === 7, `every shipped palette is measured (${palettes.length})`)
+  const span = xs => [Math.min(...xs), Math.max(...xs)]
+  const f3 = n => n.toFixed(2)
+
+  /* ── THE SELECTED ROW IS PAINTED BY `selected`, AND THE RULE NAMED
+     `accent-subtle`. That role steps UP in light, L 97 against a 94 card, so
+     the old claim of "down in both modes" was false in one of them. */
+  {
+    const light = palettes.map(p => L3(p.d.roles.light.selected))
+    const cards = palettes.map(p => L3(p.d.roles.light.surface))
+    assert(light.every((l, i) => l < cards[i]),
+      `a selected row steps DOWN from its card in light (L ${f3(span(light)[0])}-${f3(span(light)[1])} against ${f3(span(cards)[0])}-${f3(span(cards)[1])})`)
+    const dark = palettes.map(p => L3(p.d.roles.dark.selected))
+    const dcards = palettes.map(p => L3(p.d.roles.dark.surface))
+    assert(dark.every((l, i) => l < dcards[i]),
+      `and down again in dark, which is the direction the rule calls a hole (L ${f3(span(dark)[0])}-${f3(span(dark)[1])} against ${f3(span(dcards)[0])}-${f3(span(dcards)[1])})`)
+    const tint = palettes.map(p => L3(p.d.roles.light['accent-subtle']))
+    assert(tint.every((l, i) => l > cards[i]),
+      `accent-subtle is the other role and it steps UP in light, so the two are not interchangeable (L ${f3(span(tint)[0])}-${f3(span(tint)[1])})`)
+  }
+
+  /* ── THE OUTLINE FAILS ON THE RECESSED GROUND IN EVERY PRESET ──
+     The rule stated 3.82, 2.36 and 4.57. Those were one palette on one day. */
+  {
+    const card = palettes.map(p => R3(p.d.roles.light.border, p.d.roles.light.surface))
+    const sunk = palettes.map(p => R3(p.d.roles.light.border, p.d.roles.light['surface-sunken']))
+    const muted = palettes.map(p => R3(p.d.roles.light['text-muted'], p.d.roles.light['surface-sunken']))
+    assert(card.every(x => x >= 3),
+      `the border clears the UI bar on the card in every preset (${f3(span(card)[0])}-${f3(span(card)[1])})`)
+    assert(sunk.every(x => x < 3),
+      `and fails it on the recessed ground in every preset, which is the limit to state (${f3(span(sunk)[0])}-${f3(span(sunk)[1])})`)
+    assert(muted.every(x => x >= 3),
+      `text-muted is the step that clears it there (${f3(span(muted)[0])}-${f3(span(muted)[1])})`)
+    /* AND LIGHTENING THE ROW FIXES THE CONTROL ON IT. One step down beats two,
+       in every preset, which is the whole claim. */
+    const oneStep = palettes.map(p => R3(p.d.roles.light.border, p.d.roles.light.selected))
+    assert(oneStep.every((x, i) => x > sunk[i]),
+      `one step down reads higher than two, so lightening the row fixes its buttons (${f3(span(oneStep)[0])}-${f3(span(oneStep)[1])} against ${f3(span(sunk)[0])}-${f3(span(sunk)[1])})`)
+  }
+
+  /* ── THE CHART SCALE: CHROMA RISES, LIGHTNESS ARCS ONCE, EVERY PAIR CLEARS ── */
+  {
+    const first = palettes[0].d.dataviz.categorical.map(h => toOklchObj(pc3(h)))
+    assert(first.length === 5, `five categorical series (${first.length})`)
+    const chroma = first.map(x => x.c)
+    assert(chroma.every((c, i) => i === 0 || c > chroma[i - 1]),
+      `the chroma rises the whole way, so the set has somewhere to rest (${chroma[0].toFixed(3)} to ${chroma[chroma.length - 1].toFixed(3)})`)
+    const light = first.map(x => x.l)
+    const turns = light.filter((l, i) => i > 0 && i < light.length - 1
+      && ((l - light[i - 1]) > 0) !== ((light[i + 1] - l) > 0)).length
+    assert(turns === 1,
+      `the lightness arcs once rather than cycling (${turns} turning point, ${light.map(l => l.toFixed(2)).join(' ')})`)
+    /* EVERY PAIR, NOT ONLY THE NEIGHBOURS, against the 0.10 floor. */
+    const worst = palettes.map(p => p.d.dataviz.worst.distance)
+    assert(worst.every(x => x >= 0.10),
+      `every pair clears the 0.10 floor in every preset (${worst.reduce((a, b) => Math.min(a, b)).toFixed(3)}-${worst.reduce((a, b) => Math.max(a, b)).toFixed(3)})`)
+    /* AND THE LIMIT IS STATED, NOT CLAIMED AWAY. No categorical palette of
+       five survives red-green loss on colour alone. */
+    const noRG = palettes.map(p => p.d.dataviz.worstWithoutRedGreen)
+    const lo = noRG.reduce((a, b) => Math.min(a, b))
+    assert(lo < 0.10,
+      `and none of them survives red-green loss on colour alone, which is the limit (${lo.toFixed(3)}-${noRG.reduce((a, b) => Math.max(a, b)).toFixed(3)})`)
+  }
+
+  /* ── AND THE PAYLOAD QUOTED TWO OF THESE FIGURES BESIDE ITS OWN DERIVED ONES ──
+   *
+   * One sentence read "the default outline measured 2.36:1 two steps down and
+   * 3.02 one step down" and then derived 3.12 in the same breath. Another said
+   * `accent-subtle` sits below the surface in BOTH modes at L 89.3, which is
+   * the wrong role AND the wrong direction: that role measures L 97 in light,
+   * a step UP, and 89.3 belongs to `selected`.
+   *
+   * A builder following it painted the wrong role and got the opposite result.
+   * Both sentences derive every figure now, so neither can go stale.
+   */
+  {
+    const md = payloadTextFiles(state, derived)['DESIGN.md']
+    for (const quoted of ['2.36:1 two steps', '3.02 one step down',
+      'sits below the surface in BOTH modes', 'which is +3.1 in light']) {
+      assert(!md.includes(quoted),
+        `the payload no longer quotes "${quoted.slice(0, 34)}" beside a derived figure`)
+    }
+    /* AND THE DERIVED HALF IS REALLY THERE. Cutting a quote and leaving no
+       number is the other way to fail this. */
+    assert(/`selected` is L [\d.]+ against a [\d.]+ card in light, down/.test(md),
+      'and states the selected row\'s own signed step, derived')
+    assert(/[\d.]+:1 on a recessed band in light/.test(md),
+      'and measures the outline on the recessed ground, which is where it fails')
   }
 }
 
