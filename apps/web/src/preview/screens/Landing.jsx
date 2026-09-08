@@ -86,9 +86,18 @@ export default function Landing({ onInspect, casing, theme, mode, onToggleTheme 
         </div>
       </div>
 
-      <hr className="divider" />
+      {/* NO RULE UNDER THE HEADER. A rule sits INSIDE the section gap, half
+          each side, so a marked boundary and an unmarked one occupy the same
+          height. Dropping it leaves the 48px the container publishes. */}
 
-      <div className="stack" style={{ padding: 'var(--space-xl, 32px) 0' }}>
+      {/* ── ONE WRITER FOR ONE GAP, AND THIS HELD TWO ──
+          `.stack-xl` publishes the 48px section rhythm. This hero carried an
+          inline `padding: var(--space-xl) 0` as well, and it paints no
+          background, so that 32px was pure white space added to a distance
+          the container had already stated. Measured box to box: 48 either
+          way. Measured INK to ink: 80 above the hero and 80 below it, against
+          48 at every other boundary on the surface. */}
+      <div className="stack">
         <span className="badge badge-accent" {...ins('badge-accent')} style={{ alignSelf: 'flex-start', cursor: onInspect ? 'pointer' : undefined }}>New — recurring invoices</span>
         <h1 style={{ maxWidth: '14ch' }} {...txt('h1', 'text')}>Invoicing that stays out of the way</h1>
         <p className="t-body-lg" {...txt('body-lg', 'text-muted')} style={{ color: 'var(--c-text-muted, #666)', maxWidth: '46ch', cursor: onInspect ? 'pointer' : undefined }}>
