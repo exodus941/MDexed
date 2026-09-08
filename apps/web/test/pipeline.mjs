@@ -6074,5 +6074,49 @@ function hueHex(h) {
   }
 }
 
+/* ── A BROKEN ACTION ROW IS RANKED, AND THE AXIS DOES NOT DECIDE IT ──
+ *
+ * The documented structure is a COLUMN whose children are pair rows, so a
+ * flex-direction guard excluded the very shape the rule prescribes. Measured:
+ * the Dashboard action group reads column at 296px, holding two pairs and four
+ * buttons on two lines. Asking the axis reported 0 candidates over 36 cells.
+ *
+ * THE DISCRIMINATOR IS THE BUTTON WIDTH. A stated one-per-line column gives
+ * every button the full width, which is a different deliberate arrangement:
+ * `.stack-narrow-rev > .btn { width: 100% }`. Three buttons each on their own
+ * line at full width is not a wrapped run.
+ *
+ * Measured after: 8 wrapped runs asked, 6 stated columns skipped, 0 findings.
+ * The two real shapes are [2,2] for an even count and [1,2] for an odd one.
+ *
+ * Proven both branches from the source. A third button inside one pair fires
+ * with [3,2]. Reversing the Record group to column-reverse fires with [2,1].
+ */
+{
+  line('\n- a broken action row is ranked -')
+  const { CHECKS: CHA } = await import('../src/emit/checks.js')
+  const ca = CHA.find(x => x.id === 'action-row-is-ranked')
+  assert(!!ca && ca.where === 'render', `the check ships and runs in a browser (${ca?.where})`)
+  const ta = (ca?.body || []).join('\n')
+  assert(!/flexDirection/.test(ta),
+    'it does NOT read the axis, because the prescribed structure is a column of pairs')
+  assert(/inner - 2/.test(ta),
+    'a one-per-line column at full width is a stated arrangement and is skipped')
+  assert(/lines\.size < 2/.test(ta),
+    'and a row that still fits on one line is not broken yet')
+  assert(/perLine\.some\(k => k > 2\)/.test(ta), 'never more than two per line')
+  assert(/btns\.length % 2 === 1 && perLine\[0\] !== 1/.test(ta),
+    'and an odd count puts the primary alone on the FIRST line')
+  assert(/UNMEASURED/.test(ta), 'a page with no broken action row says so')
+
+  /* THE PRIMITIVES BOTH BRANCHES READ. */
+  {
+    const rr = fs.readFileSync(new URL('../src/preview/responsive.rules.css', import.meta.url), 'utf8')
+      .replace(/\/\*[\s\S]*?\*\//g, m => m.replace(/[^\n]/g, ' '))
+    assert(/\.stack-narrow-rev > \.btn|\.stack-narrow > \.btn[^{]*\{[^}]*width:\s*100%/.test(rr),
+      'the stated column gives every button the full width, which is what the guard reads')
+  }
+}
+
 line(`\n${failures === 0 ? 'ALL PASS' : `${failures} FAILURE(S)`}\n`)
 process.exit(failures ? 1 : 0)

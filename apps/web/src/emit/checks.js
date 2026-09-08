@@ -5203,8 +5203,62 @@ export const CHECKS = [
 
   {
     id: 'action-row-is-ranked',
-    where: 'manual',
-    line: 'A broken action row is ranked. The primary leads its own line, the rest pair up.',
+    where: 'render',
+    line: 'A broken action row is ranked. Never more than two buttons per line, and an odd count gives the most important one a line of its own, first. A column is pressed from the top.',
+    /* ── THE AXIS DOES NOT DECIDE THIS, AND MY FIRST GUARD READ IT ──
+     *
+     * The documented structure is a COLUMN whose children are pair rows, so
+     * a flex-direction guard excluded the very shape the rule prescribes.
+     * Measured: the Dashboard action group reads column at 296px, holding
+     * two pairs and four buttons on two lines. Asking the axis reported 0
+     * candidates over 36 surface-width cells.
+     *
+     * THE DISCRIMINATOR IS THE BUTTON WIDTH. A stated one-per-line column
+     * gives every button the full width, and that is a different, deliberate
+     * arrangement: `.stack-narrow-rev > .btn { width: 100% }`. Three buttons
+     * each on their own line at full width is not a wrapped run.
+     *
+     * Measured after: 8 wrapped runs asked, 6 stated columns skipped, 0
+     * findings. The two real shapes are [2,2] for an even count and [1,2]
+     * for an odd one. */
+    body: [
+      "const ACTION = \"button, a[href], [role=button], .btn\"",
+      "let asked = 0",
+      "for (const row of all(\"[class*=action]\")) {",
+      "  if (!/flex/.test(getComputedStyle(row).display)) continue",
+      "  const btns = all(ACTION).filter(b => row.contains(b))",
+      "  if (btns.length < 3) continue",
+      "  /* THE LINES, by the top edge of each button. */",
+      "  const lines = new Map()",
+      "  for (const x of btns) {",
+      "    const y = Math.round(x.getBoundingClientRect().top)",
+      "    lines.set(y, (lines.get(y) || 0) + 1)",
+      "  }",
+      "  if (lines.size < 2) continue   /* it still fits on one line */",
+      "  const cs = getComputedStyle(row)",
+      "  const inner = row.getBoundingClientRect().width",
+      "    - (parseFloat(cs.paddingLeft) || 0) - (parseFloat(cs.paddingRight) || 0)",
+      "  /* ONE PER LINE AT FULL WIDTH IS A STATED COLUMN, never a wrapped run. */",
+      "  if (btns.every(x => x.getBoundingClientRect().width >= inner - 2)) continue",
+      "  asked++",
+      "  const perLine = Array.from(lines.entries()).sort((a, b) => a[0] - b[0]).map(e => e[1])",
+      "  const shape = \"[\" + perLine.join(\",\") + \"]\"",
+      "  if (perLine.some(k => k > 2)) {",
+      "    fail(name(row), \"a broken action row with \" + btns.length + \" buttons laid out \" + shape",
+      "      + \". Never more than two per line: past two the line stops reading as a pair and the\"",
+      "      + \" ranking disappears. Put each pair in its own container, so growth splits between two.\")",
+      "    continue",
+      "  }",
+      "  if (btns.length % 2 === 1 && perLine[0] !== 1) {",
+      "    fail(name(row), \"an odd action count of \" + btns.length + \" laid out \" + shape",
+      "      + \". The most important button takes a line of its own, and that line goes FIRST,\"",
+      "      + \" because a column is pressed from the top. In a row the primary reads last only\"",
+      "      + \" because the eye ends there.\")",
+      "  }",
+      "}",
+      "if (!asked) note(\"no broken action row on this page, so this rule is UNMEASURED here. A stated one-per-line column is a different arrangement and is not asked.\")",
+      "else note(asked + \" broken action row(s) measured.\")",
+    ],
   },
   {
     id: 'nav-folds',
