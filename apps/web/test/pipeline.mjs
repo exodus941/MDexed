@@ -3213,6 +3213,23 @@ line('\n- depth intensity -')
   const rising = Cs.every((v, i) => i === 0 || v >= Cs[i - 1] - 0.001)
   assert(rising, `the chroma rises along the run (${Cs.map(v => v.toFixed(2)).join(' ')})`)
 
+  /* ── AND THE TWO ENDPOINTS ARE READ, BECAUSE THE RULE STATES THEM ──
+   *
+   * The rule quotes 0.058 to 0.184 on the default palette. The relationship
+   * above was already checked and those two numbers were not, so they could
+   * drift while every assertion stayed green. A rule states a constant only
+   * where a check reads it.
+   *
+   * The band is generous on purpose. These are a property of the DEFAULT seed,
+   * and the point is that the quiet end stays quiet and the loud end stays
+   * loud, not that either lands on a hundredth. */
+  assert(Cs[0] > 0.03 && Cs[0] < 0.09,
+    `the quietest member sits near 0.058 (${Cs[0].toFixed(3)})`)
+  assert(Cs[Cs.length - 1] > 0.15 && Cs[Cs.length - 1] < 0.22,
+    `and the loudest near 0.184 (${Cs[Cs.length - 1].toFixed(3)})`)
+  assert(Cs[Cs.length - 1] - Cs[0] > 0.08,
+    `so the set has somewhere to rest and somewhere to land (${(Cs[Cs.length - 1] - Cs[0]).toFixed(3)} apart)`)
+
   /* And the hue turns one way. A sweep that doubles back is a cycle again. */
   const steps = []
   for (let i = 1; i < cat.length; i++) {
@@ -6217,6 +6234,45 @@ function hueHex(h) {
   assert(/await verify\(\)/.test(text), 'a built page still runs verify() with nothing')
   assert(/await verify\('\.my-document-root'\)/.test(text),
     'and the header shows the hosted form')
+}
+
+/* ── A COLUMN IS A RELATIONSHIP, NOT A TAG ──
+ *
+ * The mono-face check exempted `table, code, pre, kbd, samp` and nothing else,
+ * which is the tag-list fault: it found the case somebody thought of and
+ * approved none of the others. A chart tick column is a run of values read down
+ * the page, so the mono face is exactly right there, and the check faulted all
+ * 49 of them.
+ *
+ * Two figures sharing an inline edge at different heights ARE a column. Same
+ * top is a ROW of figures, which stacks nothing. Measured over four surfaces:
+ * 68 figures and 0 in the mono face with no column beside them. Charts read 52
+ * of 52 in a column, the Dashboard 4 table cells in one, and its three stat
+ * tiles keep the body face.
+ *
+ * Retested by injection: a lone `.figure` reading 42, offset so it shares no
+ * edge, fires.
+ *
+ * Scoped and with the select fix, the nine-surface run went 77 findings to 28.
+ */
+{
+  line('\n- a column is a relationship, not a tag -')
+  const { CHECKS: CHFG } = await import('../src/emit/checks.js')
+  const cfg = CHFG.find(x => x.id === 'a-standalone-figure-keeps-the-body-face')
+  assert(!!cfg && cfg.where === 'render', `the check ships and runs in a browser (${cfg?.where})`)
+  const tfg = (cfg?.body || []).join('\n')
+  assert(/const figs = \[\]/.test(tfg),
+    'it collects every figure first, because a column is a relationship between them')
+  assert(/const inColumn = f => figs\.some/.test(tfg), 'and asks whether each one is in a column')
+  assert(/Math\.abs\(o\.r\.top - f\.r\.top\) >= 2/.test(tfg),
+    'a shared TOP is a row of figures, which stacks nothing')
+  assert(/Math\.abs\(o\.r\.left - f\.r\.left\) < 2 \|\| Math\.abs\(o\.r\.right - f\.r\.right\) < 2/.test(tfg),
+    'and a shared inline edge is what makes it a column')
+  assert(/closest\('code, pre, kbd, samp'\)/.test(tfg),
+    'a code context keeps its own exemption, because a lone number there is meant to be mono')
+  assert(/closest\('table'\)/.test(tfg),
+    'and a table cell is a column by construction, even where one row shows')
+  assert(/UNMEASURED/.test(tfg), 'a page with no figure says so')
 }
 
 line(`\n${failures === 0 ? 'ALL PASS' : `${failures} FAILURE(S)`}\n`)
