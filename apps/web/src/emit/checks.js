@@ -4626,6 +4626,21 @@ export const CHECKS = [
   {
     id: 'a-split-goes-by-what-each-side-holds',
     where: 'manual',
+    /* ── MEASURED, AND THERE IS NOTHING MECHANICAL LEFT TO ASK ──
+     *
+     * The rule chooses a RATIO by what each side holds, and a ratio is a design
+     * decision. The only mechanical half is whether the split fits, and
+     * `nothing-clipped-out-of-reach` and the row-fits checks already own that.
+     *
+     * Measured over nine surfaces at 768, 1024 and 1536: a percentage-basis
+     * probe found 2 candidates and neither is a split. Both are page-head rows
+     * whose children carry a 100% basis, which is the own-a-line mechanism.
+     * The one real split is a grid at 486 and 200 wide, then 1254 and 200, on
+     * one line at both widths. The context column holds a fixed 200 and the
+     * content takes the rest, which is the rule obeyed.
+     *
+     * One instance is not a check. It stays a checklist line, and the
+     * instruction it carries is to put the measurement in the comment. */
     line: 'Split a row by what each side holds, never down the middle. Three tiles against one card came 4.4px short at 46 to 54 and fit at 40 to 60; put the measurement in the comment.',
   },
 
@@ -5154,6 +5169,11 @@ export const CHECKS = [
     id: 'choices-listed',
     where: 'manual',
     line: 'Every judgement call is listed under its own heading.',
+    /* THESE THREE ASK ABOUT THE REPORT, NOT THE ARTEFACT. Where a component
+       came from, what was not copied, and which calls the builder made are
+       facts about the WORK. Nothing in the build carries them, so no parser
+       and no render pass can read them. They stay checklist lines because they
+       are attestations, and an attestation is what a checklist is for. */
   },
   {
     id: 'a-heading-keeps-its-words',
@@ -5331,6 +5351,10 @@ export const CHECKS = [
     id: 'breakpoint-moves-a-row',
     where: 'manual',
     line: 'Every breakpoint moved a whole row. Check each one at BOTH widths.',
+    /* NOT A PROPERTY OF ONE PAGE STATE. A render pass measures the width it is
+       at, so it cannot compare two. This asks the RUNNER to move the width and
+       read the difference, which no single pass can do. It stays a checklist
+       line for that reason and not because nobody tried. */
   },
   {
     id: 'sweep-between-breakpoints',
