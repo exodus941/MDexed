@@ -5175,7 +5175,14 @@ export const CHECKS = [
      * A SECONDARY TYPE CLASS IS THE SUBJECT, never a bare paragraph. Body
      * copy under a heading is a different distance, and a run over nine
      * surfaces with `p` in the list returned 46 pairs of which 12 were card
-     * flow rather than bylines. */
+     * flow rather than bylines.
+     *
+     * PROVEN IN BOTH DIRECTIONS, 9 September 2026. This shipped as a checklist
+     * line first, on the grounds that it was untested, and a manual entry is
+     * not a safeguard. Two pairs injected in the SOURCE, in one card, with the
+     * container gap at zero so the margin is the whole distance. A 16px margin
+     * fired the too-far branch and a 0px margin fired the touching branch, in
+     * one run. Reverted, the same surface reports nothing. */
     body: [
       "const STEP = px(tokenValue(\"--space-2xs\")) || 4",
       "const HEAD = \"h1, h2, h3, h4, h5, h6, .t-h1, .t-h2, .t-h3, .t-h4, .t-h5, .t-h6\"",
