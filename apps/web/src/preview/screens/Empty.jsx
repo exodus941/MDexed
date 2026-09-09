@@ -116,8 +116,12 @@ function Loading({ ins, txt, L }) {
           read as two columns of bars. It was 12px between rows and 16 between
           cells: inverted. The real table this stands in for carries a border on
           every row, and a skeleton has none, so the ratio is its only signal.
-          24 against 8 is the three to one the rule asks for. */}
-      <div className="stack-lg" aria-hidden="true">
+
+          `.stack` at 16 against 8 is two to one, which is the bar from
+          9 September 2026. It was `.stack-lg` at 24, chosen when the bar was
+          three. The only reason stated for the 24 was the ratio, so the ratio
+          moving is the whole reason to move it back. */}
+      <div className="stack" aria-hidden="true">
         {rows.map(w => (
           <div key={w} className="row" style={{ gap: 'var(--space-xs, 8px)' }}>
             <span className="skeleton skeleton-line" style={{ flex: `0 0 ${w}` }} />

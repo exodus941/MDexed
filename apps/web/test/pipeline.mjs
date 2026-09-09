@@ -7314,6 +7314,42 @@ function hueHex(h) {
     `both framed boxes are containers (${holder?.[1].trim().slice(0, 40)})`)
 }
 
+/* ── A STACK CLASS READS THE STEP ITS NAME PROMISES ──
+ *
+ * `.stack-xl` published `--space-2xl` at 48px for as long as it existed,
+ * because 48 was the first step clearing three to one. The name said xl and
+ * the token said 2xl, and nothing could see the disagreement.
+ *
+ * The bar moved to two to one on 9 September 2026, so the first step that
+ * clears it is `--space-xl` at 32. Asserting the PAIRING rather than the
+ * number, because a base change moves every step and the name is the rule.
+ */
+{
+  line('\n- a stack class reads the step its own name promises -')
+  const CSS = fs.readFileSync(new URL('../src/preview/preview.css', import.meta.url), 'utf8')
+  const stepOf = cls => {
+    const m = new RegExp('\\.dmd \\.' + cls + '\\s*\\{[^}]*?gap:\\s*var\\(--space-([a-z0-9]+)').exec(CSS)
+    return m ? m[1] : null
+  }
+  const PAIRS = [['stack-sm', 'sm'], ['stack', 'md'], ['stack-lg', 'lg'], ['stack-xl', 'xl']]
+  for (const [cls, want] of PAIRS) {
+    const got = stepOf(cls)
+    assert(got === want, `.${cls} reads --space-${want} (${got})`)
+  }
+  /* AND THE STEPS RISE WITH THE NAMES, or two classes mean one distance. */
+  const pxOf = n => parseFloat(px(derived.spacing, n))
+  const seq = PAIRS.map(([, n]) => pxOf(n))
+  assert(seq.every((v, i) => i === 0 || v > seq[i - 1]),
+    `each step is larger than the one below it (${seq.join(', ')})`)
+  /* `.stack` is the run-of-like-things step, so `.stack-xl` over it must clear
+     the shipped proximity bar. That is what makes a section read as a section. */
+  const { CHECKS: CS } = await import('../src/emit/checks.js')
+  const bar = Number(/r\s*>=\s*(\d+(?:\.\d+)?)\s*\)\s*continue/
+    .exec((CS.find(c => c.id === 'proximity-is-a-ratio')?.body || []).join('\n'))?.[1])
+  assert(pxOf('xl') / pxOf('md') >= bar,
+    `the section step clears the bar against the run step (${pxOf('xl')}/${pxOf('md')} = ${(pxOf('xl') / pxOf('md')).toFixed(1)}:1 against ${bar}:1)`)
+}
+
 /* ── THE PLAN STACK IS A ROW OF GROUPS, SO IT STATES ITS OWN STEP ──
  *
  * Each child is one plan's card plus the card holding that plan's answers,

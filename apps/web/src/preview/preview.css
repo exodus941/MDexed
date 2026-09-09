@@ -1875,12 +1875,20 @@
  * reads as one more card. Measured on a surface with two sections: 16px above
  * the second heading, identical to the gap between two cards.
  *
- * `2xl` is 48px, the first step that clears 3:1.
+ * `xl` is 32px, the first step that clears the bar.
+ *
+ * IT WAS `2xl` AT 48px UNTIL 9 SEPTEMBER 2026, because the bar was three to
+ * one. They lowered the bar to two, saw both states rendered side by side at
+ * actual size, and took the 32. The class was named `xl` and reading `2xl`
+ * the whole time, so the name and the token now agree as well.
+ *
+ * Two instances, and both are the page section rhythm: the Landing stack and
+ * the Charts stack. Nothing else carries this class.
  *
  * A MARGIN ON THE HEADING WAS THE OTHER WAY, and it adds to the parent's gap.
  * Two writers for one distance, wrong by the sum, and `one-writer-for-one-gap`
  * would fault it correctly. A stack that owns the larger gap has one writer. */
-.dmd .stack-xl { display: flex; flex-direction: column; gap: var(--space-2xl, 48px); --card-flow: 0px; }
+.dmd .stack-xl { display: flex; flex-direction: column; gap: var(--space-xl, 32px); --card-flow: 0px; }
 
 /* An action row that pairs up when it has to break.
  *
