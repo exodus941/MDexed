@@ -2718,6 +2718,80 @@ line('\n- project file -')
       'and it re-finds every control by selector, because a re-render detaches a held one')
   }
 
+  /* ── A SCOPE DEFINED BY closest() FLIPS WHEN THE MARKUP MOVES ──
+   *
+   * A pager check asked `closest('nav, .card, [class*="row"]')` and searched
+   * that box and its parent. Then a different finding put two buttons inside a
+   * `<nav>`. The list matched the new nav, and the check lost sight of a live
+   * region that had not moved.
+   *
+   * A LIST PICKS WHICHEVER MATCHES FIRST, and that is a property of the code
+   * being audited rather than a decision here. So a body may ASK whether
+   * either ancestor exists, and it may not KEEP the answer, because then the
+   * scope depends on the markup.
+   *
+   * ONE INSTANCE HAD TO BE REWRITTEN. A chart asked `closest('tr, [role=row]')`
+   * and kept the result. Those two spell one thing, so the fix states the
+   * precedence: `closest('tr') || closest('[role=row]')`.
+   *
+   * MY FIRST PROBE CALLED THAT CASE BOOLEAN. It looked for an assignment
+   * IMMEDIATELY before the call, and the text there is the receiver
+   * (`chart.`), not the equals sign. Reading further back finds it.
+   *
+   * Measured: 100 bodies, 13 calls, 5 with a list, 0 keeping the result. */
+  {
+    let calls = 0, lists = 0
+    const kept = []
+    for (const c of CHECKS) {
+      if (!c.body) continue
+      const src = noComments(c.body.join('\n'))
+      for (const m of src.matchAll(/closest\(\s*(['"])((?:[^'"\\]|\\.)*)\1\s*\)/g)) {
+        calls++
+        if (!m[2].includes(',')) continue
+        lists++
+        /* THE RESULT IS KEPT when the call is assigned, or when something is
+           read off it. Look back past the receiver expression, not only at the
+           character before the call. */
+        const before = src.slice(Math.max(0, m.index - 70), m.index)
+        const after = src.slice(m.index + m[0].length, m.index + m[0].length + 3)
+        const assigned = /(?:const|let|var)\s+[\w{}[\], ]+=\s*[\w.[\]()]*$/.test(before)
+        const chained = /^\s*\./.test(after)
+        if (assigned || chained) kept.push(c.id + ": '" + m[2].slice(0, 40) + "'")
+      }
+    }
+    assert(lists > 0, `there are selector lists inside closest() to ask about (${lists} of ${calls} calls)`)
+    assert(kept.length === 0, kept.length
+      ? `a body keeps the result of closest() with a list — ${kept.join('; ')}`
+      : `every one of the ${lists} list(s) inside closest() asks whether an ancestor exists, and keeps no answer`)
+
+    /* BROKEN ON PURPOSE, in both shapes the probe reads, and in the one that
+       fooled its first version. */
+    const keepsIt = s => {
+      for (const m of s.matchAll(/closest\(\s*(['"])((?:[^'"\\]|\\.)*)\1\s*\)/g)) {
+        if (!m[2].includes(',')) continue
+        const before = s.slice(Math.max(0, m.index - 70), m.index)
+        const after = s.slice(m.index + m[0].length, m.index + m[0].length + 3)
+        if (/(?:const|let|var)\s+[\w{}[\], ]+=\s*[\w.[\]()]*$/.test(before) || /^\s*\./.test(after)) return true
+      }
+      return false
+    }
+    const FAULTS = [
+      ['a bare assignment', "const box = closest('nav, .card')"],
+      ['an assignment behind a receiver', "const row = chart.closest('tr, [role=row]')"],
+      ['a chained read', "el.closest('nav, .card').dataset.id"],
+    ]
+    const QUIET = [
+      ['a boolean ask', "if (el.closest('code, pre, kbd')) continue"],
+      ['a single selector kept', "const fig = chart.closest('figure')"],
+      ['two calls with stated precedence', "const row = el.closest('tr') || el.closest('[role=row]')"],
+    ]
+    const missed = FAULTS.filter(([, s]) => !keepsIt(s)).map(([l]) => l)
+      .concat(QUIET.filter(([, s]) => keepsIt(s)).map(([l]) => 'false positive: ' + l))
+    assert(missed.length === 0, missed.length
+      ? `the probe misreads a shape — ${missed.join(', ')}`
+      : `it fires on all ${FAULTS.length} kept shapes and stays quiet on all ${QUIET.length} correct ones`)
+  }
+
   /* A SUMMARY THAT TRUNCATES MUST SAY SO. One read `other: 68` while the array
      held 6, so 62 findings were invisible to anything reading the list. It
      cost three wrong conclusions in one session. */
