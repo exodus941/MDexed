@@ -6144,6 +6144,99 @@ export const CHECKS = [
        contract's 8000. */
     line: 'Run the render pass at every breakpoint AND at the midpoint of each adjacent pair.',
   },
+  {
+    id: 'a-mark-paints-the-size-its-component-publishes',
+    where: 'render',
+    line: 'A component that publishes a mark size paints that size. A published value nothing paints is a setting the reader cannot use.',
+    /* ── THREE OF SIX COMPONENTS PUBLISHED A MARK SIZE THEY NEVER PAINTED ──
+     *
+     * Found by hand while drawing a picture of the size options, which means
+     * nothing was asking. Every existing mark check asks about POSITION, or
+     * about one control holding two sizes. None compared what a component
+     * publishes against what it paints.
+     *
+     * THE SELECT PAINTED THE BUTTON'S SIZE. A select trigger carries `.btn`
+     * on purpose, for the box and the border, so a rule written for a button
+     * mark reached its chevron too. Both compounds weigh (0,3,0) and the
+     * button rule came later in the file, so it won. Three instances
+     * published 16px and painted 14.
+     *
+     * THE FIELD'S TOKEN HAD NO READER AT ALL. Its rule read `.input > .icon`,
+     * and an `<input>` is VOID, so a child selector on it can never match. It
+     * reached 0 elements over twelve surfaces. The mark painted 16px from its
+     * call site, which happened to agree, so no geometry looked wrong.
+     *
+     * AND THE NAME-BASED GUARD REPORTED CLEAN THROUGH ALL OF IT, correctly
+     * about its own question: it counts a token as read the moment the NAME
+     * appears in a stylesheet. Only the DOM says whether the rule reaches an
+     * element.
+     *
+     * THE MAP IS DECLARED, BECAUSE TWO OF THE SIX CANNOT BE DERIVED. A token
+     * carries the component's name and mostly that is the class, but
+     * `--cmp-button-icon-size` belongs to `.btn` and `--cmp-input-icon-size`
+     * belongs to the `.input-icon` WRAPPER rather than to the control. A
+     * derived name would resolve to nothing for those two and the check would
+     * go quiet on them. The suite asserts the map is complete against the
+     * component list, so a seventh component publishing a mark size fails the
+     * run until somebody pairs it.
+     *
+     * AN UNPUBLISHED TOKEN IS UNMEASURED, NOT A PASS. With no value there is
+     * nothing to compare and the fallback is painting, so it is noted.
+     *
+     * BROKEN ON PURPOSE. Setting any instance's mark to a size other than its
+     * token fires and names both numbers. */
+    body: [
+      "/* Each entry pairs a published mark size with the class whose instances",
+      "   carry that mark. A DIRECT child, so a mark inside a button inside one",
+      "   of these keeps its own component's pairing. */",
+      "const PAIRS = [",
+      "  ['--cmp-button-icon-size', '.btn'],",
+      "  ['--cmp-select-icon-size', '.select-trigger'],",
+      "  ['--cmp-input-icon-size', '.input-icon'],",
+      "  ['--cmp-alert-icon-size', '.alert'],",
+      "  ['--cmp-nav-item-icon-size', '.nav-item'],",
+      "  ['--cmp-tab-icon-size', '.tab']",
+      "]",
+      "const root = scopeEl()",
+      "if (!root) { note('no scope root, so this rule is UNMEASURED.') }",
+      "else {",
+      "  const rcs = getComputedStyle(root)",
+      "  let asked = 0, unpublished = [], absent = []",
+      "  for (const pair of PAIRS) {",
+      "    const token = pair[0], sel = pair[1]",
+      "    const want = (rcs.getPropertyValue(token) || '').trim()",
+      "    if (!want) { unpublished.push(token); continue }",
+      "    const px = parseFloat(want)",
+      "    if (!(px > 0)) { unpublished.push(token); continue }",
+      "    const hosts = all(sel)",
+      "    if (!hosts.length) { absent.push(sel); continue }",
+      "    let seen = 0",
+      "    for (const host of hosts) {",
+      "      /* A SELECT TRIGGER IS ALSO A BUTTON, so the button pairing would",
+      "         claim its chevron and report the fault against the wrong token.",
+      "         The more specific class owns the mark. */",
+      "      if (sel === '.btn' && host.classList.contains('select-trigger')) continue",
+      "      const marks = Array.prototype.slice.call(host.children).filter(k =>",
+      "        k.tagName === 'svg' || (k.classList && k.classList.contains('icon')))",
+      "      for (const m of marks) {",
+      "        const mr = m.getBoundingClientRect()",
+      "        if (!mr.width || !mr.height) continue",
+      "        seen++",
+      "        asked++",
+      "        const got = round(mr.height)",
+      "        if (Math.abs(mr.height - px) <= 0.5) continue",
+      "        fail(name(host), 'this mark paints ' + got + 'px where ' + token + ' publishes ' + want + '. A published value nothing paints is a setting the reader cannot use, and no geometric check sees it: the mark is centred and square at the wrong size. Find the rule that wins, and ask whether it was written about this component at all.')",
+      "      }",
+      "    }",
+      "    if (!seen) absent.push(sel + ' (present, no mark)')",
+      "  }",
+      "  if (!asked) note('no component here holds a mark whose size is published, so this rule is UNMEASURED.')",
+      "  else note(asked + ' mark(s) compared against a published size.')",
+      "  if (unpublished.length) note('unpublished, so the fallback paints: ' + unpublished.join(', '))",
+      "  if (absent.length) note('not on this surface, or carrying no mark: ' + absent.join(', '))",
+      "}",
+    ],
+  },
 ]
 
 export const SOURCE_CHECKS = CHECKS.filter(c => c.where === 'source')

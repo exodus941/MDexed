@@ -1350,9 +1350,15 @@
    one comes later in the file, so it won: the select published 16px and
    painted 14 on all three instances. Excluded here rather than reordered,
    because the button rule claiming a select's mark is the fault. */
+/* AND THE EXCLUSION GOES ON ALL THREE COMPOUNDS. It went on `.btn` alone
+   first, so a trigger also carrying `.btn-sm` kept painting 14px. One
+   instance, on Index, at every width. The new check found it on the second
+   surface of the run after it shipped; the hand-written surface list I had
+   verified with named three screens that do not exist and missed three that
+   do. Run the driver, not a list. */
 .dmd .btn:not(.select-trigger) .icon,
-.dmd .btn-sm .icon,
-.dmd .btn-lg .icon { width: var(--cmp-button-icon-size, 14px); height: var(--cmp-button-icon-size, 14px); }
+.dmd .btn-sm:not(.select-trigger) .icon,
+.dmd .btn-lg:not(.select-trigger) .icon { width: var(--cmp-button-icon-size, 14px); height: var(--cmp-button-icon-size, 14px); }
 .dmd .nav-item .icon { width: var(--cmp-nav-item-icon-size, var(--icon-md, 16px)); height: var(--cmp-nav-item-icon-size, var(--icon-md, 16px)); }
 /* ── THE STROKE IS A PAINTED WEIGHT, SO IT DOES NOT SCALE ──
  *

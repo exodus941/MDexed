@@ -270,8 +270,10 @@ export default defineConfig(({ command }) => ({
        the overlay pair. Then to 1262 at 1261.90, with the six mark-size and
        pointer repairs: the select's own chevron size, the field's unread mark
        token, the tab's cap band and its first mark, the menu's flush items,
-       and the nav floor moved from a width to a pointer. */
-    chunkSizeWarningLimit: 1262,
+       and the nav floor moved from a width to a pointer. Then to 1266 at
+       1265.16, with the check that compares a published mark size against the
+       painted one. It found a seventh instance on its first real run. */
+    chunkSizeWarningLimit: 1266,
   },
 
   server: {

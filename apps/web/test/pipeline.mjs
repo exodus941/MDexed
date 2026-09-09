@@ -5920,6 +5920,79 @@ function hueHex(h) {
       `and no size step restates it, so a rule that resizes the box cannot leave the mark behind (${perStep.join(', ') || 'none do'})`)
   }
 
+  /* ── A COMPONENT THAT PUBLISHES A MARK SIZE MUST PAINT IT, AND MUST HAVE AN
+        INSTANCE TO PAINT IT WITH ──
+     Three of the six that publish one never did, and nothing was asking. Every
+     other mark check reads a POSITION, or asks whether one control holds two
+     sizes. None compared the published value against the painted one.
+
+     The select painted the button's 14px because a trigger carries `.btn` and
+     the button rule came later at equal weight. The field's rule read
+     `.input > .icon`, and an `<input>` is void, so it reached 0 elements over
+     twelve surfaces. The tab published a size and no tab anywhere held a mark.
+
+     THE RENDER CHECK ANSWERS THE FIRST HALF AND CANNOT ANSWER THE SECOND. A
+     render pass sees one surface, so "no instance on this surface" is normal
+     and "no instance anywhere" is a source question. Both halves are asserted
+     here, over the real component list and the real screens. */
+  {
+    const marked = COMPONENT_LIBRARY
+      .filter(c => c.base && c.base.iconSize)
+      .map(c => c.name)
+    assert(marked.length >= 6,
+      `there are components publishing a mark size to ask about (${marked.length}: ${marked.join(', ')})`)
+
+    /* THE PAIRING IS DECLARED IN THE CHECK, because two of the six cannot be
+       derived: the button's class is `.btn` and the field's mark hangs off the
+       `.input-icon` WRAPPER rather than the control. A derived name resolves to
+       nothing for those two and the check goes quiet on them. So the map has to
+       be complete, and this is what refuses to let a seventh component ship
+       unpaired. */
+    const { CHECKS: ALL_CHECKS } = await import('../src/emit/checks.js')
+    const paintCheck = ALL_CHECKS.find(c => c.id === 'a-mark-paints-the-size-its-component-publishes')
+    assert(!!paintCheck && paintCheck.where === 'render',
+      'the published-versus-painted question is a render check')
+    const paired = (paintCheck.body.join('\n').match(/--cmp-([a-z-]+)-icon-size/g) || [])
+      .map(t => t.replace(/^--cmp-/, '').replace(/-icon-size$/, ''))
+    const unpaired = marked.filter(n => !paired.includes(n))
+    assert(unpaired.length === 0,
+      `every component publishing a mark size is paired with a class in that check${unpaired.length ? ` — ${unpaired.join(', ')} are not` : ` (${paired.length} pairings)`}`)
+    const stray = paired.filter(n => !marked.includes(n))
+    assert(stray.length === 0,
+      `and no pairing names a component that publishes no mark size${stray.length ? ` — ${stray.join(', ')}` : ''}`)
+
+    /* ── AND EVERY ONE NEEDS AN INSTANCE THAT RENDERS A MARK ──
+       A published value with no instance is invisible to the render check, to
+       the name-based reader guard, and to the eye. Ask the SCREENS: does a call
+       site put a mark inside an element carrying this component's class? */
+    const { fileURLToPath: toPath } = await import('node:url')
+    const nodePath = await import('node:path')
+    const SRC = toPath(new URL('../src/preview/', import.meta.url))
+    const walkP = d => fs.readdirSync(d, { withFileTypes: true }).flatMap(e =>
+      e.isDirectory() ? walkP(nodePath.join(d, e.name)) : [nodePath.join(d, e.name)])
+    const jsx = walkP(SRC).filter(p => p.endsWith('.jsx'))
+      .map(p => fs.readFileSync(p, 'utf8'))
+      /* Blank the comments first. One of them quotes the markup shape, and a
+         scan of the raw text finds a class in the prose explaining its absence. */
+      .map(t => t.replace(/\/\*[\s\S]*?\*\//g, m => m.replace(/[^\n]/g, ' ')))
+      .join('\n')
+    assert(jsx.length > 5000, `the preview screens are readable (${jsx.length} bytes)`)
+    /* The class a component renders as, where it differs from its name. */
+    const CLASS_OF = { button: 'btn', 'nav-item': 'nav-item', tab: 'tab',
+      alert: 'alert', select: 'select-trigger', input: 'input-icon' }
+    const noInstance = []
+    for (const n of marked) {
+      const cls = CLASS_OF[n]
+      assert(!!cls, `${n} has a class to look for`)
+      /* An element opening with this class, up to its closing tag, holding an
+         icon call. Non-greedy, so it cannot run past the element it opened. */
+      const re = new RegExp('className=[""\'`][^"\'`]*\\b' + cls + '\\b[^"\'`]*[""\'`][\\s\\S]{0,400}?<Ico\\b')
+      if (!re.test(jsx)) noInstance.push(n + ' (.' + cls + ')')
+    }
+    assert(noInstance.length === 0,
+      `every component publishing a mark size has a screen rendering that mark${noInstance.length ? ` — ${noInstance.join(', ')} publish one and demonstrate nothing` : ` (${marked.length} components)`}`)
+  }
+
   /* ── AN AVATAR IS NOT AN ICON, SO IT PUBLISHES ITS OWN GAP ──
      It had none, so a row holding one fell back to the row default and put 8px
      between a 32px disc and the name beside it. The icon gap is calibrated for
