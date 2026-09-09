@@ -272,8 +272,10 @@ export default defineConfig(({ command }) => ({
        token, the tab's cap band and its first mark, the menu's flush items,
        and the nav floor moved from a width to a pointer. Then to 1266 at
        1265.16, with the check that compares a published mark size against the
-       painted one. It found a seventh instance on its first real run. */
-    chunkSizeWarningLimit: 1266,
+       painted one. It found a seventh instance on its first real run. Then to
+       1268 at 1267.78, with the check for a text-less wrapper's cap-band rule.
+       Nothing else could see that fault: the mark is a grandchild of the row. */
+    chunkSizeWarningLimit: 1268,
   },
 
   server: {

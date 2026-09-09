@@ -6237,6 +6237,81 @@ export const CHECKS = [
       "}",
     ],
   },
+  {
+    id: 'a-text-less-wrapper-carries-the-cap-band-rule',
+    where: 'render',
+    line: 'A wrapper holding only a mark takes the cap-band rule itself. With no text of its own it takes its baseline from its bottom margin edge, so the mark hangs its whole height above the line.',
+    /* ── THE MARK BECOMES A GRANDCHILD, AND EVERY CHILD SELECTOR MISSES IT ──
+     *
+     * An editor that wraps each instance for inspection puts a span between
+     * the row and the mark. Under baseline alignment that span has no text, so
+     * it takes its baseline from its bottom margin EDGE and hangs the mark's
+     * whole height above the line.
+     *
+     * Measured on the shipped wrapper, by taking its rule away in a stylesheet
+     * and reading the geometry back. With the rule: 3.5px above the cap line
+     * and 2.5 below the baseline, on a 20px label with a 14px cap band.
+     * Without it: 6px above and 0 below.
+     *
+     * NOTHING SHIPPED COULD SEE THAT. `icon-on-the-cap-band` reads the marks
+     * that are CHILDREN of the row, so a mark one level deeper is invisible to
+     * it. Proven: the same injection produced 0 findings from all 70 other
+     * checks. That is the hole this fills, and it is why the check is worth
+     * one candidate.
+     *
+     * A CONTROL IS NOT A WRAPPER, AND ASKING THE SHAPE ALONE FAULTS EIGHT.
+     * An icon-only button is text-less and holds one mark, and the cap-band
+     * rule EXCLUDES it: no label means no baseline, so it centres on its own
+     * box. Measured before the guard: 12 candidates, 8 of them icon-only
+     * buttons, all correct. Ask INTERACTIVITY first, which is a property, then
+     * the control classes for the inert spans a preview renders.
+     *
+     * AND A WRAPPER INSIDE A CONTROL TAKES THAT CONTROL'S RULE, so it is out
+     * too. Left in, a checkbox's tick wrapper reported three times.
+     *
+     * BROKEN ON PURPOSE. Setting the wrapper's transform to none fires and
+     * names both overhangs. */
+    body: [
+      "const CTRL = '.btn, .nav-item, .tab, .select-trigger, .checkbox, .switch, .badge, .chip, .avatar'",
+      "const PRESSABLE = 'a, button, input, select, textarea, summary, label, [role=button], [tabindex]'",
+      "let asked = 0, controls = 0",
+      "for (const el of all('*')) {",
+      "  const r = el.getBoundingClientRect()",
+      "  if (!r.width || !r.height) continue",
+      "  /* ITS OWN text, so a wrapper is told from a labelled row. */",
+      "  let own = ''",
+      "  for (const n of el.childNodes) if (n.nodeType === 3) own += n.nodeValue",
+      "  if (own.trim()) continue",
+      "  const kids = Array.prototype.slice.call(el.children)",
+      "    .filter(k => k.getBoundingClientRect().width)",
+      "  if (kids.length !== 1) continue",
+      "  const k = kids[0]",
+      "  if (k.tagName !== 'svg' && !(k.classList && k.classList.contains('icon'))) continue",
+      "  /* A CONTROL IS A LEAF AND CENTRES ON ITS OWN BOX. */",
+      "  if (el.matches(PRESSABLE) || el.matches(CTRL)) { controls++; continue }",
+      "  const host = el.closest(PRESSABLE)",
+      "  if (host && host !== el) { controls++; continue }",
+      "  /* AND THE ROW HAS TO DECLARE THE BASELINE, or there is no line to sit",
+      "     on and nothing for the rule to land against. */",
+      "  const p = el.parentElement",
+      "  if (!p) continue",
+      "  const pcs = getComputedStyle(p)",
+      "  if (!/^(flex|inline-flex)$/.test(pcs.display)) continue",
+      "  if (pcs.alignItems !== 'baseline') continue",
+      "  asked++",
+      "  const cs = getComputedStyle(el)",
+      "  const lifted = cs.transform && cs.transform !== 'none'",
+      "  const onLine = cs.alignSelf === 'baseline'",
+      "  if (lifted && onLine) continue",
+      "  const missing = []",
+      "  if (!onLine) missing.push('align-self: baseline')",
+      "  if (!lifted) missing.push('the cap-band transform')",
+      "  fail(name(el), 'this wrapper holds a mark and no text of its own, and it is missing ' + missing.join(' and ') + '. With no in-flow text it takes its baseline from its bottom margin EDGE, so the mark hangs its whole height above the line. Measured on this shape: 6px above the cap against 0 below the baseline without the rule, and 3.5 against 2.5 with it. Put the rule on the WRAPPER, because a child selector aimed at the mark matches nothing once the mark is a grandchild.')",
+      "}",
+      "if (!asked) note('no text-less wrapper holds a mark inside a baseline row here, so this rule is UNMEASURED.')",
+      "else note(asked + ' wrapper(s) asked, plus ' + controls + ' control(s) skipped as leaves.')",
+    ],
+  },
 ]
 
 export const SOURCE_CHECKS = CHECKS.filter(c => c.where === 'source')
