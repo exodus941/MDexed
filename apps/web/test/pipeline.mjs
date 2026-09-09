@@ -6626,6 +6626,7 @@ function hueHex(h) {
   line('\n- the floor is a property, so the next control needs no name -')
   const CSS = fs.readFileSync(new URL('../src/preview/preview.css', import.meta.url), 'utf8')
   const bare = CSS.replace(/\/\*[\s\S]*?\*\//g, m => m.replace(/[^\n]/g, ' '))
+  const { CHECKS: CW2 } = await import('../src/emit/checks.js')
 
   /* ── A PROMOTION RULE THAT NAMES CONTAINERS MISSES THE NEXT ONE ──
    *
@@ -6661,8 +6662,11 @@ function hueHex(h) {
     .filter(b => /var\(--control-floor/.test(b[2]))
   assert(parity.length >= 1,
     `at least one derived height reads the floor (${parity.length})`)
-  assert(parity.every(b => /min-height:\s*max\(/.test(b[2]) || /height:\s*max\(/.test(b[2])),
-    'and reads it through max(), never as a replacement for its own arithmetic')
+  /* THROUGH `max()`, NEVER AS A REPLACEMENT. The reader may assign that max to
+     a custom property first, which is what a rule setting both a height and
+     its line box does, so match the max rather than the property it lands on. */
+  assert(parity.every(b => /max\(/.test(b[2]) && /var\(--control-floor/.test(b[2])),
+    `and reads it through max(), never as a replacement for its own arithmetic (${parity.length} reader(s))`)
   assert(parity.some(b => /font-body-sm-size/.test(b[2])),
     'the tab-select parity rule is one of them, which is the case that found this')
 
@@ -6670,6 +6674,45 @@ function hueHex(h) {
      types is a number nobody can change. */
   assert(/--control-floor:\s*var\(--target-min/.test(bare),
     'and the floor is the published touch minimum, never a typed number')
+
+  /* ── AND EVERY RULE THAT STATES A HEIGHT HAS TO READ IT ──
+   *
+   * A rule stating `height` outweighs the promotion whenever it is more
+   * specific, and then no floor reaches the control. Found on the first
+   * coarse-pointer run over 12 surfaces at 13 widths: Landing's primary call
+   * to action measured 246x36 from 640px up, while the two nav links beside
+   * it reached 44.
+   *
+   * The links were fine for a reason worth pinning: the promotion gives them
+   * `min-height`, a different property from the `height` their own rule sets,
+   * so both apply and the larger wins. A button takes `height` from both, and
+   * specificity decides.
+   *
+   * ── AND THE GENERAL QUESTION IS NOT ASKED HERE ──
+   *
+   * A first draft collected every rule stating a height on a control and
+   * demanded it read the floor. It reported 10 findings and all were correct
+   * code. `.dmd .btn`, `.btn-sm` and `.btn-lg` are the BASE sizes: the
+   * promotion has the same weight and comes later, so order settles it. And
+   * `.dmd .btn .icon` is a mark's height, which is not a target at all.
+   *
+   * Answering it honestly needs specificity arithmetic against the promotion,
+   * and the browser already does that. `target-floor-for-the-pointer` is the
+   * general check and it is what found this fault, over 12 surfaces at 13
+   * widths with touch emulated. A source-level copy of it would be a second
+   * instrument on one question, worse than the first.
+   *
+   * So this block pins the INSTANCE and the mechanism, and the render check
+   * keeps asking the general form. */
+  assert(CW2.some(c => c.id === 'target-floor-for-the-pointer' && c.where === 'render'),
+    'the general floor question stays with the render check, which resolves specificity')
+  const navBtn = [...bare.matchAll(/([^{}@]+)\{([^{}]*)\}/g)]
+    .find(b => /\.nav-list\s*>\s*\.btn/.test(b[1]))
+  assert(!!navBtn, 'the nav-list button rule is found')
+  assert(/max\(var\(--cmp-button-md-height[^)]*\),\s*var\(--control-floor/.test(navBtn?.[2] ?? ''),
+    'and it takes the larger of its own height and the floor')
+  assert(/--nav-btn-h:/.test(navBtn?.[2] ?? '') && /line-height:\s*calc\(var\(--nav-btn-h\)/.test(navBtn?.[2] ?? ''),
+    'stating it once, because a height and its line box are one decision')
 }
 
 {
@@ -7080,6 +7123,58 @@ function hueHex(h) {
     'the comment records why min-content is the wrong measure for this row')
   assert(px > 1469,
     `and the shipped threshold is above it, never at it (${px} against 1469)`)
+}
+
+/* ── A PAGE TITLE CANNOT SHRINK UNDER ITS OWN LONGEST WORD ──
+ *
+ * `min-width: 0` on the heading is what lets it wrap at all, and it also lets
+ * the box go narrower than a single word, which cannot wrap. Found on the
+ * first full run, 12 surfaces at 13 widths with both pointers:
+ *
+ *   Settings at 296   237.56px of ink in a 194px box   43.56 over
+ *   Settings at 320   237.56px of ink in a 218px box   19.56 over
+ *   Record   at 296   251.81px of ink in a 246px box    5.81 over, on
+ *                     the word "reconciliation"
+ *
+ * Nothing was cut off the screen. The ink ran past its own column into the
+ * action group beside it, which no clipping check can see because nothing
+ * clips. `min-content` is the longest word, so the box still shrinks and still
+ * wraps and stops where a word would break.
+ *
+ * TWO STYLESHEETS STATE IT, so both are asserted. The base rule lives in
+ * preview.css and a narrow-width block restates it, and a fix to one alone
+ * left the other reverting to 0 below 640px. That is how the first attempt
+ * measured no change at all.
+ */
+{
+  line('\n- a page title cannot shrink under its own longest word -')
+  const base = fs.readFileSync(new URL('../src/preview/preview.css', import.meta.url), 'utf8')
+  const resp = fs.readFileSync(new URL('../src/preview/responsive.rules.css', import.meta.url), 'utf8')
+  const blank = s => s.replace(/\/\*[\s\S]*?\*\//g, m => m.replace(/[^\n]/g, ' '))
+
+  for (const [what, css] of [['the base stylesheet', blank(base)], ['the narrow-width block', blank(resp)]]) {
+    const rules = [...css.matchAll(/([^{}@]+)\{([^{}]*)\}/g)]
+      .filter(b => /\.page-title\s*>\s*h2/.test(b[1]) && /min-width:/.test(b[2]))
+    assert(rules.length >= 1, `${what} floors the page title (${rules.length} rule(s))`)
+    assert(rules.every(b => /min-width:\s*min-content/.test(b[2])),
+      `and at min-content, never 0, in ${what}`)
+  }
+
+  /* NO `overflow-wrap: anywhere` ON A TITLE. It broke "Overview" into
+     "Overvie" and "w", which is worse than any answer the ladder chooses
+     between. The floor is the fix; breaking the word is not. */
+  for (const [what, css] of [['the base stylesheet', blank(base)], ['the narrow-width block', blank(resp)]]) {
+    const bad = [...css.matchAll(/([^{}@]+)\{([^{}]*)\}/g)]
+      .filter(b => /h1|h2|h3|page-title/.test(b[1]) && /overflow-wrap:\s*(anywhere|break-word)/.test(b[2]))
+    assert(bad.length === 0,
+      `no heading breaks mid-word in ${what}${bad.length ? ' — ' + bad.map(b => b[1].trim().slice(0, 36)).join(' | ') : ''}`)
+  }
+
+  /* AND THE RENDER CHECK STILL ASKS IT, because a floor is a declaration and
+     whether the words fit is a measurement. */
+  const { CHECKS: CH } = await import('../src/emit/checks.js')
+  assert(CH.some(c => c.id === 'a-heading-keeps-its-words' && c.where === 'render'),
+    'the heading check ships and runs in a browser')
 }
 
 line(`\n${failures === 0 ? 'ALL PASS' : `${failures} FAILURE(S)`}\n`)

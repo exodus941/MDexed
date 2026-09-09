@@ -129,8 +129,15 @@
      run out of room — "Overview" rendered as "Overvie" over "w" at 640px, which
      is a worse answer than any of the ones the ladder chooses between. A title
      wraps at spaces or it does not wrap, and if it genuinely does not fit the
-     sweep says so instead of the layout hiding it. */
-  .dmd .page-title > h2 { min-width: 0; }
+     sweep says so instead of the layout hiding it.
+
+     AND IT DID SAY SO. This read `min-width: 0`, which lets the box shrink
+     under its own longest word, and a single word cannot wrap. Measured at
+     296: Settings put 237.56px of ink in a 194px box, and Record was 5.81px
+     over on "reconciliation". `min-content` is the longest word, so the box
+     still shrinks and still wraps and stops where a word would break. The
+     base rule in preview.css carries the same value and the same reason. */
+  .dmd .page-title > h2 { min-width: min-content; }
   /* ── Where the menu button sits ──
    *
    * Last. Always last, because navigation outranks every action on the page and

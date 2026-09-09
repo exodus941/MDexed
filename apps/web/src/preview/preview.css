@@ -1955,9 +1955,23 @@
  * a step earlier than it strictly must, which is a layout choice nobody
  * notices. An overflow is a defect anybody notices.
  *
- * `min-width: 0` lets the heading shrink so it can wrap at all. No
- * `overflow-wrap: anywhere` — that broke "Overview" into "Overvie" and "w". */
-.dmd .page-title > h2 { min-width: 0; }
+ * The heading has to shrink to wrap at all. No `overflow-wrap: anywhere` —
+ * that broke "Overview" into "Overvie" and "w".
+ *
+ * ── BUT A ZERO FLOOR LETS IT SHRINK UNDER ITS OWN LONGEST WORD ──
+ *
+ * This read `min-width: 0`, and a single word cannot wrap. Measured on the
+ * first full run, 12 surfaces at 13 widths: Settings put 237.56px of ink in a
+ * 194px box at 296, and 19.56px over at 320. Record was 5.81px over at 296 on
+ * the word "reconciliation". Nothing was cut off the screen: the ink ran past
+ * its own column into the action group beside it, which no clipping check can
+ * see because nothing clips.
+ *
+ * `min-content` is the longest WORD, so the box still shrinks and still wraps,
+ * and stops where a word would break. The header row wraps instead, which is
+ * what `flex-wrap: wrap` above is for. Measured after, over 8 surfaces at 4
+ * widths each: worst overflow 0.02px and nothing past a frame edge. */
+.dmd .page-title > h2 { min-width: min-content; }
 
 /* WHERE THE CONTROLS SIT BESIDE A WRAPPED HEADING IS NOW A SETTING.
  *
@@ -2149,9 +2163,26 @@
    padding gave them, so the row still ran 38, 38, 36. Stated, all three are
    36 and share one baseline — measured at 194 for each. */
 .dmd .header-nav .nav-item { height: var(--cmp-button-md-height, 36px); }
+/* ── AND A RULE THAT STATES A HEIGHT CANNOT BE PROMOTED BY BEING NAMED ──
+ *
+ * This rule weighs (0,3,0) and the coarse-pointer promotion of `.btn` weighs
+ * (0,2,0), so this one won. Measured on Landing at a coarse pointer, from 640
+ * to 1536: the two links reached 44px and this button stayed 246x36, 8px under
+ * the floor. It is the page's primary call to action.
+ *
+ * The links are fine for a reason worth stating: the promotion gives them
+ * `min-height`, which is a DIFFERENT property from the `height` this rule
+ * sets, so both apply and the larger wins. A button gets `height` from both
+ * rules, and specificity decides.
+ *
+ * So it reads `max(its own height, --control-floor)`, which is the same
+ * mechanism the tab-select parity calc uses. The floor is absent on a mouse
+ * and falls back to 0px, so nothing moves there. Stated once as a property,
+ * because the height and the line box are one decision. */
 .dmd .header-nav .nav-list > .btn {
-  height: var(--cmp-button-md-height, 36px);
-  line-height: calc(var(--cmp-button-md-height, 36px) - 2px);
+  --nav-btn-h: max(var(--cmp-button-md-height, 36px), var(--control-floor, 0px));
+  height: var(--nav-btn-h);
+  line-height: calc(var(--nav-btn-h) - 2px);
   padding: 0 var(--cmp-button-md-padding-x, var(--space-md, 16px));
   font-size: var(--cmp-button-md-font-size, var(--font-button-size, 14px));
 }
