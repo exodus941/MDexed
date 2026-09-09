@@ -218,6 +218,34 @@
   box-shadow: var(--cmp-card-overlay-box-shadow, var(--shadow-overlay, none));
   background: var(--cmp-card-overlay-background-color, var(--c-surface-raised, #fff));
 }
+/* ── A MENU IS A FRAME AROUND ITEMS THAT CARRY THEIR OWN PADDING ──
+ *
+ * Its own inset is one small step, not the card's, because each item already
+ * has 8px of block padding and 16px of inline. The 24px card step around them
+ * would double the inset the reader sees.
+ *
+ * It was an inline `padding: 4` in the markup. An inline value beats every
+ * rule, so nothing in this stylesheet could reach it and no token published
+ * it. Reaching for one is the signal that a primitive is missing.
+ *
+ * IT READS THE SPACE STEP, NOT A NEW COMPONENT TOKEN. Inventing
+ * `--cmp-card-menu-padding` would publish a name no document declares, and a
+ * token nothing publishes is one a reader cannot set. `2xs` is on the scale
+ * and already published. */
+.dmd .card-menu { padding: var(--space-2xs, 4px); }
+/* ── TWO OVERLAY SPECIMENS ARE NOT A ROW OF CARDS ──
+ *
+ * A grid stretches every child to the tallest, which is right for a row of
+ * stat tiles and wrong for two unrelated overlays. A toast holding one line
+ * beside a three-item menu came out 147.5px tall around 28px of ink: 25px of
+ * slack above and 94.5 below. They asked what the height and padding were
+ * doing.
+ *
+ * Ask the PROPERTY rather than the surface: a track holding an overlay holds
+ * things that size themselves. `align-items: start` then gives each its own
+ * height and moves nothing in a row of cards. */
+.dmd .cols-2:has(> .card-overlay),
+.dmd .cols-3:has(> .card-overlay) { align-items: start; }
 .dmd .well {
   background: var(--c-surface-sunken, #f4f4f4);
   border-radius: var(--radius-md, 4px);
@@ -2424,9 +2452,31 @@
  * began 16px inside the margin the `h3` above it sits on, at every width and
  * both pointers.
  *
- * Equal on both edges, or the table reads as leaning. The zebra and selection
- * variants override this below, and each has a reason: a stripe paints across
- * the row, so its text needs to clear the painted edge.
+ * The zebra and selection variants override this below, and each has a reason:
+ * a stripe paints across the row, so its text needs to clear the painted edge.
+ *
+ * ── AND THE TWO EDGES ARE NOT THE SAME CASE. THE INK SITS AT OPPOSITE ENDS ──
+ *
+ * This rule zeroed BOTH outer edges, for symmetry, and the paragraph above
+ * justifies only the START. They caught the result the next day: "what
+ * happened to the padding on the right side of the table?"
+ *
+ * A start-aligned first cell with no start padding puts its text ON the
+ * container's content edge, which is where the heading above it sits. That is
+ * the alignment this rule exists for.
+ *
+ * The last cell is end-aligned or holds a control that fills it, so zero
+ * padding puts its ink on the far content edge with nothing beyond it.
+ * Measured across four tables on four surfaces: 0.00px from the card's inner
+ * edge, every one. An amount column's digits and a row-action button both sat
+ * against the border.
+ *
+ * SO THE END KEEPS THE CELL GUTTER. Measured after: 16px clear on every table,
+ * the table's own width unchanged at 796.4px, and the heading moves with its
+ * column because the `th` takes the same rule.
+ *
+ * `act-col` takes 8px rather than 16, from its own start padding, so its
+ * button centres in a cell that shrinks to fit it.
  *
  * ── AND THE BAR GUTTER GOES IN THE BASE, NOT ON THE SELECTED ROW ──
  *
@@ -2442,7 +2492,7 @@
  * which is the whole point above. `:has()` makes that dynamic, so a table
  * gains the gutter the moment a row is marked and the column never staggers. */
 .dmd .table th:first-child, .dmd .table td:first-child { padding-inline-start: 0; }
-.dmd .table th:last-child, .dmd .table td:last-child { padding-inline-end: 0; }
+.dmd .table .act-col:last-child { padding-inline-end: var(--space-xs, 8px); }
 .dmd .table:has(tr.is-selected) th:first-child,
 .dmd .table:has(tr.is-selected) td:first-child {
   padding-inline-start: calc(var(--cmp-table-row-selected-edge-width, 4px) + var(--space-2xs, 4px));

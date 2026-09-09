@@ -230,7 +230,11 @@ export default function Dialog({ onInspect, layout, casing }) {
         </div>
 
         {/* Dropdown menu */}
-        <div className="card card-overlay" style={{ padding: 4 }} {...ins('card-overlay')}>
+        {/* `card-menu`, not an inline padding. An inline value beats every
+            rule, so the stylesheet could not reach this 4px and no token
+            published it. A menu's own inset is one small step, because each
+            item already carries its own. */}
+        <div className="card card-overlay card-menu" {...ins('card-overlay')}>
           {[['Duplicate', IconStar], ['Details', IconInfo], ['More actions', IconMore]].map(([label, icon]) => (
             <div key={label} className="with-icon nav-item" {...ins('nav-item')}>
               <Ico d={icon} />{label}

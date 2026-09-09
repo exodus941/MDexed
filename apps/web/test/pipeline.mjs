@@ -8220,12 +8220,32 @@ function hueHex(h) {
   assert(/--cmp-avatar-background-color/.test(av), 'the fill is unchanged')
 
   line('\n- a table first column starts on the margin its heading sets -')
-  const outer = [...bare.matchAll(/([^{}@]+)\{([^{}]*)\}/g)]
-    .filter(b => /\.table (?:th|td):first-child/.test(b[1]) || /\.table (?:th|td):last-child/.test(b[1]))
-  assert(outer.length >= 2, `the outer cells are stated on both edges (${outer.length} rule(s))`)
-  const flush = outer.filter(b => !/:has\(/.test(b[1]))
-  assert(flush.length === 2 && flush.every(b => /padding-inline-(start|end):\s*0/.test(b[2])),
-    'both outer edges are zeroed, so the table cannot read as leaning')
+  /* ── THIS ASSERTION PINNED THE FAULT IT WAS WRITTEN BESIDE ──
+   *
+   * It read "both outer edges are zeroed, so the table cannot read as
+   * leaning", and required exactly two rules each stating a zero. So it held
+   * the very declaration the user reported the next day: "what happened to the
+   * padding on the right side of the table?"
+   *
+   * A test written around a defect keeps the defect. The two edges are not one
+   * case, because the ink sits at opposite ends of the box. A start-aligned
+   * first cell with no start padding puts its text on the container's content
+   * edge, where the heading above it sits. The last cell is end-aligned or
+   * holds a control that fills it, so a zero there puts its ink on the far
+   * edge with nothing beyond. Measured across four tables: 0.00px, every one.
+   *
+   * SO ASSERT THE SHAPE, NOT THE SYMMETRY. The start is zeroed, and the end
+   * is not zeroed anywhere. */
+  const cellRules = [...bare.matchAll(/([^{}@]+)\{([^{}]*)\}/g)]
+  const startFlush = cellRules.filter(b =>
+    /\.table (?:th|td):first-child/.test(b[1]) && !/:has\(/.test(b[1]))
+  assert(startFlush.length === 1 && /padding-inline-start:\s*0/.test(startFlush[0][2]),
+    `the first cell is flush, so its text lands on the heading margin (${startFlush.length} rule(s))`)
+  const endZero = cellRules.filter(b =>
+    /\.table[^{]*(?:th|td):last-child/.test(b[1]) && /padding-inline-end:\s*0(?:px)?\s*[;}]/.test(b[2]))
+  assert(endZero.length === 0, endZero.length
+    ? `an outer end edge is zeroed, so its ink lands on the container edge — ${endZero.map(b => b[1].trim()).join('; ')}`
+    : 'and no rule zeroes an outer END edge, where the ink sits at that end')
   /* ── THE BAR GUTTER GOES IN THE BASE, NOT ON THE SELECTED ROW ──
    * The first version gave the selected row alone the bar's 4px, and its own
    * check caught it in one run: the content started 4.0px further in than the
