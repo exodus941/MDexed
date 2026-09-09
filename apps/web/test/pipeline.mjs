@@ -6315,5 +6315,196 @@ function hueHex(h) {
   assert(/svg, img/.test(tic), 'and a real icon is still found first')
 }
 
+/* ── THE COLOUR SECTION: THREE RULES A MACHINE COULD ASK AND NOTHING DID ──
+ *
+ * Worked from the coverage tool's gap list, colour first, 9 September 2026.
+ * Eighteen rules read as gaps there and fifteen were a WORDING miss: the rule
+ * is checked and the check words it differently. These three were real.
+ *
+ * Each one was implemented in the source and unread by any test, which is the
+ * shape that lets a constant drift while every run stays green.
+ */
+{
+  line('\n- the chroma envelope is asymmetric, and the ratio is physics -')
+  const { inGamut } = await import('../src/color/convert.js')
+  const { DARK_FLOOR } = await import('../src/color/ramp.js')
+
+  /* The most chroma sRGB holds at this lightness and hue. The rule states it
+     was measured by bisecting `inGamut`, so the test measures it the same way
+     rather than quoting the answer. */
+  const peak = (l, h) => {
+    let lo = 0, hi = 0.5
+    for (let i = 0; i < 40; i++) {
+      const mid = (lo + hi) / 2
+      if (inGamut({ mode: 'oklch', l, c: mid, h })) lo = mid
+      else hi = mid
+    }
+    return lo
+  }
+
+  const seeds = createInitialState().color.seeds
+  const hueOfSeed = name => {
+    const s = seeds.find(x => x.name === name)
+    return toOklchObj(parseColorFor(s.hex)).h ?? 0
+  }
+
+  /* ── THE FLOOR IS A NEUTRAL'S NUMBER, SO MEASURE AT A NEUTRAL'S HUE ──
+   * The dark ground comes off the neutral ramp, and the accent sits three
+   * degrees away from it in the shipped seed set. Measured: 3.60 at the
+   * neutral's hue and 3.96 at the accent's. The rule states 3.83, which is
+   * between them, and `DARK_FLOOR` is 0.2 times that. */
+  const nRatio = peak(0.20, hueOfSeed('neutral')) / peak(0.97, hueOfSeed('neutral'))
+  const aRatio = peak(0.20, hueOfSeed('accent')) / peak(0.97, hueOfSeed('accent'))
+  assert(nRatio > 3 && nRatio < 4.5,
+    `a chroma envelope that tapers symmetrically is wrong at one end: sRGB holds ${nRatio.toFixed(2)}x more at L 20 than at L 97, at the neutral own hue`)
+  const shipped = DARK_FLOOR / 0.2
+  assert(shipped >= Math.min(nRatio, aRatio) - 0.3 && shipped <= Math.max(nRatio, aRatio) + 0.3,
+    `the dark floor is that measured ratio applied to the same 0.2, not a number picked to taste (${shipped.toFixed(2)} against ${nRatio.toFixed(2)} and ${aRatio.toFixed(2)})`)
+
+  /* ── AND IT IS NOT A GENERAL LAW OF sRGB, WHICH THE RULE'S WORDING IMPLIES ──
+   *
+   * A check asserting "every hue holds more chroma at the dark end" would fail
+   * on correct code. Measured over 72 hues: 17 of them invert, and they run
+   * from 95 to 200 degrees. That is the cyan-green region, and it is the same
+   * fact as the yellow rule three paragraphs above — a hue wide at the white
+   * end is narrow at the black end. The two rules have to agree, so this pins
+   * the inversion rather than pretending it is absent. */
+  let inverted = 0
+  for (let h = 0; h < 360; h += 5) if (peak(0.20, h) / peak(0.97, h) < 1) inverted++
+  assert(inverted > 8 && inverted < 30,
+    `the asymmetry inverts for a band of hues rather than holding everywhere (${inverted} of 72)`)
+  const yellow = peak(0.20, 81) / peak(0.97, 81)
+  assert(yellow < 2,
+    `a warning yellow is the shallow case, so the floor is a neutral's rule and not a palette's (${yellow.toFixed(2)}x)`)
+
+  /* THE LIGHT END KEEPS 0.2, because there the original premise holds. */
+  assert(DARK_FLOOR > 0.2,
+    `and only the dark end is raised (${DARK_FLOOR.toFixed(3)} against a light floor of 0.2)`)
+}
+
+{
+  line('\n- a component own text on its own fill is a third pair -')
+  /* ── THE CHECK RAN ON EVERY AUDIT AND HAD NEVER BEEN PROVEN TO FIRE ──
+   *
+   * `componentContrast` is inside `audit()`, so it ran in dozens of
+   * assertions. Every one of them fed it a clean preset, and every preset
+   * audits clean, so the path returned an empty array on every input the suite
+   * ever gave it. A test with nothing in it prints the same word as a test
+   * with everything.
+   *
+   * A TEXT ROLE THAT PASSES AGAINST THE PAGE CAN STILL FAIL HERE, which is
+   * the whole reason the pair exists. `text-subtle` on the input's own fill
+   * measures 4.33:1 against a 4.5 bar: 0.17 under it. So the finding depends
+   * on the threshold being right rather than on an obvious black-on-black.
+   */
+  const clean = createInitialState()
+  const CMP = s => audit(s, derive(s)).filter(f => /^cmp-contrast:/.test(f.id ?? ''))
+  const inject = over => CMP({
+    ...clean,
+    components: { ...clean.components, overrides: { ...clean.components.overrides, ...over } },
+  })
+
+  assert(CMP(clean).length === 0, 'the shipped default has no component pair failing')
+
+  const own = inject({ 'input.textColor': '{colors.text-subtle}' })
+  assert(own.length >= 1,
+    `a quiet text role on a component's own fill fires (${own.length} finding(s))`)
+  assert(own.some(f => f.id === 'cmp-contrast:input:light'),
+    'and it names the component, not a role')
+  assert(own.every(f => f.level === 'fail'), 'a text pair under AA is a failure, never a warning')
+  assert(own.some(f => /its own background/.test(f.title)),
+    "a component's own text on its own fill is a third pair, and the finding says which fill it measured")
+  assert(own.some(f => Number(String(f.measured).replace(':1', '')) > 4
+    && Number(String(f.measured).replace(':1', '')) < 4.5),
+    `the case that proves the bar is the deciding number, not the colour (${own[0]?.measured})`)
+
+  /* THE OTHER BRANCH: a component with no fill of its own sits on the page,
+     and the finding has to say which ground it measured. */
+  const onPage = inject({ 'badge.textColor': '{colors.bg-subtle}' })
+  assert(onPage.some(f => /the page behind it/.test(f.title)),
+    'a component with no fill is measured against the page, and says so')
+  assert(onPage.some(f => /:dark$/.test(f.id ?? '')) && onPage.some(f => /:light$/.test(f.id ?? '')),
+    'both modes are asked, because the mode nobody measured is where the failures live')
+
+  /* A DISABLED CONTROL IS EXEMPT UNDER 1.4.3, and the check says so. Proven
+     rather than read: the same fault on a disabled variant reports nothing. */
+  const dis = inject({ 'button-disabled.textColor': '{colors.bg}' })
+  assert(!dis.some(f => /-disabled:/.test(f.id ?? '')),
+    'a disabled control is exempt, so the fault reports on nothing disabled')
+}
+
+{
+  line('\n- a heavier weight buys contrast no ratio reports -')
+  /* ── THE BAR DOES NOT MOVE UNTIL 700, AND NOTHING READ THAT BRANCH ──
+   *
+   * Weight writes no colour channel, so hue, chroma and lightness are
+   * identical and the measured ratio cannot move. The rule records the gain as
+   * real and invisible: a 12px badge at 500 inks 3.6% more pixels than at 400
+   * and reads 1.74:1 against its own fill where 400 reads 1.64, while the
+   * nominal figure is 7.16:1 at both.
+   *
+   * What a machine CAN ask is the half that follows: large text is 24px, or
+   * 18.66px at 700 and above, so a 500 weight is normal text whatever it looks
+   * like. Measured on one badge at 20px, with only the weight changed:
+   *
+   *   400  3.76:1  FAIL     500  3.76:1  FAIL     600  3.76:1  FAIL
+   *   700  3.76:1  passes   800  3.76:1  passes
+   *
+   * The ratio is the same five times. Only the bar moves, and only at 700.
+   */
+  const clean = createInitialState()
+  const at = weight => {
+    const s = {
+      ...clean,
+      components: {
+        ...clean.components,
+        overrides: {
+          ...clean.components.overrides,
+          'badge.textColor': '{colors.text-subtle}',
+          'badge.typography': 'h5',
+          'badge.fontWeight': weight,
+        },
+      },
+    }
+    const d = derive(s)
+    const f = audit(s, d).find(x => x.id === 'cmp-contrast:badge:light')
+    return { size: d.cssVars['--cmp-badge-font-size'], fired: !!f, measured: f?.measured ?? null }
+  }
+
+  const runs = ['400', '500', '600', '700', '800'].map(w => ({ w, ...at(w) }))
+  assert(runs.every(r => r.size === '20px'),
+    `every run is the same 20px, so only the weight varies (${runs[0].size})`)
+  assert(runs.filter(r => r.fired).map(r => r.w).join(' ') === '400 500 600',
+    `the bar is 4.5 up to 600 and 3 from 700 (fires at ${runs.filter(r => r.fired).map(r => r.w).join(' ') || 'none'})`)
+  const seen = [...new Set(runs.filter(r => r.measured).map(r => r.measured))]
+  assert(seen.length === 1,
+    `a heavier weight buys apparent contrast that no ratio reports, so the reported ratio never moves (${seen.join(', ')})`)
+
+  /* A SIZE UNDER 18.66 IS NORMAL TEXT AT ANY WEIGHT. Without this the 700
+     branch would read as "bold is always large", which is the misreading the
+     rule exists to stop. */
+  const small = (() => {
+    const s = {
+      ...clean,
+      components: {
+        ...clean.components,
+        overrides: {
+          ...clean.components.overrides,
+          'badge.textColor': '{colors.text-subtle}',
+          'badge.typography': 'body-sm',
+          'badge.fontWeight': '700',
+        },
+      },
+    }
+    const d = derive(s)
+    return {
+      size: d.cssVars['--cmp-badge-font-size'],
+      fired: !!audit(s, d).find(x => x.id === 'cmp-contrast:badge:light'),
+    }
+  })()
+  assert(small.fired,
+    `a bold label under 18.66px is still normal text and still owes 4.5 (${small.size} at 700)`)
+}
+
 line(`\n${failures === 0 ? 'ALL PASS' : `${failures} FAILURE(S)`}\n`)
 process.exit(failures ? 1 : 0)
