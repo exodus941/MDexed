@@ -1087,8 +1087,8 @@
   gap: var(--cmp-alert-gap, var(--icon-gap, 8px));
 }
 .dmd .alert > .icon, .dmd .alert > svg {
-  width: var(--cmp-alert-icon-size, var(--icon-md, 16px));
-  height: var(--cmp-alert-icon-size, var(--icon-md, 16px));
+  width: var(--cmp-alert-icon-size, var(--icon-sm, 14px));
+  height: var(--cmp-alert-icon-size, var(--icon-sm, 14px));
 }
 .dmd .avatar {
   font-family: var(--cmp-avatar-font-family, inherit);
@@ -1127,8 +1127,8 @@
    a child of the `.input-icon` WRAPPER, beside the control, because it has to
    paint above the input's own background. */
 .dmd .input-icon > .icon, .dmd .input-icon > svg {
-  width: var(--cmp-input-icon-size, var(--icon-md, 16px));
-  height: var(--cmp-input-icon-size, var(--icon-md, 16px));
+  width: var(--cmp-input-icon-size, var(--icon-sm, 14px));
+  height: var(--cmp-input-icon-size, var(--icon-sm, 14px));
 }
 .dmd .nav-item {
   font-family: var(--cmp-nav-item-font-family, inherit);
@@ -1144,8 +1144,8 @@
   gap: var(--cmp-select-gap, var(--icon-gap, 8px));
 }
 .dmd .select-trigger > .icon, .dmd .select-trigger > svg {
-  width: var(--cmp-select-icon-size, var(--icon-md, 16px));
-  height: var(--cmp-select-icon-size, var(--icon-md, 16px));
+  width: var(--cmp-select-icon-size, var(--icon-sm, 14px));
+  height: var(--cmp-select-icon-size, var(--icon-sm, 14px));
 }
 .dmd .table td {
   font-family: var(--cmp-table-font-family, inherit);
@@ -1359,7 +1359,7 @@
 .dmd .btn:not(.select-trigger) .icon,
 .dmd .btn-sm:not(.select-trigger) .icon,
 .dmd .btn-lg:not(.select-trigger) .icon { width: var(--cmp-button-icon-size, 14px); height: var(--cmp-button-icon-size, 14px); }
-.dmd .nav-item .icon { width: var(--cmp-nav-item-icon-size, var(--icon-md, 16px)); height: var(--cmp-nav-item-icon-size, var(--icon-md, 16px)); }
+.dmd .nav-item .icon { width: var(--cmp-nav-item-icon-size, var(--icon-sm, 14px)); height: var(--cmp-nav-item-icon-size, var(--icon-sm, 14px)); }
 /* ── THE STROKE IS A PAINTED WEIGHT, SO IT DOES NOT SCALE ──
  *
  * `stroke-width` alone is a length in the viewBox, and an SVG scales it with the
@@ -1524,7 +1524,7 @@
    against its own mark. */
 .dmd .input-icon > .input {
   padding-inline-start: calc(
-    var(--space-sm, 12px) + var(--cmp-input-icon-size, var(--icon-md, 16px)) + var(--icon-gap, 8px)
+    var(--space-sm, 12px) + var(--cmp-input-icon-size, var(--icon-sm, 14px)) + var(--icon-gap, 8px)
   );
 }
 
@@ -3754,8 +3754,8 @@
 }
 .dmd .tab .icon,
 .dmd .tab > svg {
-  width: var(--cmp-tab-icon-size, var(--icon-md, 16px));
-  height: var(--cmp-tab-icon-size, var(--icon-md, 16px));
+  width: var(--cmp-tab-icon-size, var(--icon-sm, 14px));
+  height: var(--cmp-tab-icon-size, var(--icon-sm, 14px));
 }
 /* Paired with the forcible class, so a specimen can show the state. */
 .dmd .tab:hover,

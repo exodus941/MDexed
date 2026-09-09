@@ -269,8 +269,15 @@ export const COMPONENT_LIBRARY = [
       placeholderColor: '{colors.text-muted}',
       /* A field holds a leading mark often enough that the distance has to be
          published. Left unstated, the builder invents one per field. */
+      /* ONE MARK SIZE FOR EVERY COMPONENT, AND IT IS THE SMALL STEP. Their
+         decision, 10 September 2026, shown all four options at actual size.
+         This read `{icons.md}` at 16px beside a 14px label. Every one of the
+         six components that publishes a mark size carries a 14px label, so
+         16 was the only variable and it overhung the cap band by 6px against
+         4px for 14. Two sizes across six components is also the shape that
+         let three of them drift. */
       rounded: '{rounded.md}', height: '36px', padding: '0 {spacing.sm}', typography: 'body-sm',
-      gap: '{spacing.xs}', iconSize: '{icons.md}',
+      gap: '{spacing.xs}', iconSize: '{icons.sm}',
     },
     states: {
       focus:    { _: { borderColor: '{colors.ring}', outline: '{focus.width} solid {colors.ring}', outlineOffset: '{focus.offset}' } },
@@ -296,7 +303,11 @@ export const COMPONENT_LIBRARY = [
       rounded: '{rounded.md}', height: '36px', padding: '0 {spacing.sm}', typography: 'body-sm', fontWeight: '500',
       /* The chevron sits at the far end of the value, and its distance is a
          decision. Unpublished, every select in a build picks its own. */
-      gap: '{spacing.xs}', iconSize: '{icons.md}',
+      /* The small step, with every other component. This chevron is also the
+         one that PAINTED 14px while publishing 16: the trigger carries `.btn`
+         and the button rule won the cascade. The token and the paint agree on
+         one number now. */
+      gap: '{spacing.xs}', iconSize: '{icons.sm}',
     },
   },
   {
@@ -439,7 +450,12 @@ export const COMPONENT_LIBRARY = [
   },
   {
     name: 'alert', label: 'Alert', group: 'Feedback', on: true,
-    base: { rounded: '{rounded.md}', padding: '{spacing.sm} {spacing.md}', typography: 'body-sm', gap: '{spacing.sm}', iconSize: '{icons.md}' },
+    /* The small step, with every other component. This was the one case put up
+       for an exception, because an alert's mark IS the status rather than
+       decoration beside a label. Shown at both sizes, they took one number
+       everywhere: a warning is carried by the fill and the triangle, not by
+       2px of mark. */
+    base: { rounded: '{rounded.md}', padding: '{spacing.sm} {spacing.md}', typography: 'body-sm', gap: '{spacing.sm}', iconSize: '{icons.sm}' },
     variants: {
       info:    { backgroundColor: '{colors.bg-subtle}',      textColor: '{colors.text}',    borderColor: '{colors.border-subtle}' },
       success: { backgroundColor: '{colors.success-subtle}', textColor: '{colors.success}', borderColor: '{colors.success}' },
@@ -484,7 +500,8 @@ export const COMPONENT_LIBRARY = [
   },
   {
     name: 'nav-item', label: 'Nav item', group: 'Navigation', on: true,
-    base: { rounded: '{rounded.md}', padding: '{spacing.xs} {spacing.sm}', typography: 'body-sm', textColor: '{colors.text-muted}', gap: '{spacing.xs}', iconSize: '{icons.md}' },
+    /* The small step, with every other component. */
+    base: { rounded: '{rounded.md}', padding: '{spacing.xs} {spacing.sm}', typography: 'body-sm', textColor: '{colors.text-muted}', gap: '{spacing.xs}', iconSize: '{icons.sm}' },
     states: {
       hover:    { _: { backgroundColor: '{colors.bg-subtle}', textColor: '{colors.text}' } },
       selected: { _: { backgroundColor: '{colors.accent-subtle}', textColor: '{colors.accent}' } },
@@ -505,7 +522,10 @@ export const COMPONENT_LIBRARY = [
      underline is a shadow so it adds no height and breaks no line. */
   {
     name: 'tab', label: 'Tab', group: 'Navigation', on: true,
-    base: { padding: '{spacing.xs} {spacing.sm}', typography: 'body-sm', textColor: '{colors.text-muted}', gap: '{spacing.xs}', iconSize: '{icons.md}' },
+    /* The small step, with every other component. This is also the size that
+       had no instance to paint it: no tab anywhere carried a mark until the
+       Gallery's first tab took one. */
+    base: { padding: '{spacing.xs} {spacing.sm}', typography: 'body-sm', textColor: '{colors.text-muted}', gap: '{spacing.xs}', iconSize: '{icons.sm}' },
     /* States come from TAB_STYLES, chosen by `components.tabStyle`. */
     states: {},
   },
