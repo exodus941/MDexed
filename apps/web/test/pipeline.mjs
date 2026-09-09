@@ -5654,9 +5654,9 @@ line('\n- depth intensity -')
 
 /* ── EVERY PUBLISHED COMPONENT TOKEN NOW HAS A READER ──
  *
- * 359 published, 0 read by nothing. The payload teaches every one of them to a
- * building agent, so a token the sample cannot demonstrate is a pointer rather
- * than a preview.
+ * 0 read by nothing, and the count is in `tools/token-reader.json` rather than
+ * here. The payload teaches every one of them to a building agent, so a token
+ * the sample cannot demonstrate is a pointer rather than a preview.
  *
  * THE TYPE FALLBACK IS `inherit`, WHICH IS WHAT THESE COMPONENTS DO TODAY, so
  * the whole batch moves almost nothing. Measured at a pinned pane width over
@@ -8340,6 +8340,306 @@ function hueHex(h) {
   assert(inner > 0 && outer > 0, `the chart publishes both gaps (${inner} inside, ${outer} between)`)
   assert(outer / inner >= gBar,
     `and their ratio clears the bar (${(outer / inner).toFixed(1)}:1 against ${gBar}:1)`)
+}
+
+/* ── THE PAYLOAD IS A BUILD GUIDE, NEVER A METHOD ──
+ *
+ * Five rules about what the export carries and how it is assembled. Each had
+ * a reason written beside it and nothing that could ask it.
+ */
+line('\n- the payload as a build guide -')
+{
+  const files = payloadTextFiles(state, derived)
+  const design = files['DESIGN.md'] || ''
+  assert(Object.keys(files).length >= 10 && design.length > 50000,
+    `the payload assembles (${Object.keys(files).length} text files, DESIGN.md ${design.length} bytes)`)
+
+  /* ── NEVER TELL THE RECEIVING AGENT HOW WE WORK ──
+   *
+   * Their instruction, and a boundary rather than a preference: the payload is
+   * a standalone build guide, and that agent does not need to draw anything.
+   * Drawing is what we do while preparing what the payload will carry.
+   *
+   * The test is one question. Would the agent's output differ? A process
+   * instruction changes nothing in the output and spends the reader's
+   * attention, so it is worse than silent.
+   *
+   * EACH PHRASE IS ONE OF OURS, taken from the rules that stay with us rather
+   * than invented for this check. Measured over every text file the payload
+   * ships: 0 hits on all eight. */
+  const OURS = [
+    ['draw the target first', /\bdraw (?:the|a) target\b|visuali[sz]e the end/i],
+    ['sample the palette first', /sample the (?:real )?palette (?:first|before)/i],
+    ['show it and wait for approval', /wait for (?:their|your) approval|show it and wait/i],
+    ['sweep a surface', /\bsweep(?:ing)? (?:the|every) (?:screen|surface|region)\b/i],
+    ['our own instruments', /layout-tools|sweep-all\.js|rule-coverage/i],
+    ['our own guards', /syntax-guard|route-guard|pre-commit/i],
+    ['our own stores', /\bcore-rules\.md\b|\bMEMORY\.md\b|\bthe five stores\b/i],
+    ['our own session', /\bthey said\b|\btheir instruction\b|\bthey corrected\b/i],
+  ]
+  const leaked = []
+  for (const [name, re] of OURS) {
+    for (const [f, src] of Object.entries(files)) {
+      const m = re.exec(src)
+      if (m) leaked.push(name + ' in ' + f + ': "' + m[0] + '"')
+    }
+  }
+  assert(leaked.length === 0, leaked.length
+    ? `the payload tells its reader how WE work — ${leaked.slice(0, 3).join('; ')} (${leaked.length})`
+    : `the payload carries none of our ${OURS.length} process phrases, over ${Object.keys(files).length} files`)
+
+  /* ── A MANUAL ENTRY IS NOT A SAFEGUARD ──
+   *
+   * "This rule cannot be checked without noise" is a claim about my
+   * instrument, not about the rule. One entry was marked manual on the grounds
+   * that a 16px floor would fire seven times on correct code, and the
+   * measurement was wrong: the probe measured to the action row's border box,
+   * where the 16px lives as padding.
+   *
+   * So every manual entry states why no program can ask it. Measured: 6 manual
+   * of 103 checks, five carrying 27 to 159 words of reason and one carrying
+   * none.
+   *
+   * READ THE WHOLE OBJECT, NOT THE TEXT ABOVE THE ID. My first probe looked
+   * backward from `id:` and reported 4 of 6 with no reason. A reason may sit
+   * after the `line:` field, inside the same object, and four did. */
+  {
+    const jsSrc = fs.readFileSync(new URL('../src/emit/checks.js', import.meta.url), 'utf8')
+    const blockOf = id => {
+      const at = jsSrc.indexOf("id: '" + id + "'")
+      if (at < 0) return ''
+      const open = jsSrc.lastIndexOf('\n  {', at)
+      let close = jsSrc.indexOf('\n  },', at)
+      if (close < 0) close = jsSrc.length
+      let start = open
+      const above = jsSrc.slice(Math.max(0, open - 2000), open)
+      const lastEnd = above.lastIndexOf('*/')
+      if (lastEnd >= 0 && above.slice(lastEnd + 2).trim() === '') {
+        const lastStart = above.lastIndexOf('/*', lastEnd)
+        if (lastStart >= 0) start = Math.max(0, open - 2000) + lastStart
+      }
+      return jsSrc.slice(start, close)
+    }
+    const { CHECKS: ALL_CHECKS } = await import('../src/emit/checks.js')
+    const manual = ALL_CHECKS.filter(c => c.where === 'manual')
+    assert(manual.length > 0, `there are manual entries to ask about (${manual.length})`)
+    const bare = []
+    for (const c of manual) {
+      const words = [...blockOf(c.id).matchAll(/\/\*([\s\S]*?)\*\//g)]
+        .map(m => m[1]).join(' ').trim().split(/\s+/).filter(Boolean).length
+      if (words < 12) bare.push(c.id + ' (' + words + ' words)')
+    }
+    assert(bare.length === 0, bare.length
+      ? `a manual entry states no reason — ${bare.join(', ')}`
+      : `every one of the ${manual.length} manual entries states why no program can ask it`)
+  }
+
+  /* ── A GENERATED DOCUMENT NEEDS A MAP OF ITSELF, MEASURED FROM IT ──
+   *
+   * A map written before the sections exist is a claim about them. This one is
+   * built after assembly and prepended, and each share is computed from the
+   * assembled word counts. So the check recomputes them and compares.
+   *
+   * One section is most of the file and is a lookup table rather than prose. A
+   * reader who does not know that reads it linearly, or gives up inside it. */
+  {
+    /* FIND THE MAP BY ITS HEADING. DESIGN.md opens with a YAML block so the
+       file can be re-imported, so a slice from offset zero reads that instead
+       and my first version parsed nought rows out of it. */
+    const mapAt = design.indexOf('## How to read this file')
+    assert(mapAt > 0, `the document carries a map of itself (at ${mapAt})`)
+    const map = design.slice(mapAt, design.indexOf('\n## ', mapAt + 4))
+    const listed = [...map.matchAll(/^- \*\*(.+?)\*\* — (\d{1,3})%$/gm)]
+      .map(m => ({ heading: m[1], share: Number(m[2]) }))
+    assert(listed.length >= 8, `the map lists the sections (${listed.length})`)
+    const body = design.slice(design.indexOf('\n## ', mapAt + 4))
+    const sections = body.split(/\n(?=## )/).filter(s => s.trim()).map(s => ({
+      heading: /^##\s+(.+)$/m.exec(s)?.[1] ?? '?',
+      words: s.split(/\s+/).filter(Boolean).length,
+    }))
+    const total = sections.reduce((a, s) => a + s.words, 0)
+    assert(sections.length === listed.length,
+      `every section appears in the map exactly once (${sections.length} sections, ${listed.length} rows)`)
+    /* AN EMPTY LIST CANNOT PASS THIS. The first run parsed nought rows and
+       the share loop reported clean over them, which is a vacuous pass inside
+       my own assertion. */
+    const wrong = listed.length ? [] : ['the map parsed no rows at all']
+    for (const row of listed) {
+      const s = sections.find(x => x.heading === row.heading)
+      if (!s) { wrong.push(row.heading + ' is in the map and not in the body'); continue }
+      const measured = Math.round(s.words / total * 100)
+      /* ONE POINT OF SLACK. The map counts a section before the map itself is
+         prepended, so its own words shift every share by a fraction. */
+      if (Math.abs(measured - row.share) > 1) {
+        wrong.push(row.heading + ' states ' + row.share + '% and measures ' + measured + '%')
+      }
+    }
+    assert(wrong.length === 0, wrong.length
+      ? `a mapped share does not match the assembled text — ${wrong.slice(0, 3).join('; ')}`
+      : `every mapped share matches the section it names, over ${total} words`)
+  }
+
+  /* ── A COMPONENT PUBLISHING AN ORNAMENT GAP PUBLISHES ITS SIZE ──
+   *
+   * A missing token gets invented, and prose cannot stop it. A gap says an
+   * ornament sits there, so an entry with a gap and no size for what the gap
+   * separates leaves the reader to pick one. An earlier build did exactly
+   * that: 2px between a 6px dot and its word.
+   *
+   * Measured: 11 entries publish a gap. Ten state a size and the badge did
+   * not. Its own comment named the ornament as a dot and published no dot
+   * size, so the hole the paragraph above it closed was still open one field
+   * along.
+   *
+   * A SIZE IS ANY OF FOUR SHAPES. `iconSize` for a mark, `dotSize` for a dot,
+   * `size` for a square, and `width` with `height` for an oblong. My first
+   * probe asked for `size` alone and faulted the switch, which states both
+   * sides on purpose. */
+  {
+    const keysOf = c => {
+      const s = new Set(Object.keys(c.base ?? {}))
+      for (const v of Object.values(c.variants ?? {})) for (const k of Object.keys(v)) s.add(k)
+      for (const v of Object.values(c.states ?? {})) for (const k of Object.keys(v)) s.add(k)
+      return s
+    }
+    const gapped = COMPONENT_LIBRARY.filter(c => keysOf(c).has('gap'))
+    assert(gapped.length >= 8, `there are entries publishing an ornament gap (${gapped.length})`)
+    const sized = c => {
+      const k = keysOf(c)
+      return k.has('iconSize') || k.has('dotSize') || k.has('size') || (k.has('width') && k.has('height'))
+    }
+    const holes = gapped.filter(c => !sized(c)).map(c => c.name)
+    assert(holes.length === 0, holes.length
+      ? `an entry publishes a gap and no ornament size — ${holes.join(', ')}`
+      : `all ${gapped.length} entries with a gap publish the size the gap separates`)
+    /* AND THE STYLESHEET READS IT, or the token is published and invisible. */
+    const badgeCss = fs.readFileSync(new URL('../src/preview/preview.css', import.meta.url), 'utf8')
+    assert(/--cmp-badge-dot-size/.test(badgeCss),
+      'and the preview reads the badge dot size rather than typing it')
+  }
+
+  /* ── ONE WRITER PER PROPERTY ──
+   *
+   * Two animations on one property trade pixels, and whoever starts second
+   * cancels the first. Adding a second way to do a thing is a change to the
+   * first way.
+   *
+   * SPLIT THE VALUE AT TOP-LEVEL COMMAS. My first probe split at every comma,
+   * so `var(--ease)` gave it a property called "ease)" and it reported three
+   * findings on correct code. Measured after: 47 selector and property pairs
+   * over three stylesheets, none declared twice. */
+  {
+    const splitTop = v => {
+      const out = []
+      let depth = 0, start = 0
+      for (let i = 0; i < v.length; i++) {
+        if (v[i] === '(') depth++
+        else if (v[i] === ')') depth--
+        else if (v[i] === ',' && depth === 0) { out.push(v.slice(start, i)); start = i + 1 }
+      }
+      out.push(v.slice(start))
+      return out.map(s => s.trim()).filter(Boolean)
+    }
+    const SHEETS = ['../src/preview/preview.css', '../src/preview/responsive.rules.css', '../src/ui/theme.css']
+    let asked = 0
+    const doubled = []
+    for (const rel of SHEETS) {
+      const css = fs.readFileSync(new URL(rel, import.meta.url), 'utf8')
+        .replace(/\/\*[\s\S]*?\*\//g, m => m.replace(/[^\n]/g, ' '))
+      const pairs = new Map()
+      for (const [, sel, decl] of css.matchAll(/([^{}@]+)\{([^{}]*)\}/g)) {
+        const s = sel.trim().replace(/\s+/g, ' ')
+        for (const m of decl.matchAll(/(?:^|[;{\s])transition(?:-property)?\s*:\s*([^;}]*)/g)) {
+          for (const part of splitTop(m[1])) {
+            const prop = part.split(/\s+/)[0]
+            if (!/^[a-z-]+$/.test(prop) || /^(all|none)$/.test(prop)) continue
+            const k = rel.split('/').pop() + '  ' + s + ' :: ' + prop
+            pairs.set(k, (pairs.get(k) || 0) + 1)
+          }
+        }
+      }
+      asked += pairs.size
+      for (const [k, n] of pairs) if (n > 1) doubled.push(n + 'x ' + k)
+    }
+    assert(asked > 20, `there are animated properties to ask about (${asked} pairs)`)
+    assert(doubled.length === 0, doubled.length
+      ? `one rule animates a property twice — ${doubled.slice(0, 3).join('; ')}`
+      : `no rule animates one property twice, over ${asked} selector and property pairs`)
+  }
+
+  /* ── SPLIT A BUNDLE ON CHANGE RATE, NOT ON SIZE ──
+   *
+   * Naming `react-dom` in the eager chunk swallowed `react-dom/server`, which a
+   * dynamic import had been keeping off the wire. First-load bytes went from
+   * 992KB to 1191KB while the size warning went quiet. The split made the
+   * number worse and the report better.
+   *
+   * TWO HALVES, AND THE CONFIG IS THE WEAKER ONE. The exclusion line can be
+   * right and Rollup can still merge the chunk, so the answer is in `dist`.
+   * The config half runs everywhere; the dist half says when it is unmeasured
+   * rather than passing on an absent build. */
+  {
+    const cfg = fs.readFileSync(new URL('../vite.config.js', import.meta.url), 'utf8')
+    assert(/react-dom[^\n]*server[^\n]*\)\s*return\b/.test(cfg)
+      || /server[\s\S]{0,80}?return$/m.test(cfg),
+      'the chunk rule excludes the lazy submodule before it names the package')
+    const at = cfg.search(/react-dom[\\/\]]\.\*server|\.\*server/)
+    const eager = cfg.search(/\(react\|react-dom\|scheduler\)/)
+    assert(at > 0 && eager > at,
+      `and the exclusion comes first, or the package name swallows it (${at} then ${eager})`)
+
+    const dist = new URL('../dist/assets/', import.meta.url)
+    let names = null
+    try { names = fs.readdirSync(dist) } catch { names = null }
+    if (!names) {
+      /* A RUN THAT MEASURED NOTHING SAYS SO. Without a build the chunk list
+         does not exist, and reporting that as a pass is the failure this
+         whole section is about. */
+      assert(false, 'the chunk list is UNMEASURED, because dist/assets is absent. Run the build first')
+    } else {
+      const server = names.filter(n => /^server\.browser-.*\.js$/.test(n))
+      const react = names.filter(n => /^react-.*\.js$/.test(n))
+      assert(server.length === 1,
+        `the server renderer keeps its own async chunk (${server.join(', ') || 'merged away'})`)
+      assert(react.length === 1, `and the client renderer has one of its own (${react.join(', ')})`)
+      const bytes = f => fs.statSync(new URL(f, dist)).size
+      assert(bytes(server[0]) > 100000,
+        `and the async chunk still carries the renderer (${Math.round(bytes(server[0]) / 1024)} kB)`)
+    }
+  }
+
+  /* ── A BUTTON THAT REWRITES A DECISION SHOWS THE NUMBER IT WILL PRODUCE ──
+   *
+   * The offered remedy took one document from 4 failures to 7, and the modal
+   * said so before anything moved. One writer, or the preview lies: the
+   * candidate and the applied change come from the same pure function.
+   *
+   * So the count `chooseFix` reports must equal the audit of the state
+   * `withFinding` produces. Injected on a flat palette, which is the document
+   * that has a remedy to offer. */
+  {
+    const flat = createInitialState()
+    flat.color.roles.warning.light = 'warning.700'
+    flat.color.roles.warning.dark = 'warning.400'
+    flat.color.roles.danger.light = 'danger.700'
+    flat.color.roles.danger.dark = 'danger.400'
+    const fd = derive(flat)
+    const offers = audit(flat, fd).filter(f => f.apply)
+    assert(offers.length > 0, `the flat document offers a remedy (${offers.length})`)
+    const { withFinding } = await import('../src/a11y/audit.js')
+    const wrong = []
+    for (const f of offers.slice(0, 6)) {
+      const c = chooseFix(flat, fd, f.apply, derive)
+      if (!c || c.noImprovement) continue
+      const applied = audit(withFinding(flat, c.fix), derive(withFinding(flat, c.fix)))
+      const total = applied.filter(x => x.level === 'fail').length
+        + applied.filter(x => x.level === 'warn').length
+      if (total !== c.total) wrong.push(f.id + ': modal ' + c.total + ', applied ' + total)
+    }
+    assert(wrong.length === 0, wrong.length
+      ? `the modal promises a count Apply does not produce — ${wrong.join('; ')}`
+      : `every offered remedy applies the count its modal states (${offers.length} offers)`)
+  }
 }
 
 line(`\n${failures === 0 ? 'ALL PASS' : `${failures} FAILURE(S)`}\n`)

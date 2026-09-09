@@ -390,6 +390,18 @@ export const COMPONENT_LIBRARY = [
      * No `iconSize`. A badge's ornament is a dot, and the icon scale starts at
      * 14px, which is larger than the caption this chip is set in.
      *
+     * ── AND THAT REASON LEFT THE SAME HOLE ONE FIELD ALONG ──
+     *
+     * It names a DOT and published no dot size, so the gap above states a
+     * distance between a word and something whose size a reader has to invent.
+     * That is the fault the paragraph above describes, in the field beside the
+     * one it fixed. The preview draws 6px and nothing published it.
+     *
+     * `dotSize`, matching the `iconSize` convention, at the 6px the preview
+     * renders. On the space grid, which allows a multiple of 2 below 8.
+     * Found by asking which entries publish an ornament gap and no ornament
+     * size: 11 publish a gap, and this was the one.
+     *
      * The vertical padding was a raw `2px`. It is `3xs` exactly, and a literal
      * in this file is the same defect the payload tells its reader to avoid. */
     /* THE WEIGHT IS STATED, because `caption` carries 400 and this paints
@@ -397,7 +409,7 @@ export const COMPONENT_LIBRARY = [
        against its own fill where 400 reads 1.64. That is apparent contrast
        the nominal 7.16:1 never reports, and it is what keeps a thin stem
        legible at badge size. */
-    base: { rounded: '{rounded.full}', padding: '{spacing.3xs} {spacing.xs}', typography: 'caption', fontWeight: '500', gap: '{spacing.xs}' },
+    base: { rounded: '{rounded.full}', padding: '{spacing.3xs} {spacing.xs}', typography: 'caption', fontWeight: '500', gap: '{spacing.xs}', dotSize: '6px' },
     variants: {
       /* Outlined, not filled, and the palette leaves no choice.
        *

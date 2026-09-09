@@ -5759,6 +5759,20 @@ export const CHECKS = [
     id: 'no-example-page-structure',
     where: 'manual',
     line: 'No page width, section order or sample content was copied from an `EXAMPLE-*.html` page.',
+    /* ── NO PROGRAM CAN ASK WHAT A BUILD DECLINED TO COPY ──
+     *
+     * The rule beside this one has a shape: a component either matches the
+     * Gallery's or it does not. This one is about an ABSENCE, and an absence
+     * in somebody else's build has no fingerprint. A page 1200px wide may have
+     * been measured or copied, and the artefact reads the same either way.
+     *
+     * The line the package draws is "take the COMPONENT, leave the PAGE", so
+     * only the builder knows which side of it they were on. It stays a
+     * checklist line for that reason, and not because nobody tried.
+     *
+     * IT HAD NO REASON AT ALL UNTIL 10 September 2026, which the manual-entry
+     * check found: 6 manual entries, five carrying 27 to 159 words and this
+     * one carrying none. */
   },
   {
     id: 'choices-listed',

@@ -843,8 +843,13 @@
   vertical-align: middle; transform: translateY(-0.12em);
   margin-inline-end: var(--cmp-badge-gap, var(--icon-gap, 8px));
 }
+/* THE DOT READS ITS PUBLISHED SIZE. It was 6px typed twice here, and the badge
+   entry published a gap for an ornament whose size nothing stated. A token
+   nobody reads is invisible to every check, and a size nobody publishes gets
+   invented: an earlier build put 2px between this dot and its word. */
 .dmd .badge > .dot {
-  display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+  display: inline-block; border-radius: 50%;
+  width: var(--cmp-badge-dot-size, 6px); height: var(--cmp-badge-dot-size, 6px);
 }
 /* `.with-icon` turns things into flex boxes, which is right everywhere except
    on a badge — there it undoes the inline-block above and hands the baseline
