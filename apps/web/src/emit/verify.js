@@ -242,7 +242,25 @@ const bodyFor = (c, rtl) => (rtl && c.rtlBody) ? c.rtlBody : c.body
 
 export function verifyBrowserFile (state) {
   const rtl = !!state?.meta?.rtl
+  /* ── A CHECK THAT PRESSES SOMETHING RUNS LAST ──
+   *
+   * A press can change the page in a way no restore undoes. Measured on the
+   * editor that hosts this document: pressing the theme control writes the
+   * document, the editor re-renders, and 17 component samples mount. Each
+   * carries the document root's class, so the root became ambiguous and every
+   * check ordered after that one measured nothing. The first run reported 3
+   * findings and the second reported 86.
+   *
+   * The restore press does put the theme back. It cannot unmount what the
+   * change mounted, so ORDER is the fix rather than a better restore. A
+   * pressing check ordered last has nothing after it to spoil.
+   *
+   * Sorted by the body rather than by a list of ids, so a check that gains a
+   * press tomorrow moves on its own. */
+  const presses = c => (c.body || []).join('\n').includes('.click()')
   const checks = checksFor(RENDER_CHECKS, state)
+    .slice()
+    .sort((a, b) => (presses(a) ? 1 : 0) - (presses(b) ? 1 : 0))
   const blocks = checks.map(c => {
     const lines = ['', '  /* ' + c.id + ' — ' + c.line.replace(/\x60/g, '') + ' */']
     if (rtl && c.rtlBody) lines.push('  /* Direction-aware: measured from the START edge, not from the left. */')
@@ -308,25 +326,59 @@ const px = v => { const n = parseFloat(v); return isNaN(n) ? 0 : n }
  * So a SELECTOR is the contract. It is re-resolved on every query, and the
  * frame that replaced the old one carries it too. An element is accepted and
  * watched: once it leaves the document the run says so instead of going quiet. */
+/* ── AND FALLING BACK TO THE DOCUMENT IS THE WRONG ANSWER ──
+ *
+ * A lost root used to widen the run to the whole page. That turns a scoped run
+ * into an unscoped one silently, and the findings then describe whatever hosts
+ * the document.
+ *
+ * Measured on this editor, one run at 1440px: the first pass reported 3
+ * findings and the second reported 86. One check presses the theme control,
+ * that control lives INSIDE the preview, and pressing it writes the document
+ * and mounts 17 component samples. Each carries the document root class,
+ * because a sample must render in the document tokens. So that class went
+ * from 1 element to 18, the
+ * root became ambiguous, and every later query ran over the editor's chrome.
+ * 83 of those 86 findings were the editor's own interface.
+ *
+ * A selector that matches more than one element is not a root. So the scope
+ * REFUSES: it returns null, every query comes back empty, and the run reports
+ * that it measured nothing rather than reporting the wrong thing. An empty run
+ * is loud. A widened one reads like a page full of faults. */
 let SCOPE_SEL = null
 let SCOPE_EL = null
 let scopeLost = false
+let scopeLostWhy = ''
 const scope = () => {
   if (SCOPE_SEL) {
     const found = document.querySelectorAll(SCOPE_SEL)
     if (found.length === 1) return found[0]
     scopeLost = true
-    return document
+    scopeLostWhy = found.length
+      ? SCOPE_SEL + ' now matches ' + found.length + ' elements, so it is not a root'
+      : SCOPE_SEL + ' matches nothing, so the root left the document'
+    return null
   }
   if (SCOPE_EL) {
     if (document.contains(SCOPE_EL)) return SCOPE_EL
     scopeLost = true
-    return document
+    scopeLostWhy = 'the element passed as the root left the document'
+    return null
   }
   return document
 }
-const scopeEl = () => { const s = scope(); return s === document ? document.documentElement : s }
-const tokenValue = n => getComputedStyle(scopeEl()).getPropertyValue(n).trim()
+/* A LOST ROOT READS NO TOKENS EITHER. Falling back to the root element would
+   read the HOST's tokens, and a threshold taken from those is a number from
+   the wrong document. */
+const scopeEl = () => {
+  const s = scope()
+  if (s === null) return null
+  return s === document ? document.documentElement : s
+}
+const tokenValue = n => {
+  const el = scopeEl()
+  return el ? getComputedStyle(el).getPropertyValue(n).trim() : ''
+}
 const frame = () => new Promise(r => setTimeout(r, 60))
 
 function visible (el) {
@@ -346,7 +398,11 @@ function name (el) {
 
 /* Scoped, so a hosted document is measured and its host is not. A reader who
    passes no root gets the whole page, unchanged. */
-const all = sel => Array.prototype.slice.call(scope().querySelectorAll(sel)).filter(visible)
+const all = sel => {
+  const s = scope()
+  if (s === null) return []
+  return Array.prototype.slice.call(s.querySelectorAll(sel)).filter(visible)
+}
 const boxOf = el => { const r = el.getBoundingClientRect(); return r.width ? r : null }
 
 /* The union of the element's OWN text, ignoring text inside its children. */
@@ -521,7 +577,9 @@ function rows () {
   /* SCOPED, like all(). This helper queried the document directly, so 11
      findings survived a scoped run and every one was in the host's own
      interface. One helper outside the scope defeats the scope. */
-  for (const parent of scope().querySelectorAll('*')) {
+  const scopeRoot = scope()
+  if (scopeRoot === null) return out
+  for (const parent of scopeRoot.querySelectorAll('*')) {
     const cs = getComputedStyle(parent)
     if (!/flex|grid/.test(cs.display)) continue
     const kids = Array.prototype.slice.call(parent.children).filter(visible)
@@ -575,12 +633,18 @@ window.verify = async function verify (root) {
   /* A ROOT THAT MATCHES NOTHING IS WORSE THAN NONE, so take an element or a
      selector and say which one answered. A selector is preferred: it survives
      a re-render, and an element does not. */
-  SCOPE_SEL = null; SCOPE_EL = null; scopeLost = false
+  SCOPE_SEL = null; SCOPE_EL = null; scopeLost = false; scopeLostWhy = ''
   if (typeof root === 'string') {
     SCOPE_SEL = root
     const found = document.querySelectorAll(root)
-    if (found.length !== 1) console.warn('VERIFY: the root ' + root + ' matched '
-      + found.length + ' elements, so the whole document was measured instead.')
+    /* REFUSE AT THE DOOR. An ambiguous root used to widen the run to the whole
+       page, so a run over an editor reported the editor. */
+    if (found.length !== 1) {
+      console.error('VERIFY: the root ' + root + ' matches ' + found.length
+        + ' elements, so it is not a root. Nothing was measured.'
+        + ' Pass a selector that matches exactly one element, or pass the element.')
+      return { pass: false, findings: [], rootAmbiguous: found.length }
+    }
   } else if (root && root.querySelectorAll) {
     SCOPE_EL = root
   }
@@ -593,10 +657,21 @@ ${blocks}
     + '  pointer=' + (matchMedia('(pointer: coarse)').matches ? 'coarse' : 'fine')
     + '  root=' + (SCOPE_SEL || (SCOPE_EL ? 'an element' : 'document'))
     + '  ' + ${checks.length} + ' checks')
-  /* A RUN THAT LOST ITS ROOT MEASURED NOTHING FROM THAT POINT ON. */
-  if (scopeLost) console.error('VERIFY: the root left the document during this run, so every'
-    + ' check after that point measured the whole document or nothing at all.'
-    + ' Pass a SELECTOR rather than an element: a re-render replaces the element and keeps the selector.')
+  /* ── A RUN THAT LOST ITS ROOT MEASURED NOTHING FROM THAT POINT ON ──
+   *
+   * And the run above did not widen to the document, it went EMPTY. So the
+   * findings printed below stop at the point the root was lost, and this line
+   * is the only thing that says how far the run got. It is an error rather
+   * than a warning because a short clean list reads exactly like a clean page.
+   *
+   * The cause, measured on this editor: one check presses the theme control,
+   * that control sits inside the preview, and pressing it writes the document
+   * and mounts 17 more elements carrying the root's class. */
+  if (scopeLost) console.error('VERIFY: the root stopped being a root during this run — '
+    + scopeLostWhy + '. Every check after that point measured NOTHING, so this'
+    + ' run is incomplete rather than clean. A press inside the root can do this:'
+    + ' in a host that renders your document live, a control in the document'
+    + ' writes the document.')
 
   /* ── A VERDICT NAMES ITS OWN COVERAGE, AND THE POINTER IS HALF OF IT ──
    *

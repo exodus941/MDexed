@@ -6211,15 +6211,52 @@ function hueHex(h) {
   const { verifyBrowserFile } = await import('../src/emit/verify.js')
   const text = verifyBrowserFile({ meta: {} })
   assert(/function verify \(root\)/.test(text), 'verify() takes a root')
-  assert(/scope\(\)\.querySelectorAll\(sel\)/.test(text),
+  assert(/s\.querySelectorAll\(sel\)/.test(text),
     'every query resolves the scope again, so a re-render cannot leave it holding a detached node')
   assert(!/const all = sel => Array\.prototype\.slice\.call\(document\./.test(text),
     'and none goes straight to the document any more')
-  assert(/const scopeEl = \(\)/.test(text) && /getComputedStyle\(scopeEl\(\)\)/.test(text),
+  assert(/const scopeEl = \(\)/.test(text) && /getComputedStyle\(el\)\.getPropertyValue/.test(text),
     'the token reader reads the scope element, never the root, because a hosted document sets its own')
-  assert(/found\.length !== 1/.test(text) && /matched '/.test(text),
+  assert(/found\.length !== 1/.test(text) && /is not a root/.test(text),
     'a selector matching zero or many says so rather than measuring the wrong thing')
   assert(/root=/.test(text), 'and the verdict names the root it measured')
+
+  /* ── A LOST ROOT REFUSES, IT DOES NOT WIDEN ──
+   *
+   * Falling back to the document turns a scoped run into an unscoped one in
+   * silence, and the findings then describe whatever hosts the document.
+   *
+   * Measured on this editor at 1440px: the first run reported 3 findings and
+   * the second 86. One check presses the theme control, that control sits
+   * INSIDE the preview, and pressing it writes the document and mounts 17
+   * component samples. Each carries the document root's class, so the root
+   * went from 1 element to 18 and every later query ran over the chrome. 83
+   * of the 86 were the editor's own interface.
+   *
+   * So the scope returns null, every query comes back empty, and the run says
+   * it measured nothing. An empty run is loud; a widened one reads as a page
+   * full of faults. */
+  assert(/scopeLostWhy/.test(text), 'a lost root records WHY, not merely that it happened')
+  assert(/if \(s === null\) return \[\]/.test(text),
+    'and a query with no root returns nothing rather than the whole page')
+  assert(/return \{ pass: false, findings: \[\], rootAmbiguous/.test(text),
+    'an ambiguous root at the door refuses the run instead of widening it')
+  assert(!/so the whole document was measured instead/.test(text),
+    'the old fallback wording is gone, not merely unreachable')
+
+  /* ── AND A CHECK THAT PRESSES SOMETHING RUNS LAST ──
+   * The restore press does put the theme back. It cannot unmount what the
+   * change mounted, so ORDER is the fix rather than a better restore. */
+  const runIds = [...text.matchAll(/await run\("([a-z0-9-]+)"/g)].map(m => m[1])
+  assert(runIds.length > 40, `the run order is readable (${runIds.length} checks)`)
+  const pressers = runIds.filter(id => {
+    const at = text.indexOf('await run("' + id + '"')
+    const end = text.indexOf('await run("', at + 10)
+    return text.slice(at, end < 0 ? undefined : end).includes('.click()')
+  })
+  assert(pressers.length >= 1, `at least one check presses something (${pressers.join(', ')})`)
+  assert(pressers.every(id => runIds.indexOf(id) >= runIds.length - pressers.length),
+    `and every one of them is ordered last (${pressers.map(id => runIds.indexOf(id) + 1).join(', ')} of ${runIds.length})`)
 
   /* ── THE STALE ROOT COST A FALSE CLEAN RUN, SO IT IS PINNED ──
    *
@@ -6236,16 +6273,19 @@ function hueHex(h) {
      host's own interface. Measured after: the nine-surface run went 28 to 19. */
   assert(!/for \(const parent of document\.querySelectorAll/.test(text),
     'the row bander goes through the scope too, or a scoped run still measures the host')
-  assert(/for \(const parent of scope\(\)\.querySelectorAll/.test(text),
+  assert(/const scopeRoot = scope\(\)/.test(text) && /for \(const parent of scopeRoot\.querySelectorAll/.test(text),
     'and it resolves the scope the same lazy way every query does')
 
   assert(/let scopeLost = false/.test(text), 'a lost root is recorded rather than measured around')
   assert(/document\.contains\(SCOPE_EL\)/.test(text),
     'an element root is watched, because a re-render replaces it')
-  assert(/the root left the document during this run/.test(text),
-    'and the run says so loudly, since a detached root measures nothing and reads as clean')
-  assert(/Pass a SELECTOR rather than an element/.test(text),
-    'naming the fix, because a selector survives what an element does not')
+  assert(/the root stopped being a root during this run/.test(text),
+    'and the run says so loudly, since a lost root measures nothing and reads as clean')
+  /* A SHORT NEEDLE, because the message is built by concatenation and the
+     emitted file carries the join. Matching across it pins the formatting
+     rather than the wording. */
+  assert(/incomplete rather than clean/.test(text),
+    'naming what the short list means, because a truncated clean run reads as a clean page')
   /* The reader-facing instruction still works with no root. */
   assert(/await verify\(\)/.test(text), 'a built page still runs verify() with nothing')
   assert(/await verify\('\.my-document-root'\)/.test(text),

@@ -3563,9 +3563,59 @@ export const CHECKS = [
       "    if (!byGap.has(key)) byGap.set(key, [])",
       "    byGap.get(key).push(kid)",
       "  }",
+      /* ── A LINE BREAK IS NOT A GROUP BOUNDARY ──
+       *
+       * An action row that runs out of width breaks into PAIRS, two per line,
+       * and both gaps are the same step on purpose. Their rule, 8 September
+       * 2026, with three screenshots: the vertical gap equals the horizontal
+       * gap between the buttons, because this is one group of buttons rather
+       * than two groups.
+       *
+       * The old wording here demanded 3:1 and was right about proximity and
+       * wrong about what the group is. At 3:1 the two lines read as two
+       * separate action rows, which is a relationship nobody intended.
+       *
+       * So a proximity ratio needs a real group on each side of it. The tell
+       * is that the container is ONE RUN OF LIKE THINGS: every leaf inside it
+       * is the same kind of control, so a pair is a line rather than a unit
+       * anybody reads. A toolbar holding a field beside an action group fails
+       * that test, because a field and a button are different kinds.
+       *
+       * Measured on this system's own preview: 1 finding, two button pairs at
+       * 8px inside and 8px between, correct by their rule. Silent after, and
+       * an injected label-and-input group at 1:1 still fires. */
+      /* ── ASK THE CONTROLS, NOT THE LEAVES ──
+       *
+       * A first draft asked whether every childless descendant sat inside a
+       * button. Every button here holds an svg, so no button is childless and
+       * the only leaves were svg paths, which carry no text. The gate found 0
+       * leaves and exempted nothing.
+       *
+       * Three conditions, and each earns its place on a shape measured live:
+       *
+       *   the box holds more than one control      one control is not a run
+       *   every control in it is a BUTTON          a field is a different kind
+       *   no text sits outside a button            a label is a different kind
+       *
+       * Measured on three shapes. The wrapped button pairs come back exempt.
+       * A run of label-and-input groups at 1:1 fires, because the input is a
+       * control and not a button. A search field beside an action group fires,
+       * which is their own worked example of this rule: 8 against 8 makes five
+       * things read as one run, and 24 against 8 is exactly three to one. */
+      "  const INTERACTIVE = 'button, input, select, textarea, a[href], [role=button], [role=tab], [tabindex], .btn'",
+      "  const BUTTONS = 'button, .btn, [role=button], a.btn'",
+      "  const ctrls = Array.prototype.slice.call(box.querySelectorAll(INTERACTIVE)).filter(visible)",
+      "  var oneRun = ctrls.length > 1 && ctrls.every(c => c.matches(BUTTONS))",
+      "  if (oneRun) {",
+      "    const strays = Array.prototype.slice.call(box.querySelectorAll('*')).filter(visible)",
+      "      .filter(e => Array.prototype.slice.call(e.childNodes)",
+      "        .some(n => n.nodeType === 3 && n.textContent.trim()) && !e.closest(BUTTONS))",
+      "    if (strays.length) oneRun = false",
+      "  }",
       "  for (const entry of byGap) {",
       "    const gi = entry[0], members = entry[1]",
       "    if (members.length < 2) continue   /* one group has no next one */",
+      "    if (oneRun) continue   /* a wrapped run of buttons: a line, not a group */",
       "    const go = between(members)",
       "    if (go <= 0) continue",
       "    const r = go / gi",
@@ -3856,35 +3906,38 @@ export const CHECKS = [
       "  const size = parseFloat(cs.fontSize)",
       "  const lh = parseFloat(cs.lineHeight)",
       "  if (!(size > 0) || !(lh > 0)) continue",
-      /* THE LINE-BOX TECHNIQUE IS THIS SYSTEM'S OWN RULE, AND THIS CHECK
-         FAULTED IT. A control with a stated height centres its label by setting
-         `line-height` to the CONTENT box, which is the height minus its
-         borders. So a 36px button with a 14px label legitimately carries a
-         34px leading, and no type role publishes that pair. Measured on one
-         build: eight findings, every one a button or a badge obeying "height
-         and line-height are one decision".
-
-         `line-height` also INHERITS, so a label span inside such a control
-         reports the same pair one level down. Ask the mechanism rather than the
-         element: walk up a bounded number of levels and look for a box whose
-         content height IS this leading. Ordinary text in an auto-height block
-         never matches, so the check keeps the case it was written for. */
-      "  var host = el, boxed = false",
-      "  for (var up = 0; host && up < 4; up++, host = host.parentElement) {",
-      "    var hs = getComputedStyle(host)",
-      "    if (hs.height === 'auto' && hs.blockSize === 'auto') continue",
-      "    var bt = parseFloat(hs.borderTopWidth) || 0",
-      "    var bb = parseFloat(hs.borderBottomWidth) || 0",
-      "    var content = host.getBoundingClientRect().height - bt - bb",
-      "    if (content > 0 && Math.abs(content - lh) < 1.2) { boxed = true; break }",
-      "  }",
-      "  if (boxed) continue",
       "  const sameSize = ROLES.filter(x => Math.abs(x.size - size) < 0.6)",
       "  if (!sameSize.length) continue",
       "  if (sameSize.some(x => Math.abs(x.px - lh) < 0.8)) continue",
-      "  const owner = sameSize.map(x => x.r).join(' or ')",
+      /* ── ASK THE FAULT, NOT A LIST OF EXEMPTIONS ──
+       *
+       * This gate used to be a box test with an exemption bolted onto it, and
+       * the box test was a NO-OP. It read `hs.height === "auto"` off computed
+       * style, and computed style resolves `height` to the USED value in px
+       * for every rendered element, so "auto" was never seen. Any element
+       * whose own content box equals its line box was then exempted, which is
+       * every single-line block. Proven by injection: a heading at 40px on a
+       * 96px leading, a pair no role publishes, came back clean.
+       *
+       * THE FAULT IS ONE ROLE'S LEADING ON ANOTHER ROLE'S SIZE, which is what
+       * the rule says: 18 headings took the h5 size and the h3 leading,
+       * because an `h3` tag carried `font-size: var(--font-h5-size)`. So the
+       * leading has to belong to a PUBLISHED role. The failure line already
+       * computed that and only printed it.
+       *
+       * Measured on this system's own preview with every exemption removed:
+       * 47 candidates at a role size and 0 findings. The buttons at 12/26 and
+       * the badges at 12/18 are silent because no role publishes 26 or 18 —
+       * they state their own pair, which is a component's business and not a
+       * role borrowed from somewhere. The original fault, injected as 20px on
+       * the h3 leading of 44.48px, fires and names h3.
+       *
+       * One question in place of three, and each of the three was wrong in a
+       * different direction. */
       "  const lent = ROLES.filter(x => Math.abs(x.px - lh) < 0.8).map(x => x.r)",
-      "  fail(name(el), 'this is ' + round(size) + 'px, which is the ' + owner + ' size, and its line height is ' + round(lh) + 'px, which that role does not publish. ' + (lent.length ? 'That leading belongs to ' + lent.join(' or ') + '. ' : '') + 'A type role pairs a size with a leading, so take both from one role rather than the size from one and the leading from whatever element it sits in.')",
+      "  if (!lent.length) continue",
+      "  const owner = sameSize.map(x => x.r).join(' or ')",
+      "  fail(name(el), 'this is ' + round(size) + 'px, which is the ' + owner + ' size, and its line height is ' + round(lh) + 'px, which that role does not publish. That leading belongs to ' + lent.join(' or ') + '. A type role pairs a size with a leading, so take both from one role rather than the size from one and the leading from whatever element it sits in.')",
       "}",
     ],
   },
