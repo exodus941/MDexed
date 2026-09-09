@@ -6782,5 +6782,116 @@ function hueHex(h) {
     'the message is announced when it appears, not left sitting unread')
 }
 
+/* ── SHIP NO FRACTIONAL PIXEL: THE STROKE EFFECT AND THE CODEMOD'S SCOPE ──
+ *
+ * Eight rules read as gaps there and six had a check with different wording.
+ * These two were real, and the first is the worst kind of miss because it
+ * READS as done: the declaration is in the stylesheet and computed style on
+ * the icon agrees with it. Only the child disagrees, and nothing asked.
+ */
+{
+  line('\n- a stroke effect must reach the shapes, not the svg alone -')
+  const PV = fs.readFileSync(new URL('../src/preview/preview.css', import.meta.url), 'utf8')
+  const TH = fs.readFileSync(new URL('../src/ui/theme.css', import.meta.url), 'utf8')
+
+  /* ── DECLARE IT ON THE SHAPES, NEVER ON THE `<svg>` ALONE ──
+   *
+   * `vector-effect` applies to drawn geometry and does not inherit. A rule on
+   * the root element computes `non-scaling-stroke` on the `<svg>` and `none`
+   * on every path inside it, so it changes nothing.
+   *
+   * Two stylesheets carried it that way for as long as they existed, and one
+   * had a comment claiming the weight could not drift again. Measured: 49 of
+   * 49 icons scaling, painting 0.58, 0.63, 0.67, 0.75, 0.81, 0.88, 1, 1.13 and
+   * 1.25px from a single declared 1.5. */
+  for (const [what, css] of [['the preview', PV], ['the chrome', TH]]) {
+    const bare = css.replace(/\/\*[\s\S]*?\*\//g, m => m.replace(/[^\n]/g, ' '))
+    const rules = [...bare.matchAll(/([^{}@]+)\{([^{}]*)\}/g)]
+      .filter(b => /vector-effect:\s*non-scaling-stroke/.test(b[2]))
+    assert(rules.length >= 1, `${what} declares the effect (${rules.length} rule(s))`)
+    /* EVERY such rule must reach a DESCENDANT, or it is the version that
+       computes on the svg and nothing else. A trailing `*` in any of the
+       selector's branches is what says so. */
+    const shapeless = rules.filter(b => !/\*\s*(,|$)/.test(b[1].trim()))
+    assert(shapeless.length === 0,
+      `and every one reaches the shapes inside, never the svg alone in ${what}`
+      + (shapeless.length ? ` — ${shapeless.map(b => b[1].trim().slice(0, 40)).join(' | ')}` : ''))
+  }
+
+  /* ── A PER-SIZE TOKEN IS THE WRONG FIX ──
+   * The component knows which size it asked for; the STYLESHEET sets the box,
+   * in a dozen places. Every small button, icon-only button, select trigger
+   * and doubled empty-state mark resized an icon and left the weight behind.
+   * Two writers, disagreeing wherever they met. */
+  const bareP = PV.replace(/\/\*[\s\S]*?\*\//g, m => m.replace(/[^\n]/g, ' '))
+  const perSize = [...bareP.matchAll(/--[a-z-]*stroke[a-z-]*-(sm|md|lg|xs|xl):/g)]
+  assert(perSize.length === 0,
+    `no per-size stroke token, because the stylesheet is what sets the box (${perSize.length})`)
+
+  /* AND THE WEIGHT IS A WEIGHT, so the grid has no opinion on it. 1.75 is a
+     legitimate answer, chosen against the type beside it. Read the file, never
+     import it: importing a codemod RUNS it, and the first draft of this block
+     printed a dry-run report into the middle of the test output. */
+  assert(/stroke-width:\s*var\(/.test(bareP),
+    'a stroke width is read from a property rather than typed at the shape')
+}
+
+{
+  line('\n- a codemod is scoped to style regions -')
+  const guard = fs.readFileSync(new URL('../../../tools/grid-snap.mjs', import.meta.url), 'utf8')
+
+  /* ── SCOPE A CODEMOD TO STYLE REGIONS ──
+   *
+   * `prop: number` means something different nearly everywhere else: an icon
+   * stroke weight, a substitution sentinel that breaks if it moves, a viewport
+   * rectangle. So the tool matches the BRACES of `style={{…}}` and
+   * `style: {…}` and touches nothing outside them.
+   *
+   * Matching braces rather than a regex is the point. A nested object or a
+   * template string inside the region would end a lazy match early, and the
+   * rest of the file would then be rewritten as though it were style. */
+  assert(/function styleRegions/.test(guard), 'the tool finds style regions before it reads a value')
+  assert(/style\\s\*\(\?:=\\s\*\\\{\\\{|style\s*\(\?:=/.test(guard)
+    || /style\s*\(\?:=\s*\\\{\\\{/.test(guard)
+    || guard.includes('style\\s*(?:=\\s*\\{\\{|:\\s*\\{)'),
+    'it matches both the JSX and the object form')
+  assert(/depth\+\+/.test(guard) && /depth--/.test(guard),
+    'and walks the braces, so a nested object cannot end the region early')
+  assert(/=== "'"/.test(guard) || /'\\''/.test(guard) || /\[i\] === "'"/.test(guard),
+    'a quoted string inside the region is skipped, or a brace in a string moves the end')
+
+  /* THE REGION IS USED, not merely computed. A helper nothing calls is the
+     same defect as no helper. */
+  assert(/styleRegions\(/.test(guard.slice(guard.indexOf('for (const path of files'))),
+    'and every file is read through those regions rather than whole')
+
+  /* ── A SIZE IS AN ATTRIBUTE, WHICH THE STYLE-REGION SCOPE CANNOT SEE ──
+   *
+   * The rules recorded this as the second of three widenings of this matcher,
+   * and the widening had never landed. `<svg width={13}>` states a length
+   * outside every style region, and no CSS guard reaches it either.
+   *
+   * REPORTED, NEVER REWRITTEN, and for a different reason than the ternary: an
+   * `<svg>` width and its `viewBox` are one decision, so snapping the width
+   * alone rescales the drawing. */
+  assert(/width\|height\)=\\\{/.test(guard) || guard.includes('(width|height)=\\{'),
+    'an SVG size is an ATTRIBUTE, and the guard reads one')
+  assert(/<\(svg\|use\|image\)/.test(guard) || guard.includes('<(svg|use|image)'),
+    'only on a drawing element, because width on an input is a different thing')
+  assert(/ATTRIBUTE, not rewritten/.test(guard),
+    'and it is reported rather than snapped, since the viewBox is the other half')
+
+  /* ── AND IT ANSWERS TO THE TYPE GRID, NOT THE SPACE GRID ──
+   * A mark's box is a SIZE. Snapped against the space grid the first draft
+   * reported 46 findings on correct code, because 10 and 14 are not 4px
+   * multiples and 14 is the published mark size. A check that fires on
+   * correct code costs more than the miss it prevents. */
+  const attrBlock = guard.slice(guard.indexOf('let attr = 0'), guard.indexOf('let attr = 0') + 700)
+  assert(/snapType\(n\) === n/.test(attrBlock),
+    'measured against the type grid, which accepts 10, 12 and 14 and rejects 13')
+  assert(!/snapSpace\(n\)/.test(attrBlock),
+    'never the space grid, which called the published mark size off-grid')
+}
+
 line(`\n${failures === 0 ? 'ALL PASS' : `${failures} FAILURE(S)`}\n`)
 process.exit(failures ? 1 : 0)

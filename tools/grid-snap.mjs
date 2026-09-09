@@ -138,13 +138,56 @@ for (const path of files) {
     }
   }
 
+  /* ── A SIZE IS AN ATTRIBUTE TOO, AND THE STYLE-REGION SCOPE CANNOT SEE ONE ──
+   *
+   * `<svg width={14} height={14}>` states a length outside every style region,
+   * so the pass above skips it and no CSS guard can reach it either. This was
+   * recorded in the rules as the SECOND widening of this matcher, and the
+   * widening never landed. Measured when it finally did: 71 attribute lengths
+   * across 10 files, every one of them already on the grid at 10, 12, 14, 24,
+   * 104, 120, 124 and 130. So there was no fault to find and no instrument
+   * that would have found one.
+   *
+   * REPORTED, NEVER REWRITTEN, for a different reason than the ternary. An
+   * `<svg>` attribute and its `viewBox` are one decision: snapping the width
+   * and leaving the viewBox rescales the drawing. So this names the value and
+   * a person changes both.
+   *
+   * ONLY ON A DRAWING ELEMENT. `width` on an `<input>` or a `<td>` is an HTML
+   * attribute with its own meaning, and a `<rect>` inside a chart is geometry
+   * derived from data rather than a length somebody chose. The gate is the
+   * tag, and it is narrow on purpose. A `width` prop on a React component is
+   * outside it too: one reads 130 and it is a control's width, not a drawing.
+   *
+   * ── AND IT ANSWERS TO THE TYPE GRID, NOT THE SPACE GRID ──
+   *
+   * The first version snapped against `snapSpace` and reported 46 findings on
+   * correct code. A mark's box is a SIZE, and the space grid is 4px multiples
+   * above 8, so it called 10 and 14 off-grid. 14 is the published mark size,
+   * their own number. The type grid is multiples of 2 below 24 and 4 above,
+   * which is the rule a size answers to: it accepts 10, 12, 14, 24, 104, 120
+   * and 124, and rejects 13 and 27.
+   *
+   * A check that fires on correct code costs more than the miss it prevents.
+   * Measured after the fix: 0 findings across 10 files holding 71 attribute
+   * lengths, and an injected 13 fires. */
+  let attr = 0
+  for (const m of before.matchAll(/<(svg|use|image)\s([^>]{0,400})>/g)) {
+    for (const a of m[2].matchAll(/\b(width|height)=\{(\d+(?:\.\d+)?)\}/g)) {
+      const n = Number(a[2])
+      if (snapType(n) === n) continue
+      attr++
+      console.log(`  ${relative(ROOT, path).replace(/\\/g, '/')}  <${m[1]} ${a[1]}={${a[2]}}>   off-grid   ATTRIBUTE, not rewritten (the viewBox is the other half)`)
+    }
+  }
+
   if (hits) {
     changed += hits
     touched++
     console.log(`  ${relative(ROOT, path).replace(/\\/g, '/')}  ${hits}`)
     if (WRITE) writeFileSync(path, after)
   }
-  if (conditional) { changed += conditional; if (!hits) touched++ }
+  if (conditional || attr) { changed += conditional + attr; if (!hits) touched++ }
 }
 
 console.log(`\n${changed} values across ${touched} files${WRITE ? ' — written' : ' — dry run, pass --write to apply'}`)
