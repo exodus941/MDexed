@@ -5575,6 +5575,173 @@ export const CHECKS = [
     ],
   },
 
+  {
+    id: 'never-correct-a-glyph',
+    where: 'source',
+    line: 'No icon call site states its own geometry. The box is the system decision and the ink inside it belongs to the library, so a per-glyph width, height, viewBox, transform or stroke is a correction that destroys the set optical balance.',
+    /* ── THE STYLESHEET CANNOT HOLD THIS FAULT, SO THE STYLESHEET IS THE
+     *    WRONG PLACE TO ASK ──
+     *
+     * My first matcher looked for a stylesheet rule naming one glyph. It
+     * found 16 candidates and every one was a SIDE or a SHAPE class:
+     * `.icon-left`, `.icon-end`, `.icon-only`. Nothing in the DOM names an
+     * individual icon at all. Every icon renders as `class="icon"` with its
+     * size read from `--icon-<step>`, so no selector can reach one glyph and
+     * the check had zero candidates for as long as it was written that way.
+     * A check with no candidates is a no-op, and a no-op reads as a pass.
+     *
+     * THE REACHABLE SHAPE IS THE CALL SITE. The component spreads `...rest`
+     * onto the svg, on purpose, because without it a prop was silently
+     * dropped. So a width, a height, a viewBox or a stroke passed at one call
+     * site reaches the element and overrides the token.
+     *
+     * Measured: 82 call sites, 0 stating geometry. One passes a style object
+     * and it sets a colour, which is the toast tick and is not geometry. So
+     * the check asks the PROPERTY inside the object rather than whether an
+     * object is there.
+     *
+     * `size` IS LEGAL, because it selects a published step. `d` is legal too,
+     * and it is the one per-glyph input the rule allows: the ink is the
+     * library decision.
+     *
+     * A className is NOT asked. It would need the stylesheet to answer, and
+     * that is a second hop this parser cannot follow honestly. */
+    body: [
+      "const GEO = /\\b(?:width|height|viewBox|transform|scale|strokeWidth|stroke-width)\\b/",
+      "let asked = 0",
+      "for (const f of files.filter(f => !f.css && !f.html)) {",
+      "  const re = /<Ico\\b([^>]*?)\\/>/g",
+      "  let m",
+      "  while ((m = re.exec(f.bare))) {",
+      "    asked++",
+      "    const props = m[1]",
+      "    const hit = GEO.exec(props)",
+      "    if (!hit) continue",
+      "    const line = f.bare.slice(0, m.index).split(\"\\n\").length",
+      "    fail(f.path, line, \"this icon states its own \" + hit[0] + \" at the call site. The box comes from the icon size token and the alignment rule centres whatever size it is, so nothing is left for a call site to correct. Measured in one 12px box: a plus paints 8px of ink, a magnifier 10 and a chevron 4. Scaling one to match another changes the drawing. Pass the published size step instead.\")",
+      "  }",
+      "}",
+      "if (!asked) note(\"no icon call site found, so this rule is UNMEASURED here.\")",
+      "else note(asked + \" icon call site(s) read.\")",
+    ],
+  },
+
+  {
+    id: 'an-overhang-asks-its-host',
+    where: 'source',
+    line: 'A target overhang resolves against its host own height, written as a percentage, never against a control height token the host may not use. Half the shortfall each side then makes the floor exactly, from any host, and a min against zero stops a host already above the floor from growing.',
+    /* ── THE ARITHMETIC WAS RIGHT FOR ONE HOST IN THREE ──
+     *
+     * A target bigger than its box costs no layout, which is how a 16px
+     * checkbox reaches 44 without moving anything. The first version wrote
+     * the overhang against the small-button height, because that is the floor
+     * ONE of three hosts states. A table select-all cell derives its height
+     * from the header type and states no floor, so the target came out 0.78px
+     * short on two surfaces. That was the third instance-not-class miss from
+     * this one overhang.
+     *
+     * A PERCENTAGE IN AN INSET RESOLVES AGAINST THE CONTAINING BLOCK HEIGHT,
+     * so `100%` is whatever the host came out as, derived or stated.
+     *
+     * THE RENDER SIDE CANNOT ASK IT. A rendered inset is a used pixel value,
+     * and a token that happens to equal the host height gives the same
+     * number. Only the declaration says which question was asked.
+     *
+     * SCOPED TO AN INSET, because an overhang is a box placed past its host
+     * edge. A height, a line-height or a min-height reading the same token is
+     * the floor being stated rather than reached, which is correct.
+     *
+     * Measured on this stylesheet: 1 such rule, 2 insets, both against 100%. */
+    body: [
+      "const FLOOR = /--[\\w-]*(?:target|floor)[\\w-]*/",
+      "const INSET = /(^|[;{\\s])(inset|inset-block|inset-inline|inset-block-start|inset-block-end|inset-inline-start|inset-inline-end|top|bottom|left|right)\\s*:([^;}]*)/g",
+      "let asked = 0",
+      "for (const f of files.filter(f => f.css)) {",
+      "  const re = /([^{}@]+)\\{([^{}]*)\\}/g",
+      "  let m",
+      "  while ((m = re.exec(f.bare))) {",
+      "    const sel = m[1].trim().replace(/\\s+/g, \" \"), decl = m[2]",
+      "    if (!FLOOR.test(decl)) continue",
+      "    const insets = [...decl.matchAll(INSET)].filter(x => FLOOR.test(x[3]))",
+      "    if (!insets.length) continue",
+      "    asked += insets.length",
+      "    const bare = insets.filter(x => !/100%/.test(x[3]))",
+      "    if (!bare.length) continue",
+      "    const line = f.bare.slice(0, m.index).split(\"\\n\").length",
+      "    fail(f.path, line, \"this overhang on \" + sel.slice(0, 60) + \" reaches the floor from a token instead of from its host, on \" + bare.map(x => x[2]).join(\" and \") + \". A host that derives its own height states no floor, so the overhang comes out short there by half the difference. Subtract 100% instead, which is the host used height whatever produced it, and hold it at min(0px, ...) so a host already above the floor keeps its size.\")",
+      "  }",
+      "}",
+      "if (!asked) note(\"no inset reads a target or floor token, so this rule is UNMEASURED here.\")",
+      "else note(asked + \" overhang inset(s) read.\")",
+    ],
+  },
+
+  {
+    id: 'a-subtraction-asks-about-the-parent',
+    where: 'source',
+    line: 'A calc that subtracts a container published property is written on the parent relationship, with a child combinator. The property inherits, so a descendant reading it cannot tell whether the value came from its own parent or from something further up.',
+    /* ── TWO FIXES CHASED THE SAME WRONG MECHANISM ──
+     *
+     * Publishing a container gap as a custom property and subtracting it in a
+     * descendant fails, because a custom property inherits. A landing card
+     * subtracted 16px it never had and its action row halved to 8. A modal
+     * footer did the same and measured 11.7 against every card 24.
+     *
+     * THE FIX IS A CHILD COMBINATOR, which states the relationship the calc
+     * assumes. `.stack > .card-actions` is true of the pair or it matches
+     * nothing.
+     *
+     * CONTAINER-SCOPED IS THE DISCRIMINATOR, and it is a declaration rather
+     * than a judgement. A property declared only on the scope root or on
+     * :root is available to every element by design, so subtracting it asks
+     * nothing about a parent. A property some component declares on itself is
+     * the one that inherits into places that never had it.
+     *
+     * READING ITS OWN IS EXEMPT. A rule that declares the property and uses
+     * it in the same block is asking about itself, and the page head does
+     * exactly that with its line offset.
+     *
+     * Measured: 64 container-scoped properties over 3 stylesheets, 1
+     * subtraction of one, 0 findings. */
+    body: [
+      "const ROOTSEL = /^(?::root|html|\\*|\\.dmd)$/",
+      "let asked = 0, scoped = 0",
+      "for (const f of files.filter(f => f.css)) {",
+      "  const all = []",
+      "  const re = /([^{}@]+)\\{([^{}]*)\\}/g",
+      "  let m",
+      "  while ((m = re.exec(f.bare))) {",
+      "    all.push({ sel: m[1].trim().replace(/\\s+/g, \" \"), decl: m[2],",
+      "      line: f.bare.slice(0, m.index).split(\"\\n\").length })",
+      "  }",
+      "  const declared = new Map()",
+      "  for (const r of all) {",
+      "    for (const d of r.decl.matchAll(/(--[\\w-]+)\\s*:/g)) {",
+      "      if (!declared.has(d[1])) declared.set(d[1], [])",
+      "      declared.get(d[1]).push(r.sel)",
+      "    }",
+      "  }",
+      "  const container = new Set()",
+      "  for (const [prop, sels] of declared) {",
+      "    if (sels.some(s => !s.split(\",\").every(one => ROOTSEL.test(one.trim())))) container.add(prop)",
+      "  }",
+      "  scoped += container.size",
+      "  for (const r of all) {",
+      "    for (const u of r.decl.matchAll(/-\\s*var\\(\\s*(--[\\w-]+)/g)) {",
+      "      const prop = u[1]",
+      "      if (!container.has(prop)) continue",
+      "      asked++",
+      "      if ((declared.get(prop) || []).includes(r.sel)) continue",
+      "      if (r.sel.indexOf(\">\") >= 0) continue",
+      "      fail(f.path, r.line, \"this rule subtracts \" + prop + \", which a container publishes, and the selector \" + r.sel.slice(0, 50) + \" states no parent. A custom property inherits, so this matches every descendant of every container that ever set it, including the ones that never did. Name the pair with a child combinator, or let the element take the whole step.\")",
+      "    }",
+      "  }",
+      "}",
+      "if (!scoped) note(\"no container publishes a custom property, so this rule is UNMEASURED here.\")",
+      "else note(asked + \" subtraction(s) of a container property, out of \" + scoped + \" such propert(ies).\")",
+    ],
+  },
+
   /* ── THIS CHECK USED TO FORBID THE RIGHT ANSWER ──
    *
    * It read "Nothing from an EXAMPLE page was copied as markup", which turned

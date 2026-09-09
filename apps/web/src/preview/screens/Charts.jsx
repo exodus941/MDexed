@@ -524,15 +524,56 @@ export default function Charts({ onInspect, casing }) {
           </div>
         </Spec>
 
+        {/* ── EMPTY IS NOT NO RESULTS, AND THIS SURFACE HAD ONLY ONE OF THEM ──
+            First run has no data at all, so it offers the feature's own
+            primary action: connect the source that would fill the chart. No
+            results has data and a filter that excluded it, so it offers a way
+            BACK. One card for both tells a reader on their first day that the
+            product is broken.
+
+            It was absent for as long as this surface existed, and the file's
+            own header says why that is the expensive kind of gap: an empty
+            chart is a screen somebody builds wrongly because no sample ever
+            showed one. Found by asserting the six situations rather than
+            reading the list. */}
+        <Spec txt={txt} ins={ins} title={L('Empty')} note="No data yet. Offer the primary action.">
+          {/* NO `role="img"`, for the same reason the card below carries
+              none. */}
+          <div className="chart chart-column" {...ins('chart-column')}>
+            <div className="chart-plot chart-blank">
+              <div className="stack-sm" style={{ alignItems: 'center' }}>
+                <strong {...txt('body-md')}>{L('No invoices yet')}</strong>
+                {/* NOT THROUGH `L`. RECASE A LABEL, NEVER CONTENT. A sentence
+                    is body copy, and the recaser rendered this as "Connect a
+                    Ledger and This Chart Fills Itself". Every other sentence
+                    caption in these screens bypasses it for the same reason;
+                    only the short labels go through. Caught by measuring the
+                    rendered text rather than reading the markup. */}
+                <span className="caption" {...txt('caption', 'text-muted')}>
+                  Connect a ledger and this chart fills itself
+                </span>
+                {/* THE PRIMARY VARIANT, because first run is the one state
+                    where the action is the point of the screen. No results
+                    takes the secondary, since the reader was already going
+                    somewhere else. */}
+                <div className="row card-actions">
+                  <button className="btn btn-primary btn-sm" {...ins('button-primary')}>{L('Connect a ledger')}</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </Spec>
+
         {/* NO RESULTS OFFERS A WAY BACK, never a way forward. There is data;
             the filter excluded it. "Create" is the answer to a different
             question. */}
         <Spec txt={txt} ins={ins} title={L('No results')} note="The filter excluded it. Offer BACK.">
-          {/* NO `role="img"` HERE, DELIBERATELY, and it is the one chart on
-              this surface that must not carry one. `role="img"` makes every
-              child presentational, so it would silence the message and the
-              button — the only two things in this card worth reading. A chart
-              that offers an action is a state, not a picture of data. */}
+          {/* NO `role="img"` HERE, DELIBERATELY, and it is one of the two
+              charts on this surface that must not carry one. `role="img"`
+              makes every child presentational, so it would silence the
+              message and the button — the only two things in this card worth
+              reading. A chart that offers an action is a state, not a picture
+              of data. */}
           <div className="chart chart-column" {...ins('chart-column')}>
             <div className="chart-plot chart-blank">
               <div className="stack-sm" style={{ alignItems: 'center' }}>

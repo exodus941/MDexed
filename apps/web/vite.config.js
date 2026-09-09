@@ -263,8 +263,9 @@ export default defineConfig(({ command }) => ({
        1238.80, with the two-to-one proximity bar: the rule's own measurement
        and the reason for the change ship inside the check bodies. Then to 1245
        at 1243.06, with the first two of the twenty-four checks the coverage
-       audit found. */
-    chunkSizeWarningLimit: 1245,
+       audit found. Then to 1250 at 1248.78, with three source checks and the
+       empty-chart specimen. */
+    chunkSizeWarningLimit: 1250,
   },
 
   server: {

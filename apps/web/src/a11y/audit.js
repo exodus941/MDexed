@@ -971,8 +971,15 @@ export function roleSweep(derived, mode) {
  * reported the line as unreadable and substituted a different token.
  *
  * There is no WCAG number to cite here. The bar is lower: a line that is
- * within a hair of its background is not subtle, it is absent. */
-function hairlineChecks(derived, mode) {
+ * within a hair of its background is not subtle, it is absent.
+ *
+ * EXPORTED FOR THE SAME REASON `roleSweep` IS. A role measured on its BEST
+ * ground reports that the role is fine, and this project has paid for that
+ * twice: `text-subtle` was checked on the one surface it clears, and `border`
+ * on `surface`, where it reads highest. Both sweeps exist so no role is asked
+ * about one ground. The suite asserts they reach EVERY ground, by injecting a
+ * collision on each one in turn, and it needs this function to do it. */
+export function hairlineChecks(derived, mode) {
   const roles = derived.roles?.[mode] ?? {}
   const out = []
   const LINES = ['border-subtle', 'border', 'border-strong']

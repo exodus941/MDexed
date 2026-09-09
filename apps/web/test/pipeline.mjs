@@ -152,6 +152,150 @@ assert(px(derived.rounded, 'full') === '9999px', 'pill radius is a sentinel')
 assert(derived.elevation.raised.includes('rgba'), 'raised shadow is tinted rgba')
 assert(derived.elevation.flat === 'none', 'flat elevation is none')
 
+/* ── TWO THINGS ARE EXEMPT, AND ONLY TWO ──
+ *
+ * The two assertions above say every step is on its grid. Neither says how
+ * many ways there are to be off it, and that is the half the rule is about.
+ * An exemption is how a snapping rule stops applying, so an unbounded set of
+ * them is the rule not existing.
+ *
+ * THE FIRST DRAFT REPORTED FOUR CORRECT SHAPES, and the fault was the probe.
+ * It scanned the emitted CSS text and classified by a keyword in the token
+ * NAME, which is a tag list. It called a 9999px pill radius, a 3px shadow
+ * blur and a 14px mark off-grid. A radius of "as round as it goes" answers to
+ * no grid, a blur is a weight the way an icon stroke is, and 14 is on the TYPE
+ * grid, which that classifier never asked. So this reads the DERIVED sets,
+ * where the pill carries its own flag and each value knows which scale it
+ * came from.
+ *
+ * THE EXEMPTIONS ARE DECLARATIONS, NOT A LIST OF NAMES:
+ *
+ *   a clamp middle term    the syntax says so. It is the slope of a line
+ *                          joining two endpoints, and BOTH endpoints are
+ *                          snapped. Fluid type is off by default, so this is
+ *                          measured with it on or the shape has no candidate.
+ *   a control line-height  the stylesheet says so, as a calc off that
+ *                          control's own height token minus its borders.
+ *
+ * The pill is neither. It carries `pill: true` on the derived object, so it is
+ * excluded by a property rather than let through by an exemption.
+ *
+ * Measured over 8 documents and both macro extremes: 80 space values, 102
+ * bare sizes, 10 clamps, and the only off-grid pixels are the 10 middle
+ * terms. In the preview stylesheet: 7 px line-heights, every one a calc off a
+ * height token, and 0 bare literals. */
+{
+  const clampArgs = v => {
+    const open = v.indexOf('clamp(')
+    if (open < 0) return null
+    let depth = 0, start = open + 6
+    const out = []
+    for (let i = start; i < v.length; i++) {
+      const c = v[i]
+      if (c === '(') depth++
+      else if (c === ')') { if (depth === 0) { out.push(v.slice(start, i)); break } depth-- }
+      else if (c === ',' && depth === 0) { out.push(v.slice(start, i)); start = i + 1 }
+    }
+    return out.length === 3 ? out.map(s => s.trim()) : null
+  }
+
+  const fluid = { ...state, type: { ...state.type, fluid: { ...state.type.fluid, enabled: true } } }
+  const runs = [['default', state], ['fluid', fluid],
+    ['dense', { ...state, macros: { ...state.macros, density: 0.93 } }],
+    ['scaled', { ...state, macros: { ...state.macros, scale: 1.5 } }]]
+  for (const p of PRESETS) runs.push([p.id, applyPreset(p.id, createInitialState())])
+
+  const shapes = new Map()
+  const seen = (kind, where) => {
+    if (!shapes.has(kind)) shapes.set(kind, [])
+    shapes.get(kind).push(where)
+  }
+  let onGrid = 0, clamps = 0
+  for (const [id, st] of runs) {
+    const d = derive(st)
+    for (const t of d.typography) {
+      const args = clampArgs(String(t.fontSize))
+      if (args) {
+        clamps++
+        for (const [i, a] of args.entries()) {
+          for (const m of a.matchAll(/(-?\d+(?:\.\d+)?)px/g)) {
+            if (i === 1) { seen('a clamp middle term', `${id} ${t.name} ${m[0]}`); continue }
+            if (isOnTypeGrid(Number(m[1]))) { onGrid++; continue }
+            seen('OFF GRID: a clamp endpoint', `${id} ${t.name} ${m[0]}`)
+          }
+        }
+        continue
+      }
+      if (isOnTypeGrid(parseFloat(t.fontSize))) { onGrid++; continue }
+      seen('OFF GRID: a type size', `${id} ${t.name}=${t.fontSize}`)
+    }
+    for (const s of [...d.spacing, ...d.rounded]) {
+      if (s.pill) { seen('the pill sentinel, excluded by its own flag', `${id} ${s.name}`); continue }
+      if (isOnSpaceGrid(parseFloat(s.value))) { onGrid++; continue }
+      seen('OFF GRID: a space or radius step', `${id} ${s.name}=${s.value}`)
+    }
+  }
+  assert(clamps > 0, `the clamp shape has candidates, with fluid type on (${clamps})`)
+  const off = [...shapes.keys()].filter(k => k.startsWith('OFF GRID'))
+  assert(off.length === 0, off.length
+    ? `a value is off its grid — ${off.map(k => k + ': ' + shapes.get(k)[0]).slice(0, 3).join('; ')}`
+    : `${onGrid} derived value(s) on their grid over ${runs.length} document(s), and the only off-grid pixels are the ${shapes.get('a clamp middle term')?.length ?? 0} clamp middle term(s)`)
+  const kinds = [...shapes.keys()].sort()
+  assert(kinds.length === 2 && kinds.join(' | ') === 'a clamp middle term | the pill sentinel, excluded by its own flag',
+    `exactly two shapes leave the grid, and one of them is a flag rather than an exemption (${kinds.join(' | ')})`)
+
+  /* ── THE SECOND EXEMPTION LIVES IN THE STYLESHEET, SO IT IS READ THERE ──
+   *
+   * No emitted token carries a px line-height. A leading is a ratio, and the
+   * content-box value belongs to one control's own height.
+   *
+   * SCOPED TO THE PREVIEW. The app chrome is a separate class set with its own
+   * tokens and it types six of these as literals: 38px on a 40px control, 42
+   * on 44, and 18px beside an 8px padding with a 1px edge. Each is the content
+   * box computed by hand. A rule wider than its problem is a bigger bug than
+   * the problem, and the grid rule is about what this system PUBLISHES. */
+  const sheets = ['../src/preview/preview.css', '../src/preview/responsive.rules.css']
+  const bare = [], derivedFrom = []
+  for (const rel of sheets) {
+    const css = fs.readFileSync(new URL(rel, import.meta.url), 'utf8')
+      .replace(/\/\*[\s\S]*?\*\//g, m => m.replace(/[^\n]/g, ' '))
+    for (const m of css.matchAll(/line-height\s*:\s*([^;}]+)/g)) {
+      const v = m[1].trim()
+      if (!/px/.test(v)) continue
+      const line = css.slice(0, m.index).split('\n').length
+      /* ── ASK WHETHER IT IS DERIVED, NOT WHICH ARITHMETIC IT USED ──
+         The first matcher demanded `calc(var(--h) - Npx)` and reported two
+         correct shapes. A box with no borders states its own size token, so
+         the content box IS the height: `var(--cmp-avatar-size, 32px)`. And a
+         fractional line box is repaired by rounding the RATIO to a whole even
+         pixel: `round(1.56em, 2px)`. Both derive the value. The fault is a
+         typed number, which is what stops tracking its control. */
+      if (/var\(--[\w-]+/.test(v) || /\dem\b/.test(v)) derivedFrom.push(v)
+      else bare.push(rel.split('/').pop() + ':' + line + ' ' + v)
+    }
+  }
+  assert(derivedFrom.length > 0, `the control line-height shape has candidates (${derivedFrom.length})`)
+  assert(bare.length === 0, bare.length
+    ? `a px line-height is typed rather than derived from its control's height — ${bare.slice(0, 3).join('; ')}`
+    : `every px line-height in the preview is derived from a height token or a ratio, never typed (${derivedFrom.length})`)
+
+  /* AND BOTH EXEMPTIONS FIRE ON THE SHAPE THEY LET THROUGH. Without this the
+     two assertions above pass on a codebase that snaps everything, which
+     proves nothing about the exemptions. */
+  const proofs = [
+    ['a clamp endpoint off the grid', !isOnTypeGrid(parseFloat('13.22px'))],
+    ['a space step off the grid', !isOnSpaceGrid(13)],
+    ['a bare px line-height', !(/var\(--[\w-]+/.test('38px') || /\dem\b/.test('38px'))],
+    ['a subtraction from a typed number', !(/var\(--[\w-]+/.test('calc(40px - 2px)') || /\dem\b/.test('calc(40px - 2px)'))],
+    ['and the two derived forms are let through',
+      /var\(--[\w-]+/.test('calc(var(--cmp-button-md-height, 36px) - 2px)') && /\dem\b/.test('round(1.56em, 2px)')],
+  ]
+  const caught = proofs.filter(([, fires]) => fires)
+  assert(caught.length === proofs.length,
+    `each gate rejects the shape it was written for (${caught.length} of ${proofs.length}: `
+    + proofs.filter(([, f]) => !f).map(([w]) => w).join(', ') + ')')
+}
+
 line('\n- macros -')
 assert(px(derive({ ...state, macros: { ...state.macros, density: 2 } }).spacing, 'md') === '32px', 'density 2 doubles md spacing')
 const round2 = derive({ ...state, macros: { ...state.macros, roundness: 2 } })
@@ -1439,6 +1583,132 @@ line('\n- prompt construction -')
       : `text-subtle appears only on disabled entries (${derived.components.filter(c => (c.properties ?? []).some(p => String(p.value).includes('text-subtle'))).length})`)
 }
 
+/* ── MEASURE A ROLE ON ITS WORST GROUND, NEVER ITS BEST ──
+ *
+ * This project has paid for the same mistake twice. `text-subtle` was measured
+ * on `surface`, the one surface it clears, so the curated table reported the
+ * healthiest case in the set as though it covered the role. `border` was
+ * measured on `surface` too, where it reads highest at 3.60 to 4.16, and it
+ * reads 2.42 to 2.81 on a recessed band. A pair list that names the healthy
+ * case and stops is a report that the role is fine.
+ *
+ * The repair was two exhaustive sweeps, and nothing asserted they are
+ * exhaustive. A ground quietly dropped from either loop puts the check back in
+ * the state that cost both incidents, and the run stays green.
+ *
+ * SO INJECT A COLLISION ON EVERY GROUND IN TURN. A role set to the same ramp
+ * ref as the fill behind it is exactly 1.00:1, which no bar tolerates. Both
+ * sweeps carry the ground in the finding id, so the assertion names the pair
+ * rather than counting findings.
+ *
+ * THE ROLE OBJECTS ARE READ DIRECTLY, not derived from an edited document. A
+ * ramp rebuild would move both halves of the pair and the injection would stop
+ * being the state it claims to be.
+ *
+ * A COMPONENT-LOCAL FOREGROUND IS NOT ASKED. `accent-fg` sits on `accent` by
+ * construction, so it has no choice of ground and this question is not about
+ * it. Every role below can sit on any surface. */
+{
+  line('\n- every role against every ground -')
+  const { roleSweep, hairlineChecks } = await import('../src/a11y/audit.js')
+  const base = derive(createInitialState()).roles
+  const LINES = ['border-subtle', 'border', 'border-strong']
+
+  const missed = []
+  let asked = 0
+  for (const mode of ['light', 'dark']) {
+    for (const [roles, group, sweep, prefix] of [
+      [TEXT_ROLES, 'text', roleSweep, 'sweep'],
+      [LINES, 'line', hairlineChecks, 'hairline'],
+    ]) {
+      for (const fg of roles) {
+        for (const bg of SURFACE_ROLES) {
+          asked++
+          const hurt = { ...base[mode], [fg]: base[mode][bg] }
+          const hits = sweep({ roles: { [mode]: hurt } }, mode)
+          if (!hits.some(f => f.id === `${prefix}:${mode}:${fg}:${bg}`)) {
+            missed.push(`${group} ${fg} on ${bg} in ${mode}`)
+          }
+        }
+      }
+    }
+  }
+  assert(missed.length === 0, missed.length
+    ? `a ground is outside a sweep — ${missed.slice(0, 4).join('; ')} (${missed.length} of ${asked})`
+    : `both sweeps reach every ground for every role (${asked} pairs, ${TEXT_ROLES.length} text and ${LINES.length} line roles over ${SURFACE_ROLES.length} grounds, in two modes)`)
+
+  /* ── AND EACH ONE STAYS QUIET WHERE IT PROMISES SOMETHING ──
+   *
+   * Without this half the loop above proves only that both sweeps report on
+   * everything they are shown.
+   *
+   * THE TWO SWEEPS PROMISE DIFFERENT THINGS, and the first version of this
+   * assertion asked them the same question. `hairlineChecks` is a FAIL: a rule
+   * within a hair of its own ground paints nothing, and there is no reading of
+   * that which is correct. `roleSweep` is a NOTE and a WARN, and it is
+   * deliberately outside `audit()` for that reason. A status colour used as a
+   * WORD depends on a ramp step the palette cannot move without breaking
+   * red-green separation, so the system states that as a limit instead of
+   * guaranteeing it. Six such combinations report on the shipped default and
+   * every one is the stated limit.
+   *
+   * So the bar is: no hairline finding at all, and no role sweep finding
+   * outside the meaning roles. `text` and `text-muted` are the ones the table
+   * guarantees, and a finding on either is a real fault. */
+  const MEANING = ['accent', 'success', 'warning', 'danger']
+  const hair = [], promised = [], stated = []
+  for (const mode of ['light', 'dark']) {
+    for (const f of hairlineChecks({ roles: base }, mode)) hair.push(mode + ' ' + f.id)
+    for (const f of roleSweep({ roles: base }, mode)) {
+      (MEANING.includes(f.entry) ? stated : promised).push(f.id + ' ' + f.measured)
+    }
+  }
+  assert(hair.length === 0, hair.length
+    ? `a hairline is invisible on the shipped default — ${hair.slice(0, 3).join('; ')}`
+    : 'no line on the shipped default is within a hair of its own ground')
+  assert(promised.length === 0, promised.length
+    ? `a guaranteed text role falls short on the shipped default — ${promised.slice(0, 3).join('; ')}`
+    : `every guaranteed text role clears AA on every ground, and the ${stated.length} report(s) are all meaning roles used as words, which the system states as a limit`)
+
+  /* ── THE CURATED LIST IS A GUARANTEE, SO IT NAMES THE WORST CASE ──
+   *
+   * The sweeps report what fails. The pair table PROMISES what holds, and a
+   * promise about a role's best ground is the shape of both incidents above.
+   * Measured over the default and six presets, in both modes: the worst ground
+   * for `text` and `text-muted` is `bg-subtle` in light and `surface-raised`
+   * in dark. Only one of those two was listed for either role.
+   *
+   * A row may still be missing on purpose, and then it says so with `exempt`
+   * and a reason beside it, the way the disabled pair and the recessed outline
+   * do. What this refuses is an ABSENT row, which reads as a role nobody
+   * needed to check. */
+  const gaps = []
+  for (const role of ['text', 'text-muted']) {
+    const listed = new Set(CONTRAST_PAIRS.filter(p => p.fg === role).map(p => p.bg))
+    for (const preset of [null, ...PRESETS.map(p => p.id)]) {
+      const d = derive(preset ? applyPreset(preset, createInitialState()) : createInitialState())
+      for (const mode of ['light', 'dark']) {
+        let worst = null
+        for (const bg of SURFACE_ROLES) {
+          const r = check(d.roles[mode][role], d.roles[mode][bg]).ratio
+          if (!worst || r < worst.r) worst = { bg, r }
+        }
+        if (!listed.has(worst.bg)) {
+          gaps.push(`${role} on ${worst.bg} at ${worst.r}:1 (${preset ?? 'default'}/${mode})`)
+        }
+      }
+    }
+  }
+  /* SAY HOW MANY WERE LEFT OUT. Both rows were missing and this message showed
+     four examples, all of them the same one, so adding that row alone read as
+     the whole repair. The second only appeared on the next run. */
+  const distinct = [...new Set(gaps.map(g => g.replace(/ \(.*$/, '')))]
+  assert(gaps.length === 0, gaps.length
+    ? `the pair table skips a role's worst ground, ${distinct.length} distinct — ${distinct.slice(0, 4).join('; ')}`
+      + (distinct.length > 4 ? ` and ${distinct.length - 4} more not listed` : '')
+    : 'the pair table names the worst ground for every general text role, in both modes and every preset')
+}
+
 /* ── The samples demonstrate the chrome, not only documents ──
  *
  * The package defined `tab`, `tab-selected` and `tab-disabled`, and not one of
@@ -2468,6 +2738,63 @@ line('\n- project file -')
       'comments are blanked rather than deleted, so a reported line number is the real one')
   }
 
+  /* ── A RUN THAT READ NO RULES IS NOT A CLEAN RESULT ──
+   *
+   * Measured once in a dev server: five sheets, three throwing on cssRules
+   * access and two empty, zero rules read, and a confident report of zero
+   * findings. An injected fault carrying five dead classes came back clean.
+   *
+   * Two repairs, and BOTH are asked here. Read the stylesheet TEXT as well as
+   * the CSSOM, because a throwing sheet is the common case. And refuse at zero
+   * rather than reporting a pass, because an empty run and a clean one print
+   * the same word otherwise.
+   *
+   * ASKED OF BOTH COPIES. The shipped render check reaches a reader's build.
+   * `public/dead-class.js` is the standalone tool we run here. A rule with two
+   * homes is how two versions of it end up disagreeing, so neither is taken on
+   * the other's word. */
+  {
+    const dead = CHECKS.find(c => c.id === 'a-class-styles-something-where-it-sits')
+    assert(dead && dead.body, 'the dead-class check is a shipped check with a body')
+    const shipped = dead.body.join('\n')
+    const standalone = readTool('../public/dead-class.js')
+    for (const [name, src] of [['the shipped check', shipped], ['dead-class.js', standalone]]) {
+      assert(/document\.querySelectorAll\(\s*["']style/.test(src) && /link\[rel/.test(src),
+        `${name} reads the stylesheet TEXT as well as the CSSOM`)
+      assert(/catch/.test(src),
+        `${name} survives a sheet that throws on access rather than losing it`)
+      /* THE REFUSAL, and it has to be a refusal rather than a note. The
+         shipped one reports through `fail`, which fails the run. The
+         standalone one prints to `console.error` and returns before it can
+         print a verdict. */
+      const refuses = /if \(!(?:rules|sels)\.length\)/.test(src)
+        || /read only " \+ sels\.length/.test(src)
+      assert(refuses, `${name} refuses when it read no rules`)
+      assert(/NOT a clean result|nothing was measured/.test(src),
+        `${name} says so in words, so an empty run cannot be read as a pass`)
+    }
+
+    /* AND EACH OF THOSE CONDITIONS IS BROKEN ON PURPOSE. A claim pointed only
+       at correct code says nothing: a regex that silently stops matching
+       passes for ever. Nothing on disk is touched — each condition is
+       re-evaluated against a copy with that one line removed. */
+    const strip = (src, re) => src.replace(re, '')
+    const MUT = [
+      ['the text read', s => /document\.querySelectorAll\(\s*["']style/.test(s),
+        s => strip(s, /document\.querySelectorAll\(\s*["']style["']\s*\)/g)],
+      ['the refusal at zero', s => /if \(!(?:rules|sels)\.length\)/.test(s) || /read only " \+ sels\.length/.test(s),
+        s => strip(s, /if \(!(?:rules|sels)\.length\)|read only " \+ sels\.length/g)],
+      ['the words that say it is not a pass', s => /NOT a clean result|nothing was measured/.test(s),
+        s => strip(s, /NOT a clean result|nothing was measured/g)],
+    ]
+    for (const [label, holds, break_] of MUT) {
+      for (const [name, src] of [['the shipped check', shipped], ['dead-class.js', standalone]]) {
+        assert(holds(src) && !holds(break_(src)),
+          `${name}: removing ${label} is caught (quiet ${holds(src)}, loud ${!holds(break_(src))})`)
+      }
+    }
+  }
+
   /* ── AND EVERY ONE OF THOSE IS BROKEN ON PURPOSE HERE ──
    *
    * A GUARD'S OWN RECORD IS NOT EVIDENCE. Each condition above is a claim
@@ -2744,6 +3071,29 @@ line('\n- project file -')
        project's own toolkit shipped it as `coarse || innerWidth < 768` and
        reported 13 healthy 24px controls. */
     '@media (max-width: 767px) { .dmd { --control-floor: 44px; } }',
+    /* an-overhang-asks-its-host: the target overhang reaching the floor from a
+       control-height TOKEN. That token is the floor one host in three states.
+       A table select-all cell derives its height from the header type and
+       states no floor, so the same arithmetic came out 0.78px short there, on
+       two surfaces. */
+    '.box::after { position: absolute; top: min(0px, calc((var(--target-min, 44px) - var(--btn-sm-height, 28px)) / -2)); }',
+    /* a-subtraction-asks-about-the-parent: a container publishes its gap and a
+       descendant subtracts it, with nothing joining the two. A custom property
+       inherits, so this matches every descendant of every container that ever
+       set it, including the ones that never did. A landing card subtracted
+       16px it never had and its action row halved to 8. */
+    '.stack { --stack-gap: var(--space-md); }',
+    '.actions-row { padding-block-start: calc(var(--card-action-gap, 16px) - var(--stack-gap)); }',
+  ].join('\n'))
+  /* never-correct-a-glyph: a call site stating its own width. The component
+     spreads every prop it is given onto the svg, so this reaches the element
+     and overrides the size token. Measured in one 12px box: a plus paints 8px
+     of ink, a magnifier 10 and a chevron 4. */
+  write('glyph.jsx', [
+    'import { Ico, IconSearch } from "./icons.jsx"',
+    'export const Bar = () => (',
+    '  <button className="btn"><Ico d={IconSearch} width={18} />Search</button>',
+    ')',
   ].join('\n'))
   write('broken.html', [
     '<html data-theme="light">',                 /* hardcoded-theme */
@@ -2783,6 +3133,11 @@ line('\n- project file -')
     '  --space-md: 16px;',
     '  --edge-w: 4px;',
     '  --z-modal: 400;',
+    /* The two the overhang and the subtraction read. Declared rather than
+       given a fallback, because a fallback would fire two other checks and the
+       fixture would then be silent for the wrong reason. */
+    '  --target-min: 44px;',
+    '  --card-action-gap: 16px;',
     '  --font-body-md-family: system-ui;',
     '  /* RETIRED. Use --c-text-muted. Split into two roles with different bars. */',
     '  --c-text-faint: #999;',
@@ -2810,6 +3165,29 @@ line('\n- project file -')
     '.actions { margin-block-start: auto; padding-block-start: var(--space-md); }',
     '.card > :where(.overline, .caption) + .title { margin-block-start: 0; }',
     '.two-sides { margin-inline-start: auto; margin-inline-end: var(--space-md); }',
+    /* The CORRECT overhang: the floor reached from the host own height, as a
+       percentage, held at min(0px) so a host already above it keeps its size.
+       A fixture with no overhang at all would be silent for the wrong reason. */
+    '.box::after { position: absolute; top: min(0px, calc((var(--target-min) - 100%) / -2)); }',
+    /* The CORRECT subtraction: the same container property, and the selector
+       states the parent. Plus the case that needs no combinator, because the
+       rule declaring the property is the one reading it. */
+    '.stack { --stack-gap: var(--space-md); }',
+    '.stack > .actions-row { padding-block-start: calc(var(--card-action-gap) - var(--stack-gap)); }',
+    '.head { --line-half: var(--space-md); transform: translateY(calc(50% - var(--line-half))); }',
+  ].join('\n'))
+  /* The CORRECT icon call sites: a published size step, and a style object
+     that touches no geometry. The second is the toast tick, which passes a
+     colour, and it is why the check asks the PROPERTY rather than whether a
+     style object is present. */
+  fs.writeFileSync(path.join(clean, 'good-icons.jsx'), [
+    'import { Ico, IconSearch, IconCheck } from "./icons.jsx"',
+    'export const Bar = () => (',
+    '  <span>',
+    '    <Ico d={IconSearch} size="lg" />',
+    '    <Ico d={IconCheck} style={{ color: "var(--c-text)" }} />',
+    '  </span>',
+    ')',
   ].join('\n'))
   /* The CORRECT style object: two longhands and no shorthand beside them. */
   fs.writeFileSync(path.join(clean, 'good.jsx'), [
@@ -2847,6 +3225,73 @@ line('\n- project file -')
     'an empty run reports that it checked nothing rather than printing PASS')
 
   for (const d of [dir, clean, empty]) fs.rmSync(d, { recursive: true, force: true })
+
+  /* ── AND POINT THREE OF THEM AT THIS PROJECT'S OWN SOURCE ──
+   *
+   * A fixture proves a check fires and a second fixture proves it stays quiet
+   * on the shape it was written about. Neither says the shape EXISTS anywhere
+   * real. A check with no candidates in the tree it runs over is a no-op, and
+   * a no-op reads as a pass.
+   *
+   * That failure has a measured history here. One exemption read
+   * `height === 'auto'`, which getComputedStyle never returns, so the check
+   * had 47 candidates and 0 findings for as long as it existed. And my first
+   * matcher for the glyph rule looked for a stylesheet rule naming one icon:
+   * 16 candidates, every one a side or a shape class, and no selector in this
+   * system can reach a single glyph at all.
+   *
+   * The full verifier cannot run over this tree, because it wants an emitted
+   * `tokens.css` and this repo generates that per document. So these three
+   * bodies run alone, over the real stylesheets and components, through the
+   * same strings the emitter ships. No second implementation.
+   *
+   * Measured: 81 icon call sites, 2 overhang insets, 64 container-scoped
+   * custom properties carrying 1 subtraction. 0 findings on all three.
+   *
+   * 81, NOT THE 82 IN THE FILES. The 82nd sits inside a comment in
+   * `icons.jsx` that quotes the markup shape, and every source check reads
+   * the comment-blanked copy. Both numbers are right about different
+   * questions, and the check is asked about code. */
+  {
+    const { fileURLToPath } = await import('node:url')
+    const HERE = fileURLToPath(new URL('../src/', import.meta.url))
+    const walkSrc = d => fs.readdirSync(d, { withFileTypes: true }).flatMap(e =>
+      e.isDirectory() ? walkSrc(path.join(d, e.name)) : [path.join(d, e.name)])
+    const keepLines = m => m.replace(/[^\n]/g, ' ')
+    const realFiles = walkSrc(HERE)
+      .filter(p => /\.(css|jsx|js)$/.test(p))
+      .map(p => {
+        const text = fs.readFileSync(p, 'utf8')
+        const css = p.endsWith('.css')
+        let bare = text.replace(/\/\*[\s\S]*?\*\//g, keepLines)
+        if (!css) bare = bare.replace(/(^|[^:\\])\/\/[^\n]*/g, (m, pre) => pre + keepLines(m.slice(pre.length)))
+        return { path: p.slice(HERE.length).replace(/\\/g, '/'), text, bare, css, html: false }
+      })
+    assert(realFiles.length > 20, `the real source is readable (${realFiles.length} files)`)
+
+    const OVER_SOURCE = [
+      ['never-correct-a-glyph', /(\d+) icon call site/, 81],
+      ['an-overhang-asks-its-host', /(\d+) overhang inset/, 2],
+      ['a-subtraction-asks-about-the-parent', /out of (\d+) such/, 64],
+    ]
+    for (const [id, shape, want] of OVER_SOURCE) {
+      const c = CHECKS.find(x => x.id === id)
+      assert(c && c.body, `${id} is a source check with a body`)
+      const found = [], said = []
+      const body = new Function('files', 'fail', 'note', c.body.join('\n'))
+      body(realFiles,
+        (p, line, msg) => found.push(p + ':' + line + ' ' + msg),
+        msg => said.push(msg))
+      /* THE COUNT IS THE POINT. A check that stops matching anything goes
+         silent, and this is what refuses to call that a pass. */
+      const m = shape.exec(said.join(' '))
+      assert(m, `${id} reports what it measured${said.length ? ` — "${said.join(' | ').slice(0, 90)}"` : ' — nothing'}`)
+      assert(Number(m[1]) === want,
+        `${id} still reads ${want} candidate(s) in this source (${m ? m[1] : '?'})`)
+      assert(found.length === 0,
+        `${id} is quiet on this project's own source${found.length ? ` — ${found[0].slice(0, 110)}` : ''}`)
+    }
+  }
 }
 
 /* ── HOW STRONGLY THE CARD IS SEPARATED ──
@@ -3449,6 +3894,28 @@ line('\n- depth intensity -')
   const hueOf = h => toOklchObj(parseColorFor(h)).h ?? 0
   assert(Math.abs(hueOf(dv.categorical[0]) - hueOf(accent)) < 2,
     `series one carries the accent hue (${hueOf(dv.categorical[0]).toFixed(1)} vs ${hueOf(accent).toFixed(1)})`)
+
+  /* ── NEVER TUNE THE FLOOR TO FIT THE PALETTE ──
+   *
+   * Every assertion below reads `NEIGHBOUR_FLOOR` out of the module, which is
+   * right for saying what the bar IS and says nothing about whether the bar
+   * moved. Lower the constant and every one of them still passes. That is the
+   * exact shape of tuning the check to the code, and this rule exists because
+   * it is the cheapest way to make a loud palette look quiet.
+   *
+   * So the constant is pinned to a literal here. 0.10 in OKLab is about four
+   * just-noticeable differences, and it was found by searching for the
+   * quietest setting that still CLEARS it across every preset and the whole
+   * hue circle, rather than by lowering it until a set passed. Measured at
+   * that floor: n=3 gives 0.256, n=4 gives 0.136, n=5 gives 0.088 and n=8
+   * clears at no hue. Five is the shipped count.
+   *
+   * A DELIBERATE CHANGE EDITS THIS LINE AND SAYS WHY. That is the whole
+   * mechanism: the edit becomes visible instead of silent. */
+  assert(NEIGHBOUR_FLOOR === 0.10,
+    `the separation floor is the searched 0.10, not a number a palette needed (${NEIGHBOUR_FLOOR})`)
+  assert(CATEGORICAL_COUNT === 5,
+    `five series, because nothing clears that floor at eight (${CATEGORICAL_COUNT})`)
 
   /* EVERY pair, not only the adjacent ones: two series touch anywhere in a
      pie, and a stacked bar puts any two together when a category is empty. */
@@ -5736,6 +6203,49 @@ function hueHex(h) {
        at 12px, so they measured 19.44 and 19.08 against a row of 21.84. */
     assert(!/block-size:\s*1lh/.test(rule) && !/block-size:\s*calc\(1em/.test(rule),
       'and not from its own font, which is the caption rather than the row')
+  }
+
+  /* ── AND THE SITUATIONS ARE NOT OPTIONAL ──
+   *
+   * The file's own header says the situations are last and not optional,
+   * because an empty chart is a screen somebody builds wrongly when no sample
+   * ever showed one. Nothing asserted the list, so the surface shipped five of
+   * the six and the missing one was EMPTY — the exact case the header names.
+   *
+   * EMPTY IS NOT NO RESULTS. First run has no data at all and offers the
+   * feature's own primary action. No results has data and a filter that
+   * excluded it, so it offers a way BACK. One card for both tells a reader on
+   * their first day that the product is broken. Both are on the surface now,
+   * and the pair below asserts they stay two cards rather than one.
+   *
+   * MATCHED ON THE SPECIMEN TITLE, which is what a reader sees, rather than on
+   * a class or a comment. A comment naming a situation is not a situation. */
+  {
+    const jsx = fs.readFileSync(new URL('../src/preview/screens/Charts.jsx', import.meta.url), 'utf8')
+    const titles = [...jsx.matchAll(/title=\{L\('([^']+)'\)\}/g)].map(m => m[1])
+    const SITUATIONS = ['Empty', 'No results', 'Loading', 'Crossing zero', 'A long category name', 'Too many series']
+    const absent = SITUATIONS.filter(s => !titles.includes(s))
+    assert(absent.length === 0, absent.length
+      ? `a chart situation has no specimen — ${absent.join(', ')} (${absent.length} of ${SITUATIONS.length})`
+      : `all ${SITUATIONS.length} chart situations are demonstrated, among ${titles.length} specimens`)
+
+    /* THE TWO EMPTY STATES OFFER DIFFERENT ACTIONS, or they are one card
+       spelled twice. Forward on first run, back when a filter excluded the
+       data. The variant says which: primary for the action that is the point
+       of the screen, secondary for the way back. */
+    /* BLANK THE COMMENTS FIRST. Both cards carry one saying why they take no
+       `role="img"`, so a scan of the raw text finds the attribute in the prose
+       explaining its absence. That is the recorded rule about reading source,
+       and it fired here on the first run. */
+    const bareJsx = jsx.replace(/\/\*[\s\S]*?\*\//g, m => m.replace(/[^\n]/g, ' '))
+    const cardOf = name => {
+      const at = bareJsx.indexOf(`title={L('${name}')}`)
+      return at < 0 ? '' : bareJsx.slice(at, bareJsx.indexOf('</Spec>', at))
+    }
+    assert(/btn-primary/.test(cardOf('Empty')) && !/btn-primary/.test(cardOf('No results')),
+      'first run offers its primary action and no results does not, so the two are not one card twice')
+    assert(!/role="img"/.test(cardOf('Empty')) && !/role="img"/.test(cardOf('No results')),
+      'and neither carries role="img", which would silence the message and the button')
   }
 }
 

@@ -172,8 +172,15 @@ for (const f of files) {
 }
 
 const findings = []
+/* A RUN THAT MEASURED NOTHING IS NOT A PASS, AND HAS TO SAY SO. The render
+   side has had this channel since it shipped. This side could only fail, so a
+   check whose shape does not exist in the tree was silent, and silence reads
+   exactly like a clean result. Three checks added on 9 September 2026 report
+   their candidate count through it. */
+const notes = []
 let current = ''
 const fail = (path, line, msg) => findings.push({ check: current, path, line, msg })
+const note = msg => notes.push(current + ': ' + msg)
 const lineOf = (f, index) => f.text.slice(0, index).split('\\n').length
 
 function run (id, body) {
@@ -194,6 +201,7 @@ ${blocks}
 
 const width = Math.max(...findings.map(f => f.check.length), 10)
 console.log('VERIFY  ' + files.length + ' files, ' + tokens.size + ' tokens, ' + ${checks.length} + ' checks')
+for (const n of notes) console.log('  - ' + n)
 if (!findings.length) {
   console.log('PASS')
   process.exit(0)

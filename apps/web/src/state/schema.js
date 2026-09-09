@@ -395,6 +395,25 @@ export const CONTRAST_PAIRS = [
   { fg: 'text',         bg: 'selected',       label: 'Body on a selected row' },
   { fg: 'text-muted',   bg: 'selected',       label: 'Muted on a selected row' },
   { fg: 'text-muted',   bg: 'row-stripe',     label: 'Muted on a striped row' },
+  /* MEASURE A ROLE ON ITS WORST GROUND, and this row was the third instance of
+     that miss. `bg-subtle` is the lowest-contrast ground `text` meets in
+     light, at 8.31:1 on the default and 8.30 to 8.36 across the presets, and
+     the table listed every other one. The two rows above it name `border` and
+     `text-muted` on a band; body text on the same band had no row, so the
+     table promised the role on four grounds out of five. It clears AA with
+     room, which is why nothing found it by failing. Found by asserting that
+     each general role's worst ground is in this list. */
+  { fg: 'text',         bg: 'bg-subtle',      label: 'Body on a band' },
+  /* AND THE MUTED ROLE ON THE SAME GROUND, WHICH IS THE THIN ONE. 4.58:1 on
+     the default and 4.57 on two presets, against a 4.5 bar. It clears by 0.08,
+     so any step that moves either role breaks it, and until this row existed
+     nothing would have said so. The role's other four grounds all read higher.
+
+     BOTH ROWS WERE MISSING AND THE FIRST FIX HID THE SECOND. The assertion
+     message printed four examples and every one was the `text` row, so adding
+     that row alone looked like the whole repair. A summary that truncates must
+     say how many it left out. */
+  { fg: 'text-muted',   bg: 'bg-subtle',      label: 'Muted on a band' },
   { fg: 'ring',         bg: 'bg',             label: 'Focus ring',       ui: true },
 ]
 
