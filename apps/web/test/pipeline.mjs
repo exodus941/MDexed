@@ -2285,6 +2285,232 @@ line('\n- project file -')
     `every runnable check carries a body (${SOURCE_CHECKS.length + RENDER_CHECKS.length})`)
   assert(MANUAL_CHECKS.every(c => !c.body), 'a manual check carries no body it cannot run')
 
+  /* ── THE RULES ABOUT MY OWN INSTRUMENTS, ASSERTED OVER THE INSTRUMENTS ──
+   *
+   * Auditing all 253 process rules found 20 in this class, each a rule about
+   * how a check or a tool must be built. Every one had been written down and
+   * none was enforced, so the only thing holding them was whoever last read
+   * the file.
+   *
+   * The population is printed beside every verdict. A condition with nothing
+   * to ask prints PASS having asked nothing, which is the failure this whole
+   * block exists to prevent elsewhere.
+   *
+   * TWO OF THE TWENTY DO NOT SHIP, and the reason is the rule about cutting a
+   * check you cannot make honest.
+   *
+   *   `closest()` WITH A LIST. The fault was a SCOPE whose alternatives are
+   *   different kinds of box, so wrapping two buttons in a nav changed which
+   *   one answered. Measured: 15 uses of closest with a list, 14 of them
+   *   boolean exemptions where which member matched cannot matter, and the one
+   *   assigned result is `tr, [role=row]`, which is one object spelled twice.
+   *   Nothing in the source says two alternatives are different KINDS, so the
+   *   exact form gives one finding on correct code.
+   *
+   *   A RENDER CHECK RECORDING ITS PROOF. A check's comment is not on the
+   *   object, so the array cannot be asked. Reading the source for the word
+   *   would assert the wording rather than the proof. */
+  const bodyOf = c => (c.body || []).join('\n')
+  const runnable = CHECKS.filter(c => c.body)
+  /* One string of every body, so a shape can be asked of the whole set at
+     once and the mutation proof can append a fault to it. */
+  const bodiesJoined = runnable.map(bodyOf).join('\n')
+  /* ── BLANK THE COMMENTS BEFORE SCANNING FOR A PATTERN ──
+   *
+   * A comment that QUOTES the broken pattern, to stop the bug recurring, is
+   * the thing the scan then finds. It happened the first time this project
+   * scanned source for a shape, and it happened again on the very first run of
+   * the animation-frame assertion below: the toolkit's own note explaining why
+   * it must not wait on a frame.
+   *
+   * Blanked, never deleted, so a line number still points at the real line. */
+  const noComments = s => s
+    .replace(/\/\*[\s\S]*?\*\//g, m => m.replace(/[^\n]/g, ' '))
+    .replace(/(^|[^:])\/\/[^\n]*/g, (m, p) => p + m.slice(p.length).replace(/./g, ' '))
+  const readTool = p => noComments(fs.readFileSync(new URL(p, import.meta.url), 'utf8'))
+  const VERIFY_SRC = readTool('../src/emit/verify.js')
+  const MATRIX_SRC = readTool('../public/verify-matrix.js')
+  const TOOLKIT_SRC = readTool('../public/layout-tools.js')
+  assert(runnable.length > 50, `there are bodies to ask about (${runnable.length})`)
+
+  /* getComputedStyle().height NEVER RETURNS auto FOR A RENDERED ELEMENT, so a
+     guard written as "only where a height is stated" is a no-op. One read that
+     way and exempted every single-line block: 47 candidates, 0 findings, for
+     as long as it existed. */
+  {
+    const bad = runnable.filter(c => /height\s*===?\s*['"]auto['"]/.test(bodyOf(c)))
+    assert(bad.length === 0,
+      `no body tests a computed height for auto, which is never returned (${bad.map(c => c.id).join(', ') || runnable.length + ' bodies'})`)
+  }
+
+  /* ROUND ONCE, AT THE END. Four values rounded separately and then subtracted
+     manufacture whole pixels out of tenths: 55 of 143 rows once carried a
+     fault invented that way. */
+  {
+    const bad = runnable.filter(c => /round\([^)]*\)\s*-\s*round\(/.test(bodyOf(c)))
+    assert(bad.length === 0,
+      `no body subtracts two rounded values (${bad.map(c => c.id).join(', ') || runnable.length + ' bodies'})`)
+  }
+
+  /* "ONE ROW" MEANS ONE LEVEL, NOT ANY DEPTH. `:scope > * svg` reads as a mark
+     inside a direct child and is a DESCENDANT selector, so it matched marks at
+     any depth. 3 real spreads became 68 findings from 32 nested vantage
+     points. */
+  {
+    const bad = runnable.filter(c => /:scope > \*\s+[a-z[.]/.test(bodyOf(c)))
+    assert(bad.length === 0,
+      `no body writes a descendant where one level was meant (${bad.map(c => c.id).join(', ') || runnable.length + ' bodies'})`)
+  }
+
+  /* AND A PRESS CAN DESTROY THE CONTROL, so a check that presses twice looks
+     its control up at least as often as it presses it. A held reference is
+     detached by the re-render, and a click on it does nothing. */
+  {
+    const pressers = runnable.filter(c => /\.click\(\)/.test(bodyOf(c)))
+    assert(pressers.length > 0, `there is a pressing check to ask about (${pressers.length})`)
+    const bad = pressers.filter(c => {
+      const t = bodyOf(c)
+      const clicks = (t.match(/\.click\(\)/g) || []).length
+      const lookups = (t.match(/querySelector|all\(|\.find\(/g) || []).length
+      return clicks > 1 && lookups < clicks
+    })
+    assert(bad.length === 0,
+      `a pressing check re-finds its control by selector every time (${bad.map(c => c.id).join(', ') || pressers.length + ' pressers'})`)
+  }
+
+  /* AN INSTRUMENT LEFT ON THE PAGE BECOMES ONE OF THE THINGS IT MEASURES. The
+     token probe is a bare div painted in the very role being hunted, sitting
+     in the body with the page's own cards as siblings. Cached between calls,
+     the selection check found it and faulted a correct page. */
+  {
+    assert(/function paints \(token\)/.test(VERIFY_SRC), 'the token probe exists to ask about')
+    const block = VERIFY_SRC.slice(VERIFY_SRC.indexOf('function paints (token)'))
+      .slice(0, 600)
+    assert(/\.remove\(\)/.test(block),
+      'the token probe is taken back out of the page in the same function')
+  }
+
+  /* NEVER POLL WITH requestAnimationFrame IN A TOOL. A background tab runs no
+     animation frames, so the loop never resolves and the run hangs. It is
+     indistinguishable from a crash. The toolkit broke this rule while the rule
+     sat written down: a two-frame wait after the animations, outside the
+     ceiling that was supposed to bound it. */
+  {
+    const tools = [['verify.js', VERIFY_SRC], ['verify-matrix.js', MATRIX_SRC], ['layout-tools.js', TOOLKIT_SRC]]
+    const bad = tools.filter(([, t]) => /requestAnimationFrame\s*\(/.test(t))
+    assert(bad.length === 0,
+      `no tool waits on an animation frame (${bad.map(t => t[0]).join(', ') || tools.length + ' tools'})`)
+  }
+
+  /* AN INFINITE ANIMATION NEVER FINISHES, so its `finished` promise never
+     settles and one spinner puts the whole wait on the ceiling. Drop the
+     looping ones rather than racing them. */
+  {
+    for (const [name, src] of [['verify.js', VERIFY_SRC], ['layout-tools.js', TOOLKIT_SRC]]) {
+      if (!/getAnimations/.test(src)) continue
+      assert(/Infinity/.test(src), `${name} drops the looping animations rather than racing them`)
+    }
+  }
+
+  /* A VERDICT NAMES ITS OWN COVERAGE, and the skipped list is half of that. A
+     surface reported 0x0 was never checked, and a hidden pane measures zero,
+     so every check on it passes and that reads exactly like success. */
+  {
+    for (const field of ['runs', 'notLanded', 'neverSettled', 'unmeasured', 'themeReturned']) {
+      assert(new RegExp(field).test(MATRIX_SRC),
+        `the matrix report carries ${field}, so a partial run cannot read as a clean one`)
+    }
+  }
+
+  /* A TOOL THAT SETS STATE MUST ASSERT THE STATE LANDED, on BOTH halves. An
+     earlier driver checked the width and only that the surface id was
+     non-empty, so a run whose tab click had not landed carried the label of
+     the surface I asked for. */
+  {
+    assert(/got\.w === width && got\.id === want/.test(MATRIX_SRC),
+      'the driver asserts the width AND the surface before it measures')
+    assert(/const tabFor = /.test(MATRIX_SRC) && /const widthSelect = \(\)/.test(MATRIX_SRC),
+      'and it re-finds every control by selector, because a re-render detaches a held one')
+  }
+
+  /* A SUMMARY THAT TRUNCATES MUST SAY SO. One read `other: 68` while the array
+     held 6, so 62 findings were invisible to anything reading the list. It
+     cost three wrong conclusions in one session. */
+  {
+    const tools = [['verify.js', VERIFY_SRC], ['verify-matrix.js', MATRIX_SRC], ['layout-tools.js', TOOLKIT_SRC]]
+    for (const [name, src] of tools) {
+      const slices = (src.match(/\.slice\(0,\s*\d+\)/g) || []).length
+      if (!slices) continue
+      assert(/not listed/.test(src),
+        `${name} truncates in ${slices} place(s) and says so`)
+    }
+  }
+
+  /* A WRONG LINE NUMBER IS WORSE THAN NONE. Stripping comments by deleting
+     them takes their newlines too, and every number below shifts. */
+  {
+    assert(/keepLines/.test(VERIFY_SRC),
+      'comments are blanked rather than deleted, so a reported line number is the real one')
+  }
+
+  /* ── AND EVERY ONE OF THOSE IS BROKEN ON PURPOSE HERE ──
+   *
+   * A GUARD'S OWN RECORD IS NOT EVIDENCE. Each condition above is a claim
+   * about a file, and a claim pointed only at correct code says nothing: a
+   * regex that silently stops matching passes for ever. So each one is
+   * re-evaluated against a MUTATED COPY of the same text, and has to flip.
+   *
+   * Nothing on disk is touched. The mutation is a string replacement, and the
+   * pair of verdicts is the proof: quiet on the real file, loud on the fault. */
+  {
+    const CASES = [
+      /* APPEND THE FAULT TO THE REAL CORPUS, never test it alone. A regex
+         proven on the fault string by itself says nothing about whether it
+         finds that shape among 94 bodies of correct code. */
+      ['a body testing a computed height for auto',
+        s => /height\s*===?\s*['"]auto['"]/.test(s),
+        s => s + "\nif (getComputedStyle(el).height === 'auto') continue", bodiesJoined],
+      ['a body subtracting two rounded values',
+        s => /round\([^)]*\)\s*-\s*round\(/.test(s),
+        s => s + '\nconst d = round(a.top) - round(b.bottom)', bodiesJoined],
+      ['a descendant written where one level was meant',
+        s => /:scope > \*\s+[a-z[.]/.test(s),
+        s => s + "\nel.querySelectorAll(':scope > * svg')", bodiesJoined],
+      ['the token probe left on the page',
+        s => !/\.remove\(\)/.test(s.slice(s.indexOf('function paints (token)')).slice(0, 600)),
+        s => s.replace(/p\.remove\(\)/, 'void 0'), VERIFY_SRC],
+      ['a tool waiting on an animation frame',
+        s => /requestAnimationFrame\s*\(/.test(s),
+        s => s + '\nawait new Promise(r => requestAnimationFrame(r))', TOOLKIT_SRC],
+      ['a settle racing an infinite animation',
+        s => !/Infinity/.test(s),
+        s => s.replace(/Infinity/g, 'never'), TOOLKIT_SRC],
+      ['the driver asserting one half of the state',
+        s => !/got\.w === width && got\.id === want/.test(s),
+        s => s.replace('got.w === width && got.id === want', 'got.w === width && got.id'), MATRIX_SRC],
+      ['the driver holding a control across a re-render',
+        s => !(/const tabFor = /.test(s) && /const widthSelect = \(\)/.test(s)),
+        s => s.replace('const widthSelect = ()', 'const widthSelect = document'), MATRIX_SRC],
+      ['a truncating report with no notice',
+        s => (s.match(/\.slice\(0,\s*\d+\)/g) || []).length > 0 && !/not listed/.test(s),
+        s => s.replace(/not listed/g, 'omitted'), MATRIX_SRC],
+      ['comments deleted rather than blanked',
+        s => !/keepLines/.test(s),
+        s => s.replace(/keepLines/g, 'dropLines'), VERIFY_SRC],
+    ]
+    for (const [label, fires, mutate, src] of CASES) {
+      assert(!fires(src), `quiet on the real file: ${label}`)
+      assert(fires(mutate(src)), `and loud on the injected fault: ${label}`)
+    }
+    /* The report fields are one shape repeated, so they are proven in a loop
+       rather than as ten table rows. */
+    for (const field of ['runs', 'notLanded', 'neverSettled', 'unmeasured', 'themeReturned']) {
+      const gone = MATRIX_SRC.replace(new RegExp(field, 'g'), 'zzz')
+      assert(!new RegExp(field).test(gone),
+        `and loud on the injected fault: the report dropping ${field}`)
+    }
+  }
+
   /* ── THE DIRECTION-AWARE BODIES, AND THE GATE THEY SIT BEHIND ──
    *
    * Two checks read `left` and mean START. Proven in a browser: pointed at a
