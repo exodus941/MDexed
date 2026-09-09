@@ -6315,6 +6315,37 @@ function hueHex(h) {
       'first run offers its primary action and no results does not, so the two are not one card twice')
     assert(!/role="img"/.test(cardOf('Empty')) && !/role="img"/.test(cardOf('No results')),
       'and neither carries role="img", which would silence the message and the button')
+
+    /* ── THE TWO CARDS MEASURE ONE BOX, AND THAT IS THE CLAIM WORTH PINNING ──
+     *
+     * The rule first stated their rendered size, 385.92 by 192.95. That number
+     * moves with the pane width and the type scale, so nothing could read it
+     * and the constants pass reported it as a rule stating a figure no check
+     * asks about.
+     *
+     * The EQUALITY is what a reader can rely on. Both cards take the same
+     * frame, so their plot declares one aspect ratio and one minimum height.
+     * A pixel pair would pin today's width in place; this holds at any. */
+    const plotOf = name => {
+      const c = cardOf(name)
+      const at = c.indexOf('chart-plot')
+      return at < 0 ? '' : c.slice(Math.max(0, at - 200), at + 200)
+    }
+    assert(/chart-blank/.test(plotOf('Empty')) && /chart-blank/.test(plotOf('No results')),
+      'both empty-state cards take the same blank-plot frame')
+    /* THE SELECTORS CARRY A DESCENDANT STEP, so a matcher anchored on
+       `.dmd .chart-blank` finds nothing. The rules read `.dmd .chart
+       .chart-blank` and `.dmd .chart .chart-plot`. My first version asked the
+       wrong shape and reported three findings on correct code. */
+    const css3 = fs.readFileSync(new URL('../src/preview/preview.css', import.meta.url), 'utf8')
+    const declOf = re => [...css3.matchAll(re)].map(m => m[1]).join(' ')
+    assert(declOf(/\.dmd \.chart \.chart-blank[^{]*\{([^}]*)\}/g).length > 0,
+      'and the stylesheet states that frame once')
+    /* THE FRAME SIZES ITSELF FROM A RATIO AND A FLOOR, so one rule holds at
+       every width. A stated height gives a different proportion at each. */
+    const plotRule = declOf(/\.dmd \.chart \.chart-plot[^{]*\{([^}]*)\}/g)
+    assert(/aspect-ratio/.test(plotRule), 'the plot states an aspect ratio rather than a height')
+    assert(/min-(?:block-size|height)/.test(plotRule), 'and a floor under it')
   }
 }
 
