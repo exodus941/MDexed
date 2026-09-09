@@ -264,8 +264,10 @@ export default defineConfig(({ command }) => ({
        and the reason for the change ship inside the check bodies. Then to 1245
        at 1243.06, with the first two of the twenty-four checks the coverage
        audit found. Then to 1250 at 1248.78, with three source checks and the
-       empty-chart specimen. */
-    chunkSizeWarningLimit: 1250,
+       empty-chart specimen. Then to 1256 at 1254.37, with three render checks:
+       a chart's name, a mark's side, and a row that broke rather than
+       collapsed. */
+    chunkSizeWarningLimit: 1256,
   },
 
   server: {

@@ -463,7 +463,16 @@ export default function Charts({ onInspect, casing }) {
                         text measures 21.84. The stylesheet states both now,
                         derived from the body tokens, so a type-scale change
                         carries and no inline value beats the rule. */}
-                    <span className="chart chart-sparkline" {...ins('chart-sparkline')}>
+                    {/* `aria-hidden` ON THE SPARKLINE, NOT ONLY ON ITS SVG.
+                        A chart owes a NAME, and a sparkline inside a table row
+                        is the one exception: the row already carries its name
+                        and its value in text, so a second reading of the same
+                        figure is noise. The svg carried the attribute and this
+                        span did not, so the span stayed in the tree as an
+                        unnamed container. Found by asking which charts have
+                        neither a name nor `aria-hidden`: 21 charts on this
+                        surface and these three. */}
+                    <span className="chart chart-sparkline" aria-hidden="true" {...ins('chart-sparkline')}>
                       <svg className="chart-svg" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
                         <polyline className="chart-path" points={poly(series, 100)} style={{ stroke: `var(--chart-${tone})` }} />
                       </svg>

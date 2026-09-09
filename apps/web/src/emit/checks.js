@@ -5742,6 +5742,173 @@ export const CHECKS = [
     ],
   },
 
+  {
+    id: 'a-chart-owes-a-name-or-says-it-is-decoration',
+    where: 'render',
+    line: 'A chart is not a widget. It takes no focus and answers no keys, and it owes a NAME instead. A sparkline inside a table row is the one exception: it takes aria-hidden, because the row already carries its name and its value in text.',
+    /* ── TWO HALVES, AND ONLY ONE IS ANSWERABLE FROM THE DOM ──
+     *
+     * "No keys" cannot be asked here. A handler may sit in another file, and
+     * asking each file for its own faults the first correct shape it meets.
+     * What the DOM answers exactly is FOCUS: a chart carrying a tabindex, or
+     * holding something that does, is reachable by Tab and should not be.
+     *
+     * AND THE NAME IS THE OTHER HALF. A chart with neither a name nor
+     * `aria-hidden` reads as an unnamed graphic.
+     *
+     * `aria-hidden` ON AN ANCESTOR COUNTS. The attribute hides a whole
+     * subtree, so a chart inside a hidden wrapper is already out of the tree
+     * and asking it again would fault the correct answer.
+     *
+     * IT FOUND THREE ON ITS FIRST RUN. Every sparkline in this system put
+     * `aria-hidden` on its inner svg and not on the sparkline itself, so the
+     * span stayed in the tree as an unnamed container. Measured after the fix:
+     * 18 charts asked over twelve surfaces, 0 findings.
+     *
+     * BROKEN ON PURPOSE, in a hand-built fragment rather than the app's own
+     * tree, because a framework puts a moved node back on its next render. An
+     * unnamed chart fires. A chart with a tabindex fires. A named chart is
+     * quiet, and a chart under an `aria-hidden` ancestor reports UNMEASURED
+     * rather than clean. */
+    body: [
+      "let asked = 0",
+      "for (const c of all('.chart')) {",
+      "  if (c.closest('[aria-hidden=\"true\"]')) continue",
+      "  asked++",
+      "  if (c.hasAttribute('tabindex') || c.querySelector('[tabindex]')) {",
+      "    fail(name(c), 'this chart is reachable by Tab. A chart is not a widget: it takes no focus and answers no keys, because there is nothing to operate. Remove the tabindex and give it a name instead.')",
+      "    continue",
+      "  }",
+      "  const named = c.getAttribute('aria-label') || c.getAttribute('aria-labelledby')",
+      "    || c.querySelector('figcaption, .caption, strong')",
+      "  if (named) continue",
+      "  fail(name(c), 'this chart has neither a name nor aria-hidden, so it reads as an unnamed graphic. Give it an aria-label saying what it plots. A sparkline inside a table row is the exception and takes aria-hidden, because the row already carries its name and its value in text.')",
+      "}",
+      "if (!asked) note('no chart on this page, so this rule is UNMEASURED here.')",
+      "else note(asked + ' chart(s) measured.')",
+    ],
+  },
+
+  {
+    id: 'a-mark-beside-words-names-its-side',
+    where: 'render',
+    line: 'Say which side a mark is on, with a class. A trailing mark carries the end class and a leading one carries none, because leading is the default. CSS cannot answer it: a selector counts elements, and a text label is not an element.',
+    /* ── LEADING IS THE DEFAULT, SO ONLY THE TRAILING CASE CARRIES A CLASS ──
+     *
+     * My first version asked for a side class on EVERY mark and faulted 68 of
+     * 73. A leading mark needs no class, because that is where a mark goes
+     * unless something says otherwise.
+     *
+     * WHY A CLASS AT ALL. `:last-child` counts ELEMENTS, and a button's label
+     * is a text node. So a leading mark in `<button><Ico/>Export</button>` is
+     * both the first and the last element child, matched the trailing rule,
+     * and took its gap on the wrong side. Every labelled button, at every
+     * width. No selector fixes it, because the thing CSS needs to see is a
+     * text node it cannot select.
+     *
+     * SO ASK THE GEOMETRY AGAINST THE CLASS. The mark's own rectangle sits
+     * after the last word or before it, and the class has to agree.
+     *
+     * TWO SHAPES ARE PLACED BY LAYOUT AND CARRY NO CLASS. A row that spreads
+     * its children puts the mark at the far end by `justify-content`, which is
+     * what a select trigger does. And a mark pushed with an auto margin is
+     * placed by that margin. Both are declarations, so both are read rather
+     * than guessed. Measured: 317 marks asked over twelve surfaces, 31 placed
+     * by layout, 0 findings. Before the exemptions the four select triggers
+     * were the whole finding list.
+     *
+     * BROKEN ON PURPOSE, both ways. A trailing mark with no class fires. A
+     * leading mark carrying the end class fires. The correct trailing form is
+     * quiet, and a mark placed by `space-between` reports UNMEASURED. */
+    body: [
+      "let asked = 0, byLayout = 0",
+      "for (const el of all('.btn, .nav-item, .tab, .badge, .alert')) {",
+      "  const marks = Array.prototype.slice.call(el.children)",
+      "    .filter(k => k.tagName === 'svg' || (k.classList && k.classList.contains('icon')))",
+      "  if (!marks.length) continue",
+      "  /* THE WORDS, WHICH MAY BE A TEXT NODE OR A WRAPPING SPAN. */",
+      "  const words = Array.prototype.slice.call(el.childNodes).filter(n =>",
+      "    (n.nodeType === 3 && n.textContent.trim())",
+      "    || (n.nodeType === 1 && n.tagName !== 'svg'",
+      "        && !(n.classList && n.classList.contains('icon')) && n.textContent.trim()))",
+      "  if (!words.length) continue",
+      "  const cs = getComputedStyle(el)",
+      "  const spread = /space-between|space-around|space-evenly|end|flex-end/.test(cs.justifyContent)",
+      "  const pushed = marks.some(m => {",
+      "    const ms = getComputedStyle(m)",
+      "    return ms.marginInlineStart === 'auto' || ms.marginLeft === 'auto'",
+      "  })",
+      "  if (spread || pushed) { byLayout++; continue }",
+      "  const wr = words.map(n => {",
+      "    if (n.nodeType === 1) return n.getBoundingClientRect()",
+      "    const r = document.createRange()",
+      "    r.selectNodeContents(n)",
+      "    return r.getBoundingClientRect()",
+      "  }).filter(r => r.width)",
+      "  if (!wr.length) continue",
+      "  const lastRight = Math.max.apply(null, wr.map(r => r.right))",
+      "  for (const m of marks) {",
+      "    const mr = m.getBoundingClientRect()",
+      "    if (!mr.width) continue",
+      "    asked++",
+      "    const trailing = mr.left >= lastRight - 0.5",
+      "    const says = /icon-end/.test(m.getAttribute('class') || '')",
+      "    if (trailing === says) continue",
+      "    fail(name(el), trailing",
+      "      ? 'this mark renders AFTER the label and carries no end class, so every rule about a trailing mark misses it. A label is a text node, so :last-child matches the leading mark instead and puts the gap on the wrong side. Add the end class.'",
+      "      : 'this mark renders BEFORE the label and carries the end class, so it takes a trailing gap on the leading side. Leading is the default and needs no class at all.')",
+      "  }",
+      "}",
+      "if (!asked) note('no control pairs a mark with words here, so this rule is UNMEASURED.')",
+      "else note(asked + ' mark(s) measured, plus ' + byLayout + ' placed by layout rather than by order.')",
+    ],
+  },
+
+  {
+    id: 'a-row-collapses-by-rule-never-by-wrap',
+    where: 'render',
+    line: 'A row collapses by rule, never by flex-wrap. Actions beside a heading move below it by a rule that states the new arrangement, keeping the heading gap floor. A row that breaks onto a second line with nowrap in force has broken rather than collapsed.',
+    /* ── ASK THE DECLARATION THAT DECIDES THE AXIS FIRST ──
+     *
+     * A COLUMN STACKS BY DESIGN. My first version read three stacked children
+     * as a wrap and faulted one nav that declares `flex-direction: column` at
+     * that width. Read the direction before reading the geometry.
+     *
+     * AN OUT-OF-FLOW CHILD IS NOT ON A LINE. An absolutely placed child sits
+     * wherever its insets put it, so its top says nothing about wrapping.
+     *
+     * THE FAULT IS A BREAK WITH `nowrap` IN FORCE. That means something other
+     * than the wrap rule moved the children: a `display: contents` wrapper, a
+     * grid the class did not expect, or a stated width past the line. A row
+     * that WRAPS is obeying a rule somebody wrote, and the rule about pairing
+     * an action row asks for exactly that.
+     *
+     * Measured: 36 broken rows over twelve surfaces, all of them wrapping on
+     * purpose, 0 findings.
+     *
+     * BROKEN ON PURPOSE. A nowrap row whose second child is pushed onto a
+     * second line fires. A row that wraps by its own rule is quiet. */
+    body: [
+      "let asked = 0",
+      "for (const r of all('.row')) {",
+      "  const cs = getComputedStyle(r)",
+      "  if (/column/.test(cs.flexDirection)) continue",
+      "  const kids = Array.prototype.slice.call(r.children).filter(k =>",
+      "    k.getBoundingClientRect().width && !/absolute|fixed/.test(getComputedStyle(k).position))",
+      "  if (kids.length < 2) continue",
+      "  const rc = kids.map(k => k.getBoundingClientRect())",
+      "  let broke = false",
+      "  for (let i = 1; i < rc.length; i++) if (rc[i].top >= rc[i - 1].bottom - 0.5) broke = true",
+      "  if (!broke) continue",
+      "  asked++",
+      "  if (cs.flexWrap !== 'nowrap') continue",
+      "  fail(name(r), 'this row holds ' + kids.length + ' children on more than one line while flex-wrap is nowrap, so something other than a wrap rule moved them. A row collapses by a rule that states the new arrangement and keeps its gap floor. Find what is placing them: a dissolved wrapper, a grid, or a stated width past the line.')",
+      "}",
+      "if (!asked) note('no row breaks onto a second line here, so this rule is UNMEASURED.')",
+      "else note(asked + ' broken row(s) measured.')",
+    ],
+  },
+
   /* ── THIS CHECK USED TO FORBID THE RIGHT ANSWER ──
    *
    * It read "Nothing from an EXAMPLE page was copied as markup", which turned
