@@ -721,7 +721,26 @@
      reported every one of them, against a rule in this very file claiming 40
      was the floor. A document that states a value and a stylesheet that types
      another is two answers to one question. */
-  .dmd .nav-item { min-height: var(--target-min, 44px); display: flex; align-items: center; }
+  /* ── A NARROW WINDOW ON A DESKTOP IS NOT A FINGER ──
+     This read `--target-min` outright, so a 554px preview pane on a mouse got
+     the 44px finger target. Measured: pointer fine, maxTouchPoints 0, and
+     eleven nav items at 44px across three surfaces.
+
+     THE BLOCK WAS DOING TWO JOBS AND ONLY ONE OF THEM IS ABOUT WIDTH. The
+     folded nav's items and the call to action beside them take ONE height,
+     which is a layout rule at any pointer. The finger target is a POINTER
+     rule, and `--control-floor` carries it: unset at rest, 44px inside the
+     coarse query.
+
+     So the height is the button's own published step, promoted by the floor.
+     36px clears the 24px mouse minimum without inventing a number, and both
+     controls read the same expression so the parity cannot drift. Measured
+     before: items 16, 36 and 37.83 natural on three surfaces, so nothing but
+     this rule was giving them a shared height. */
+  .dmd .nav-item {
+    min-height: max(var(--cmp-button-md-height, 36px), var(--control-floor, 0px));
+    display: flex; align-items: center;
+  }
   /* The menu control used to take a 40px floor here, written when it was a bare
      disclosure with no control height of its own. It is a button now, and a
      button answers to the row it sits in: 40 beside three 28px buttons is the
@@ -750,10 +769,16 @@
      width rather than only on a phone.
      Nothing reported it. `one-height-per-control-row` measures a ROW, and a
      folded nav is a column, so the two heights never sat on one line. */
+  /* AND THE POINTER FIX HAS TO REACH BOTH, or the parity this rule exists for
+     breaks the other way. The items above now floor at the button step and
+     grow to 44 only at a coarse pointer. Left reading `--target-min`, this
+     button would have stood 44px beside 36px links on every mouse. One
+     expression, both controls. The line height is the content box, so it is
+     the same max minus the two borders. */
   .dmd .nav-list > .btn,
   .dmd .header-nav .nav-list > .btn {
-    height: var(--target-min, 44px);
-    line-height: calc(var(--target-min, 44px) - 2px);
+    height: max(var(--cmp-button-md-height, 36px), var(--control-floor, 0px));
+    line-height: calc(max(var(--cmp-button-md-height, 36px), var(--control-floor, 0px)) - 2px);
     padding: 0 var(--space-md, 16px);
     font-size: var(--cmp-nav-item-font-size, var(--font-body-sm-size, 14px));
   }

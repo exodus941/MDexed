@@ -3413,7 +3413,10 @@ line('\n- project file -')
     assert(realFiles.length > 20, `the real source is readable (${realFiles.length} files)`)
 
     const OVER_SOURCE = [
-      ['never-correct-a-glyph', /(\d+) icon call site/, 81],
+      /* 82 since the first Gallery tab took a mark. The tab component publishes
+         `--cmp-tab-icon-size` and no tab anywhere carried a mark, so the value
+         had no instance. */
+      ['never-correct-a-glyph', /(\d+) icon call site/, 82],
       ['an-overhang-asks-its-host', /(\d+) overhang inset/, 2],
       ['a-subtraction-asks-about-the-parent', /out of (\d+) such/, 64],
     ]

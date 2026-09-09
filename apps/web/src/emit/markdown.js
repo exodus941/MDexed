@@ -124,7 +124,13 @@ function overviewBody(state) {
          Placement was the whole cost of building it here: the toggle went
          through three arrangements before it aligned, and every one of them
          measured as a defect on screen. */
-      hasThemeToggle(state) && 'Put the theme toggle in the **header action group**, and put it **before the navigation menu** — the seat at the END of a header belongs to navigation, and nothing may take it. It answers to that row like any other control in it: one stated height, square because it carries no words, and the same promotion to a finger target at narrow widths. A header row holding only fixed-height controls aligns on **centre**, not on baseline. An icon-only button has no text baseline to share, and a menu button wrapped in a `<details>` does not share one either, so a baseline row puts them at different heights — measured at 9px apart in this system, on two controls that were both 44px tall.',
+      /* THIS SAID "AT NARROW WIDTHS" AND THE TARGET SECTION SAYS "ASK THE
+         POINTER". Two answers to one question, and the reading order decides
+         which one a reader obeys, so the wrong one was the only answer some
+         readers ever saw. The preview carried the same fault in CSS: a
+         container query keyed on width gave eleven nav items the 44px finger
+         target on a mouse. */
+      hasThemeToggle(state) && 'Put the theme toggle in the **header action group**, and put it **before the navigation menu** — the seat at the END of a header belongs to navigation, and nothing may take it. It answers to that row like any other control in it: one stated height, square because it carries no words, and the same promotion to a finger target **at a coarse pointer**. Ask the pointer, never the width: a narrow window on a desktop is a mouse. A header row holding only fixed-height controls aligns on **centre**, not on baseline. An icon-only button has no text baseline to share, and a menu button wrapped in a `<details>` does not share one either, so a baseline row puts them at different heights — measured at 9px apart in this system, on two controls that were both 44px tall.',
       hasThemeToggle(state) && 'The toggle carries `aria-pressed` and a label that states the CURRENT theme and the one a press will produce: "Dark theme is on. Switch to light." An icon-only control with no state is a button whose meaning a screen reader has to guess from a picture it cannot see. One mark in both states, not a sun swapped for a moon — two marks force the button to decide which of them means "now" and which means "next", and readers split evenly on that.',
     ]),
     directives?.notes?.trim()

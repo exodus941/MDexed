@@ -430,9 +430,16 @@ export default function Gallery({ onInspect, layout }) {
 
               The ids are literals rather than a hook, because the panels are
               literals too: one strip, stated once, in a specimen sheet. */}
+          {/* ── THE FIRST TAB CARRIES A MARK, BECAUSE THE COMPONENT PUBLISHES A
+              MARK SIZE AND NOTHING DEMONSTRATED IT ──
+              `--cmp-tab-icon-size` ships 16px. Measured over twelve surfaces:
+              three tabs, all here, none holding a mark. So the published value
+              had no instance and no check could see it drift. One tab shows it
+              and the other two show the bare label, which is the commoner
+              shape. */}
           <div className="row" role="tablist" aria-label="Invoice views" style={{ gap: 'var(--space-2xs, 4px)' }}>
             <button className="tab is-selected" role="tab" aria-selected="true" tabIndex={0}
-              id="dmd-gal-tab-open" aria-controls="dmd-gal-panel-open" {...ins('tab')}>Open</button>
+              id="dmd-gal-tab-open" aria-controls="dmd-gal-panel-open" {...ins('tab')}><Ico d={IconFolder} />Open</button>
             <button className="tab" role="tab" aria-selected="false" tabIndex={-1}
               id="dmd-gal-tab-paid" aria-controls="dmd-gal-panel-paid" {...ins('tab')}>Paid</button>
             <button className="tab" role="tab" aria-selected="false" tabIndex={-1}

@@ -267,8 +267,11 @@ export default defineConfig(({ command }) => ({
        empty-chart specimen. Then to 1256 at 1254.37, with three render checks:
        a chart's name, a mark's side, and a row that broke rather than
        collapsed. Then to 1258 at 1257.28, with the table's outer end edge and
-       the overlay pair. */
-    chunkSizeWarningLimit: 1258,
+       the overlay pair. Then to 1262 at 1261.90, with the six mark-size and
+       pointer repairs: the select's own chevron size, the field's unread mark
+       token, the tab's cap band and its first mark, the menu's flush items,
+       and the nav floor moved from a width to a pointer. */
+    chunkSizeWarningLimit: 1262,
   },
 
   server: {

@@ -213,7 +213,10 @@ export default function Dialog({ onInspect, layout, casing }) {
 
       <div className="cols-2">
         {/* Toast */}
-        <div className="card card-overlay row" {...ins('card-overlay')}>
+        {/* `card-toast`, which takes the alert's padding rather than the
+            card's. They chose it shown both ways at actual size: 24px put one
+            22.26px line in a 78px box, and 12 by 16 gives 54. */}
+        <div className="card card-overlay card-toast row" {...ins('card-overlay')}>
           {/* The tick goes INSIDE the message, not in a slot beside it.
               As its own flex item it had no text to give the row a baseline, so
               every value of align-self left it somewhere else: pinned to the

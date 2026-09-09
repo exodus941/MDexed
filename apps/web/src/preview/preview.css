@@ -232,7 +232,31 @@
  * `--cmp-card-menu-padding` would publish a name no document declares, and a
  * token nothing publishes is one a reader cannot set. `2xs` is on the scale
  * and already published. */
-.dmd .card-menu { padding: var(--space-2xs, 4px); }
+/* ── A MENU'S ITEMS SIT FLUSH, SO IT STATES ITS OWN LAYOUT ──
+ *
+ * Left as a plain block, the card's default flow put 12px between the items:
+ * measured [0px, 12px, 12px] on three of them. A menu is a run of rows a
+ * pointer travels down, and a gap between them turns one list into three
+ * separate things. Each item already carries 8px of block padding, which is
+ * the whole separation it needs.
+ *
+ * `--card-flow: 0px` goes on the same line that makes this a layout, which is
+ * what the flow contract above asks for. A list of exempt classes was the
+ * first version of that rule and it approved everything nobody thought of. */
+.dmd .card-menu {
+  padding: var(--space-2xs, 4px);
+  display: flex; flex-direction: column; gap: 0;
+  --card-flow: 0px;
+}
+/* ── A TOAST TAKES THE ALERT'S PADDING, NOT THE CARD'S ──
+ *
+ * They chose it, 10 September 2026, shown both at actual size. A toast and an
+ * alert carry the same kind of message, so one padding covers both.
+ *
+ * Measured: the card step put one 22.26px line in a 78px box. The alert step
+ * is 12 by 16 and gives 54px. The alert itself measures 48.3px, and the 5.7px
+ * difference is the toast's trailing button at 28px against a 22px line. */
+.dmd .card-toast { padding: var(--space-sm, 12px) var(--space-md, 16px); }
 /* ── TWO OVERLAY SPECIMENS ARE NOT A ROW OF CARDS ──
  *
  * A grid stretches every child to the tallest, which is right for a row of
@@ -348,6 +372,13 @@
    on the label. See the block on `label.input.with-icon` below. */
 .dmd .btn:not(.icon-only):not(.select-trigger) .icon,
 .dmd .nav-item:not(.icon-only):not(.select-trigger) .icon,
+/* AND `.tab`, WHICH THE CONTAINER LIST ABOVE PREDICTED AND DID NOT HOLD. A tab
+   is a `<button>` carrying `.tab` and not `.btn`, so no branch here reached it.
+   It had no instance to prove that with: the component publishes a mark size
+   and no tab anywhere carried a mark. The first one that did measured 6px above
+   the cap line against 0 below the baseline, reported by
+   `icon-on-the-cap-band` on the run after the mark arrived. */
+.dmd .tab:not(.icon-only):not(.select-trigger) .icon,
 .dmd label.input.with-icon > .icon,
 .dmd label.input.with-icon > svg,
 .dmd .with-icon:not(.badge):not(.btn):not(.nav-item) > .icon,
@@ -1089,7 +1120,13 @@
   font-weight: var(--cmp-input-font-weight, inherit);
   letter-spacing: var(--cmp-input-tracking, inherit);
 }
-.dmd .input > .icon, .dmd .input > svg {
+/* AN `<input>` IS VOID, SO A CHILD SELECTOR ON IT CAN NEVER MATCH. This rule
+   read `.input > .icon` for as long as it existed and reached 0 elements over
+   twelve surfaces. The published field mark size was a token nothing read, and
+   the mark painted 16px from its call site instead. A field's leading mark is
+   a child of the `.input-icon` WRAPPER, beside the control, because it has to
+   paint above the input's own background. */
+.dmd .input-icon > .icon, .dmd .input-icon > svg {
   width: var(--cmp-input-icon-size, var(--icon-md, 16px));
   height: var(--cmp-input-icon-size, var(--icon-md, 16px));
 }
@@ -1305,8 +1342,15 @@
    carry a smaller glyph than a large one. */
 /* ONE SIZE FOR EVERY BUTTON MARK. Their instruction: 14px. 16 read as toothy
    beside a 12px label. The alignment rule above centres it on the cap band at
-   whatever size it is, so the step no longer has to track the label. */
-.dmd .btn .icon,
+   whatever size it is, so the step no longer has to track the label.
+
+   A SELECT TRIGGER IS A BUTTON SHELL, AND ITS MARK IS NOT A BUTTON'S. The
+   trigger carries `.btn` on purpose, to take the button's box and border. So
+   this rule reached its chevron too. Both compounds weigh (0,3,0), and this
+   one comes later in the file, so it won: the select published 16px and
+   painted 14 on all three instances. Excluded here rather than reordered,
+   because the button rule claiming a select's mark is the fault. */
+.dmd .btn:not(.select-trigger) .icon,
 .dmd .btn-sm .icon,
 .dmd .btn-lg .icon { width: var(--cmp-button-icon-size, 14px); height: var(--cmp-button-icon-size, 14px); }
 .dmd .nav-item .icon { width: var(--cmp-nav-item-icon-size, var(--icon-md, 16px)); height: var(--cmp-nav-item-icon-size, var(--icon-md, 16px)); }
@@ -1464,7 +1508,19 @@
    measured 16 by 16 and rendered none of it. Found by a paint check, not by
    looking: at this contrast the difference is easy to read past. */
 .dmd .input-icon > .icon { z-index: 1; pointer-events: none; }
-.dmd .input-icon > svg { position: absolute; inset-inline-start: var(--space-sm, 12px); color: var(--c-text-subtle, #999); pointer-events: none; }.dmd .input-icon > .input { padding-inline-start: calc(var(--space-sm, 12px) + var(--icon-md, 16px) + var(--icon-gap, 8px)); }
+.dmd .input-icon > svg {
+  position: absolute; inset-inline-start: var(--space-sm, 12px);
+  color: var(--c-text-subtle, #999); pointer-events: none;
+}
+/* THE INSET AND THE MARK ARE ONE DISTANCE, SO THEY READ ONE TOKEN. This calc
+   read `--icon-md` while the rule above reads the component's own size, so a
+   field publishing a different mark size kept the old inset and the value sat
+   against its own mark. */
+.dmd .input-icon > .input {
+  padding-inline-start: calc(
+    var(--space-sm, 12px) + var(--cmp-input-icon-size, var(--icon-md, 16px)) + var(--icon-gap, 8px)
+  );
+}
 
 /* Text on a row shares one baseline, including a button label and the initials
    in an avatar — both of those donate a real baseline now. Things with no text
