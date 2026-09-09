@@ -96,6 +96,92 @@ export const CHECKS = [
   },
 
   {
+    id: 'a-touch-floor-asks-the-pointer-never-the-width',
+    where: 'source',
+    line: 'The touch target floor is set inside a POINTER query, never a width one. A narrow window on a desktop is not a finger.',
+    /* ── A WIDTH TELLS YOU HOW MUCH ROOM THERE IS, NEVER WHAT IS POINTING ──
+     *
+     * This cost two rounds of noise in this project's own toolkit. The floor
+     * asked `matchMedia('(pointer: coarse)') || innerWidth < 768`, and that
+     * second clause is the rule breaking itself. Resizing a browser to 375px
+     * to check a layout flipped the floor from 24 to 40 and reported 13
+     * correct mouse targets. I then took those to a person as a decision they
+     * needed to make, about controls that were already right.
+     *
+     * A false positive costs more than the miss here, because it spends their
+     * attention on a decision that does not exist.
+     *
+     * SO ASK WHERE THE FLOOR IS DECLARED, WHICH IS A FACT ABOUT THE FILE. Walk
+     * the at-rule stack by brace depth. A floor declared inside a condition
+     * that mentions a width, and not a pointer, is the fault. A floor at the
+     * top level is fine: it applies to both, which is a decision rather than a
+     * guess about the device.
+     *
+     * TWO SHAPES COUNT AS DECLARING THE FLOOR. A custom property whose name
+     * carries `target` or `floor`, and a bare `min-height`/`min-width` at or
+     * above 40px, which is where a finger floor lands and no mouse floor does.
+     * A smaller minimum is an ordinary size and says nothing about a pointer.
+     *
+     * PROVEN ON ALL THREE SHAPES. A custom property inside a max-width query,
+     * a bare 44px minimum inside one, and a whole media block written on ONE
+     * line. Four correct cases stay silent: a pointer query, a width AND
+     * pointer query together, a floor at the top level, and a 24px minimum
+     * inside a width query. This app's own stylesheet reports nothing, because
+     * its floor sits in a pointer query.
+     *
+     * THE ONE-LINE SHAPE WAS THE SECOND DRAFT'S BLIND SPOT, and the suite
+     * caught it rather than my own fixture: the shared broken fixture writes
+     * that fault on one line, and this project's stylesheet writes every media
+     * block over several. So a check proven on the file in front of me was
+     * blind to the commonest way the fault is typed. */
+    body: [
+      "const FLOOR = /--[\\w-]*(?:target|floor)[\\w-]*\\s*:|min-(?:height|width)\\s*:\\s*(?:4[0-9]|[5-9][0-9]|1[0-9]{2})px\\b/",
+      "for (const f of files.filter(f => f.css)) {",
+      "  /* THE AT-RULE STACK, BY BRACE DEPTH. A condition governs every line",
+      "     until its own brace closes, so nothing shorter than a depth walk",
+      "     answers which query a declaration sits in.",
+      "",
+      "     AND A ONE-LINE BLOCK IS A SHAPE OF ITS OWN. The first version",
+      "     matched the at-rule opener and then read the NEXT lines, so a whole",
+      "     media block written on one line never reached the floor test at",
+      "     all. Both the fixture and this project's stylesheet write such",
+      "     blocks over several lines, which is why it passed. Walk the line",
+      "     CHARACTER BY CHARACTER instead, so the stack is right at every",
+      "     position rather than at every line. */",
+      "  const stack = []",
+      "  for (const [i, line] of f.bareLines.entries()) {",
+      "    let at = null",
+      "    for (let c = 0; c < line.length; c++) {",
+      "      if (line[c] === '@') {",
+      "        const m = /^@(media|container|supports)([^{]*)\\{/.exec(line.slice(c))",
+      "        if (m) { at = m[2].trim(); continue }",
+      "      }",
+      "      if (line[c] === '{') { stack.push(at || ''); at = null }",
+      "      else if (line[c] === '}') stack.pop()",
+      "    }",
+      "    if (!FLOOR.test(line)) continue",
+      "    /* The gates in force where the declaration sits. A one-line block",
+      "       pushes and pops inside this same line, so read the stack as it",
+      "       stands at the START of the line plus anything opened before the",
+      "       declaration on it. */",
+      "    const before = line.slice(0, line.search(FLOOR))",
+      "    const inline = (before.match(/@(?:media|container|supports)([^{]*)\\{/g) || [])",
+      "      .map(s => s.replace(/^@\\w+/, '').replace(/\\{$/, '').trim())",
+      "    const gates = stack.concat(inline).filter(Boolean).join(' ')",
+      "    const width = /\\b(?:min|max)-(?:inline-size|width)\\b/.test(gates)",
+      "    const pointer = /\\bpointer\\b|\\bany-pointer\\b|\\bhover\\b/.test(gates)",
+      "    if (width && !pointer) {",
+      "      fail(f.path, i + 1, 'a touch floor is declared inside ' + gates.slice(0, 90)",
+      "        + ', which is keyed on a width. A narrow window on a desktop is not a finger,'",
+      "        + ' so this reports every correct mouse target the moment somebody resizes a browser.'",
+      "        + ' Move it into @media (pointer: coarse).')",
+      "    }",
+      "  }",
+      "}",
+    ],
+  },
+
+  {
     id: 'unknown-token',
     where: 'source',
     line: 'Every name you read with `var()` is a published token or one your own source declares.',
@@ -4688,6 +4774,58 @@ export const CHECKS = [
       "  if (!/mono|courier|consolas/i.test(fam)) continue",
       "  fail(name(el), 'the text ' + JSON.stringify(t.slice(0, 24)) + ' carries a month name and is set in ' + fam.split(',')[0] + '. A date with a month name is read rather than compared, so it takes the body face. Only an all-figure date takes the mono one.')",
       "}",
+    ],
+  },
+
+  {
+    id: 'the-row-declares-the-baseline-too',
+    where: 'render',
+    line: 'A child asking for `align-self: baseline` needs its row to declare `align-items: baseline`. The child aligns to the FLEX LINE, and a row centring its items never puts that line on the label.',
+    /* ── HALF A MECHANISM READS AS DONE ──
+     *
+     * `align-self: baseline` aligns a child to its flex LINE'S baseline. A row
+     * declaring `align-items: center` does not put that line on the label, so
+     * the child is the only member of the baseline set and effectively packs to
+     * the start of the line.
+     *
+     * It hid because a one-line row makes the two answers identical. Inside a
+     * folded menu the item grew to 40px and they diverged: spread 2.65 against
+     * 0.50 for the same markup at a wider size.
+     *
+     * ASK THE DECLARATION THAT DECIDES THE AXIS. In a COLUMN flex box the cross
+     * axis is horizontal, so `align-self: baseline` is not the row-baseline
+     * question at all and falls back to start. Measured before this check
+     * shipped: 28 candidates over 12 surfaces, 27 in a row with a baseline
+     * parent, and the 1 exception was a badge sitting in a column card. Without
+     * the axis gate that badge is a false positive, and it is correct code.
+     *
+     * A PARENT ALREADY DECLARING BASELINE MAKES THE CHILD REDUNDANT, NOT WRONG.
+     * The check asks only about the disagreement.
+     *
+     * PROVEN BOTH WAYS. Silent on 36 runs, 12 surfaces at 296, 640 and 1024.
+     * Then `.with-icon` was set to `align-items: center` in the stylesheet: 3
+     * findings, each naming the row and the value it declares. Reverted, the
+     * same surfaces report nothing. */
+    body: [
+      "let seen = 0",
+      "for (const el of all('*')) {",
+      "  if (getComputedStyle(el).alignSelf !== 'baseline') continue",
+      "  const p = el.parentElement",
+      "  if (!p) continue",
+      "  const ps = getComputedStyle(p)",
+      "  if (!/flex/.test(ps.display)) continue",
+      "  /* A COLUMN'S CROSS AXIS IS HORIZONTAL, so baseline there is a different",
+      "     question and the browser falls back to start. */",
+      "  if (/column/.test(ps.flexDirection)) continue",
+      "  seen++",
+      "  if (ps.alignItems === 'baseline') continue",
+      "  fail(name(el), 'asks for align-self: baseline while its row ' + name(p)",
+      "    + ' declares align-items: ' + ps.alignItems",
+      "    + '. A child aligns to the flex LINE, so the line has to be on the label first.'",
+      "    + ' Declare align-items: baseline on the row. A one-line row hides this, because there the two answers land in the same place.')",
+      "}",
+      "if (!seen) note('no child asks for align-self: baseline inside a row, so this rule is UNMEASURED here.')",
+      "else note(seen + ' baseline child/children inside a row.')",
     ],
   },
 

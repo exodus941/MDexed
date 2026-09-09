@@ -261,8 +261,10 @@ export default defineConfig(({ command }) => ({
        contrast layer, the opacity field, and the glass treatment. Then to 1165 at 1157.82, with the
        twenty-two consumed colour tokens and the reader guard. Then to 1240 at
        1238.80, with the two-to-one proximity bar: the rule's own measurement
-       and the reason for the change ship inside the check bodies. */
-    chunkSizeWarningLimit: 1240,
+       and the reason for the change ship inside the check bodies. Then to 1245
+       at 1243.06, with the first two of the twenty-four checks the coverage
+       audit found. */
+    chunkSizeWarningLimit: 1245,
   },
 
   server: {

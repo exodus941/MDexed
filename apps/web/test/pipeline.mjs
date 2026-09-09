@@ -2487,6 +2487,12 @@ line('\n- project file -')
        component chose. Measured once as a card action row falling from
        34.25px off the foot to 12 on three cards. */
     '.card > * + * { margin-block-start: var(--space-md); }',
+    /* a-touch-floor-asks-the-pointer-never-the-width: the finger floor keyed
+       on a WIDTH. A narrow window on a desktop is not a finger, so resizing a
+       browser flips the floor and every correct mouse target reports. This
+       project's own toolkit shipped it as `coarse || innerWidth < 768` and
+       reported 13 healthy 24px controls. */
+    '@media (max-width: 767px) { .dmd { --control-floor: 44px; } }',
   ].join('\n'))
   write('broken.html', [
     '<html data-theme="light">',                 /* hardcoded-theme */
