@@ -2330,7 +2330,22 @@ line('\n- project file -')
   const readTool = p => noComments(fs.readFileSync(new URL(p, import.meta.url), 'utf8'))
   const VERIFY_SRC = readTool('../src/emit/verify.js')
   const MATRIX_SRC = readTool('../public/verify-matrix.js')
-  const TOOLKIT_SRC = readTool('../public/layout-tools.js')
+  /* ── THE TOOLKIT IS A COPY, MASTERED OUTSIDE THIS REPO ──
+   *
+   * `public/layout-tools.js` is gitignored on purpose: the master lives in
+   * `_tools`, and tracking a second copy is how two versions of one file end
+   * up disagreeing. So a fresh clone does not have it, and a suite that reads
+   * it unconditionally throws before its first assertion.
+   *
+   * A SILENT SKIP IS THE OTHER FAULT. A run that measured nothing is not a
+   * pass, so an absent copy prints its own line rather than quietly reducing
+   * the block. Present here, so the conditions below do run. */
+  let TOOLKIT_SRC = ''
+  try { TOOLKIT_SRC = readTool('../public/layout-tools.js') } catch { TOOLKIT_SRC = '' }
+  if (!TOOLKIT_SRC) {
+    line('  NOTE  layout-tools.js is not in this checkout, so every toolkit rule below is UNMEASURED.')
+    line('        It is mastered in _tools and served as an ignored copy. Copy it in to measure them.')
+  }
   assert(runnable.length > 50, `there are bodies to ask about (${runnable.length})`)
 
   /* getComputedStyle().height NEVER RETURNS auto FOR A RENDERED ELEMENT, so a
@@ -2498,7 +2513,17 @@ line('\n- project file -')
         s => !/keepLines/.test(s),
         s => s.replace(/keepLines/g, 'dropLines'), VERIFY_SRC],
     ]
-    for (const [label, fires, mutate, src] of CASES) {
+    /* A CASE WHOSE SOURCE IS ABSENT CANNOT BE PROVEN EITHER WAY, and running
+       it anyway inverts one of them: an empty string holds no `Infinity`, so
+       "quiet on the real file" would FAIL on a checkout without the toolkit.
+       Gate on the source, and assert the surviving count so the gate cannot
+       quietly empty the table. */
+    const live = CASES.filter(c => c[3])
+    assert(live.length >= 8, `there are conditions to prove (${live.length} of ${CASES.length})`)
+    if (live.length < CASES.length) {
+      line(`  NOTE  ${CASES.length - live.length} condition(s) UNMEASURED, because their source is not in this checkout.`)
+    }
+    for (const [label, fires, mutate, src] of live) {
       assert(!fires(src), `quiet on the real file: ${label}`)
       assert(fires(mutate(src)), `and loud on the injected fault: ${label}`)
     }
