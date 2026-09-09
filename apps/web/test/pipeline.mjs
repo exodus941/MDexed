@@ -1799,6 +1799,14 @@ line('\n- prompt construction -')
     ['no underline built from a border', ['underline', 'inset 0 -2px']],
     ['equal columns use minmax(0, 1fr)', ['minmax(0, 1fr)']],
     ['orphaned elements take the whole line', ['own line takes the whole line', 'takes the whole line']],
+    /* A THRESHOLD IS PUBLISHED AS A SUM PLUS A REFERENCE, NEVER AS A CONSTANT.
+       The number is true of one heading and one set of controls, so a reader
+       who copies it gets a threshold measured against text they do not have.
+       The document gives the formula, the reference widths and the arithmetic,
+       and none of that was pinned. */
+    ['a collapse threshold is a sum, not a constant', ['threshold is a sum', 'worked example']],
+    ['and the sum comes with the widths it was measured from', ['threshold = widest item']],
+    ['a sum only works on a row with two things in it', ['two things can be added up']],
     ['sideways scroll is a last resort', ['last resort']],
     ['breakpoints are measured per question', ['measured', 'breakpoint']],
     ['gaps come from the spacing scale', ['unequal gaps']],
@@ -6504,6 +6512,66 @@ function hueHex(h) {
   })()
   assert(small.fired,
     `a bold label under 18.66px is still normal text and still owes 4.5 (${small.size} at 700)`)
+}
+
+/* ── A VERDICT NAMES ITS OWN COVERAGE, AND THE POINTER IS HALF OF IT ──
+ *
+ * The responsive section, worked the same way as colour. Two rules there are
+ * about the RUNNER rather than the build, and both are still checkable: the
+ * runner is a file, `public/sweep-all.js`, and the suite can read it.
+ *
+ * The width half was already implemented and unread. The POINTER half was
+ * missing outright, which is the more expensive of the two. A desktop run
+ * compares every control against the 24px mouse floor and reports nothing,
+ * and that reads as a verdict about a finger. Measured at a coarse pointer
+ * over twelve surfaces: 16 controls under the 44px floor, from four
+ * mechanisms, on a build that had passed on a mouse for weeks.
+ *
+ * So the verdict now says which pointer it measured and which one it did not.
+ * "Eleven of eleven clean" is a claim about one width and one pointer, and it
+ * has to say so in the same breath.
+ */
+{
+  line('\n- the sweep verdict names its widths and its pointer -')
+  const sweeper = fs.readFileSync(new URL('../public/sweep-all.js', import.meta.url), 'utf8')
+  /* Blank the comments rather than deleting them, so a line number below is
+     still the line number in the file. */
+  const bare = sweeper.replace(/\/\*[\s\S]*?\*\//g, m => m.replace(/[^\n]/g, ' '))
+
+  /* THE VERDICT IS ONE OBJECT LITERAL, so read the keys it returns rather
+     than searching the whole file. A name that appears in a helper proves
+     nothing about what a caller is handed. */
+  const verdict = bare.slice(bare.indexOf('widthsSwept:'))
+  assert(verdict.length > 200, 'the runner returns a verdict object')
+  assert(/allClean:/.test(verdict), 'and it carries the clean/dirty answer')
+  assert(/widthsSwept:/.test(verdict) && /coverage:/.test(verdict),
+    'a verdict names its own coverage, so the widths sit beside the answer')
+  assert(/pointer:/.test(verdict),
+    'and the pointer is the other half of that coverage, so it sits there too')
+  assert(/pointerNotMeasured:/.test(verdict),
+    'the run says which half was NOT measured, because a mouse run says nothing about a finger')
+
+  /* IT READS THE POINTER, NEVER THE WIDTH. A narrow window on a desktop is
+     not a finger, and that mistake is what the whole rule exists to stop. */
+  assert(/matchMedia\('\(pointer: coarse\)'\)/.test(bare),
+    'it asks the pointer rather than the window width')
+  assert(!/innerWidth\s*<\s*\d+\s*\?\s*44/.test(bare),
+    'and never guesses the floor from a width')
+
+  /* A RUN THAT COULD NOT SET ITS WIDTH SAYS SO IN THE COVERAGE STRING. A
+     `<select>` silently refuses a value it has no option for, so a run that
+     cannot reach a width must report that instead of measuring one by
+     accident and labelling it. */
+  assert(/WIDTH CONTROL NOT FOUND/.test(bare),
+    'a run that cannot reach a width says its coverage is unverified')
+  assert(/WIDTH NOT APPLIED/.test(bare),
+    'and one whose width did not land reports the frame it actually got')
+
+  /* THE FLOORS THEMSELVES ARE PUBLISHED, so the two halves cannot disagree.
+     44 for a finger and 24 for a mouse, both in the token file. */
+  const css = tokensCss(state, derived)
+  assert(/--target-min:\s*44px/.test(css), 'the touch floor is published at 44px')
+  assert(/--target-min-pointer:\s*24px/.test(css), 'and the mouse floor at 24px, which is 2.5.8 at AA')
 }
 
 line(`\n${failures === 0 ? 'ALL PASS' : `${failures} FAILURE(S)`}\n`)

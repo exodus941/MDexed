@@ -385,9 +385,25 @@ return (async () => {
    * layout. `widthsSwept` and `coverage` are returned beside it, and a run that
    * covered one width says so in the same breath as saying it was clean. */
   const swept = [...new Set(rows.filter(x => x.clean != null).map(x => x.at))]
+  /* ── AND THE POINTER IS THE OTHER HALF OF THAT COVERAGE ──
+   *
+   * The width half was named and the pointer half was not, so a desktop run
+   * compared every control against the MOUSE minimum and reported nothing.
+   * That reads as a verdict about a finger too. It is not: 16 controls sat
+   * under the 44px floor at a coarse pointer, from four mechanisms, on twelve
+   * surfaces that had passed on a mouse for weeks.
+   *
+   * The toolkit reads `(pointer: coarse)` and picks the floor from it, so the
+   * run already knows which half it measured. It just never said. */
+  const coarse = !!(window.matchMedia && matchMedia('(pointer: coarse)').matches)
   return {
     widthsSwept: swept,
+    pointer: coarse ? 'touch — the 44px floor' : 'mouse — the 24px floor',
+    pointerNotMeasured: coarse
+      ? 'mouse: emulate a fine pointer and sweep again'
+      : 'touch: emulate a coarse pointer and sweep again, because the mouse floor is the lower of the two',
     coverage: `${SURFACES.length} surfaces x ${swept.length} width(s)`
+      + (coarse ? ' at a coarse pointer' : ' at a fine pointer')
       + (WIDTHS.length ? '' : ' — WIDTH CONTROL NOT FOUND, coverage unverified'),
     surfacesSwept: rows.filter(x => x.clean != null).length,
     ofExpected: SURFACES.length * (WIDTHS.length || 1),
