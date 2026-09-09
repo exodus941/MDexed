@@ -134,12 +134,22 @@ export default function Form({ onInspect, layout, casing }) {
           </div>
         </Field>
 
-        {/* A CHECKBOX MUST BELONG TO ITS OWN LABEL. These sat 16px apart while
-            each box sat 8px from its own words, which is 2:1 and leaves the box
-            able to belong to either line. 24 against 8 is three to one. The run
-            already takes a wider gap for the 44px target, so this agrees with
-            it rather than fighting it. */}
-        <div className="stack-lg">
+        {/* A CHECKBOX MUST BELONG TO ITS OWN LABEL, AND 16 AGAINST 8 SAYS SO.
+
+            This read 24 against 8 from the day the bar was three to one. The
+            comment then claimed 16 "leaves the box able to belong to either
+            line", and it carried no measurement.
+
+            Measured on this pair, 9 September 2026. At 16 the second mark sits
+            8px from its own words and 23.0px from the line above it, which is
+            2.9 times further. At 296px the first label wraps to two lines and
+            that distance is 17.2px, still 2.15 times further. So the box is
+            never closer to the line above than to its own label.
+
+            They saw both states rendered at actual size, with the wrap case
+            included, and took the 16. `.stack` at 16 against 8 is two to one,
+            which is the bar. */}
+        <div className="stack">
           <label className="with-icon" style={{ cursor: 'pointer' }} {...ins('checkbox-checked')}>
             <Check on /><span className="small" {...txt("body-sm")}>Send a copy to my accountant</span>
           </label>
