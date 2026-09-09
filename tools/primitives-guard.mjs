@@ -63,6 +63,15 @@ function walk(dir, out = []) {
 
 const files = walk(ROOT)
 
+/* A RUN THAT READ NOTHING IS NOT A CLEAN RUN. This guard is scoped to the
+   preview on purpose, so a move of that directory would leave it reading zero
+   files and printing "0 preview files clean". */
+if (!files.length) {
+  console.error('primitives guard: no file matched under ' + ROOT)
+  console.error('Nothing was read, so this is a failure rather than a clean result.')
+  process.exit(1)
+}
+
 const findings = []
 for (const file of files) {
   const src = fs.readFileSync(file, 'utf8')

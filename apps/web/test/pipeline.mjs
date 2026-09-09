@@ -2738,6 +2738,75 @@ line('\n- project file -')
       'comments are blanked rather than deleted, so a reported line number is the real one')
   }
 
+  /* ── AND EVERY BLOCKING GUARD FAILS WHEN IT READS NOTHING ──
+   *
+   * The user read a verification report and asked why a guard had skipped. It
+   * had not. `grid-snap` printed "0 values across 0 files", where the 0 files
+   * counts files CHANGED, so a clean tree and a tree it never found printed
+   * the identical line. The denominator is named now.
+   *
+   * Then the class: of the six blocking guards, only the two colour ones
+   * refused an empty read. The other four printed a clean line and exited
+   * zero. A report nothing acts on is silence, and the pre-commit hook reads
+   * the exit code.
+   *
+   * ASSERTED BY RUNNING THEM, not by reading their source. A copy of each
+   * root-holding guard is patched to an empty tree, with every relative import
+   * rewritten to an absolute file URL because the copy sits elsewhere. Nothing
+   * in the repo is touched.
+   *
+   * The two colour guards refuse on a TOKEN count instead, which is a stronger
+   * question than "did I open a file", so they are asserted on their message. */
+  {
+    const { fileURLToPath, pathToFileURL } = await import('node:url')
+    const REPO = fileURLToPath(new URL('../../../', import.meta.url))
+    const empty = fs.mkdtempSync(path.join(os.tmpdir(), 'guards-empty-'))
+    fs.mkdirSync(path.join(empty, 'src'), { recursive: true })
+    fs.writeFileSync(path.join(empty, 'src', 'notes.md'), 'no component here')
+    const EMPTY = empty.replace(/\\/g, '/') + '/'
+
+    const BY_ARG = ['tools/syntax-guard.mjs', 'tools/scope-guard.mjs']
+    const BY_ROOT = [
+      ['tools/primitives-guard.mjs', /const ROOT = [^\n]*/],
+      ['tools/grid-snap.mjs', /const ROOT = fileURLToPath\(new URL\('\.\.\/apps\/web\/', import\.meta\.url\)\)/],
+    ]
+    const run = (file, args) => {
+      try { return { out: execFileSync(process.execPath, [file, ...args], { encoding: 'utf8' }), code: 0 } }
+      catch (err) { return { out: String(err.stdout || '') + String(err.stderr || ''), code: err.status ?? 1 } }
+    }
+    const REFUSED = /Nothing was read|Nothing was checked/
+
+    for (const rel of BY_ARG) {
+      const r = run(path.join(REPO, rel), [path.join(EMPTY, 'src')])
+      assert(r.code !== 0 && REFUSED.test(r.out),
+        `${rel} fails when it reads nothing (exit ${r.code})`)
+    }
+    for (const [rel, rootRe] of BY_ROOT) {
+      const srcPath = path.join(REPO, rel)
+      const src = fs.readFileSync(srcPath, 'utf8')
+      const base = pathToFileURL(path.dirname(srcPath) + path.sep).href
+      let patched = src.replace(rootRe, 'const ROOT = ' + JSON.stringify(EMPTY + 'src'))
+      assert(patched !== src, `${rel} still states its root the way this proof patches it`)
+      patched = patched.replace(/walk\(join\(ROOT, 'src'\)\)/, 'walk(ROOT)')
+      const beforeImports = patched
+      patched = patched.replace(/new URL\('(\.\.?\/[^']+)', import\.meta\.url\)/g,
+        (m, r) => JSON.stringify(new URL(r, base).href))
+      assert(patched !== beforeImports || !/new URL\('\.\.?\//.test(src),
+        `${rel} still imports the way this proof rewrites it`)
+      const copy = path.join(empty, path.basename(rel))
+      fs.writeFileSync(copy, patched)
+      const r = run(copy, ['--check'])
+      assert(r.code !== 0 && REFUSED.test(r.out),
+        `${rel} fails when it reads nothing (exit ${r.code})`)
+    }
+    for (const rel of ['apps/web/tools/fallback-drift-guard.mjs', 'apps/web/tools/token-reader-guard.mjs']) {
+      const src = fs.readFileSync(path.join(REPO, rel), 'utf8')
+      assert(/Nothing was checked/.test(src) && /process\.exit\(1\)/.test(src),
+        `${rel} refuses an empty read on its token count`)
+    }
+    fs.rmSync(empty, { recursive: true, force: true })
+  }
+
   /* ── A RUN THAT READ NO RULES IS NOT A CLEAN RESULT ──
    *
    * Measured once in a dev server: five sheets, three throwing on cssRules

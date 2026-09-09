@@ -222,6 +222,16 @@ function strayBackticksInDeclaredFile (src) {
 }
 
 const files = ROOTS.flatMap(walk)
+
+/* A RUN THAT READ NOTHING IS NOT A CLEAN RUN. Pointed at a path that does not
+   exist, or at a tree the extension filter rejects, this printed "0 files
+   clean" and exited zero. The denominator was in the line and nothing acted on
+   it, which is the same as silence. */
+if (!files.length) {
+  console.error('syntax guard: no file matched under ' + ROOTS.join(', '))
+  console.error('Nothing was read, so this is a failure rather than a clean result.')
+  process.exit(1)
+}
 let bad = 0
 
 for (const f of files) {

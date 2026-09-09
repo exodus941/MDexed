@@ -37,6 +37,22 @@ const walk = (dir) => {
 }
 walk(join(ROOT, 'src'))
 
+/* ── A RUN THAT READ NOTHING IS NOT A CLEAN RUN, AND IT HAS TO SAY SO ──
+ *
+ * This exits non-zero on a finding, which is right, and it said nothing about
+ * how much it had read. A clean run printed "0 values across 0 files", where
+ * the 0 files means files CHANGED. A run that walked the wrong directory and
+ * found no files at all printed the identical line.
+ *
+ * It cost a question: the user read that line in a verification report and
+ * asked why the guard had skipped. The answer was that it had not, and the
+ * report could not say so. */
+if (!files.length) {
+  console.error('grid guard: no .jsx or .js file under ' + join(ROOT, 'src'))
+  console.error('Nothing was read, so this is a failure rather than a clean result.')
+  process.exit(1)
+}
+
 /* Only inside a STYLE region. `prop: number` is a shape that appears all over
    a codebase and means something different nearly everywhere: `strokeWidth:
    1.75` is a design choice about icon weight, `999901px` is a substitution
@@ -190,7 +206,11 @@ for (const path of files) {
   if (conditional || attr) { changed += conditional + attr; if (!hits) touched++ }
 }
 
-console.log(`\n${changed} values across ${touched} files${WRITE ? ' — written' : ' — dry run, pass --write to apply'}`)
+/* SAY WHAT WAS READ, NOT ONLY WHAT WAS FOUND. `touched` counts files with a
+   finding, so on a clean tree both numbers are zero and the line reads as a
+   guard that looked at nothing. Name the denominator. */
+console.log(`\n${changed} value(s) off the grid in ${touched} of ${files.length} file(s) read`
+  + (WRITE ? ' — written' : ' — dry run, pass --write to apply'))
 
 /* ── A ONE-SHOT CODEMOD GUARDS NOTHING, AND THIS ONE WAS THE ONLY INSTRUMENT ──
  *

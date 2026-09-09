@@ -103,6 +103,14 @@ const uniq = findings.filter(f => {
   seen.add(k); return true
 })
 
+/* A RUN THAT READ NOTHING IS NOT A CLEAN RUN. A missing path already exits 2.
+   A path that EXISTS and holds no matching file printed "0 files clean" and
+   exited zero, which is a pass nobody earned. */
+if (!files) {
+  console.error('scope guard: no file matched under ' + roots.join(', '))
+  console.error('Nothing was read, so this is a failure rather than a clean result.')
+  process.exit(1)
+}
 if (!uniq.length) {
   console.log('scope guard: ' + files + ' files clean')
   process.exit(0)
