@@ -6968,5 +6968,79 @@ function hueHex(h) {
     'the lock states whether it is on, because paint is not a state')
 }
 
+/* ── THE TITLE BAR'S THRESHOLD IS A SUM, AND NOTHING READ IT ──
+ *
+ * The last live constant on the coverage tool's unread list. Three of the five
+ * are past evidence: the line counts of a cleanup, the pixels of a subgrid
+ * fault since repaired, the slack in a bar that has moved. Nothing should read
+ * those, and pinning them would freeze a story rather than a decision.
+ *
+ * This one governs code that ships. `BAR_FULL_Q` decides whether the chrome's
+ * action buttons stand in the title bar or fold into the Project menu, and the
+ * rule publishes it as a sum with the widths it was measured from.
+ *
+ * A THRESHOLD MOVES WITH THE ROW, AND THE MOVE IS A SUM OF ITS OWN. Adding the
+ * guided entry and shortening two labels is three changes to one number:
+ *
+ *   New (Guided)   144.7  plus one 8px gap   = +152.7
+ *   New Project    135.0 -> New   84.1       =  -50.9
+ *   Load Project   138.9 -> Load  88.0       =  -50.9
+ *                                              ------
+ *                                              +50.9
+ *
+ * So 1570 became 1621, and the query is one pixel under it. The arithmetic is
+ * the thing to pin, because the constant is true of these labels and no others.
+ */
+{
+  line('\n- the title bar threshold is a sum, not a constant -')
+  const APP = fs.readFileSync(new URL('../src/App.jsx', import.meta.url), 'utf8')
+
+  const q = /const BAR_FULL_Q = '\(max-width: (\d+)px\)'/.exec(APP)
+  assert(!!q, 'the full-bar query is declared')
+  const px = Number(q?.[1] ?? 0)
+
+  /* ── THE COMMENT IS THE SUM, SO READ IT AND CHECK THE ARITHMETIC ──
+   * A number with its derivation beside it is only honest while the two
+   * agree. This is the pairing nothing was checking. */
+  const nums = (APP.match(/\+152\.7|-50\.9|=\s*\+50\.9|1570|1621/g) || [])
+  assert(nums.includes('1570') && nums.includes('1621'),
+    'and the comment states both the old threshold and the new one')
+  assert(nums.includes('+152.7'), 'the button it gained is priced (+152.7 including its gap)')
+  assert(nums.filter(n => n === '-50.9').length === 2,
+    `and both shortened labels give back the same amount (${nums.filter(n => n === '-50.9').length} of 2)`)
+  /* SUBTRACT IN FLOATS AND ROUND THE ANSWER. `1570 + 152.7 - 50.9 - 50.9`
+     comes out 1620.8999999999999 in binary, so exact equality on the sum
+     fails on correct arithmetic. Compare with a tolerance under a pixel. */
+  const sum = 1570 + 152.7 - 50.9 - 50.9
+  assert(Math.abs(sum - 1620.9) < 0.01,
+    `the sum resolves to ${sum.toFixed(1)}, which is where the query sits`)
+  assert(px === 1620,
+    `the query is the last pixel below the measured need (${px} against 1621)`)
+
+  /* ── ONE BREAKPOINT PER QUESTION, MEASURED FROM THE THING IT GOVERNS ──
+   * `MOBILE_Q` answers whether two panes coexist. It was also answering
+   * whether the title bar is cramped, and those are not the same number.
+   * Everything between 768 and 1570 got the full desktop bar in a space that
+   * could not hold it: the mark, the wordmark, the name field and the swatches
+   * printed on top of each other. */
+  const mob = /const MOBILE_Q = '\(max-width: (\d+)px\)'/.exec(APP)
+  assert(!!mob, 'the pane query is its own constant')
+  assert(Number(mob?.[1]) !== px,
+    `and it is a different number from the bar's (${mob?.[1]} against ${px})`)
+  const trim = /const BAR_TRIM_Q = '\(max-width: (\d+)px\)'/.exec(APP)
+  assert(!!trim && Number(trim[1]) < px,
+    `the trim step sits below the fold step, so the bar sheds in one order (${trim?.[1]} then ${px})`)
+
+  /* ── AND `min-content` IS NOT THE BREAK, WHICH IS THE OTHER UNREAD RULE ──
+   * The row's own min-content reads 1469. That is the width at which the
+   * project-name field has already collapsed to nothing, which is the state
+   * the threshold exists to prevent. Shrink until the row stops being USABLE,
+   * not until it stops fitting. */
+  assert(/1469/.test(APP) && /wrong measure/.test(APP),
+    'the comment records why min-content is the wrong measure for this row')
+  assert(px > 1469,
+    `and the shipped threshold is above it, never at it (${px} against 1469)`)
+}
+
 line(`\n${failures === 0 ? 'ALL PASS' : `${failures} FAILURE(S)`}\n`)
 process.exit(failures ? 1 : 0)
