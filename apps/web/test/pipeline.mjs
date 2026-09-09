@@ -6681,5 +6681,106 @@ function hueHex(h) {
     'and a render check catches the lift surviving a wrap, which costs no layout to create')
 }
 
+/* ── SAMPLE THE SITUATION, NOT THE COMPONENT ──
+ *
+ * A component already has a gallery and an inline preview, so a missing
+ * COMPONENT is rarely the gap. The gap is a SHAPE no sample has: a long page
+ * title, an empty state, a comparison. Every situation the rules name is
+ * pinned in the payload drift guard, so the prose cannot lose it. Nothing
+ * checked that a SAMPLE demonstrates it, and a demonstration is the component.
+ *
+ * The failure this stops: a screen simplified to one card while the rule it
+ * exists to show goes on being published. Four empty states become one, the
+ * document still says four, and the sample teaches the opposite.
+ */
+{
+  line('\n- every situation the rules name has a sample -')
+  const read = f => fs.readFileSync(new URL(`../src/preview/screens/${f}`, import.meta.url), 'utf8')
+  const SITUATIONS = [
+    /* [the situation, the file, the shape that proves it is that situation] */
+    ['a record page shows one thing', 'Record.jsx', /page-head/],
+    ['an empty state', 'Empty.jsx', /page-head/],
+    ['a comparison keeps its columns', 'Pricing.jsx', /subgrid/],
+    ['a form with an invalid field', 'Form.jsx', /aria-invalid/],
+    ['an overlay', 'Dialog.jsx', /role="dialog"|role="alertdialog"/],
+    ['a chrome shell, not only documents', 'Shell.jsx', /page-head|tab/],
+    ['charts, including their own situations', 'Charts.jsx', /chart/],
+  ]
+  for (const [what, file, shape] of SITUATIONS) {
+    let src = ''
+    try { src = read(file) } catch { src = '' }
+    assert(src.length > 400 && shape.test(src),
+      `${what} has a sample (${file}, ${src.length} bytes)`)
+  }
+
+  /* ── AN EMPTY STATE IS FOUR STATES, NEVER ONE ──
+   *
+   * First run offers the feature's primary action. No results offers a way
+   * BACK, which is clear the filter and never a way forward. A failure names
+   * what failed and offers a retry. LOADING was missing for months while the
+   * other three shipped. One "nothing here" card for all four tells the reader
+   * the product is broken when it is new.
+   *
+   * Read the COPY, because that is what separates them. Four cards with four
+   * marks and one message is still one state shown four times. */
+  const empty = read('Empty.jsx')
+  for (const [state, needle] of [
+    ['first run offers the primary action', /No invoices yet/],
+    ['and it is a way FORWARD', /primary="New invoice"/],
+    ['no results offers a way back', /No invoices match this filter/],
+    ['which is clear the filter, never create', /primary="Clear filters"/],
+    ['a failure names what failed', /Could not load invoices/],
+    ['and offers a retry', /primary="Try again"/],
+    ['and loading is the fourth', /<Loading /],
+  ]) {
+    assert(needle.test(empty), `an empty state is four states: ${state}`)
+  }
+
+  /* A LOADING STATE HOLDS THE SHAPE OF WHAT IS COMING, so it is a live region
+     rather than a spinner, and its shapes are hidden from a reader who is
+     hearing the page. */
+  assert(/role="status"/.test(empty) && /aria-busy/.test(empty),
+    'the loading state announces itself rather than spinning silently')
+  assert(/aria-hidden/.test(empty),
+    'and its placeholder shapes are hidden, because they are not content')
+
+  /* ── THREE EMPTY STATES SIDE BY SIDE WOULD READ AS A COMPARISON ──
+     Each of these is a whole screen in its own right, so the sample stacks
+     them in one column. The comment in the screen says so; assert the shape,
+     or the next tidy-up makes it a grid. */
+  assert(!/grid-cols|col-3|columns-3/.test(empty),
+    'the four are stacked, never gridded, because each is a whole screen')
+
+  /* ── AN INVALID FIELD POINTS AT ITS OWN MESSAGE ──
+   *
+   * Found by the sample check above, which reported Form.jsx as having no
+   * invalid-field sample. It HAD one, drawn correctly: the invalid border, the
+   * mark, and the sentence. It carried no `aria-invalid` and no
+   * `aria-describedby`, so a reader hearing the page was told nothing.
+   *
+   * The wiring is on the Field COMPONENT, because every field on that screen
+   * goes through it. Settings.jsx wires its own one-off field by hand, which
+   * is where the class-versus-instance trap sits. */
+  const form = read('Form.jsx')
+  assert(/aria-invalid/.test(form), 'an invalid field says it is invalid')
+  assert(/aria-describedby/.test(form),
+    'and points at its own message, so the reader learns WHAT is wrong')
+  assert(!/aria-labelledby.{0,40}err/i.test(form),
+    'never labelledby, because the label names the field and the complaint would replace it')
+  /* IT IS ON THE COMPONENT, NOT ONE FIELD. A hand-wired instance leaves the
+     next invalid field silent. */
+  const field = form.slice(form.indexOf('function Field'), form.indexOf('function Field') + 3200)
+  assert(/aria-invalid/.test(field) && /aria-describedby/.test(field),
+    'the wiring sits in the shared Field, so the next invalid field is wired by arithmetic')
+  /* A SPREAD REPLACES A PROP. A caller stating its own description keeps it,
+     or the helper silently deletes a decision. */
+  assert(/\?\?/.test(field),
+    'and a field stating its own description keeps it, because a spread replaces rather than adds')
+  /* A LIVE REGION, because the message arrives after a check rather than with
+     the page. */
+  assert(/role="status"/.test(field),
+    'the message is announced when it appears, not left sitting unread')
+}
+
 line(`\n${failures === 0 ? 'ALL PASS' : `${failures} FAILURE(S)`}\n`)
 process.exit(failures ? 1 : 0)

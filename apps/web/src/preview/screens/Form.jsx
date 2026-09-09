@@ -1,6 +1,7 @@
 /* Forms are where a colour system usually fails first: placeholder against
    field, error against surface, focus ring against page. Kept on screen so
    those pairings can't quietly break. */
+import { cloneElement, isValidElement, useId } from 'react'
 import { inspectProps, text } from '../inspect.js'
 import { labeller } from '../casing.js'
 import { Ico, Check, Switch, IconCheck, IconX, IconTrash, IconChevron, IconCalendar, IconAlert } from '../icons.jsx'
@@ -27,15 +28,43 @@ function Field({ fl, ins, txt, entry, label, required, help, error, children }) 
      Colour alone is the one signal a red-green eye cannot read, and it is also
      the first thing lost in a greyscale print or a screenshot. The icon says
      "something is wrong" without asking anyone to see the hue. */
+  /* ── AN INVALID FIELD POINTS AT ITS OWN MESSAGE ──
+   *
+   * The drawing was right and the wiring was absent, which is the half a
+   * picture cannot show. This field rendered the invalid border, the mark and
+   * the sentence, and carried no `aria-invalid` and no `aria-describedby`. A
+   * reader hearing the page was told nothing at all.
+   *
+   * `aria-describedby`, never `labelledby`: the label names the FIELD, and
+   * replacing it with the complaint loses which field it was.
+   *
+   * A LIVE REGION, because the message appears after a check rather than with
+   * the page. `role="status"` on the note is what announces it.
+   *
+   * It goes on the COMPONENT, not on the one instance. Every field on this
+   * screen goes through here, so the next invalid field is wired by
+   * arithmetic rather than by being remembered. Settings.jsx does it by hand
+   * on its own one-off field, and that is the instance-not-class trap. */
+  const errId = useId()
   const errorEl = error
-    ? <span className="caption field-note is-error" {...txt('caption', 'danger')}>
+    ? <span id={errId} role="status" className="caption field-note is-error" {...txt('caption', 'danger')}>
         <Ico d={IconAlert} size="sm" />{error}
       </span> : null
+
+  /* THE CONTROL IS PASSED IN, so the wiring is cloned onto it. A field that
+     states its own `aria-describedby` keeps it: a spread REPLACES a prop, and
+     silently dropping a caller's value is how a helper deletes a decision. */
+  const control = error && isValidElement(children)
+    ? cloneElement(children, {
+      'aria-invalid': children.props['aria-invalid'] ?? 'true',
+      'aria-describedby': children.props['aria-describedby'] ?? errId,
+    })
+    : children
 
   const body = (
     <>
       {fl.help === 'under-label' && helpEl}
-      {children}
+      {control}
       {fl.help !== 'under-label' && helpEl}
       {errorEl}
     </>
