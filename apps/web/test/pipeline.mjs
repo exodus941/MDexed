@@ -6893,5 +6893,80 @@ function hueHex(h) {
     'never the space grid, which called the published mark size off-grid')
 }
 
+/* ── AN OVERRIDE WITH NO COMMENT, AND A CONTROL THAT DOES THE OBVIOUS THING ──
+ *
+ * The last two sections of the gap list. Both rules were obeyed in the code and
+ * held there by nothing.
+ */
+{
+  line('\n- an override with no comment is a bug waiting to be found -')
+  const SCHEMA = fs.readFileSync(new URL('../src/state/schema.js', import.meta.url), 'utf8')
+
+  /* ── THE ONE THAT COST A RED GHOST BUTTON SAT BETWEEN TWO THAT EXPLAINED
+   *    THEMSELVES ──
+   *
+   * A component override is a decision to disagree with the library, so it owes
+   * a reason. Three have been removed from this map after their reasons turned
+   * out to be wrong or expired: a danger text colour that made every ghost
+   * button red, a focus-ring colour used as a text colour at 3.95:1, and a
+   * badge fill painted the page colour that made the chip vanish. Each was
+   * found by reading the comment beside it, which is why the comment is the
+   * rule.
+   *
+   * An entry with no comment cannot be audited that way at all. */
+  const start = SCHEMA.indexOf('const defaultComponentOverrides')
+  const end = SCHEMA.indexOf('})', start)
+  assert(start > 0 && end > start, 'the override map is found')
+  const block = SCHEMA.slice(start, end)
+  const lines = block.split('\n')
+  let entries = 0
+  const bare = []
+  for (let i = 0; i < lines.length; i++) {
+    const m = /^\s*'([^']+)':/.exec(lines[i])
+    if (!m) continue
+    entries++
+    /* WALK BACK OVER BLANK LINES ONLY. A comment two entries up belongs to
+       that entry, so anything else between them breaks the chain. */
+    let has = false
+    for (let q = i - 1; q >= 0; q--) {
+      const t = lines[q].trim()
+      if (!t) continue
+      if (t.startsWith('*') || t.startsWith('/*') || t.endsWith('*/') || t.startsWith('//')) { has = true }
+      break
+    }
+    if (!has) bare.push(m[1])
+  }
+  assert(entries >= 1, `the map holds overrides to check (${entries})`)
+  assert(bare.length === 0,
+    `every override states its reason (${entries} entr(ies)${bare.length ? ', bare: ' + bare.join(', ') : ''})`)
+}
+
+{
+  line('\n- a control does the obvious thing with its own content -')
+  const PANEL = fs.readFileSync(new URL('../src/panels/ColorPanel.jsx', import.meta.url), 'utf8')
+
+  /* ── A COLOUR SWATCH IS A COLOUR, SO CLICKING IT EDITS THE COLOUR ──
+   *
+   * Ours toggled a lock instead, and nothing on the swatch said so. Two
+   * decisions about one object need two controls, not one control and a
+   * convention nobody can see. The lock is its own button, under the swatch
+   * and aligned to it.
+   *
+   * Read the HANDLER, because that is the decision. A class name or a title
+   * attribute says nothing about what a press does. */
+  const swatchBtn = /<button key=\{s\.id\} onClick=\{e => setPick\(/.test(PANEL)
+  assert(swatchBtn, 'the seed swatch opens the picker, so pressing a colour edits that colour')
+  assert(/className="seed-lock"/.test(PANEL) && /onClick=\{\(\) => toggleLock\(s\.id\)\}/.test(PANEL),
+    'and the lock is its own button, never a second meaning on the first one')
+  /* THE LOCK IS NOT THE SWATCH'S HANDLER. If the same press did both, the two
+     decisions would be one control again. */
+  assert(!/<button key=\{s\.id\} onClick=\{[^}]*toggleLock/.test(PANEL),
+    'the swatch press does not toggle the lock, which is what it used to do')
+  /* AND THE LOCK SAYS WHICH STATE IT IS IN. A toggle button owes
+     `aria-pressed`, or a reader hears a button and not a state. */
+  assert(/aria-pressed=\{!!s\.locked\}/.test(PANEL),
+    'the lock states whether it is on, because paint is not a state')
+}
+
 line(`\n${failures === 0 ? 'ALL PASS' : `${failures} FAILURE(S)`}\n`)
 process.exit(failures ? 1 : 0)
