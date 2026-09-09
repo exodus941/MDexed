@@ -3575,8 +3575,18 @@ line('\n- depth intensity -')
       'a run on ONE line, whose row gap is declared and never painted'],
     ['a-group-of-buttons-keeps-one-gap', 'role=tablist',
       'a nav, whose items are destinations rather than a group of buttons, and whose gutter is a step of its own by another rule'],
-    ['a-group-of-buttons-keeps-one-gap', 'kids.every(k => k.matches(CONTROL)',
+    /* WAS `kids.every(k => k.matches(CONTROL) || k.querySelector(CONTROL))`,
+       and a subtree search is the documented trap. A column of six mixed
+       blocks each holding some control passed as a run of buttons, on the
+       component gallery, at every width and both pointers. A child qualifies
+       now when it IS a button, or when every control inside it is — the pair
+       wrapper being the exception this system's own action row asks for. */
+    ['a-group-of-buttons-keeps-one-gap', 'kids.every(isRunMember)',
       'a layout that happens to hold a control, rather than a run of buttons'],
+    ['a-group-of-buttons-keeps-one-gap', "inner.every(c => c.matches(BTN))",
+      'a box whose controls are not all buttons, because a run of buttons is buttons'],
+    ['a-group-of-buttons-keeps-one-gap', "cs.flexDirection === 'column' && cs.flexWrap === 'nowrap'",
+      'a nowrap column, whose column-gap is a declaration nothing paints'],
     /* ── THE FIVE SPACING CHECKS, PROVEN IN A BROWSER ──
      *
      * Two fixtures. All twelve of this system's preview surfaces are the
@@ -7175,6 +7185,52 @@ function hueHex(h) {
   const { CHECKS: CH } = await import('../src/emit/checks.js')
   assert(CH.some(c => c.id === 'a-heading-keeps-its-words' && c.where === 'render'),
     'the heading check ships and runs in a browser')
+}
+
+/* ── A CHILD THE ENGINE DOES NOT RENDER IS NOT CLIPPED CONTENT ──
+ *
+ * The clipping check walked `el.children` raw, so the harness's paint filter
+ * never reached them. A `display: none` child has an EMPTY rect, and an empty
+ * rect is 0,0,0,0 — not "nowhere" but the viewport ORIGIN. So
+ * `box.left - kid.left` came out as the clipping box's own distance from the
+ * left edge of the screen.
+ *
+ * Measured over 12 surfaces at 13 widths: three findings, on Dashboard,
+ * Landing and Settings, all the same hidden `span.caption.nav-title`. Two read
+ * 777px and one 1422.13px, which are exactly where those nav lists sit. The
+ * label is hidden on purpose there: a section name belongs inside the folded
+ * menu with the links it names.
+ *
+ * A GENUINELY CLIPPED CHILD STILL HAS A REAL RECT, because
+ * `getBoundingClientRect` returns the layout box rather than the visible part
+ * of it. So filtering on paint costs the check nothing.
+ *
+ * Proven both ways in the browser. The three findings went. An injected card
+ * clipping a nowrap action row reported 53.59px cut off, named on the row that
+ * lost it. Two earlier injections produced nothing and neither was the shape:
+ * block children shrink with their box, so the overflowing thing has to be a
+ * row that refuses to.
+ */
+{
+  line('\n- a hidden child is not clipped content -')
+  const { CHECKS: CC } = await import('../src/emit/checks.js')
+  const cc = CC.find(x => x.id === 'nothing-clipped-out-of-reach')
+  assert(!!cc && cc.where === 'render', `the clipping check ships and runs in a browser (${cc?.where})`)
+  const t = (cc?.body || []).join('\n')
+  assert(/for \(const kid of el\.children\) \{\s*\n\s*if \(!visible\(kid\)\) continue/.test(t),
+    'it filters each child on paint before measuring it')
+  /* THE ORDER MATTERS: the filter has to come before the rect is read, or the
+     zero rect is measured and then discarded, which is the same bug. */
+  const loop = t.slice(t.indexOf('for (const kid of el.children)'))
+  assert(loop.indexOf('visible(kid)') < loop.indexOf('getBoundingClientRect'),
+    'and before it, never after, because a zero rect measured is a zero rect reported')
+  /* THE TWO EXEMPTIONS THE CHECK ALREADY CARRIED STAY. An absolutely placed
+     child outside its parent is a method, and text asked to truncate is
+     clipped on purpose. */
+  assert(/position === 'absolute'/.test(t) && /position === 'fixed'/.test(t),
+    'an out-of-flow child is a method rather than a casualty')
+  assert(/textOverflow === 'ellipsis'/.test(t),
+    'and text asked to truncate says so')
 }
 
 line(`\n${failures === 0 ? 'ALL PASS' : `${failures} FAILURE(S)`}\n`)

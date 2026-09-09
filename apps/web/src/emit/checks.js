@@ -1828,7 +1828,21 @@ export const CHECKS = [
     where: 'render',
     line: 'Every control on one line states the same height.',
     body: [
+      /* ── A SPECIMEN SHEET IS EXEMPT, AND THIS CHECK HAD NO EXEMPTION ──
+       *
+       * A row whose job is to show three button sizes cannot be faulted for
+       * showing three button sizes. Measured on the component gallery over 12
+       * surfaces at 13 widths: one finding, reading 28, 36, 44, 36, 36, which
+       * is the published size scale rendered side by side on purpose.
+       *
+       * Two markers, and both are declarations the sheet already carries: a
+       * `[data-specimen]` ancestor, or a row that holds its own `.row-label`.
+       * The proximity check uses the same pair, so the two agree about what a
+       * specimen is. */
+      "const isSpecimenRow = el => !!(el.closest('[data-specimen]')",
+      "  || el.querySelector(':scope > .row-label, :scope > * > .row-label'))",
       "for (const row of rows()) {",
+      "  if (isSpecimenRow(row.parent)) continue",
       "  const ctl = row.items.filter(i => i.control)",
       "  if (ctl.length < 2) continue",
       "  const hs = ctl.map(i => Math.round(i.rect.height))",
@@ -2284,7 +2298,27 @@ export const CHECKS = [
       "     the document and 967 options on the page. */",
       "  if (el.matches('select, datalist, optgroup')) continue",
       "  const box = el.getBoundingClientRect()",
+      /* ── A CHILD THE ENGINE DOES NOT RENDER IS NOT CLIPPED CONTENT ──
+       *
+       * This walked `el.children` raw, so the harness's paint filter never
+       * reached them. A `display: none` child has an EMPTY rect, which is
+       * 0,0,0,0 — not "nowhere", but the viewport ORIGIN. So
+       * `box.left - k.left` came out as the box's own distance from the left
+       * edge of the screen, and the check reported that as content cut off.
+       *
+       * Measured over 12 surfaces at 13 widths: three findings, on Dashboard,
+       * Landing and Settings, all the same `span.caption.nav-title`. It reads
+       * 777px on two and 1422.13px on the third, and those are exactly where
+       * each nav list sits. The label is hidden on purpose at those widths: a
+       * section name belongs inside the folded menu with the links it names.
+       *
+       * A GENUINELY CLIPPED CHILD STILL HAS A REAL RECT, because
+       * `getBoundingClientRect` returns the layout box rather than the visible
+       * part of it. So filtering on paint costs the check nothing and removes
+       * the whole class. Same shape as one filter serving two questions: the
+       * ghost pass needs the invisible and this one must not see it. */
       "  for (const kid of el.children) {",
+      "    if (!visible(kid)) continue",
       "    const ks = getComputedStyle(kid)",
       "    if (ks.position === 'absolute' || ks.position === 'fixed') continue",
       "    const k = kid.getBoundingClientRect()",
@@ -3412,9 +3446,36 @@ export const CHECKS = [
       "    return r.width > 0 && r.height > 0",
       "  })",
       "  if (kids.length < 2) continue",
-      "  /* EVERY child is a control or wraps one, so this is a run of buttons",
-      "     rather than a layout that happens to hold some. */",
-      "  if (!kids.every(k => k.matches(CONTROL) || k.querySelector(CONTROL))) continue",
+      /* ── A GAP SHORTHAND SETS BOTH AXES, SO A COLUMN DECLARES ONE THAT
+       *    PAINTS NOTHING ──
+       *
+       * A `nowrap` column stacks its children, so its `column-gap` is inert
+       * and comparing the two axes compares a painted distance against a
+       * declaration. Measured on the component gallery: one finding, a
+       * `.card.stack-sm` reading 12px across and 16px down with six children
+       * on six lines. Nothing sits along the axis the 12px governs.
+       *
+       * A column that WRAPS does form columns, so it stays in. Ask the
+       * declaration that decides the axis. */
+      "  if (cs.flexDirection === 'column' && cs.flexWrap === 'nowrap') continue",
+      /* ── AND A RUN OF BUTTONS IS BUTTONS, NOT BOXES HOLDING THEM ──
+       *
+       * This read `k.matches(CONTROL) || k.querySelector(CONTROL)`, and a
+       * subtree search is the documented trap: a column of six mixed blocks
+       * each containing some control passed as a run of buttons. A control is
+       * one object rather than a group of items, so a child that CONTAINS a
+       * control is a container.
+       *
+       * The pair wrapper is the one exception, because pairing two buttons per
+       * line is this system's own answer for a broken action row. So a child
+       * qualifies when it is a button, or when every control inside it is. */
+      "  const BTN = 'button, .btn, [role=button], a.btn'",
+      "  const isRunMember = k => {",
+      "    if (k.matches(BTN)) return true",
+      "    const inner = Array.prototype.slice.call(k.querySelectorAll(CONTROL))",
+      "    return inner.length > 0 && inner.every(c => c.matches(BTN))",
+      "  }",
+      "  if (!kids.every(isRunMember)) continue",
       "  const cg = px(cs.columnGap), rg = px(cs.rowGap)",
       "  if (!(cg > 0) || !(rg > 0)) continue",
       "  if (Math.abs(cg - rg) < 0.5) continue",

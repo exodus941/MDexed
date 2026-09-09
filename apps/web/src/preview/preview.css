@@ -440,9 +440,28 @@
  * Each steps one further in the direction its own hover already goes, which is
  * why none of them needs a new token: pressing is more of the same, not a
  * different idea. */
+/* ── AND A SHAPE ROLE IS NOT A GROUND ──
+ *
+ * This reached for `accent-raised`, which exists BECAUSE `accent-subtle` is
+ * too quiet for a shape: an avatar disc drawn in the subtle role measured
+ * 1.13:1 against its card. A role calibrated to be visible on its own is loud
+ * as a ground behind text.
+ *
+ * Measured on the component gallery, at every width and both pointers: OKLCH
+ * chroma 0.045 on a page at 0.013, against a 0.04 bar. One role, one
+ * requirement — a role serving two uses at two bars cannot satisfy both.
+ *
+ * ITS OWN DANGER SIBLING ALREADY HAD THE ANSWER. `btn-danger-ghost` stays on
+ * `danger-subtle` and darkens it with a filter, which is what "one step
+ * further in the direction hover already goes" means. The plain ghost jumped
+ * to a different role instead, so three sibling rules disagreed.
+ *
+ * Measured after: chroma 0.015, and lightness 0.97 down to 0.94. Quieter than
+ * the bar and visibly darker than hover. */
 .dmd .btn-ghost:active, .dmd .btn-ghost.is-active {
-  background: var(--cmp-button-ghost-active-background-color, var(--c-accent-raised, #eddad6));
+  background: var(--cmp-button-ghost-active-background-color, var(--c-accent-subtle, #f6e9e6));
   color: var(--cmp-button-ghost-active-text-color, var(--c-accent-active, #8f3324));
+  filter: brightness(0.96);
 }
 .dmd .btn-danger:active, .dmd .btn-danger.is-active {
   background: var(--cmp-button-danger-active-background-color, var(--c-danger-hover, #a63a2f));

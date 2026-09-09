@@ -26,7 +26,13 @@ function Section({ title, note, children, txt }) {
        the sheet. Two findings here were the sheet doing its job. */
     <section className="stack-lg" data-specimen style={{ marginBottom: 'var(--space-2xl, 48px)' }}>
       <div>
-        <h3 style={{ fontSize: 'var(--font-body-md-size, 16px)' }} {...txt('h6')}>{title}</h3>
+        {/* A TYPE ROLE IS ONE DECISION, SO IT IS ONE CLASS. This carried
+            `font-size: var(--font-body-md-size)` inline on an `h3` while its
+            inspector metadata claimed h6, so it rendered body-md's SIZE on
+            body-sm's LEADING: 16px on 22.24px, a pair no role publishes. That
+            is the exact fault the rule is about, in the sheet that
+            demonstrates the roles. One class carries both. */}
+        <h3 className="t-body-md" {...txt('body-md')}>{title}</h3>
         {note && <p className="caption" style={{ marginTop: 2 }} {...txt('caption', 'text-muted')}>{note}</p>}
       </div>
       {children}
@@ -409,11 +415,36 @@ export default function Gallery({ onInspect, layout }) {
           that answers no key. */}
       <Section txt={txt} title="Tabs and navigation" note="A strip with one tab current, and the control that folds a rail">
         <div className="card stack-sm" {...ins('card')}>
+          {/* ── A TABLIST WITH NO PANEL IS A DRAWING OF A TABLIST ──
+              This declared `role="tablist"` and three `role="tab"` buttons, and
+              then no panel, no ids, and no tab order. Two checks reported it on
+              every surface run: a tab owes `aria-controls` pointing at the
+              panel it shows, and a composite widget owes exactly ONE tab stop.
+              Three natively focusable buttons cost three presses to walk past.
+
+              So the strip carries the contract it claims: each tab names its
+              own panel, the selected one is the single stop at `tabindex="0"`
+              and the rest are `-1`, and each panel points back with
+              `aria-labelledby`. A reader copying this gets the widget rather
+              than a picture of one.
+
+              The ids are literals rather than a hook, because the panels are
+              literals too: one strip, stated once, in a specimen sheet. */}
           <div className="row" role="tablist" aria-label="Invoice views" style={{ gap: 'var(--space-2xs, 4px)' }}>
-            <button className="tab is-selected" role="tab" aria-selected="true" {...ins('tab')}>Open</button>
-            <button className="tab" role="tab" aria-selected="false" {...ins('tab')}>Paid</button>
-            <button className="tab" role="tab" aria-selected="false" {...ins('tab')}>Draft</button>
+            <button className="tab is-selected" role="tab" aria-selected="true" tabIndex={0}
+              id="dmd-gal-tab-open" aria-controls="dmd-gal-panel-open" {...ins('tab')}>Open</button>
+            <button className="tab" role="tab" aria-selected="false" tabIndex={-1}
+              id="dmd-gal-tab-paid" aria-controls="dmd-gal-panel-paid" {...ins('tab')}>Paid</button>
+            <button className="tab" role="tab" aria-selected="false" tabIndex={-1}
+              id="dmd-gal-tab-draft" aria-controls="dmd-gal-panel-draft" {...ins('tab')}>Draft</button>
           </div>
+          <div id="dmd-gal-panel-open" role="tabpanel" aria-labelledby="dmd-gal-tab-open">
+            <p className="small" {...txt('body-sm', 'text-muted')}>Four invoices are open.</p>
+          </div>
+          {/* The two the strip is not showing. Hidden rather than absent, so the
+              `aria-controls` on their tabs resolves to a real element. */}
+          <div id="dmd-gal-panel-paid" role="tabpanel" aria-labelledby="dmd-gal-tab-paid" hidden />
+          <div id="dmd-gal-panel-draft" role="tabpanel" aria-labelledby="dmd-gal-tab-draft" hidden />
           <div className="divider"></div>
           <div className="row" style={{ gap: 'var(--space-sm, 12px)' }}>
             <details className="nav-collapse" style={{ display: 'block' }}>
