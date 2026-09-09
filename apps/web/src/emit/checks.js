@@ -2882,6 +2882,40 @@ export const CHECKS = [
       "  const txt = (el.textContent || '').trim()",
       "  if (txt.length > 3) continue",
       "  if (el.querySelector('svg, img, input, button, a')) continue",
+      /* ── A TILING DATA CELL IS NOT A SHAPE, AND ITS GROUND IS THE CELL
+       *    BESIDE IT ──
+       *
+       * A heatmap cell shrinks into this size band at a narrow width, and its
+       * quiet end is quiet ON PURPOSE: it encodes the lowest value. Comparing
+       * it against the card behind it asks the wrong question, because nothing
+       * of the card shows between two cells that abut.
+       *
+       * Measured on the charts surface at 640px: the lightest cell reads
+       * 1.15:1 against the card, against a 1.2 floor, and 24 of them tile.
+       *
+       * ASK THE PROPERTY, NEVER THE CLASS. A box that shares an edge with a
+       * SIBLING painting its own fill is part of a surface rather than a mark
+       * on one. Measured over five surfaces, 85 candidates: 24 heatmap cells
+       * and 3 stacked-bar segments come out as tiling, and every avatar, every
+       * legend dot, every scatter point and the lone chart column stay in.
+       * Cell-to-cell separation is the chart palette's own floor and a
+       * different check owns it. */
+      "  const paintsFill = n => { const b = getComputedStyle(n).backgroundColor",
+      "    return !!b && b !== 'rgba(0, 0, 0, 0)' && b !== 'transparent' }",
+      "  const tiles = (() => {",
+      "    const p = el.parentElement",
+      "    if (!p) return false",
+      "    for (const sib of p.children) {",
+      "      if (sib === el || !paintsFill(sib)) continue",
+      "      const b = sib.getBoundingClientRect()",
+      "      if (!b.width || !b.height) continue",
+      "      const gx = Math.max(r.left - b.right, b.left - r.right)",
+      "      const gy = Math.max(r.top - b.bottom, b.top - r.bottom)",
+      "      if (Math.max(gx, gy) <= 1.5) return true",
+      "    }",
+      "    return false",
+      "  })()",
+      "  if (tiles) continue",
       /* WALK TO THE ROOT. A six-level cap gave up inside a table, and the
          check then approved the element, which is "no answer" read as "no".
          Measured: an avatar on an unselected row had a transparent td, tr,

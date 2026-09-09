@@ -70,8 +70,22 @@ export default function Pricing({ onInspect, casing }) {
             would read as chosen; a mark says suggested. */}
         {p.pick && <span className="badge badge-accent" {...ins('badge-accent')}>{L('Popular')}</span>}
       </div>
-      <div className="t-h3" {...txt('h3')}>{p.price}</div>
-      <p className="muted small" {...txt('body-sm', 'text-muted')}>{p.note}</p>
+      {/* ── ONE WRITER FOR ONE GAP ──
+          The price and its note are a GROUP, and they were two children of a
+          `stack-sm`. So the card published 12px between them and the byline
+          default added 4px, and the pair rendered 16px apart. Measured on
+          every width and both pointers, on all three cards.
+
+          Wrapping them in a bare block makes the pair ONE child of the stack,
+          which is the shape the byline default is written for: it reaches a
+          heading and byline inside a plain `div` and that block owns no gap of
+          its own. The stack's 12px then spaces the row, the pair and the
+          actions, and the 4px inside the pair has one writer. Same fix as
+          Empty, Record and Dialog. */}
+      <div>
+        <div className="t-h3" {...txt('h3')}>{p.price}</div>
+        <p className="muted small" {...txt('body-sm', 'text-muted')}>{p.note}</p>
+      </div>
       {/* The call to action stands clear of the sentence describing the plan,
           the same distance every other card in the system uses. */}
       <div className="card-actions">

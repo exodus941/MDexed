@@ -416,25 +416,32 @@
   .dmd .matrix { overflow-x: auto; -webkit-overflow-scrolling: touch; }
   .dmd .matrix > .row { flex-wrap: nowrap; min-width: max-content; }
 
-  /* A tab strip scrolls too. It never folds.
-     A nav is one line of destinations, and the strip's shape is what says so.
-     Folded to two rows it stops reading as one control: measured at 92px tall
-     over two rows for four tabs in a 248px pane, with the pill on row two
-     looking like a different thing entirely. Same answer as the matrix above,
-     for the same reason.
-
-     `nav.row` beats the general `.row` on specificity, so this does not depend
-     on which rule is written last. */
-  .dmd nav.row { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  /* ── A TAB STRIP NEVER WRAPS, AND IT NEVER SCROLLS EITHER ──
+   *
+   * A nav is one line of destinations, and the strip's shape is what says so.
+   * Folded to two rows it stops reading as one control: measured at 92px tall
+   * over two rows for four tabs in a 248px pane, with the pill on row two
+   * looking like a different thing entirely. So `nowrap` stays.
+   *
+   * THE SCROLLER IS GONE. This carried `overflow-x: auto` and a hidden
+   * scrollbar, which is the answer they withdrew on 8 September 2026: a
+   * destination scrolled out of view is a destination nobody visits, and a
+   * strip that does not fit becomes a SELECT. That swap already ships at the
+   * tabs threshold. The rule beside it in every store had said so for as long
+   * as this block existed, and the stylesheet kept the withdrawn half.
+   *
+   * MEASURED BEFORE REMOVING IT: 8 nav scrollers across 12 surfaces at 296,
+   * 320, 480 and 640, and not one had `scrollWidth` past its `clientWidth`.
+   * The scroller was inert on every surface at every narrow width.
+   *
+   * Both consequences of removing it already have a check. A strip that
+   * overflows a clipping parent is unreachable content, and one that overflows
+   * nothing pushes the page sideways.
+   *
+   * `nav.row` beats the general `.row` on specificity, so this does not depend
+   * on which rule is written last. */
+  .dmd nav.row { flex-wrap: nowrap; }
   .dmd nav.row > * { flex-shrink: 0; }
-  /* The bar is hidden, and only here.
-     A scrollbar takes its height from the strip it sits under: one strip that
-     overflowed grew to 58px while its neighbour stayed 48, so two strips on
-     one line stopped agreeing. The matrix keeps its bar, because a specimen
-     sheet is a thing you scan and nothing sits beside it. A cut tab is the
-     affordance here, and keyboard focus scrolls the strip anyway. */
-  .dmd nav.row { scrollbar-width: none; }
-  .dmd nav.row::-webkit-scrollbar { display: none; }
 
   /* Only the true matrix gets aligned columns.
      Rows of independent flex boxes line up only by luck — measured at 7px of

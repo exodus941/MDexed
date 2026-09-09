@@ -1503,16 +1503,32 @@ line('\n- prompt construction -')
   assert(!/underRule/.test(shell), 'no strip in the shell is promoted by position')
   assert(/stripStyle\(style\)/.test(shell), 'the shell asks stripStyle rather than restating the fallback')
 
-  /* ── A nav scrolls, it never wraps ──
+  /* ── A NAV NEVER WRAPS, AND IT NEVER SCROLLS EITHER ──
    *
-   * `.row` wraps at narrow container widths, and a nav is a `.row`. Four tabs
-   * in a 248px pane folded to two rows, 92px tall. The matrix already answered
-   * this question the same way. */
+   * `.row` wraps at narrow container widths and a nav is a `.row`. Four tabs
+   * in a 248px pane folded to two rows, 92px tall, with the pill on row two
+   * reading as a different thing. So `nowrap` stays.
+   *
+   * THESE TWO ASSERTIONS USED TO PIN THE WITHDRAWN ANSWER. They demanded
+   * `overflow-x: auto` and a hidden scrollbar, which their correction of
+   * 8 September 2026 replaced: a destination scrolled out of view is a
+   * destination nobody visits, and a strip that does not fit becomes a select.
+   * The rule beside them said so in every store while the test held the old
+   * shape in place. A test written around a defect keeps the defect.
+   *
+   * Measured before removing the scroller: 8 nav scrollers across 12 surfaces
+   * at 296, 320, 480 and 640, and not one had `scrollWidth` past its
+   * `clientWidth`. It was inert everywhere. */
   const responsive = fs.readFileSync(new URL('../src/preview/responsive.rules.css', import.meta.url), 'utf8')
-  assert(/\.dmd nav\.row \{[^}]*flex-wrap: nowrap/.test(responsive), 'a nav strip does not wrap')
-  assert(/\.dmd nav\.row \{[^}]*overflow-x: auto/.test(responsive), 'a nav strip scrolls instead')
-  assert(/\.dmd nav\.row::-webkit-scrollbar/.test(responsive),
-    'the bar is hidden, so two strips side by side keep one height')
+  const navRule = (responsive.match(/\.dmd nav\.row \{[^}]*\}/g) || []).join(' ')
+  assert(/flex-wrap: nowrap/.test(navRule), 'a nav strip does not wrap')
+  assert(!/overflow-x:\s*(auto|scroll)/.test(navRule),
+    'and it does not scroll, because a destination out of view is one nobody visits')
+  assert(!/\.dmd nav\.row::-webkit-scrollbar/.test(responsive),
+    'so there is no bar to hide, and no rule pretending there is')
+  /* THE SELECT IS WHAT HANDLES THE WIDTH, and its threshold already ships. */
+  assert(/TABS_SENTINEL/.test(fs.readFileSync(new URL('../src/preview/responsive.build.js', import.meta.url), 'utf8')),
+    'the strip becomes a select at its own measured threshold instead')
 }
 
 /* ── The library covers what the payload tells an agent to build ──
