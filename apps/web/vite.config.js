@@ -259,8 +259,10 @@ export default defineConfig(({ command }) => ({
        more: a logical side, one mark size per control, and an underline that
        is not a border. Then to 1155 at 1149.23, with alpha: compositing in the
        contrast layer, the opacity field, and the glass treatment. Then to 1165 at 1157.82, with the
-       twenty-two consumed colour tokens and the reader guard. */
-    chunkSizeWarningLimit: 1235,
+       twenty-two consumed colour tokens and the reader guard. Then to 1240 at
+       1238.80, with the two-to-one proximity bar: the rule's own measurement
+       and the reason for the change ship inside the check bodies. */
+    chunkSizeWarningLimit: 1240,
   },
 
   server: {

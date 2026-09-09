@@ -1550,13 +1550,18 @@ export const CHECKS = [
   {
     id: 'a-grouped-chart-states-a-ratio',
     where: 'render',
-    line: 'A grouped chart keeps at least three to one between the gap inside a group and the gap between groups.',
-    /* ── UNDER THREE TO ONE THE GROUPS DISSOLVE ──
+    line: 'A grouped chart keeps at least two to one between the gap inside a group and the gap between groups.',
+    /* ── UNDER THE PROXIMITY BAR THE GROUPS DISSOLVE ──
      *
      * A grouped chart is the one arrangement that states a proximity ratio
      * rather than a value: the published pair is the smallest step inside a
-     * group against the medium step between them. Under three to one the groups
+     * group against the medium step between them. Under the bar the groups
      * read as one run of bars and the category axis stops meaning anything.
+     *
+     * ONE BAR FOR THE WHOLE RULE. This demanded three to one while the general
+     * proximity rule moved to two on 9 September 2026, and two bars for one
+     * rule is how two versions of it end up disagreeing. The shipped chart
+     * ratio is 4:1, so it clears either and nothing on screen moves.
      *
      * A CONTROL IS ONE OBJECT AND SO IS A BAR, which is why this reads the
      * GROUP containers rather than every gap on the row. Comparing a bar's own
@@ -1576,8 +1581,8 @@ export const CHECKS = [
       "  const between = px(getComputedStyle(row).columnGap)",
       "  const inner = px(getComputedStyle(groups[0]).columnGap)",
       "  if (!(inner > 0) || !(between > 0)) continue",
-      "  if (between / inner >= 3) continue",
-      "  fail(name(row), 'this grouped chart puts ' + inner + 'px inside a group and ' + between + 'px between them, a ratio of ' + (between / inner).toFixed(1) + ':1. Under three to one the groups dissolve into one run of bars and the category axis stops meaning anything. Take the between-groups gap up the scale until it clears three to one, and leave the inner gap where it is.')",
+      "  if (between / inner >= 2) continue",
+      "  fail(name(row), 'this grouped chart puts ' + inner + 'px inside a group and ' + between + 'px between them, a ratio of ' + (between / inner).toFixed(1) + ':1. Under two to one the groups dissolve into one run of bars and the category axis stops meaning anything. Take the between-groups gap up the scale until it clears two to one, and leave the inner gap where it is.')",
       "}",
     ],
   },
@@ -3714,8 +3719,22 @@ export const CHECKS = [
       "    const go = between(members)",
       "    if (go <= 0) continue",
       "    const r = go / gi",
-      "    if (r >= 3) continue",
-      "    fail(name(members[0]), members.length + ' of these sit ' + round(go) + 'px apart and each holds its own contents ' + round(gi) + 'px apart, which is ' + (Math.round(r * 100) / 100) + ':1. Proximity is a ratio: under three to one the two distances read as one, so a group stops being told apart from the next. Raise the outer gap a step, or lower the inner one.')",
+      /* ── THE BAR IS TWO TO ONE, LOWERED FROM THREE ON 9 SEPTEMBER 2026 ──
+       *
+       * Measured across 12 surfaces at 6 widths before the change: 25 distinct
+       * proximity groups. 13 at six to one or more, 3 between four and six, 4
+       * at exactly three, 2 at exactly two, and 3 under two. So the bar
+       * decides two cases and both are one shape, content beside its own
+       * context at 32 between and 16 inside.
+       *
+       * Their call, on a drawing of all three ratios at actual size: two
+       * columns at two to one are related rather than separate, which is what
+       * a record page and its context are. Nothing on screen moved.
+       *
+       * A case under two is still a fault. Pricing's plan stack reads 1.33 at
+       * 296 and 320 and fires at either bar. */
+      "    if (r >= 2) continue",
+      "    fail(name(members[0]), members.length + ' of these sit ' + round(go) + 'px apart and each holds its own contents ' + round(gi) + 'px apart, which is ' + (Math.round(r * 100) / 100) + ':1. Proximity is a ratio: under two to one the two distances read as one, so a group stops being told apart from the next. Raise the outer gap a step, or lower the inner one.')",
       "  }",
       "}",
     ],

@@ -1786,6 +1786,44 @@
  * combinator. `max()` floors it at zero, because padding cannot go negative and
  * a parent whose own gap already exceeds the target has answered the question. */
 .dmd .card-actions { margin-top: auto; padding-top: var(--card-action-gap); }
+
+/* ── A CARD ACTION ROW TAKES ITS LINE, SO IT COVERS IT ──
+ *
+ * A block-level row is its container's full width by default, and two buttons
+ * at their natural widths leave a hole. Measured at 1280: a Dashboard card
+ * action row took 455px and filled 188.59, and an Overlays one took 510 and
+ * filled 186.89. In both cases the hole was larger than the content.
+ *
+ * Two equal buttons cover it, which is the shape a broken action row already
+ * uses. `flex: 1 1 0` splits the growth between exactly two.
+ *
+ * ── BOUNDED, BECAUSE A HALF OVER 320px STOPS READING AS A BUTTON ──
+ *
+ * The same rule unbounded gives an 1180px row two 590px buttons, which is a
+ * pair of banners. 320 is the published `field` fixed width, so 640 is the
+ * widest row where each half is still a control rather than a block. The
+ * number comes from that token rather than from the two instances in hand.
+ *
+ * THE FRAMED BOX IS THE ONE THE QUESTION IS ABOUT, never the app: a card in a
+ * two-column band is 455px while the frame is 1280. `container-type` on a box
+ * whose width already comes from its grid costs nothing.
+ *
+ * A MODAL IS THE SAME BOX. Its footer is a framed action row exactly as a
+ * card's is, and the first version named `.card` alone: the Overlays modal
+ * footer took 510px and filled 186.89 and nothing reached it. Both, and only
+ * both, because a row with no frame around it took 1180px and asked for
+ * nothing.
+ *
+ * EXACTLY TWO CHILDREN. Three at `flex: 1 1 0` would be three per line, and
+ * the rule is never more than two. One already fills the line where a card
+ * wants it to, by its own `width: 100%`. */
+.dmd .card, .dmd .modal { container-type: inline-size; container-name: dmd-card; }
+@container dmd-card (max-width: 640px) {
+  .dmd .card-actions:has(> :nth-child(2)):not(:has(> :nth-child(3))) > .btn {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+}
 .dmd .stack > .card-actions { padding-top: max(0px, calc(var(--card-action-gap) - var(--space-md, 16px))); }
 .dmd .stack-sm > .card-actions { padding-top: max(0px, calc(var(--card-action-gap) - var(--space-sm, 12px))); }
 .dmd .stack-lg > .card-actions { padding-top: max(0px, calc(var(--card-action-gap) - var(--space-lg, 24px))); }
@@ -2365,6 +2403,38 @@
    painted before, so nothing moves until a build sets it. */
 .dmd .table tbody tr:hover > td { color: var(--cmp-table-row-hover-text-color, inherit); }
 
+/* ── THE FIRST COLUMN STARTS ON THE MARGIN ITS HEADING SETS ──
+ *
+ * The cell gutter is what stops two columns running together, and on the OUTER
+ * edges there is no neighbour to separate from. So it added to the container's
+ * own inset instead: measured on the charts surface, the first column's text
+ * began 16px inside the margin the `h3` above it sits on, at every width and
+ * both pointers.
+ *
+ * Equal on both edges, or the table reads as leaning. The zebra and selection
+ * variants override this below, and each has a reason: a stripe paints across
+ * the row, so its text needs to clear the painted edge.
+ *
+ * ── AND THE BAR GUTTER GOES IN THE BASE, NOT ON THE SELECTED ROW ──
+ *
+ * The first version gave the selected row alone the bar's 4px. Its own check
+ * caught that in one run: the content started 4.0px further in than the row
+ * beside it, so the column staggered, and the bar then sat 0.0px from the
+ * label so the two read as one shape. It is the 16px jog the rules already
+ * record, at a quarter the size.
+ *
+ * So the gutter is the bar plus one step off the spacing scale, and EVERY row
+ * of that column takes it. Scoped to a table that carries a selection: with
+ * none, there is no bar to clear and the column stays flush with its heading,
+ * which is the whole point above. `:has()` makes that dynamic, so a table
+ * gains the gutter the moment a row is marked and the column never staggers. */
+.dmd .table th:first-child, .dmd .table td:first-child { padding-inline-start: 0; }
+.dmd .table th:last-child, .dmd .table td:last-child { padding-inline-end: 0; }
+.dmd .table:has(tr.is-selected) th:first-child,
+.dmd .table:has(tr.is-selected) td:first-child {
+  padding-inline-start: calc(var(--cmp-table-row-selected-edge-width, 4px) + var(--space-2xs, 4px));
+}
+
 /* ── Table composition ──
    Driven by the settings in the Components tab rather than hard-coded, so the
    conventions the exported file states are the ones on screen. */
@@ -2683,6 +2753,23 @@
      dark, and the circle vanished in both modes. */
   background: var(--cmp-avatar-background-color, var(--c-accent-raised, #b7d4ec));
   color: var(--cmp-avatar-text-color, var(--c-text, #1a1a1a));
+  /* ── AND THAT FILL WAS MEASURED AGAINST A CARD, NOT THE PAGE ──
+   *
+   * `accent-raised` clears the floor on `surface`, which is where it was
+   * checked. On the page ground it reads 1.12:1 against a 1.2 floor, and Shell
+   * and Landing both put an avatar there. Measure a role on its WORST ground.
+   *
+   * No step fixes both, because one role cannot serve two grounds at one bar.
+   * So the disc is drawn by its EDGE where its fill cannot carry it, which is
+   * the same answer the neutral chip already uses.
+   *
+   * AN OUTLINE, NEVER A BORDER. The disc centres its initials with the
+   * line-box technique, so its `line-height` IS its content box. A 1px border
+   * would make it 34px around a 32px line and shift the letters half a pixel.
+   * An outline costs no layout, follows the radius, and the stacked-bar
+   * segment two rules below uses it for the same reason. */
+  outline: var(--border-hairline, 1px) solid var(--c-border-subtle, #a0acb8);
+  outline-offset: calc(-1 * var(--border-hairline, 1px));
   line-height: var(--cmp-avatar-size, 32px); text-align: center;
   display: inline-block;
   font-size: var(--cmp-avatar-font-size, var(--font-caption-size, 12px)); font-weight: 600; flex-shrink: 0;
@@ -3830,7 +3917,18 @@
 /* The stacked form, hidden until the columns stop fitting. Only one of the two
    forms is ever in the tree's flow, so neither leaves an empty container
    holding a gap. */
-.dmd .plan-stack { display: none; }
+/* ── A ROW OF GROUPS NEEDS ITS OWN STEP, AND `.stack` PUBLISHES THE OTHER ──
+ *
+ * Each child here is a GROUP: one plan's card plus the card holding that
+ * plan's own answers, bound at `.stack-sm`'s 12px. `.stack` publishes 16px
+ * for a run of like things, so the distance between two plans and the
+ * distance inside one plan came out 16 against 12. That is 1.33:1, measured
+ * at 296, 308 and 320px, and under the bar the six cards read as one run.
+ *
+ * `lg` is the first step above `md` and gives exactly two to one. Take the
+ * OUTER gap, never the inner one: 12px is the plan card holding its own
+ * answers, which is the relationship the stack exists to state. */
+.dmd .plan-stack { display: none; gap: var(--space-lg, 24px); }
 .dmd .plan-stack .plan-fact {
   display: flex;
   align-items: baseline;

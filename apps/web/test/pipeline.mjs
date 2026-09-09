@@ -7249,5 +7249,195 @@ function hueHex(h) {
     'and text asked to truncate says so')
 }
 
+/* ── THREE JUDGEMENTS FROM THE FULL RUN, EACH DECIDED AGAINST A DRAWING ──
+ *
+ * Twenty of the 24 faults the coverage run found were mechanical. These three
+ * had two defensible answers each, so they went to a rendered comparison
+ * first. The chosen answers are pinned here with the mechanism each needs.
+ */
+{
+  line('\n- the avatar is drawn by its edge where its fill cannot carry it -')
+  const CSS = fs.readFileSync(new URL('../src/preview/preview.css', import.meta.url), 'utf8')
+  const bare = CSS.replace(/\/\*[\s\S]*?\*\//g, m => m.replace(/[^\n]/g, ' '))
+  const avatar = [...bare.matchAll(/([^{}@]+)\{([^{}]*)\}/g)]
+    .find(b => /\.avatar\b/.test(b[1]) && /--cmp-avatar-size/.test(b[2]))
+  assert(!!avatar, 'the avatar rule is found')
+  const av = avatar?.[2] ?? ''
+  /* ── AN OUTLINE, NEVER A BORDER ──
+   * The disc centres its initials with the line-box technique, so its
+   * `line-height` IS its content box. A 1px border makes it 34px around a
+   * 32px line and shifts the letters half a pixel. An outline costs no layout.
+   * The stacked-bar segment uses one for the same reason. */
+  assert(/outline:\s*var\(--border-hairline/.test(av),
+    'it carries a hairline outline, because accent-raised reads 1.12:1 on the page ground')
+  assert(/outline-offset:\s*calc\(-1/.test(av),
+    'at a negative offset, so the edge draws inside the disc and follows its radius')
+  assert(!/(?:^|[;\s])border(?:-\w+)?:\s*var\(--border-hairline/.test(av),
+    'and never a border, which would widen a box whose line-height is its content box')
+  /* THE FILL STAYS, because a shape drawn by its edge still needs a fill on a
+     card, where accent-raised clears the floor. */
+  assert(/--cmp-avatar-background-color/.test(av), 'the fill is unchanged')
+
+  line('\n- a table first column starts on the margin its heading sets -')
+  const outer = [...bare.matchAll(/([^{}@]+)\{([^{}]*)\}/g)]
+    .filter(b => /\.table (?:th|td):first-child/.test(b[1]) || /\.table (?:th|td):last-child/.test(b[1]))
+  assert(outer.length >= 2, `the outer cells are stated on both edges (${outer.length} rule(s))`)
+  const flush = outer.filter(b => !/:has\(/.test(b[1]))
+  assert(flush.length === 2 && flush.every(b => /padding-inline-(start|end):\s*0/.test(b[2])),
+    'both outer edges are zeroed, so the table cannot read as leaning')
+  /* ── THE BAR GUTTER GOES IN THE BASE, NOT ON THE SELECTED ROW ──
+   * The first version gave the selected row alone the bar's 4px, and its own
+   * check caught it in one run: the content started 4.0px further in than the
+   * row beside it, and the bar then sat 0.0px from the label. */
+  const gutter = [...bare.matchAll(/([^{}@]+)\{([^{}]*)\}/g)]
+    .find(b => /\.table:has\(tr\.is-selected\)/.test(b[1]) && /padding-inline-start/.test(b[2]))
+  assert(!!gutter, 'a table carrying a selection reserves the bar gutter')
+  assert(/calc\(var\(--cmp-table-row-selected-edge-width[^)]*\)\s*\+/.test(gutter?.[2] ?? ''),
+    'as the bar width plus a step, so the bar never sits against the label')
+  assert(!/tr\.is-selected\s*>\s*td:first-child\s*\{[^}]*padding-inline-start/.test(bare),
+    'and no rule pads the selected row alone, which is what staggered the column')
+
+  line('\n- a card action row covers the line it takes -')
+  const pairRule = bare.slice(bare.indexOf('@container dmd-card'))
+  assert(/@container dmd-card \(max-width: 640px\)/.test(bare),
+    'the pairing is bounded at 640px, twice the published field width')
+  assert(/nth-child\(2\)\)[\s\S]{0,60}not\([\s\S]{0,30}nth-child\(3\)/.test(pairRule),
+    'and asks for exactly two children, because three per line is never the answer')
+  assert(/flex:\s*1 1 0/.test(pairRule.slice(0, 400)),
+    'two equal halves, which is the shape a broken action row already uses')
+  /* THE FRAMED BOX IS THE CONTAINER, and a modal footer is the same box. The
+     first version named `.card` alone and the Overlays modal footer, at 510px
+     filling 186.89, was not reached. */
+  const holder = [...bare.matchAll(/([^{}@]+)\{([^{}]*)\}/g)]
+    .find(b => /container-name:\s*dmd-card/.test(b[2]))
+  assert(!!holder && /\.card/.test(holder[1]) && /\.modal/.test(holder[1]),
+    `both framed boxes are containers (${holder?.[1].trim().slice(0, 40)})`)
+}
+
+/* ── THE PLAN STACK IS A ROW OF GROUPS, SO IT STATES ITS OWN STEP ──
+ *
+ * Each child is one plan's card plus the card holding that plan's answers,
+ * bound at `.stack-sm`'s 12px. `.stack` publishes the step for a run of like
+ * things, so the shared class handed both distances one number: 16 against 12,
+ * which is 1.33:1 and fired at the old bar as well as the new one. Measured at
+ * 296, 308 and 320px, the three widths where the stacked form is the one on
+ * screen.
+ *
+ * `lg` is the first step above `md` and gives exactly two to one. Assert the
+ * RATIO against the shipped bar, never the pixel: a base change moves both
+ * numbers and the relationship is what the rule states.
+ */
+{
+  line('\n- a row of groups states its own step, and it is not the run step -')
+  const CSS = fs.readFileSync(new URL('../src/preview/preview.css', import.meta.url), 'utf8')
+  /* `\s*\{` is what keeps `.dmd .stack` off `.dmd .stack-sm`: the brace has to
+     follow the selector, so the longer class cannot match the shorter query. */
+  const gapOf = sel => {
+    const lit = sel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const m = new RegExp(lit + '\\s*\\{[^}]*?gap:\\s*var\\(--space-([a-z0-9]+)').exec(CSS)
+    return m ? m[1] : null
+  }
+  const innerStep = gapOf('.dmd .stack-sm')
+  const runStep = gapOf('.dmd .stack')
+  /* ── RESOLVE THE STEP, DO NOT ASK WHETHER A TOKEN NAME APPEARS ──
+   *
+   * The first version compared the DECLARED name against the run step. With
+   * the declaration deleted that reads `null` against `md`, which differs, so
+   * the assertion passed on the exact shape it was written to catch. Proven by
+   * rebuilding the original: it came back quiet.
+   *
+   * The element carries `plan-stack` AND `stack`, so the step in force is its
+   * own where it states one and the run's where it does not. */
+  const declared = gapOf('.dmd .plan-stack')
+  const outerStep = declared ?? runStep
+  assert(!!declared, `the plan stack states its own gap step (${declared})`)
+  assert(innerStep === 'sm', `and the group inside it keeps the small step (${innerStep})`)
+  assert(outerStep !== runStep,
+    `and the step IN FORCE is not the run-of-like-things step, which is what handed both one number (${outerStep} against ${runStep})`)
+
+  const step = n => parseFloat(px(derived.spacing, n))
+  const ratio = step(outerStep) / step(innerStep)
+  const { CHECKS: CB } = await import('../src/emit/checks.js')
+  const bar = Number(/r\s*>=\s*(\d+(?:\.\d+)?)\s*\)\s*continue/
+    .exec((CB.find(c => c.id === 'proximity-is-a-ratio')?.body || []).join('\n'))?.[1])
+  assert(ratio >= bar,
+    `${step(outerStep)}px between and ${step(innerStep)}px inside clears the shipped bar (${ratio.toFixed(2)}:1 against ${bar}:1)`)
+
+  /* THE OUTER GAP IS THE ONE THAT MOVED. Lowering the inside to 8 clears the
+     same bar and states the wrong relationship, so pin which half was raised. */
+  assert(step(outerStep) > step(runStep),
+    `the OUTER gap is what was raised, never the inner one (${step(outerStep)} over the run's ${step(runStep)})`)
+
+  /* AND THE STACKED FORM IS THE ONE ON SCREEN AT THOSE WIDTHS, or the fix is
+     in a block nothing renders. Both halves are stated, in two files. */
+  assert(/\.dmd \.plan-stack \{[^}]*display:\s*none/.test(CSS),
+    'the stacked form is hidden by default')
+  assert(/\.dmd \.plan-stack \{\s*display:\s*flex/.test(RESPONSIVE_RULES),
+    'and the narrow branch is what shows it')
+  assert(!/\.plan-stack[^{]*\{[^}]*gap:/.test(RESPONSIVE_RULES),
+    'and no narrow-width block restates the gap, so one writer owns it')
+}
+
+/* ── ONE PROXIMITY BAR, READ BY EVERY CONSUMER ──
+ *
+ * Their decision, 9 September 2026, on a drawing of all three ratios at actual
+ * size: the bar is TWO to one, not three.
+ *
+ * It was measured before it was moved. 12 surfaces at 6 widths hold 25
+ * distinct proximity groups: 13 at six to one or more, 3 between four and six,
+ * 4 at exactly three, 2 at exactly two, 3 under two. So the bar decides two
+ * cases and both are one shape, content beside its own context at 32 between
+ * and 16 inside. Nothing on screen moved.
+ *
+ * TWO CHECKS STATE IT AND A THIRD FILE TEACHES IT. The general rule, the
+ * grouped chart's own application of it, and the payload prose. Two bars for
+ * one rule is how two versions of it end up disagreeing, so this asserts they
+ * agree rather than asserting the number twice.
+ */
+{
+  line('\n- one proximity bar, and every consumer reads the same one -')
+  const { CHECKS: CP } = await import('../src/emit/checks.js')
+  const general = CP.find(c => c.id === 'proximity-is-a-ratio')
+  const chart = CP.find(c => c.id === 'a-grouped-chart-states-a-ratio')
+  assert(!!general && !!chart, 'both checks ship')
+
+  const barOf = c => {
+    const t = (c?.body || []).join('\n')
+    const m = /(?:r|between \/ inner)\s*>=\s*(\d+(?:\.\d+)?)\s*\)\s*continue/.exec(t)
+    return m ? Number(m[1]) : null
+  }
+  const gBar = barOf(general), cBar = barOf(chart)
+  assert(gBar === 2, `the general rule states two to one (${gBar})`)
+  assert(cBar === gBar, `and the grouped chart reads the same bar (${cBar} against ${gBar})`)
+
+  /* THE WORDING FOLLOWS THE NUMBER, or a reader obeys a figure the code does
+     not enforce. That is how the golden angle survived two days past its own
+     measurement. */
+  for (const [what, c] of [['the general rule', general], ['the grouped chart', chart]]) {
+    const words = (c?.line || '') + ' ' + (c?.body || []).join('\n')
+    assert(/two to one/.test(words), `${what} says two to one in its own words`)
+    assert(!/three to one/.test(words), `and never three, which it used to say, in ${what}`)
+  }
+
+  /* AND THE PAYLOAD TEACHES THE SAME BAR. A rule the reader obeys from prose
+     while the check enforces another number is two systems. */
+  const doc = generateFile(state, derived).text
+  assert(/two to one/.test(doc), 'the payload states two to one')
+  assert(!/under three to one/.test(doc), 'and no longer states three')
+
+  /* THE SHIPPED CHART RATIO CLEARS IT WITH ROOM, which is why nothing moved.
+     Read it off the component rather than quoting it. */
+  const grouped = derived.components.find(c => c.name === 'chart-grouped')
+  const propOf = k => (grouped?.properties ?? []).find(p => p.key === k)?.value
+  const stepPx = t => {
+    const m = /\{spacing\.([\w-]+)\}/.exec(String(t ?? ''))
+    return m ? parseFloat(px(derived.spacing, m[1])) : parseFloat(t)
+  }
+  const inner = stepPx(propOf('barGap')), outer = stepPx(propOf('groupGap'))
+  assert(inner > 0 && outer > 0, `the chart publishes both gaps (${inner} inside, ${outer} between)`)
+  assert(outer / inner >= gBar,
+    `and their ratio clears the bar (${(outer / inner).toFixed(1)}:1 against ${gBar}:1)`)
+}
+
 line(`\n${failures === 0 ? 'ALL PASS' : `${failures} FAILURE(S)`}\n`)
 process.exit(failures ? 1 : 0)
