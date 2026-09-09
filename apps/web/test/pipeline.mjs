@@ -6574,5 +6574,112 @@ function hueHex(h) {
   assert(/--target-min-pointer:\s*24px/.test(css), 'and the mouse floor at 24px, which is 2.5.8 at AA')
 }
 
+/* ── THE ALIGNMENT SECTION: TWO MECHANISMS THE STYLESHEET STATES AND NOTHING
+ *    READS ──
+ *
+ * Ten rules read as gaps there. Eight had a check whose wording the coverage
+ * score could not see. These two were real, and both are the same shape: a
+ * mechanism chosen over an obvious alternative, with the reason written in a
+ * comment beside it and nothing to stop the next edit taking the alternative.
+ */
+{
+  line('\n- the floor is a property, so the next control needs no name -')
+  const CSS = fs.readFileSync(new URL('../src/preview/preview.css', import.meta.url), 'utf8')
+  const bare = CSS.replace(/\/\*[\s\S]*?\*\//g, m => m.replace(/[^\n]/g, ' '))
+
+  /* ── A PROMOTION RULE THAT NAMES CONTAINERS MISSES THE NEXT ONE ──
+   *
+   * The touch promotion is a list of controls, and a list approves whatever
+   * nobody thought of. Worse, a rule that DERIVES its own height cannot be
+   * promoted by being named at all: the tab-select parity calc weighs the same
+   * as its entry in the list and comes later in the file, so it won. The tab
+   * measured 44 and the select 38.26. The parity rule was the thing defeating
+   * the floor.
+   *
+   * So the floor is published as a PROPERTY and each control reads
+   * `max(its own height, that property)`. A control written tomorrow is
+   * promoted by arithmetic rather than by being remembered. */
+  assert(/--control-floor:/.test(bare), 'the floor is published as a custom property')
+
+  /* IT IS ZERO AT REST, so a mouse sees no change. That means the declaration
+     sits INSIDE the coarse-pointer block, never at the root. A rule reading it
+     falls back to 0px, so an absent property promotes nothing. */
+  const coarse = bare.split('@media (pointer: coarse)')[1] || ''
+  const before = bare.split('@media (pointer: coarse)')[0] || ''
+  assert(/--control-floor:/.test(coarse),
+    'declared inside the coarse-pointer block, so it is absent on a mouse')
+  assert(!/--control-floor:/.test(before),
+    'and nowhere above it, or every control would be promoted at every pointer')
+  assert(/var\(--control-floor,\s*0px\)/.test(bare),
+    'every reader falls back to 0px, so an absent floor promotes nothing')
+
+  /* ── AND THE DERIVED RULE READS IT WITH `max`, WHICH IS THE WHOLE POINT ──
+   * The parity calc is right about the type scale and knows nothing about the
+   * promotion. `max` lets the type scale decide the ordinary case and the
+   * floor decide the touch one, so the two stop arguing. */
+  const parity = [...bare.matchAll(/([^{}@]+)\{([^{}]*)\}/g)]
+    .filter(b => /var\(--control-floor/.test(b[2]))
+  assert(parity.length >= 1,
+    `at least one derived height reads the floor (${parity.length})`)
+  assert(parity.every(b => /min-height:\s*max\(/.test(b[2]) || /height:\s*max\(/.test(b[2])),
+    'and reads it through max(), never as a replacement for its own arithmetic')
+  assert(parity.some(b => /font-body-sm-size/.test(b[2])),
+    'the tab-select parity rule is one of them, which is the case that found this')
+
+  /* THE FLOOR ITSELF STILL COMES FROM THE DOCUMENT. A number the stylesheet
+     types is a number nobody can change. */
+  assert(/--control-floor:\s*var\(--target-min/.test(bare),
+    'and the floor is the published touch minimum, never a typed number')
+}
+
+{
+  line('\n- a percentage in a transform resolves against the element own box -')
+  const CSS = fs.readFileSync(new URL('../src/preview/preview.css', import.meta.url), 'utf8')
+  const bare = CSS.replace(/\/\*[\s\S]*?\*\//g, m => m.replace(/[^\n]/g, ' '))
+
+  /* ── IT MUST NOT NAME THE CONTROL'S HEIGHT ──
+   *
+   * Written as `(line - button-sm-height) / 2` the same CSS put a 28px action
+   * row 0.59px off the heading's cap-band centre and a 36px row 3.41px off it.
+   * The error is half the difference between the real height and the assumed
+   * one. A percentage resolves against the element's OWN box, so the height
+   * never has to be named and any row lands in the same place. */
+  const lift = [...bare.matchAll(/([^{}@]+)\{([^{}]*)\}/g)]
+    .filter(b => /--head-line-offset:/.test(b[2]))
+  assert(lift.length >= 1, `the head lift is declared (${lift.length} rule(s))`)
+  const decl = lift.map(b => b[2]).join(' ')
+  assert(/translateY\(calc\(50% - var\(--head-line-offset\)\)\)/.test(decl),
+    'it centres with a percentage of its own box, so no row height is named')
+  assert(!/cmp-button-\w+-height/.test(decl),
+    'and names no control height, which is the figure that was wrong per surface')
+  assert(/--head-line-offset:\s*calc\(var\(--font-h2-size/.test(decl)
+    && /--font-h2-leading/.test(decl),
+    'the line it subtracts is size times leading, both tokens, so a scale change carries')
+
+  /* ── DO NOT SPLIT IT INTO A MARGIN AND A TRANSFORM ──
+   *
+   * The arithmetic is identical and the layout is not. A margin joins the flex
+   * line, so a 36px action row with 26.6px under it made that line 62.6px tall
+   * and pushed the heading's own bottom edge down 9.4px. The offset then
+   * measured from a row that had already moved. A transform costs no layout,
+   * which is the whole reason it is the tool here.
+   *
+   * The rule states `margin-bottom: 0` rather than omitting it, so a reader
+   * cannot mistake the absence for an oversight. Assert the ZERO. */
+  assert(lift.every(b => !/margin-bottom:\s*(?!0)[^;]*(calc|em|px)/.test(b[2])),
+    'no margin carries any part of the offset, because a margin joins the flex line')
+  assert(lift.some(b => /margin-bottom:\s*0/.test(b[2])),
+    'and the zero is stated, so its absence reads as a decision rather than an omission')
+
+  /* AND A TRANSFORM COSTS NO LAYOUT, WHICH IS WHY IT CAN OVERLAP. Where the
+     actions wrap onto a line of their own there is nothing to centre against,
+     and the same lift pulls them over whatever is above: 18 covered labels and
+     captions across three surfaces at 296 to 320px. The reset lives in the
+     block that declares the collapse, and a shipped check enforces it. */
+  const { CHECKS: CW } = await import('../src/emit/checks.js')
+  assert(CW.some(c => c.id === 'a-lift-must-not-survive-a-wrap'),
+    'and a render check catches the lift surviving a wrap, which costs no layout to create')
+}
+
 line(`\n${failures === 0 ? 'ALL PASS' : `${failures} FAILURE(S)`}\n`)
 process.exit(failures ? 1 : 0)
