@@ -4381,7 +4381,18 @@ export const CHECKS = [
       "   display: contents has dissolved and its buttons belong on one line. A pair",
       "   that generates a box is holding a line, and a line holds two at most. */",
       "for (const row of all('.action-pairs')) {",
-      "  const pairs = Array.prototype.slice.call(row.querySelectorAll(':scope > .pair')).filter(visible)",
+      /* ── THE VISIBILITY FILTER REMOVED THE ONE CASE THIS ASKS ABOUT ──
+       *
+       * A dissolved pair generates NO BOX, so `visible` drops it, so the
+       * half-dissolved branch below could never see one. Measured on a
+       * fixture built to break it: one boxed pair and one at
+       * display: contents came through as a single pair and reported
+       * nothing. The branch was structurally unreachable.
+       *
+       * One filter cannot serve two questions. Keep a pair that is
+       * DISSOLVED, and drop only one that is genuinely hidden. */
+      "  const pairs = Array.prototype.slice.call(row.querySelectorAll(':scope > .pair'))",
+      "    .filter(p => getComputedStyle(p).display === 'contents' || visible(p))",
       "  if (!pairs.length) continue",
       "  const dissolved = pairs.filter(p => getComputedStyle(p).display === 'contents')",
       "  const boxed = pairs.filter(p => getComputedStyle(p).display !== 'contents')",

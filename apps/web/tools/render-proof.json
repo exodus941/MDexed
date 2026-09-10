@@ -4,6 +4,7 @@
   "declaredRenderChecks": 72,
   "fixturePages": [
     "amount-edge.html",
+    "arrange.html",
     "charts.html",
     "gaps.html",
     "marks.html",
@@ -25,6 +26,7 @@
     "a-flexible-box-holds-its-own-label",
     "a-gridline-is-quieter-than-its-axis",
     "a-group-of-buttons-keeps-one-gap",
+    "a-heading-keeps-its-words",
     "a-label-owns-its-gap",
     "a-lift-must-not-survive-a-wrap",
     "a-mark-beside-words-names-its-side",
@@ -32,7 +34,10 @@
     "a-mark-paints-the-size-its-component-publishes",
     "a-mark-stays-inside-its-control",
     "a-marked-item-says-so",
+    "a-pair-dissolves-when-a-row-fits",
     "a-plot-is-a-shape-not-a-height",
+    "a-row-alone-on-its-line-covers-it",
+    "a-row-collapses-by-rule-never-by-wrap",
     "a-row-that-cannot-wrap-must-fit",
     "a-rule-sits-inside-its-gap",
     "a-selected-row-is-a-step-off-its-ground",
@@ -41,6 +46,7 @@
     "a-tab-names-its-panel",
     "a-tab-strip-never-wraps-and-never-scrolls",
     "a-text-less-wrapper-carries-the-cap-band-rule",
+    "action-row-is-ranked",
     "alignment-is-stated-never-inherited",
     "an-action-stands-clear-of-its-explanation",
     "an-amount-lines-up-on-its-end-edge",
@@ -59,6 +65,7 @@
     "one-writer-for-one-gap",
     "space-between-spreads-every-gap",
     "target-floor-for-the-pointer",
+    "the-page-never-scrolls-sideways",
     "the-row-declares-the-baseline-too",
     "two-rules-of-one-weight-do-not-stack"
   ]
