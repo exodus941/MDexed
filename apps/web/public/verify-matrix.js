@@ -200,9 +200,45 @@ function run (surfaces, widths, only) {
     total: list.length * w.length, started: Date.now(),
     groundBefore: ground(), groundAfter: null,
     pointer: matchMedia('(pointer: coarse)').matches ? 'coarse' : 'fine',
+    /* ── WHICH CHECKS NEVER SPOKE ──
+     *
+     * The source side asserts that every check fires on its own fixture. The
+     * render side had no such gate, so a check whose selector stops matching
+     * goes quiet, and quiet reads as a pass.
+     *
+     * A check absent from ONE surface is normal. Silent across EVERY surface
+     * in the run is the fault, so the union belongs here rather than in one
+     * verify call. Measured when this shipped: 20 of the render checks spoke
+     * and the rest said nothing over twelve surfaces. */
+    spoke: new Set(), ranAny: new Set(),
   }
   const A = acc
   A.promise = (async () => {
+    /* ── A PAGE THAT RUNS NO FRAMES CANNOT BE DRIVEN, SO REFUSE ──
+     *
+     * A hidden or frozen tab stops the document timeline, and every deadline
+     * here is wall clock. So each bounded poll gets one sample instead of
+     * dozens, and a cross-fade never completes. Two trees stay mounted, which
+     * is the shape that measures the surface LEAVING.
+     *
+     * Measured on 10 September 2026, on this exact fault: a 100ms interval
+     * fired 6 times in 25 seconds, learn() took 36.6s against 3.9s, and the
+     * matrix reached 2 of 12 runs in 6.3 minutes. That is a hang rather than
+     * a slow run, and the partial result it produces cannot be trusted.
+     *
+     * REPORTING IT IS NOT ENOUGH HERE. A wrong surface labelled with the one
+     * requested sends a reader to a clean page to hunt a real fault. */
+    if (typeof window.verifyClockRuns === 'function' && !(await window.verifyClockRuns())) {
+      A.err = 'the document runs no animation frames, so its clock is stopped. Nothing can settle,'
+        + ' every bounded wait gets one sample, and a cross-fade can leave two surfaces mounted,'
+        + ' which measures the one LEAVING. Nothing was measured. Bring the tab to the foreground'
+        + ' and run again.'
+      console.error('verify-matrix: ' + A.err)
+      A.framesStopped = true
+      A.groundAfter = ground()
+      A.finished = true
+      return
+    }
     try {
       for (const surface of list) {
         for (const width of w) {
@@ -211,6 +247,12 @@ function run (surfaces, widths, only) {
           if (!g.landed) { A.notLanded.push(g.why); continue }
           if (!g.rested) A.notRested.push(surface + '@' + width)
           const v = await window.verify(g.root)
+          /* An OLDER verifier returns no coverage, and a driver that assumed
+             one would crash rather than say so. */
+          if (v.coverage) {
+            for (const id of v.coverage.ran) A.ranAny.add(id)
+            for (const id of v.coverage.spoke) A.spoke.add(id)
+          }
           for (const f of v.findings) {
             if (only && f.check !== only) continue
             A.rows.push({ s: surface, w: width, check: f.check, where: f.where, msg: f.msg })
@@ -242,10 +284,28 @@ function report (limit) {
     error: A.err,
     pointer: A.pointer,
     unmeasured: A.pointer === 'coarse' ? 'the fine-pointer case' : 'the coarse-pointer case',
+    /* A REFUSAL MUST READ AS A REFUSAL, NEVER AS A CLEAN RUN. Without this
+       line a stopped clock prints 0 of 36 runs and 0 findings, and the second
+       number is what a reader remembers. */
+    ...(A.framesStopped ? { framesStopped: 'the document ran no animation frames, so NOTHING was measured' } : {}),
     themeReturned: A.groundBefore === A.groundAfter,
     minutes: +((Date.now() - A.started) / 60000).toFixed(1),
     findings: A.rows.length,
     byCheck: Object.entries(byCheck).sort((a, b) => b[1] - a[1]),
+  }
+  /* ── AND HOW MANY CHECKS NEVER SPOKE ──
+   * A run that measured nothing is not a pass, and this is where the render
+   * side says so. Silent across every surface means the check may have been a
+   * no-op for as long as it existed. */
+  if (A.ranAny.size) {
+    const silent = [...A.ranAny].filter(id => !A.spoke.has(id)).sort()
+    out.checksRan = A.ranAny.size
+    out.checksThatSpoke = A.spoke.size
+    out.checksSilentEverywhere = silent.length
+    /* Complete rather than a window, because the whole point is the list. */
+    if (silent.length) out.silent = silent
+  } else {
+    out.coverage = 'the verifier returned none, so the silent set is UNMEASURED'
   }
   const n = limit || 20
   out.sample = A.rows.slice(0, n).map(r => r.s + '@' + r.w + ' ' + r.check + ' ' + r.where + ' :: ' + r.msg)

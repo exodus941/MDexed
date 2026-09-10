@@ -603,11 +603,48 @@ function rows () {
   return out
 }
 
+/* ── A PAGE THAT RUNS NO FRAMES CANNOT SETTLE, AND IT READS AS PERFECTLY AT
+ * REST ──
+ *
+ * A hidden or frozen tab stops the document timeline. Measured on 10 September
+ * 2026: the clock advanced 0ms across 976ms of wall clock, while 156
+ * transitions all reported a running state and a currentTime of 0. So every
+ * finished promise burns its deadline, and a cross-fade never completes. Two
+ * trees stay mounted, which is the shape that measures the surface LEAVING.
+ *
+ * A rect-stability check is the worst affected. Two identical samples read as
+ * rested on the first comparison, so a frozen page is maximally at rest. That
+ * is the strongest possible false pass.
+ *
+ * ASK THE CLOCK, NEVER THE VISIBILITY FLAG. visibilityState read hidden while
+ * the host reported the pane displayed, so the two disagree. A page that is
+ * visible and merely throttled fails in the same way. The clock is the
+ * mechanism that breaks, so it is the thing to measure.
+ *
+ * GEOMETRY IS STILL VALID. Layout runs in a hidden tab, so a rectangle is
+ * true. Only the settling, the animation waits and the cross-fade are lost. */
+async function clockRuns () {
+  const at = () => (document.timeline && document.timeline.currentTime) || 0
+  const t0 = at()
+  await new Promise(r => setTimeout(r, 150))
+  return at() > t0
+}
+window.verifyClockRuns = clockRuns
+
+/* ONE MEASUREMENT PER RUN, AND ONE SCORER. Asking the clock costs 150ms, and a
+   check that presses something settles again, so measuring it per call would
+   charge that many times over. verify() sets it and settle() reads it. */
+let FRAMES_STOPPED = false
+
 /* MEASURE A SETTLED LAYOUT, NEVER A FRAME. A fixed pause is a guess, and a
    guess fifty milliseconds short measures the entrance animation. Ask the
    browser which animations are running instead, and drop the ones that never
    finish. */
 async function settle (deadline) {
+  /* A STOPPED CLOCK MAKES THIS WAIT A CERTAINTY, NOT A FAILSAFE. Every
+     finished promise is unreachable, so the loop below always spends the whole
+     deadline. Skip it and say so, which is faster AND honest. */
+  if (FRAMES_STOPPED) return false
   const stop = Date.now() + (deadline || 2000)
   for (let i = 0; i < 40; i++) {
     const running = document.getAnimations
@@ -627,17 +664,42 @@ async function settle (deadline) {
 
 const findings = []
 const notes = []
+/* ── A CHECK THAT SAID NOTHING MAY HAVE MEASURED NOTHING ──
+ *
+ * The source side asserts that every check fires on its own fixture. The
+ * render side had no such gate, so a render check whose selector stops
+ * matching goes quiet and quiet reads as a pass.
+ *
+ * Measured on 10 September 2026 over twelve surfaces: 20 of the render checks
+ * produced a finding or a note, and the rest produced neither. Each one of
+ * those could have been a no-op for as long as it existed.
+ *
+ * SO THE RUN RECORDS WHICH CHECKS SPOKE. A check absent from one surface is
+ * normal, and a check silent across EVERY surface is the fault. That question
+ * belongs to whatever drives the surfaces, so the run returns the set rather
+ * than deciding.
+ *
+ * NEITHER CHANNEL IS THE WHOLE ANSWER. A finding says the check ran and found
+ * something. A note says it ran and measured a count. Both count as speaking,
+ * and a check may legitimately do only one of them on one surface.
+ *
+ * NO BACKTICK IN THIS COMMENT. It sits inside the template literal that emits
+ * this file, and one closed the literal early on the first draft. The build
+ * then failed on the words rather than on the code. */
+const spoke = new Set()
+const ran = []
 let current = ''
-const fail = (where, msg) => findings.push({ check: current, where, msg })
-const note = msg => notes.push(current + ': ' + msg)
+const fail = (where, msg) => { spoke.add(current); findings.push({ check: current, where, msg }) }
+const note = msg => { spoke.add(current); notes.push(current + ': ' + msg) }
 
 async function run (id, body) {
   current = id
+  ran.push(id)
   try { await body() } catch (err) { fail('(the check itself)', id + ' threw: ' + err.message) }
 }
 
 window.verify = async function verify (root) {
-  findings.length = 0; notes.length = 0
+  findings.length = 0; notes.length = 0; spoke.clear(); ran.length = 0
   /* A ROOT THAT MATCHES NOTHING IS WORSE THAN NONE, so take an element or a
      selector and say which one answered. A selector is preferred: it survives
      a re-render, and an element does not. */
@@ -656,8 +718,16 @@ window.verify = async function verify (root) {
   } else if (root && root.querySelectorAll) {
     SCOPE_EL = root
   }
+  /* TWO CAUSES, AND ONLY ONE OF THEM IS ABOUT THIS PAGE. An unsettled page is
+     still animating, so a reading may be one frame of it. A stopped clock
+     cannot settle at all, and waiting longer will never change that. */
+  FRAMES_STOPPED = !(await clockRuns())
+  if (FRAMES_STOPPED) console.error('VERIFY: the document runs no animation frames, so its clock is'
+    + ' stopped. Nothing can settle, every animation wait burns its deadline, and a cross-fade can'
+    + ' leave two surfaces mounted, which measures the surface LEAVING. Geometry below is still'
+    + ' valid. Bring the tab to the foreground and run again.')
   const settled = await settle()
-  if (!settled) console.warn('VERIFY: the page never came to rest. Measurements below may be a frame of an animation.')
+  if (settled === false && !FRAMES_STOPPED) console.warn('VERIFY: the page never came to rest. Measurements below may be a frame of an animation.')
 ${blocks}
 
   console.log('VERIFY  ' + innerWidth + 'x' + innerHeight
@@ -703,7 +773,13 @@ ${blocks}
     + (coarseRun ? 'a mouse' : 'touch emulation on')
     + ' before calling the targets clean.')
   for (const n of notes) console.log('  - ' + n)
-  if (!findings.length) { console.log('PASS'); return { pass: true, findings: [] } }
+  /* Every run carries the same three sets, pass or fail, so a driver reading
+     one branch cannot miss them. */
+  const coverage = { ran: ran.slice(), spoke: [...spoke], silent: ran.filter(id => !spoke.has(id)) }
+  /* A PASS FROM A PAGE THAT RAN NO FRAMES IS A NARROWER CLAIM, SO IT SAYS SO
+     IN THE SAME BREATH. Geometry held, and nothing about settling did. */
+  if (FRAMES_STOPPED) coverage.framesStopped = true
+  if (!findings.length) { console.log('PASS'); return { pass: true, findings: [], coverage } }
 
   /* FIX THE CLASS, NOT THE INSTANCE. Five identical nav items produced five
      identical lines, and a wall of repeats is read as noise rather than as one
@@ -724,7 +800,7 @@ ${blocks}
   console.log('FAIL - ' + groups.length + ' fault' + (groups.length === 1 ? '' : 's')
     + ' across ' + findings.length + ' site' + (findings.length === 1 ? '' : 's'))
   console.log('Fix each one. Do not report it as a limitation of the design system.')
-  return { pass: false, findings: findings.slice() }
+  return { pass: false, findings: findings.slice(), coverage }
 }
 
 console.log('VERIFY-BROWSER loaded. Run:  await verify()'

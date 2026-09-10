@@ -163,11 +163,47 @@ for (const path of jsxFiles) {
      already learned that lesson. Blank, never delete, so line numbers hold. */
   let text = ''
   let block = false, lineC = false
+  /* ── AND A BARE NUMBER INSIDE A STRING IS PROSE, NOT A LENGTH ──
+   *
+   * This guard reads `prop: value` out of JS source, so it also reads it out
+   * of a SENTENCE that happens to contain those words. The payload emitter is
+   * a file of document strings, and one of them quotes the viewBox incident:
+   * a plot's SVG "measured 478.9 by 478.9 inside a 140px box". The value
+   * capture runs to the first comma, so `width` paired with 478.9 and the
+   * guard reported a design value nobody wrote.
+   *
+   * A STORE CANNOT HOLD BOTH THE GATE AND A SAMPLE OF WHAT IT FORBIDS, and
+   * here the payload holds both. It stood as a false positive for as long as
+   * that paragraph existed, and it is not in the commit hook, so nothing was
+   * refused over it and nothing made it visible either.
+   *
+   * The quoted branch below is untouched, because a real style value IS a
+   * string: `padding: '4px 10px'`. Only the BARE-number branch is narrowed,
+   * and a bare number outside every string is what a style object writes. */
+  const inString = new Uint8Array(raw.length)
+  let quote = ''
   for (let c = 0; c < raw.length; c++) {
     const two = raw[c] + raw[c + 1]
-    if (!block && !lineC && two === '/*') { block = true; text += '  '; c++; continue }
-    if (block && two === '*/') { block = false; text += '  '; c++; continue }
-    if (!block && !lineC && two === '//') { lineC = true; text += '  '; c++; continue }
+    if (quote) {
+      inString[c] = 1
+      if (raw[c] === '\\') { if (c + 1 < raw.length) inString[c + 1] = 1; c++; continue }
+      if (raw[c] === quote) quote = ''
+      continue
+    }
+    if (block) { if (two === '*/') { block = false; c++ } ; continue }
+    if (lineC) { if (raw[c] === '\n') lineC = false; continue }
+    if (two === '/*') { block = true; c++; continue }
+    if (two === '//') { lineC = true; c++; continue }
+    if (raw[c] === '"' || raw[c] === "'" || raw[c] === '`') { quote = raw[c]; inString[c] = 1 }
+  }
+  block = false; lineC = false
+  for (let c = 0; c < raw.length; c++) {
+    const two = raw[c] + raw[c + 1]
+    if (!inString[c]) {
+      if (!block && !lineC && two === '/*') { block = true; text += '  '; c++; continue }
+      if (block && two === '*/') { block = false; text += '  '; c++; continue }
+      if (!block && !lineC && two === '//') { lineC = true; text += '  '; c++; continue }
+    }
     if (lineC && raw[c] === '\n') lineC = false
     text += (block || lineC) ? (raw[c] === '\n' ? '\n' : ' ') : raw[c]
   }
@@ -184,9 +220,14 @@ for (const path of jsxFiles) {
        13px gap on every desktop, and a scanner that only accepts a literal
        straight after the colon sees no value at all and reports the file
        clean. A conditional value is still a value. */
+    /* m[2] is the tail of m[0], so its start is the one subtraction away. */
+    const valueStart = m.index + m[0].length - m[2].length
     for (const lit of m[2].matchAll(/(?:^|[?:\s(])(\d+(?:\.\d+)?)(?=\s*[:)\s]|$)|'([^']*)'|"([^"]*)"/g)) {
       const rawVal = lit[1] ?? lit[2] ?? lit[3]
       if (rawVal == null) continue
+      /* Only the bare branch. A quoted value IS a string, and its own index
+         is the opening quote, so testing that branch would blank the guard. */
+      if (lit[1] != null && inString[valueStart + lit.index]) continue
       const val = lit[1] != null ? `${rawVal}px` : rawVal
       if (!/px|^\d/.test(val) || /var\(|%|em|rem|vh|vw|calc|auto|\bfr\b/.test(val)) continue
       scanValue(rel, `line ${lineAt(m.index)}`, kebab(prop), /px/.test(val) ? val : `${val}px`)

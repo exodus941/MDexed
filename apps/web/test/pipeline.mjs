@@ -3006,6 +3006,73 @@ line('\n- project file -')
     }
   }
 
+  /* ── A PAGE THAT RUNS NO FRAMES CANNOT SETTLE, AND IT READS AS PERFECTLY AT
+   * REST ──
+   *
+   * A hidden or frozen tab stops the document timeline. Measured 10 September
+   * 2026: the clock advanced 0ms across 976ms of wall clock, while 156
+   * transitions all reported a running state and a currentTime of 0. So every
+   * finished promise is unreachable, the settle spends its whole deadline, and
+   * a cross-fade never completes. Two trees stay mounted, which is the shape
+   * that measures the surface LEAVING.
+   *
+   * The false pass is the expensive half. A rect-stability check takes two
+   * samples, finds them identical, and reports rested on the first comparison.
+   * The matrix driver said nothing unsettled while the verifier's own settle
+   * returned false on that same page.
+   *
+   * RUN THE FUNCTION, DO NOT READ IT. A guard's own record is not evidence, so
+   * the emitted clockRuns is pulled out of the shipped file and pointed at two
+   * stub clocks. Each stub advances by a fixed step per read, so neither case
+   * depends on how long the await actually took. */
+  {
+    line('\n- the clock behind every settle -')
+    const emitted = verifyBrowserFile(state)
+    const fnSrc = emitted.match(/async function clockRuns \(\) \{[\s\S]*?\n\}/)
+    assert(!!fnSrc, 'the shipped verifier declares clockRuns')
+    if (fnSrc) {
+      const build = doc => new Function('document', `return (${fnSrc[0]})`)(doc)
+      const stopped = { timeline: { currentTime: 5 } }
+      let reads = 0
+      const running = { get timeline () { return { currentTime: ++reads * 100 } } }
+      assert(await build(running)() === true, 'true on a clock that advances')
+      assert(await build(stopped)() === false, 'and false on a clock that is stopped')
+      /* A page with no timeline at all is the same verdict, not a throw. */
+      assert(await build({})() === false, 'and false where the document has no timeline')
+    }
+
+    /* ── THEN THE WIRING, BECAUSE A SCORER NOTHING CALLS IS NO GUARD ──
+     *
+     * Three callers, three different answers, and the difference is the cost.
+     * The shipped verifier REPORTS, because geometry is still true in a hidden
+     * tab. The matrix driver REFUSES, because a 36-run matrix cannot complete
+     * and a partial result labelled with the surface requested sends a reader
+     * to a clean page. The toolkit WITHDRAWS its verdict, because a page
+     * frozen mid-entrance turns a transient ghost into a permanent one. */
+    const WIRED = [
+      ['the settle skips a wait it cannot win', VERIFY_SRC, /if \(FRAMES_STOPPED\) return false/],
+      ['the run measures the clock once', VERIFY_SRC, /FRAMES_STOPPED = !\(await clockRuns\(\)\)/],
+      ['and says so beside the verdict', VERIFY_SRC, /coverage\.framesStopped = true/],
+      ['the driver asks the verifier rather than a second copy', MATRIX_SRC, /window\.verifyClockRuns/],
+      ['the driver refuses instead of measuring', MATRIX_SRC, /A\.framesStopped = true/],
+    ]
+    if (TOOLKIT_SRC) {
+      WIRED.push(['the toolkit withdraws its own pass', TOOLKIT_SRC, /pass: framesRun !== false/])
+      WIRED.push(['and its settle asks the clock first', TOOLKIT_SRC, /if \(!\(await clockRuns\(\)\)\) \{/])
+    }
+    for (const [label, src, re] of WIRED) {
+      assert(re.test(src), label)
+      /* Loud on the injected fault: with the line gone, the condition fails.
+         Without this half the row is a claim about code rather than a test.
+         REPLACE EVERY OCCURRENCE. A bare `replace` with a non-global pattern
+         changes the first one only, so a term the file states twice survives
+         its own mutation and the row passes for the wrong reason. That is
+         what this loop did on its first run, on the one term stated twice. */
+      const everywhere = new RegExp(re.source, 'g')
+      assert(!re.test(src.replace(everywhere, 'zzz')), `and loud when it goes: ${label}`)
+    }
+  }
+
   /* ── THE DIRECTION-AWARE BODIES, AND THE GATE THEY SIT BEHIND ──
    *
    * Two checks read `left` and mean START. Proven in a browser: pointed at a
