@@ -283,8 +283,10 @@ export default defineConfig(({ command }) => ({
        BOTH PREVIEW STYLESHEETS ARE IMPORTED WITH `?raw`, so their COMMENTS are
        shipped bytes rather than build-time notes. That is where this 3kB went:
        the reasons above, not the rules. Worth knowing before writing a long
-       one in those two files. */
-    chunkSizeWarningLimit: 1272,
+       one in those two files. Then to 1273 at 1272.42, with the `max` that
+       keeps the touch floor: a bare height on the header defeated it and put
+       five controls at 28 on a coarse pointer. */
+    chunkSizeWarningLimit: 1273,
   },
 
   server: {

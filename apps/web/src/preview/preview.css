@@ -2332,10 +2332,21 @@
  *
  * No width is stated on any of them. `aspect-ratio` makes the square from the
  * height, and a stated width is the one thing that can defeat it. */
+/* AND THE FLOOR STILL DECIDES THE TOUCH CASE, so the height is a `max`.
+ *
+ * Written as a bare `height: 28px` this defeated the 44px touch promotion, and
+ * measured five header controls at 28 on a coarse pointer while
+ * `--control-floor` on those same controls read 44px. That is the parity fault
+ * this project has already paid for once: a rule that states a height knows
+ * nothing about the floor, and it comes later.
+ *
+ * `max` lets the cap band decide the ordinary case and the floor decide the
+ * touch one. The line height is the content box, so it is the same max minus
+ * the two borders. */
 .dmd .page-head .page-actions .btn,
 .dmd .page-head .nav-summary {
-  height: var(--cmp-button-sm-height, 28px);
-  line-height: calc(var(--cmp-button-sm-height, 28px) - 2px);
+  height: max(var(--cmp-button-sm-height, 28px), var(--control-floor, 0px));
+  line-height: calc(max(var(--cmp-button-sm-height, 28px), var(--control-floor, 0px)) - 2px);
   padding: var(--cmp-button-sm-padding, 0 var(--space-xs, 8px));
   font-size: var(--cmp-button-sm-font-size, var(--font-caption-size, 12px));
 }
