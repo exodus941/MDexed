@@ -1,7 +1,7 @@
 {
   "measured": "2026-09-10",
   "how": "node tools/prove-render.mjs, then window.proveRender() at /fixtures/prove-render.html",
-  "declaredRenderChecks": 72,
+  "declaredRenderChecks": 73,
   "fixturePages": [
     "amount-edge.html",
     "arrange.html",
@@ -40,6 +40,7 @@
     "a-lift-must-not-survive-a-wrap",
     "a-mark-beside-words-names-its-side",
     "a-mark-is-never-a-typed-glyph",
+    "a-mark-paints-the-published-size",
     "a-mark-paints-the-size-its-component-publishes",
     "a-mark-stays-inside-its-control",
     "a-marked-item-says-so",

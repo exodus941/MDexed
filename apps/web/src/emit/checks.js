@@ -4605,6 +4605,95 @@ export const CHECKS = [
     ],
   },
   {
+    id: 'a-mark-paints-the-published-size',
+    where: 'render',
+    line: 'Every mark inside a control paints the size the system publishes for it.',
+    /* ── A CONTROL THAT PUBLISHES A MARK SIZE MUST PAINT IT ──
+     *
+     * Two checks already ask about a mark and neither asks this. The spread
+     * check asks whether ONE control carries two sizes, so a mark that is
+     * uniformly wrong passes it. The target check asks the box against the
+     * pointer floor and has no opinion about the ink inside it.
+     *
+     * So the recorded fault had nothing looking at it: a 44px button, a 16px
+     * label and a 10px icon. Three separate rules resized a button and left
+     * the mark behind, and every check on those controls was green.
+     *
+     * IT NEEDS NO MAP FROM A CLASS TO A TOKEN, because the published size is
+     * ONE value at every control. That is their decision of 10 September 2026,
+     * taken from four options rendered at actual size: a 14px mark beside the
+     * 14px label every one of the six components carries. So the check reads
+     * every published mark size, requires them to agree, and compares the
+     * painted marks against that one value.
+     *
+     * A SECOND PUBLISHED VALUE IS THE DRIFT ITSELF. Two sizes across six
+     * components is what let three of them drift, because a reader cannot name
+     * the axis that separates 14 from 16 and nothing tells a new component
+     * which it takes.
+     *
+     * READ THE SCOPE'S OWN PROPERTIES, not the token set. That set is built
+     * from the file on the source side and is empty in a browser. An exported
+     * build sets its tokens on the root and an editor sets them on the
+     * preview's own scope, and both are inline custom properties on the scope
+     * element.
+     *
+     * THREE EXEMPTIONS, EACH A PROPERTY RATHER THAN A NAME. An avatar is not a
+     * mark and publishes its own size. A specimen row exists to show three
+     * sizes and says so on itself. And the scope holds marks that are not in a
+     * control at all, an empty state's doubled mark among them, so scoping to
+     * controls excludes them by construction.
+     */
+    body: [
+      "const el = scopeEl()",
+      "const published = []",
+      "if (el) {",
+      "  /* THE COMPUTED VALUE, NEVER THE INLINE ATTRIBUTE. An exported build",
+      "     declares its tokens in a stylesheet on the root and an editor sets",
+      "     them inline on the preview's own scope. Reading the attribute finds",
+      "     the second and nothing in the first. Computed style enumerates a",
+      "     custom property, so one loop covers both: measured 609 of 1086",
+      "     entries on our own scope. */",
+      "  const cs = getComputedStyle(el)",
+      "  for (let i = 0; i < cs.length; i++) {",
+      "    const p = cs[i]",
+      "    if (!/^--cmp-[a-z0-9-]+-icon-size$/.test(p)) continue",
+      "    const v = px(cs.getPropertyValue(p))",
+      "    if (v) published.push([p, v])",
+      "  }",
+      "}",
+      "if (!published.length) {",
+      "  note('no component publishes a mark size on this scope, so nothing was compared')",
+      "} else {",
+      "  const distinct = []",
+      "  for (const p of published) if (distinct.indexOf(p[1]) < 0) distinct.push(p[1])",
+      "  if (distinct.length > 1) {",
+      "    fail(name(el),",
+      "      'the components publish ' + distinct.length + ' different mark sizes: ' + published.map(p => p[0] + ' at ' + round(p[1]) + 'px').join(', ') + '. A mark is one size at every control and at every size step, so a second value is a drift nobody can name an axis for. Publish one size and let the alignment rule centre it.')",
+      "  }",
+      "  const want = Math.min.apply(null, distinct)",
+      "  const MARKED = CONTROL + ', .tab, .nav-item, .select-trigger'",
+      "  let asked = 0",
+      "  for (const c of all(MARKED)) {",
+      "    if (c.closest('[data-specimen], .specimen, .sizes')) continue",
+      "    for (const m of Array.prototype.slice.call(c.querySelectorAll('svg, .icon'))) {",
+      "      if (!visible(m) || m.closest('.avatar')) continue",
+      "      const r = m.getBoundingClientRect()",
+      "      if (!r.width || !r.height) continue",
+      "      const painted = Math.max(r.width, r.height)",
+      "      asked++",
+      "      /* WHOLE PIXELS. A ratio and a border can leave a fraction, and a",
+      "         threshold under one fires on rounding. */",
+      "      if (Math.abs(painted - want) < 1) continue",
+      "      fail(name(c),",
+      "        'this control paints its mark at ' + round(painted) + 'px where the system publishes ' + round(want) + 'px. A rule that resizes a control has to restate its mark, and three rules here did not. Read the published size rather than the neighbour: a mark is one size at every control size, so nothing about the box decides it.')",
+      "    }",
+      "  }",
+      "  if (!asked) note('no control on this page holds a mark, so nothing was compared against the published ' + round(want) + 'px')",
+      "  else note(asked + ' mark(s) compared against the published ' + round(want) + 'px')",
+      "}",
+    ],
+  },
+  {
     id: 'a-control-size-is-a-token',
     where: 'source',
     line: 'A control states its size with the published token, never a number typed in the rule.',
