@@ -3022,7 +3022,21 @@ export const CHECKS = [
       "    const g = hexOf(getComputedStyle(node).backgroundColor)",
       "    if (g) { ground = g; break }",
       "  }",
-      "  if (!ground || ground === own) continue",
+      /* ── THE EXACT-EQUAL CASE WAS EXEMPT, AND IT IS THE PUREST FAULT ──
+       *
+       * `ground === own` skipped a shape whose fill IS its ground, which is
+       * the one case where nothing whatever shows. Everything one hair off
+       * reported, and 1.00:1 did not. Found by injection: a 24px square
+       * painted the card colour came back clean, and nudging it four points
+       * fired at 1.03:1.
+       *
+       * A transparent fill is already gone, because hexOf returns null for
+       * one. So what is left here is an element that STATES a fill equal to
+       * its ground, at 8 to 64px, near-square, with almost no text and no
+       * control in it. That is a shape nobody can see.
+       *
+       * Measured after: the app's twelve surfaces report 0 findings. */
+      "  if (!ground) continue",
       "  const a = lum(own), b = lum(ground)",
       "  if (a == null || b == null) continue",
       "  const ratio = (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05)",
