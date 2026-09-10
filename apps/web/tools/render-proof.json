@@ -1,0 +1,30 @@
+{
+  "measured": "2026-09-10",
+  "how": "node tools/prove-render.mjs, then window.proveRender() at /fixtures/prove-render.html",
+  "declaredRenderChecks": 72,
+  "fixturePages": [
+    "amount-edge.html",
+    "charts.html",
+    "rowplane.html",
+    "spacing.html"
+  ],
+  "proven": [
+    "a-chart-is-named-not-focused",
+    "a-chart-owes-a-name-or-says-it-is-decoration",
+    "a-collapsed-row-still-costs-its-gap",
+    "a-column-of-figures-takes-the-mono-face",
+    "a-gridline-is-quieter-than-its-axis",
+    "a-group-of-buttons-keeps-one-gap",
+    "a-plot-is-a-shape-not-a-height",
+    "a-row-that-cannot-wrap-must-fit",
+    "a-rule-sits-inside-its-gap",
+    "a-separator-goes-above-each-item",
+    "a-stripe-is-rhythm-and-a-selection-is-a-choice",
+    "a-tab-strip-never-wraps-and-never-scrolls",
+    "an-action-stands-clear-of-its-explanation",
+    "an-amount-lines-up-on-its-end-edge",
+    "card-actions-sit-on-the-bottom-edge",
+    "nav-folds",
+    "nothing-clipped-out-of-reach"
+  ]
+}

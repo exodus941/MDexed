@@ -72,6 +72,20 @@ if ! node tools/grid-snap.mjs --check; then
   exit 1
 fi
 
+# ── 1f. The render checks proven to fire. Blocking, on a ratchet. ──
+# The source half asserts every check against a fixture carrying the fault it
+# exists to find. The render half had nothing, so a check whose selector stops
+# matching goes quiet, and quiet reads exactly like a clean page. 17 of 72 are
+# proven. This refuses a record that names a check nobody declares any more, or
+# a fixture page that has gone, because the proof came from that page.
+if ! node apps/web/tools/render-proof-guard.mjs; then
+  echo
+  echo "pre-commit: render-proof guard failed. Commit refused."
+  echo "Re-measure with 'node apps/web/tools/prove-render.mjs', open"
+  echo "/fixtures/prove-render.html and write proveRender() into render-proof.json."
+  exit 1
+fi
+
 # ── 2. The build number. Not blocking. ──
 # Advanced once per batch of commits, so it counts deploys rather than commits:
 # it bumps only when there is nothing unpushed, which means the first commit

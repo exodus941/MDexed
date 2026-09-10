@@ -132,6 +132,16 @@ const html = [
   '  table { border-collapse: collapse; width: 100% }',
   '  th, td { padding: 8px 12px; text-align: start }',
   '  tbody tr { border-top: 1px solid ' + V.border + ' }',
+  /* ── SIZE THE BOXES, OR THIS PAGE BURIES ITS OWN FINDINGS ──
+   *
+   * A bare checkbox renders at the browser default of 13x13, which is under
+   * the 24px floor a fine pointer states. This page holds 60 of them, so the
+   * target check reported 60 findings against the 7 the page exists to show.
+   * Every one was correct: 60 out of 68 findings, and the 7 were unreadable.
+   *
+   * The page is about row planes, so the target question does not belong to
+   * it and is not weakened here. It gets its own fixture. */
+  '  input[type=checkbox] { width: 24px; height: 24px; margin: 0 }',
   '</style>',
   '</head>',
   '<body>',
