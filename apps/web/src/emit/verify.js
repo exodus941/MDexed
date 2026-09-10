@@ -622,12 +622,58 @@ function rows () {
  * mechanism that breaks, so it is the thing to measure.
  *
  * GEOMETRY IS STILL VALID. Layout runs in a hidden tab, so a rectangle is
- * true. Only the settling, the animation waits and the cross-fade are lost. */
+ * true. Only the settling, the animation waits and the cross-fade are lost.
+ *
+ * ── THE TIMELINE'S NUMBER WAS THE WRONG THING TO ASK, AND IT PASSED THE
+ * EXACT FAULT IT EXISTS TO CATCH ──
+ *
+ * This compared document.timeline.currentTime across a timer. Measured on
+ * 11 September 2026, in a pane the host reported as displayed: that number
+ * advanced 767ms across a 150ms timer, while requestAnimationFrame delivered
+ * 0 frames in 3.5 seconds and a live transition sat at currentTime 0 for 1.4
+ * seconds. The timeline is read against the wall clock. An ANIMATION only
+ * advances on a committed frame, so the animation is what to ask.
+ *
+ * SCRIPT-DRIVEN, so a stylesheet cannot silence the measurement. Element
+ * animate() is not affected by transition: none or animation: none, which is
+ * what an editor sets when its motion is turned off.
+ *
+ * ── AND A DOCUMENT THAT ANIMATES NOTHING NEEDS NO FRAMES ──
+ *
+ * The three reasons this gate exists are that nothing can settle, that every
+ * bounded wait spends its deadline, and that a cross-fade strands two trees.
+ * All three are about an animation in flight. With every transition off there
+ * is none: the page is at rest by construction and a cross-fade swaps in one
+ * commit. So the gate asks both halves and passes on either, rather than
+ * refusing a run that is sound.
+ *
+ * It says WHICH, because a run taken with motion off is a different claim
+ * from one taken with the clock running, and a verdict names its coverage. */
 async function clockRuns () {
-  const at = () => (document.timeline && document.timeline.currentTime) || 0
-  const t0 = at()
+  const why = { ticks: false, animates: true }
+  window.verifyClockWhy = why
+  if (!document.body || !document.body.animate) return true
+  const probe = document.createElement('div')
+  probe.style.cssText = 'position:fixed;left:-9999px;top:-9999px;width:1px;height:1px;'
+    + 'pointer-events:none;opacity:0'
+  document.body.appendChild(probe)
+  /* DOES A SCRIPT-DRIVEN ANIMATION ADVANCE? That is the question settle() and
+     every finished promise depend on. */
+  const a = probe.animate([{ transform: 'translateY(0px)' }, { transform: 'translateY(1px)' }],
+    { duration: 4000 })
+  /* AND CAN A CSS TRANSITION START AT ALL? If none can, nothing is ever in
+     flight, so the frozen clock costs this run nothing. */
+  probe.style.transition = 'width 4000ms linear'
+  probe.getBoundingClientRect()
+  probe.style.width = '30px'
   await new Promise(r => setTimeout(r, 150))
-  return at() > t0
+  const t = a.currentTime
+  why.ticks = typeof t === 'number' ? t > 0 : !!(t && t.value > 0)
+  why.animates = probe.getAnimations().some(x => x !== a)
+  /* AN INSTRUMENT LEFT ON THE PAGE BECOMES ONE OF THE THINGS IT MEASURES. */
+  a.cancel()
+  probe.remove()
+  return why.ticks || !why.animates
 }
 window.verifyClockRuns = clockRuns
 

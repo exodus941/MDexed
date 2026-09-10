@@ -86,6 +86,21 @@ if ! node apps/web/tools/render-proof-guard.mjs; then
   exit 1
 fi
 
+# ── 1g. The SERVED verifier matches the source. Blocking. ──
+# public/VERIFY-BROWSER.js is what the matrix driver fetches, and nothing wrote
+# it. Every fixture script wrote its own copy under local/fixtures, so that half
+# stayed current while the served copy aged. Found 11 September 2026, about to
+# run the matrix: the served file was 193,633 bytes holding 74 render checks
+# while the source declared 79. A run against it would have measured the old set
+# and been labelled with the new one, which is a confident verdict about a check
+# set that was never loaded.
+if ! node apps/web/tools/write-verifier.mjs --check; then
+  echo
+  echo "pre-commit: the served verifier has drifted. Commit refused."
+  echo "Run 'node apps/web/tools/write-verifier.mjs' to rewrite it."
+  exit 1
+fi
+
 # ── 2. The build number. Not blocking. ──
 # Advanced once per batch of commits, so it counts deploys rather than commits:
 # it bumps only when there is nothing unpushed, which means the first commit

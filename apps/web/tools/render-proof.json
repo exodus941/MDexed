@@ -1,7 +1,7 @@
 {
   "measured": "2026-09-10",
   "how": "node tools/prove-render.mjs, then window.proveRender() at /fixtures/prove-render.html",
-  "declaredRenderChecks": 79,
+  "declaredRenderChecks": 78,
   "fixturePages": [
     "amount-edge.html",
     "arrange.html",
@@ -44,7 +44,6 @@
     "a-mark-paints-the-published-size",
     "a-mark-paints-the-size-its-component-publishes",
     "a-mark-stays-inside-its-control",
-    "a-mark-taller-than-its-line-takes-its-own-correction",
     "a-marked-item-says-so",
     "a-menu-control-is-a-sibling-of-the-action-group",
     "a-menu-control-shares-the-title-row",

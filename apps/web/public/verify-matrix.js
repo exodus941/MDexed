@@ -239,6 +239,16 @@ function run (surfaces, widths, only) {
       A.finished = true
       return
     }
+    /* ── A VERDICT NAMES ITS OWN COVERAGE, AND MOTION IS PART OF IT ──
+     *
+     * The gate passes on either of two grounds: the clock ticks, or nothing
+     * on the page can animate. The second is sound and it is a DIFFERENT
+     * claim, because no transition ran during the run. Say which, in the
+     * report, rather than letting the two read the same. */
+    A.clock = window.verifyClockWhy
+      ? (window.verifyClockWhy.ticks ? 'ticking'
+        : 'stopped, and nothing on the page animates, so there was nothing to settle')
+      : 'unmeasured'
     try {
       for (const surface of list) {
         for (const width of w) {
@@ -284,6 +294,10 @@ function report (limit) {
     error: A.err,
     pointer: A.pointer,
     unmeasured: A.pointer === 'coarse' ? 'the fine-pointer case' : 'the coarse-pointer case',
+    /* WHICH GROUND THE GATE PASSED ON. A run with the clock stopped and every
+       transition off measures a page that is at rest by construction, which is
+       sound and is not the same claim as a run with motion live. */
+    ...(A.clock ? { clock: A.clock } : {}),
     /* A REFUSAL MUST READ AS A REFUSAL, NEVER AS A CLEAN RUN. Without this
        line a stopped clock prints 0 of 36 runs and 0 findings, and the second
        number is what a reader remembers. */

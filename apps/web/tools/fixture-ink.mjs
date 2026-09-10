@@ -1,10 +1,16 @@
-/* ── THE FIXTURE THAT PROVES THE THREE INK AND REACH CHECKS ──
+/* ── THE FIXTURE THAT PROVES THE INK AND REACH CHECKS ──
  *
- * Three render checks had never produced a finding on an injected fault:
+ * Two render checks had never produced a finding on an injected fault:
  *
  *   ok-type  / bad-type    a lifted row at its label's type, or at the body's
- *   ok-tall  / bad-tall    an oversized mark on its own correction, or on none
  *   ok-hook  / bad-hook    a mark the editor can reach, or one it cannot
+ *
+ * A THIRD PAIR WAS HERE AND ITS CHECK WAS CUT ON 11 September 2026. The
+ * oversized-mark case fired on its fixture and then produced 82 findings on
+ * correct code over 156 runs, because it measured the mark's CENTRING where
+ * the rule is about a container's CLEARANCE. The record is in `checks.js`
+ * where the check was. A fixture for a check nobody declares is a page nobody
+ * reads, so the pair came out with it.
  *
  * WHY ITS OWN PAGE, AND NOT THE MARKS FIXTURE.
  *
@@ -17,8 +23,8 @@
  * EVERY ROW HERE IS A PLAIN SPAN, ON PURPOSE. The cap-band check iterates
  * `button, a, label, .btn, .nav-item, .brand`, so a marked-up holder would put
  * two checks on one case and neither would read as its own proof. A row that
- * is none of those is outside it, and these three checks ask about the row
- * rather than about the control.
+ * is none of those is outside it, and these checks ask about the row rather
+ * than about the control.
  *
  * Run:  node tools/fixture-ink.mjs
  * Then: http://localhost:5173/fixtures/ink.html
@@ -67,10 +73,6 @@ const pair = (okId, badId, title, note, ok, bad, okHook, badHook) => [
 const typeRow = () => '<span class="liftrow">' + svg()
   + '<strong class="bigl">Discard changes</strong></span>'
 
-/* A disc four times the mark size, so it SETS the row edge rather than
-   overshooting the cap band. */
-const tallRow = () => '<span class="tallrow"><span class="avatar"></span>'
-  + '<span class="who">Amelia Okonkwo</span></span>'
 
 const hookRow = () => '<span class="pill">' + svg() + '<span class="lbl">Filter</span></span>'
 
@@ -110,18 +112,6 @@ const html = [
      writers for one distance, and the row is the one under test. */
   '  .liftrow > .icon { align-self: baseline; transform: none }',
   '',
-  /* A MARK TALLER THAN ITS LINE TAKES ITS OWN CORRECTION. A disc has no text,
-     so under baseline alignment its bottom margin edge lands on the row
-     baseline and its whole height hangs above. It costs the distance from the
-     box centre to the cap band centre, which is half its own size less half a
-     cap height, and 0.75em is the cap height measured from painted ink. */
-  '  .tallrow { display: inline-flex; align-items: baseline; gap: var(--space-sm);',
-  '             font-size: 14px; line-height: 20px }',
-  '  .tallrow > .avatar { width: 32px; height: 32px; flex: 0 0 auto;',
-  '                       border-radius: 999px; background: ' + V.accent + ';',
-  '                       align-self: baseline;',
-  '                       transform: translateY(calc(50% - 0.375em)) }',
-  '',
   /* EVERY DRAWN MARK CAN BE EDITED. The hook is an attribute rather than a
      rule, so this pair has no declaration to state here. */
   '  .pill { display: inline-flex; align-items: baseline; gap: var(--space-xs);',
@@ -134,21 +124,15 @@ const html = [
   /* The row left at the body size while its label states 20px. The band then
      computes at 14 and the mark shifts by the difference. */
   '  #bad-type .liftrow { font-size: 14px }',
-  /* No correction at all, so the disc hangs its whole height above the line. */
-  '  #bad-tall .avatar { transform: none }',
   '</style></head><body>',
   '<h1>Fixture: the ink and reach rules</h1>',
-  '<p class="lede">Three checks, each injected once beside the correct form of',
+  '<p class="lede">Two checks, each injected once beside the correct form of',
   ' the same shape. Every row is a plain span, so the cap-band rules do not',
   ' reach these cases and one fault fires one check.</p>',
 
   pair('ok-type', 'bad-type', 'a row carries its label type',
     'The cap band is stated in em, so it resolves against whichever element carries the transform. A row left at the body size computed a 12px band for a 20px heading and shifted 4px where 2.5 was wanted.',
     typeRow(), typeRow(), 'nav-item', 'nav-item'),
-
-  pair('ok-tall', 'bad-tall', 'a mark taller than its line takes its own correction',
-    'A 14px mark inside a 22.6px line overshoots the cap by 1.52px. A 32px disc SETS the row edge instead, so it costs the whole distance from the text box top to the cap top. One formula scaled covers neither.',
-    tallRow(), tallRow(), 'avatar', 'avatar'),
 
   pair('ok-hook', 'bad-hook', 'every drawn mark can be edited',
     'The burger had no entry, so clicking it offered the links it opens rather than the mark, and its three bars were 16 by 2 because somebody typed that. A mark outside every hook is a mark nothing can state the size of.',

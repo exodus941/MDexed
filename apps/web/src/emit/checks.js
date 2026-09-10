@@ -4666,37 +4666,81 @@ export const CHECKS = [
      */
     body: [
       "let asked = 0",
+      "/* ── ONE VERDICT PER CHART, NEVER ONE PER COLUMN ──",
+      " *",
+      " * A chart may carry a value column down its side AND a category row along",
+      " * its bottom, and the two want opposite answers. Asked per column, the",
+      " * bottom row asked for zero padding on a chart that correctly pads 9.72",
+      " * for its side column. 130 findings on correct code, all of them that.",
+      " *",
+      " * The rule is a statement about the PLOT: a side column means it owes half",
+      " * a line, and only a chart with no side column owes nothing. */",
+      "/* ── AND THE OUTERMOST CHART IS THE ONE THAT PAYS ──",
+      "   Per-box was not enough on its own. The side column is a child of an",
+      "   inner frame and the bottom row is a child of the chart, so the two",
+      "   boxes each saw one axis. Document order gave the chart its verdict",
+      "   first, from the bottom row alone, and the side column never got a say:",
+      "   9 findings per width on the same correct charts.",
+      "   So the outermost chart is the candidate and its whole subtree is the",
+      "   place to look. A nested frame is part of that chart, not a chart. */",
       "for (const box of all('[class*=\"chart\"], [class*=\"plot\"]')) {",
-      "  for (const col of Array.prototype.slice.call(box.children)) {",
+      "  if (box.parentElement && box.parentElement.closest('[class*=\"chart\"], [class*=\"plot\"]')) continue",
+      "  const cols = []",
+      "  for (const col of Array.prototype.slice.call(box.querySelectorAll('*'))) {",
       "    /* A TICK LABEL IS A LEAF CARRYING TEXT. A legend item holds a dot",
       "       and a word, so it has element children and is not one of these. */",
       "    const ticks = Array.prototype.slice.call(col.children)",
       "      .filter(k => visible(k) && !k.children.length && (k.textContent || '').trim())",
       "    if (ticks.length < 3 || ticks.length !== col.children.length) continue",
-      "    const tops = []",
-      "    const lefts = []",
-      "    for (const t of ticks) {",
-      "      const r = t.getBoundingClientRect()",
-      "      const a = Math.round(r.top); if (tops.indexOf(a) < 0) tops.push(a)",
-      "      const b = Math.round(r.left); if (lefts.indexOf(b) < 0) lefts.push(b)",
+      "    /* ── THE AXIS IS WHETHER THE INK OVERLAPS, NEVER A SHARED EDGE ──",
+      "       Counting distinct tops and lefts read a value column as neither",
+      "       axis: its labels are right-aligned, so 120, 90 and 60 start at",
+      "       three different x. The check then took the CATEGORY row as the",
+      "       only axis and asked a side-column chart for zero padding. 9",
+      "       findings per width on correct charts, at every width.",
+      "       A column's labels are disjoint down the block axis and overlap",
+      "       across it. A row is the reverse. That is a property of the ink. */",
+      "    const rects = ticks.map(t => t.getBoundingClientRect())",
+      "    let vApart = true, hApart = true",
+      "    for (let i = 1; i < rects.length; i++) {",
+      "      const a = rects[i - 1], b = rects[i]",
+      "      if (Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > 0) vApart = false",
+      "      if (Math.min(a.right, b.right) - Math.max(a.left, b.left) > 0) hApart = false",
       "    }",
-      "    const side = tops.length >= 3 && lefts.length <= 2",
-      "    const bottom = lefts.length >= 3 && tops.length <= 2",
+      "    const side = vApart && !hApart",
+      "    const bottom = hApart && !vApart",
       "    if (!side && !bottom) continue",
       "    const line = px(getComputedStyle(ticks[0]).lineHeight)",
       "    if (!line) continue",
-      "    asked++",
-      "    const cs = getComputedStyle(box)",
-      "    const want = side ? line / 2 : 0",
-      "    const top = px(cs.paddingTop) || 0",
-      "    const bot = px(cs.paddingBottom) || 0",
-      "    if (Math.abs(top - want) < 1 && Math.abs(bot - want) < 1) continue",
-      "    fail(name(box),",
-      "      'this chart pads its block edges ' + round(top) + 'px and ' + round(bot) + 'px where ' + round(want) + 'px is wanted, which is ' + (side ? 'half the ' + round(line) + 'px line of its own tick labels' : 'nothing, because its ticks run along the bottom') + '. A tick label is centred on the gridline it names, so the column is extended half a line at EACH end and that half line leaves the plot. Padding on the block axis absorbs exactly the overhang: without it a stated 12px of clearance above the plot reads as 2.28.')",
+      "    cols.push({ col: col, side: side, line: line })",
       "  }",
+      "  if (!cols.length) continue",
+      "  asked++",
+      "  /* ── SUM THE PADDING FROM THE COLUMN UP TO THE CHART'S EDGE ──",
+      "     The overhang has to be absorbed somewhere between the column and the",
+      "     chart's outer boundary, and WHICH level pays is not the rule. Asking",
+      "     one box reported 13 correct charts: the column sits in a frame that",
+      "     pads nothing, inside the chart that pads 9.72px, and the nearest",
+      "     ancestor holding the word was the frame.",
+      "     It stops AT the chart, so a card's own inset never counts: a card",
+      "     pads its children for a different reason. */",
+      "  const sided = cols.filter(c => c.side)[0]",
+      "  const pick = sided || cols[0]",
+      "  const want = sided ? sided.line / 2 : 0",
+      "  let top = 0, bot = 0",
+      "  let up = pick.col.parentElement",
+      "  for (let i = 0; i < 6 && up; i++, up = up.parentElement) {",
+      "    const ucs = getComputedStyle(up)",
+      "    top += px(ucs.paddingTop) || 0",
+      "    bot += px(ucs.paddingBottom) || 0",
+      "    if (up === box) break",
+      "  }",
+      "  if (Math.abs(top - want) < 1 && Math.abs(bot - want) < 1) continue",
+      "  fail(name(box),",
+      "    'this chart pads its block edges ' + round(top) + 'px and ' + round(bot) + 'px where ' + round(want) + 'px is wanted, which is ' + (sided ? 'half the ' + round(sided.line) + 'px line of its own tick labels' : 'nothing, because its ticks run along the bottom') + '. A tick label is centred on the gridline it names, so the column is extended half a line at EACH end and that half line leaves the plot. Padding on the block axis absorbs exactly the overhang: without it a stated 12px of clearance above the plot reads as 2.28.')",
       "}",
       "if (!asked) note('no chart on this page carries a tick column, so nothing was measured')",
-      "else note(asked + ' tick column(s) measured against half their own line height')",
+      "else note(asked + ' chart(s) measured against half their own tick line height')",
     ],
   },
   {
@@ -4749,53 +4793,38 @@ export const CHECKS = [
       "else note(asked + ' lifted mark(s) measured against their own label type')",
     ],
   },
-  {
-    id: 'a-mark-taller-than-its-line-takes-its-own-correction',
-    where: 'render',
-    line: 'A mark taller than the line it sits in is centred on the label cap band, not scaled from the same formula as a small one.',
-    /* ── ONE FORMULA COVERS NEITHER ──
-     *
-     * A 14px icon inside a 22.6px line box overshoots the cap by 1.52px. A
-     * 32px avatar SETS the row's top edge instead, and it costs the whole
-     * distance from a text box's top to its cap top, measured 7.79px on the
-     * same card. So a single scaled correction is wrong for both.
-     *
-     * THE THRESHOLD IS ON THE MOVE, NEVER ON THE DIFFERENCE. Centring shifts a
-     * box by HALF the gap between its two overhangs, so a 1px difference asks
-     * for a 0.5px nudge and no repair is possible. Measured on our own
-     * avatars: 32px marks in a 21.84px line, 10 above the cap and 12 below the
-     * baseline, so 1.00px off centre and nothing to fix.
-     *
-     * THE BAND COMES FROM FONT METRICS, never from the line box. A text box
-     * carries leading and descender space the capitals never use, so the box
-     * centre sits below the band centre.
-     */
-    body: [
-      "let asked = 0",
-      "for (const m of all('svg, .icon, .avatar, .dot')) {",
-      "  if (!visible(m)) continue",
-      "  const mr = m.getBoundingClientRect()",
-      "  if (!mr.width || !mr.height) continue",
-      "  const row = m.parentElement",
-      "  if (!row) continue",
-      "  const line = px(getComputedStyle(row).lineHeight)",
-      "  if (!line || mr.height <= line) continue",
-      "  const label = Array.prototype.slice.call(row.children)",
-      "    .find(c => c !== m && (c.textContent || '').trim() && visible(c))",
-      "  if (!label) continue",
-      "  const band = capBand(label)",
-      "  if (!band) continue",
-      "  asked++",
-      "  const off = (mr.top + mr.bottom) / 2 - (band.cap + band.baseline) / 2",
-      "  /* A 1px DIFFERENCE ASKS FOR HALF A PIXEL, so the bar is two. */",
-      "  if (Math.abs(off) < 2) continue",
-      "  fail(name(m),",
-      "    'this mark is ' + round(mr.height) + 'px tall inside a ' + round(line) + 'px line, and its centre sits ' + round(off) + 'px from the cap band of the label beside it. A mark taller than its line SETS the row edge rather than overshooting the cap, so it costs the whole distance from the text box top to the cap top and takes its own correction. Compensate it from its own size token, never from the formula a small mark uses.')",
-      "}",
-      "if (!asked) note('no mark on this page is taller than the line it sits in, so nothing was measured')",
-      "else note(asked + ' oversized mark(s) measured against their label cap band')",
-    ],
-  },
+  /* ── A MARK TALLER THAN ITS LINE: CUT ON 11 September 2026 ──
+   *
+   * Written, fixture-proven, and then measured over 156 runs. It produced
+   * 82 findings on correct code, in two shapes, and every one was mine.
+   *
+   * IT ASKED THE WRONG QUESTION. The rule is about the CLEARANCE above a
+   * row: a card row holding a 14px mark loses 1.52px to the overshoot, and
+   * one holding a 32px avatar loses the whole 7.79px from the text box top
+   * to the cap top, because the avatar SETS the row edge. The stylesheet
+   * states both, derived, at `.card > :first-child + .row:has(svg)` and
+   * `:has(.avatar)`. The check measured the mark CENTRING instead, which is
+   * the cap-band rule and already has a check.
+   *
+   * SHAPE ONE, 56 findings at -35px: at 296 the row stacks, so the "label
+   * beside it" is below it. Comparing a cap band across two lines is
+   * meaningless and the app is right.
+   *
+   * SHAPE TWO, 26 findings at +2px: the avatar carries INITIALS, so it is a
+   * text run on the row rather than an ornament. Its own baseline is what
+   * places it, which is the payload's own resolution.
+   *
+   * AND THE HONEST FORM NEEDS TWO THINGS I DO NOT HAVE. A constant-free
+   * reference, because 0.545em and the 0.72 cap factor are stated in the
+   * stylesheet and a check restating them is a second writer. And the
+   * candidate shape: measured across six surfaces at 1024, no card carries
+   * `:first-child + .row` holding a mark, so the rule has no instance to
+   * measure there and an all-cards-agree check faults a stat value against
+   * a table.
+   *
+   * So the rule is back on the checkable queue with those numbers, rather
+   * than shipped as chronic noise. A check that fires on correct code costs
+   * more than the miss it prevents. */
   {
     id: 'a-menu-control-shares-the-title-row',
     where: 'render',

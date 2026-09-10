@@ -3048,23 +3048,59 @@ line('\n- project file -')
    * returned false on that same page.
    *
    * RUN THE FUNCTION, DO NOT READ IT. A guard's own record is not evidence, so
-   * the emitted clockRuns is pulled out of the shipped file and pointed at two
-   * stub clocks. Each stub advances by a fixed step per read, so neither case
-   * depends on how long the await actually took. */
+   * the emitted clockRuns is pulled out of the shipped file and pointed at
+   * stub documents. Each stub answers a fixed value per read, so no case
+   * depends on how long the await actually took.
+   *
+   * ── THE FIRST VERSION ASKED THE TIMELINE, AND PASSED THE FAULT ──
+   *
+   * It compared `document.timeline.currentTime` across a timer. Measured on
+   * 11 September 2026 in a pane the host reported as displayed: that number
+   * advanced 767ms across a 150ms timer while requestAnimationFrame delivered
+   * 0 frames in 3.5 seconds and a live transition sat at currentTime 0. The
+   * timeline is read against the wall clock; an ANIMATION only advances on a
+   * committed frame. So the gate asks an animation now.
+   *
+   * AND IT PASSES ON EITHER OF TWO GROUNDS. The three costs of a stopped clock
+   * are all about an animation in flight. With every transition off there is
+   * none, so the page is at rest by construction and the run is sound. The
+   * four cases below are that truth table. */
   {
     line('\n- the clock behind every settle -')
     const emitted = verifyBrowserFile(state)
     const fnSrc = emitted.match(/async function clockRuns \(\) \{[\s\S]*?\n\}/)
     assert(!!fnSrc, 'the shipped verifier declares clockRuns')
     if (fnSrc) {
-      const build = doc => new Function('document', `return (${fnSrc[0]})`)(doc)
-      const stopped = { timeline: { currentTime: 5 } }
-      let reads = 0
-      const running = { get timeline () { return { currentTime: ++reads * 100 } } }
-      assert(await build(running)() === true, 'true on a clock that advances')
-      assert(await build(stopped)() === false, 'and false on a clock that is stopped')
-      /* A page with no timeline at all is the same verdict, not a throw. */
-      assert(await build({})() === false, 'and false where the document has no timeline')
+      /* `ticks` is whether a script-driven animation advances. `animates` is
+         whether a CSS transition can start at all. */
+      const stubDoc = (ticks, animates) => {
+        const mine = { get currentTime () { return ticks ? 100 : 0 }, cancel () {} }
+        const css = { note: 'a CSS transition somebody else started' }
+        const probe = {
+          style: { cssText: '', transition: '', width: '' },
+          getBoundingClientRect: () => ({ width: 1, height: 1, top: 0, bottom: 1 }),
+          animate: () => mine,
+          getAnimations: () => (animates ? [mine, css] : [mine]),
+          remove () {},
+        }
+        return { body: { animate: () => mine, appendChild () {} }, createElement: () => probe }
+      }
+      const win = {}
+      const build = doc => new Function('document', 'window', `return (${fnSrc[0]})`)(doc, win)
+      assert(await build(stubDoc(true, true))() === true,
+        'true where an animation advances and transitions are live')
+      assert(await build(stubDoc(false, true))() === false,
+        'and false where it does not, because nothing in flight can ever finish')
+      assert(await build(stubDoc(false, false))() === true,
+        'and true on a stopped clock where nothing animates, so nothing is in flight')
+      assert(win.verifyClockWhy && win.verifyClockWhy.ticks === false,
+        'and it says the clock was stopped, so a run there names a different claim')
+      assert(await build(stubDoc(true, false))() === true,
+        'and true where it advances and nothing animates')
+      /* A document that cannot animate at all is unmeasurable, not stopped.
+         Refusing there would refuse every run in an old browser. */
+      assert(await build({ body: {} })() === true,
+        'and true where the document cannot be asked, rather than refusing the run')
     }
 
     /* ── THEN THE WIRING, BECAUSE A SCORER NOTHING CALLS IS NO GUARD ──
