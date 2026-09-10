@@ -649,10 +649,20 @@
     flex: 0 0 100%;
   }
   /* Except the square, which is a square. It holds its side and lets the
-     labelled button beside it take the rest. */
+     labelled button beside it take the rest.
+
+     THE BASIS HOLDS THE SIDE, AND A STATED WIDTH DEFEATS THE RATIO. This named
+     the large step in both properties. Once the header took the step that fits
+     the heading's cap band, the height became 28 while the width stayed 44, and
+     the theme toggle rendered 44x28 at a ratio of 1.57 on Settings at 296, 308,
+     320 and 480. The shape check found all four and its message named this
+     cause.
+
+     `auto` is the basis now: no grow, no shrink, and the size comes from
+     `aspect-ratio: 1` against whatever height is in force. One writer, and it
+     is the HEIGHT. */
   .dmd .page-head > .page-actions > .btn.icon-only {
-    flex: 0 0 var(--cmp-button-lg-height, 44px);
-    width: var(--cmp-button-lg-height, 44px);
+    flex: 0 0 auto;
   }
 
   /* ── The touch step waits for the buttons to get their own line ──
@@ -688,10 +698,16 @@
     padding: var(--cmp-button-lg-padding, 0 var(--space-lg, 24px));
     font-size: var(--cmp-button-lg-font-size, var(--font-body-md-size, 16px));
   }
+  /* NO WIDTH HERE. `aspect-ratio: 1` in the base sheet makes the square from
+     whatever height is in force, and a stated width is the one thing that
+     defeats it. This line stated 44 while the header's own rule set the height
+     to 28, so the theme toggle rendered 44x28 at a ratio of 1.57 on Settings
+     at 296, 308, 320 and 480. The shape check found all four, and its message
+     names this exact cause. One writer, and it is the HEIGHT. */
   .dmd .page-actions > .btn.icon-only,
   .dmd .stack-narrow > .btn.icon-only,
   .dmd .stack-narrow-rev > .btn.icon-only {
-    width: var(--cmp-button-lg-height, 44px); padding: 0;
+    padding: 0;
   }
 
   /* There was a second rule here promoting only the small size, and only as far
