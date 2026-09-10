@@ -274,8 +274,17 @@ export default defineConfig(({ command }) => ({
        1265.16, with the check that compares a published mark size against the
        painted one. It found a seventh instance on its first real run. Then to
        1268 at 1267.78, with the check for a text-less wrapper's cap-band rule.
-       Nothing else could see that fault: the mark is a grandchild of the row. */
-    chunkSizeWarningLimit: 1268,
+       Nothing else could see that fault: the mark is a grandchild of the row.
+       Then to 1272 at 1270.81, with the header control rewrite: the fold
+       control became a square burger at every width, the section name moved
+       inside the menu, and every control beside a heading took the step that
+       fits its cap band.
+
+       BOTH PREVIEW STYLESHEETS ARE IMPORTED WITH `?raw`, so their COMMENTS are
+       shipped bytes rather than build-time notes. That is where this 3kB went:
+       the reasons above, not the rules. Worth knowing before writing a long
+       one in those two files. */
+    chunkSizeWarningLimit: 1272,
   },
 
   server: {

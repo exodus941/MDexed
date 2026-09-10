@@ -236,34 +236,23 @@
   .dmd .nav-burger { display: flex; }
   .dmd .nav-summary { cursor: pointer; }
 
-  /* ── The label beside the mark ──
+  /* ── THE LABEL BESIDE THE MARK IS GONE ──
    *
-   * A labelled control says what it opens. It shows here, at the top of the
-   * ladder, and the three thresholds below turn it off, on and off again as
-   * the row loses and regains room.
+   * It used to show here, at the top of the ladder, and two thresholds below
+   * turned it off and on again as the row lost and regained room. So one
+   * control had three shapes and the word was visible in one band of widths.
    *
-   * The menu's own heading yields to it. Both at once puts the word on screen
-   * twice the moment the menu opens, which reads as a stutter. */
-  .dmd .nav-label {
-    display: inline-block;
-    font-size: var(--font-overline-size, 12px);
-    font-weight: var(--font-overline-weight, 500);
-    letter-spacing: var(--font-overline-tracking, .08em);
-    text-transform: uppercase;
-    color: var(--c-text-muted, #666);
-    white-space: nowrap;
-  }
-  .dmd .nav-summary { gap: var(--space-2xs, 4px); }
+   * The base sheet now hides the label and squares the control at every width.
+   * Nothing sets a gap here either: a square control with one child has
+   * nothing to space. */
 
-  /* The menu's heading is the label's opposite, and BOTH are driven by the same
-     three thresholds rather than by asking about each other.
-     `:has(.nav-label)` cannot do it: the label is in the markup at every width
-     and only its `display` changes, so that selector matches always. A state
-     one rule sets and another infers is two writers for one decision.
-     Hidden here, because the mark carries the word at this width. It also
-     carries the space that used to sit outside the clipped box, so the margin
-     stays whether it shows or not. */
-  .dmd .nav-title { display: none; margin-top: var(--space-sm, 12px); }
+  /* THE HEADING'S VISIBILITY MOVED TO THE BASE SHEET, where it asks about the
+     LIST rather than about a width. Only the margin is a narrow-width matter.
+
+     It sits INSIDE the clipped area, so the closed fold clips it with
+     everything else. On the box that does the clipping it grew the clip box
+     instead and simply moved the 12px. */
+  .dmd .nav-title { margin-top: var(--space-sm, 12px); }
 
   /* A gap to a closed fold is dead space.
      The fold collapses to a `0fr` row, but the rail's flex `gap` does not
@@ -678,12 +667,19 @@
    * finger target matters most, since that is the narrow layout. Stage three is
    * 125px wide now.
    *
-   * The menu button IS in this list. It is a button, and a button answers to
-   * the row it sits in — at 40 beside three 28px buttons it was the "everything
-   * in a control row is one height" fault, measured at exactly that. Below this
-   * threshold every button in the header takes the large step together, whether
-   * it stayed on the title's row or dropped below it. */
-  .dmd .nav-summary,
+   * THE MENU BUTTON IS NO LONGER IN THIS LIST, and the reason it was here has
+   * inverted. It was added because a button answers to the row it sits in, and
+   * at 40 beside three 28px buttons it broke "everything in a control row is
+   * one height".
+   *
+   * It never drops below the title. So the row it sits in is the TITLE's row,
+   * where every control takes the step that fits the heading's cap band. Their
+   * instruction, 10 September 2026: the burger takes the same dimensions as the
+   * print button next to it. Promoting it here made it the largest thing in the
+   * header, which is not the primary action.
+   *
+   * Below this threshold the buttons that DO drop below the title still take
+   * the large step together. */
   .dmd .page-actions > .btn,
   .dmd .stack-narrow > .btn,
   .dmd .stack-narrow-rev > .btn {
@@ -821,13 +817,9 @@
  * at 354. A row with two things in it can be added up. A row with four cannot,
  * which is why every earlier arithmetic threshold was 16 to 32px wrong. */
 @media (max-width: 999905px) {
-  .dmd .nav-label { display: none; }
-  .dmd .nav-title { display: block; }
-  /* No label means no words, and a control with a mark and no words is a
-     SQUARE. Stated in the same block that hides the label, because the two are
-     one decision — a rule that hid the label somewhere else would leave the
-     shape behind. Measured before: 46x28 and 70x44. */
-  .dmd .nav-summary { aspect-ratio: 1; padding: 0; }
+  /* THE LABEL, THE HEADING AND THE SQUARE ALL MOVED TO THE BASE SHEET, because
+     the control is a square burger at every width now. Three rules sat here
+     doing at one threshold what the base does everywhere. */
 }
 
 /* 712 — a tab strip that does not fit becomes a dropdown.

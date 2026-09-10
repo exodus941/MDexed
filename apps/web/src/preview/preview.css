@@ -2053,11 +2053,25 @@
    beside it — same height, different top. Both are flex now and the boxes are
    identical. */
 .dmd .nav-collapse { display: flex; }
+/* THE FOLD CONTROL IS A SQUARE BURGER AT EVERY WIDTH, AND IT CARRIES NO WORDS.
+ *
+ * Their instruction, 10 September 2026: "it just needs to be a square hamburger
+ * menu button of the same dimensions as the print button".
+ *
+ * It used to gain a "Workspace" label at the top of the fold ladder, lose it
+ * two thresholds down, and the menu's own heading swapped with it. So the word
+ * was on screen between 480 and 704 and nowhere else, and one control had
+ * three shapes: 44x44 square, 155x44, then 139x36.
+ *
+ * The name lives INSIDE the menu now, with the links it names, which is what
+ * the standing rule already said. `aria-label` carries the accessible name, so
+ * hiding the label costs nothing there. */
 .dmd .nav-summary {
   display: flex; align-items: center; justify-content: center;
-  gap: var(--space-2xs, 4px);
+  aspect-ratio: 1; padding: 0;
   list-style: none; cursor: pointer;
 }
+.dmd .nav-label { display: none; }
 
 /* A title's metadata is one object, and it only becomes one at a narrow width.
    `contents` here keeps the badge and the timestamp as direct children of the
@@ -2069,7 +2083,20 @@
    Shown at wide widths it would sit inline among the links on the Landing
    header, whose list is a row — a heading in the middle of a nav bar. The
    responsive sheet reveals it where the fold is real. */
+/* ── THE MENU'S NAME SITS ABOVE A COLUMN OF LINKS, NEVER INSIDE A ROW ──
+ *
+ * It was hidden everywhere and revealed at one threshold, so the section was
+ * named between 480 and 704 and nowhere else. The reason for hiding it was
+ * real: on the Landing header the list is a ROW, and a heading among the links
+ * is a heading in the middle of a nav bar.
+ *
+ * That is a question about the LIST, not about a width. `.row` and `.stack-sm`
+ * are the primitives that set the direction, so asking them is reading the
+ * declaration rather than guessing from a name. Measured: Dashboard's list is
+ * `stack-sm nav-list` at `column`, Landing's is `row nav-list` at `row`, and
+ * both sit inside an `.aside-rail`, so the rail cannot tell them apart. */
 .dmd .nav-title { display: none; }
+.dmd .nav-list:not(.row) .nav-title { display: block; }
 .dmd .nav-summary::-webkit-details-marker { display: none; }
 /* The list is a sibling of the disclosure, never a child.
    A closed `details` does not render its non-summary children, and no CSS on
@@ -2278,6 +2305,42 @@
  * adding a second class: three classes here, so the narrow block's
  * `flex: 1 0 100%` still wins, and `responsiveCss` renders after this file. */
 .dmd .page-head > .page-actions { margin-inline-start: auto; flex: 0 1 auto; }
+
+/* ── A CONTROL BESIDE A HEADING TAKES THE STEP THAT FITS ITS CAP BAND ──
+ *
+ * Their decision, 10 September 2026, from two lines drawn across a screenshot:
+ * the control sits BETWEEN the cap line and the baseline.
+ *
+ * Measured on the 40px h2 in Space Grotesk: cap height 28.00px, so the band is
+ * 28 and the published small step is 28. A 36px control cannot sit between two
+ * lines 28 apart, and it measured 3.41px above the cap and 4.59 below the
+ * baseline.
+ *
+ * THE COMMENT IN THE RESPONSIVE SHEET ALREADY SAID THIS. It reads "the buttons
+ * keep the small step while they share the title's row", and they measured 36.
+ * They carry no size class, so they took the default medium step and nothing
+ * ever asked.
+ *
+ * THE SIZE IS THE WHOLE FIX. The transform that centres this row works off the
+ * LINE BOX, and for this face the band centre and the line centre are 0.19px
+ * apart, so the offset needs nothing.
+ *
+ * A DESCENDANT SELECTOR, NEVER A CHILD ONE. The action row wraps its buttons in
+ * `.pair` when it breaks, so `> .btn` loses them: that is exactly how the large
+ * step reached the menu control and missed the two actions beside it, leaving
+ * 44 and 36 in one header.
+ *
+ * No width is stated on any of them. `aspect-ratio` makes the square from the
+ * height, and a stated width is the one thing that can defeat it. */
+.dmd .page-head .page-actions .btn,
+.dmd .page-head .nav-summary {
+  height: var(--cmp-button-sm-height, 28px);
+  line-height: calc(var(--cmp-button-sm-height, 28px) - 2px);
+  padding: var(--cmp-button-sm-padding, 0 var(--space-xs, 8px));
+  font-size: var(--cmp-button-sm-font-size, var(--font-caption-size, 12px));
+}
+.dmd .page-head .page-actions .btn.icon-only,
+.dmd .page-head .nav-summary { padding: 0; }
 
 /* Navigation is not body copy. An underline in running text means "this is a
    link"; a whole nav bar of underlines means nothing and reads as damage.
