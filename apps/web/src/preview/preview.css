@@ -1627,6 +1627,25 @@
 /* These sit beside single-line text, so the whole-row centre is right for them. */
 .dmd .row > .icon, .dmd .row > .bar, .dmd .row > .swatch { align-self: center; }
 
+/* ── THE DOCUMENT'S OWN SWATCH, BECAUSE IT WAS BORROWING THE CHROME'S ──
+ *
+ * `.swatch` was bare in the editor's stylesheet, so a chrome rule reached the
+ * hosted document and gave a preview specimen cursor:pointer, position:relative
+ * and a transform transition. A specimen nothing can click offered a pointer and
+ * scaled on hover.
+ *
+ * The screen answered that by restating the border and the radius inline, and
+ * the stray check reported it. Both halves are one fault: a primitive only
+ * exists in the context that defines it, and this one had no definition here.
+ *
+ * A swatch IS its colour, so the colour stays inline as the one thing that is
+ * data. Everything else is the shape and belongs to the class. */
+.dmd .swatch {
+  display: block; box-sizing: border-box;
+  width: var(--cmp-swatch-width, 44px); height: var(--cmp-swatch-height, 16px);
+  border-radius: var(--radius-sm); border: 1px solid var(--c-border-subtle);
+}
+
 /* ── THE BOX IS DRAWN AT 16 AND HIT AT ITS HOST ──
  *
  * `DESIGN.md` publishes a 44px minimum target. Every checkbox here measured
@@ -2352,6 +2371,48 @@
 }
 .dmd .page-head .page-actions .btn.icon-only,
 .dmd .page-head .nav-summary { padding: 0; }
+
+/* ── THE TAB STYLE IS A SETTING, AND CSS READS IT OFF THE SCOPE ──
+ *
+ * It used to reach each screen as a prop, and each screen turned it into inline
+ * styles with a ternary. Two screens carried that code, and both restated what
+ * `.nav-item` and `.row` already declare. The stray check measured it: five
+ * findings on Record at 1280, six duplicated properties each.
+ *
+ * `data-heading-align` was already doing this correctly on the same element, so
+ * the pattern was here and the tab style was the one setting outside it.
+ *
+ * THE ATTRIBUTE HAS TO SIT ON THE SCOPE, NOT ON THE STRIP. Written on the item
+ * as `[aria-current]` alone it weighs the same as `.nav-item` and order decides
+ * it, which is the fault this project already recorded on a tab: the
+ * transparent fill came later and every selected tab read 1.00:1. The scope
+ * attribute lifts every rule below past any base rule, whatever the order.
+ *
+ * PILL DOES NOT RESET THE RADIUS AND UNDERLINE DOES. That asymmetry is
+ * deliberate and it was in the ternary: a pill wants the item's own corner and
+ * an underline wants a square edge sitting on the strip's rule. */
+.dmd .tab-strip { column-gap: var(--space-2xs, 4px); row-gap: var(--space-2xs, 4px); }
+.dmd[data-tab-style="underline"] .tab-strip {
+  padding: 0; border-bottom: 1px solid var(--c-border-subtle);
+}
+.dmd[data-tab-style="pill"] .tab-strip {
+  padding: var(--space-2xs, 4px) 0; border-bottom: 0;
+}
+.dmd .tab-strip > .nav-item { font-weight: 400; }
+.dmd .tab-strip > .nav-item[aria-current="page"] { font-weight: 500; }
+.dmd[data-tab-style="underline"] .tab-strip > .nav-item {
+  background: transparent; color: var(--c-text-muted);
+  border-radius: 0; box-shadow: none;
+}
+.dmd[data-tab-style="underline"] .tab-strip > .nav-item[aria-current="page"] {
+  color: var(--c-text); box-shadow: inset 0 -2px 0 var(--c-accent);
+}
+.dmd[data-tab-style="pill"] .tab-strip > .nav-item {
+  background: transparent; color: var(--c-text-muted);
+}
+.dmd[data-tab-style="pill"] .tab-strip > .nav-item[aria-current="page"] {
+  color: var(--c-accent); background: var(--c-accent-subtle);
+}
 
 /* Navigation is not body copy. An underline in running text means "this is a
    link"; a whole nav bar of underlines means nothing and reads as damage.

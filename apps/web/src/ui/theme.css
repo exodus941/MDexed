@@ -808,8 +808,16 @@ input[type=range].hue-slider:not(.dmd *)::-moz-range-thumb{width:16px;height:16p
 .num::-webkit-outer-spin-button,.num::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 .num[type=number]{-moz-appearance:textfield}
 
-.swatch{border-radius:4px;border:1px solid var(--hover-wash);cursor:pointer;position:relative;flex-shrink:0;transition:transform var(--t) var(--ease)}
-.swatch:hover{transform:scale(1.06);z-index:1}
+/* SCOPED OUT OF THE PREVIEW, because the hosted document uses `.swatch` too.
+   A primitive only exists in the context that defines it, and this one was
+   bare, so a CHROME rule reached a preview specimen. Measured: the Shell's
+   colour swatches carried cursor:pointer, position:relative and a transform
+   transition from here, so a specimen that nothing can click offered a pointer
+   and scaled on hover. The screen answered by restating the border and the
+   radius inline, which the stray check then reported.
+   `:not(.dmd *)` is the same guard the hue slider above already uses. */
+.swatch:not(.dmd *){border-radius:4px;border:1px solid var(--hover-wash);cursor:pointer;position:relative;flex-shrink:0;transition:transform var(--t) var(--ease)}
+.swatch:not(.dmd *):hover{transform:scale(1.06);z-index:1}
 
 .panel-note{font-size:12px;color:var(--muted);line-height:1.55}
 .pass{color:var(--success)}

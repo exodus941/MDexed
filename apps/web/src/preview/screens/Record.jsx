@@ -21,7 +21,8 @@
  */
 import { inspectProps, text } from '../inspect.js'
 import { Ico, IconDownload, IconSend, IconMore, IconCheck, IconAlert } from '../icons.jsx'
-import { stripStyle } from '../../state/components.js'
+/* NO `stripStyle` IMPORT. Canvas.jsx normalises the treatment once, where it
+   writes `data-tab-style` on the scope, and the stylesheet reads it. */
 import { labeller } from '../casing.js'
 
 /* Label over value, and the pair is one object.
@@ -48,7 +49,8 @@ export default function Record({ onInspect, tabStyle, casing }) {
      reconciliation" is what the data says, and the interface does not get to
      restyle it. */
   const L = labeller(casing)
-  const pill = stripStyle(tabStyle) === 'pill'
+  /* NO `pill` FLAG. It picked between two sets of inline styles, and the
+     stylesheet reads `data-tab-style` off the preview scope now. */
   const tabs = ['Overview', 'Invoices', 'Activity', 'Documents']
   const selected = 'Overview'
 
@@ -102,27 +104,19 @@ export default function Record({ onInspect, tabStyle, casing }) {
       {/* A tab strip over a body, which is where most readers meet one. The
           Shell shows a strip in chrome; this shows the same component doing the
           job it does on a content page. */}
-      <nav className="row tab-strip" aria-label="Record sections" style={{
-        gap: 'var(--space-2xs)',
-        padding: pill ? 'var(--space-2xs) 0' : 0,
-        borderBottom: pill ? 0 : '1px solid var(--c-border-subtle)',
-      }}>
+      {/* NO INLINE STYLE. The strip's spacing and the chosen tab's paint both
+          come from the stylesheet, which reads `data-tab-style` off the preview
+          scope. This markup used to restate six properties its own classes
+          already declare, and the stray check reported every one of them. */}
+      <nav className="row tab-strip" aria-label="Record sections">
         {tabs.map(t => {
           const on = t === selected
           return (
             /* The strip is a `nav`, so the chosen tab is `aria-current`. See
-               the same line in Shell.jsx for what its absence cost. */
+               the same line in Shell.jsx for what its absence cost. It is also
+               what the stylesheet now reads to paint the mark. */
             <span key={t} className="nav-item" aria-current={on ? 'page' : undefined}
-              {...ins(on ? 'tab-selected' : 'tab')} style={{
-              fontWeight: on ? 500 : 400,
-              ...(pill
-                ? { color: on ? 'var(--c-accent)' : 'var(--c-text-muted)',
-                    background: on ? 'var(--c-accent-subtle)' : 'transparent' }
-                : { background: 'transparent',
-                    color: on ? 'var(--c-text)' : 'var(--c-text-muted)',
-                    borderRadius: 0,
-                    boxShadow: on ? 'inset 0 -2px 0 var(--c-accent)' : 'none' }),
-            }}>{L(t)}</span>
+              {...ins(on ? 'tab-selected' : 'tab')}>{L(t)}</span>
           )
         })}
       </nav>

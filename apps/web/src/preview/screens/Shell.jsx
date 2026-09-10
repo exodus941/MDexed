@@ -21,7 +21,10 @@
 import { inspectProps, text } from '../inspect.js'
 import { labeller } from '../casing.js'
 import { Ico, IconDownload } from '../icons.jsx'
-import { stripStyle } from '../../state/components.js'
+/* NO `stripStyle` IMPORT. The scope carries `data-tab-style` and the
+   stylesheet reads it, so this screen no longer decides anything about the
+   treatment. Canvas.jsx normalises the value once, in the one place that
+   writes the attribute. */
 
 /* The tab strip.
  *
@@ -32,8 +35,10 @@ import { stripStyle } from '../../state/components.js'
  * The strip renders the treatment the document names, wherever it sits. A
  * promotion to the pill under a major rule was built and then rescinded on
  * sight. Do not reinstate it. */
-function TabStrip({ ins, L, tabs, selected, style, label }) {
-  const pill = stripStyle(style) === 'pill'
+/* NO `pill` FLAG HERE ANY MORE. It existed only to pick between two sets of
+   inline styles, and the stylesheet reads the setting off the scope now. A
+   variable kept for a branch that has gone is the next reader's puzzle. */
+function TabStrip({ ins, L, tabs, selected, label }) {
   return (
     <>
     {/* ── Too many tabs to fit: the strip becomes a dropdown ──
@@ -57,40 +62,26 @@ function TabStrip({ ins, L, tabs, selected, style, label }) {
     {/* A `nav` landmark, because a tab strip is navigation. The suite asserts
         this for any screen using `.nav-item`, and my first rewrite dropped it —
         a screen reader would have had a row of unlabelled spans. */}
-    <nav className="row tab-strip" aria-label={label} style={{
-      gap: 'var(--space-2xs)',
-      /* A pill needs room above and below; an underline needs the rule it
-         sits on. Nothing else here is mine to choose. */
-      padding: pill ? 'var(--space-2xs) 0' : 0,
-      borderBottom: pill ? 0 : '1px solid var(--c-border-subtle)',
-    }}>
+    {/* NO INLINE STYLE. A pill needs room above and below and an underline
+        needs the rule it sits on, and both of those are in the stylesheet now,
+        keyed on `data-tab-style` on the preview scope. This markup restated six
+        properties its own classes already declare, and the stray check reported
+        every one. An inset shadow, never a border: a border would make the
+        selected tab taller and push it past the strip's own rule. */}
+    <nav className="row tab-strip" aria-label={label}>
       {tabs.map(t => {
         const on = t === selected
         return (
           /* `aria-current` because the strip is a `nav`, so the chosen tab is
              a destination rather than a widget's selection. It is not
-             decoration: the mark below is an inset shadow, and forced colors
-             ignores box-shadow outright. Measured before this line existed —
-             the selected tab carried no attribute and no class, so the
+             decoration: the mark is an inset shadow, and forced colors ignores
+             box-shadow outright. Measured before this line existed. The
+             selected tab carried no attribute and no class, so the
              forced-colors rule written for it matched nothing on any of the
-             eleven surfaces and the tab lost its only marker. */
+             eleven surfaces and the tab lost its only marker. It is also what
+             the stylesheet reads to paint the mark at all. */
           <span key={t} className="nav-item" aria-current={on ? 'page' : undefined}
-            {...ins(on ? 'tab-selected' : 'tab')} style={{
-            fontWeight: on ? 500 : 400,
-            ...(pill
-              ? {
-                color: on ? 'var(--c-accent)' : 'var(--c-text-muted)',
-                background: on ? 'var(--c-accent-subtle)' : 'transparent',
-              }
-              : {
-                background: 'transparent',
-                color: on ? 'var(--c-text)' : 'var(--c-text-muted)',
-                borderRadius: 0,
-                /* An inset shadow, never a border: a border would make the
-                   selected tab taller and push it past the strip's own rule. */
-                boxShadow: on ? 'inset 0 -2px 0 var(--c-accent)' : 'none',
-              }),
-          }}>{L(t)}</span>
+            {...ins(on ? 'tab-selected' : 'tab')}>{L(t)}</span>
         )
       })}
     </nav>
@@ -205,7 +196,7 @@ export default function Shell({ onInspect, tabStyle, casing }) {
             beside every other collapse rule. */}
         <div className="stack" style={{ width: 'var(--split-left, 40%)', minWidth: 0 }}>
           {/* Four, not five. Five overflowed the pane by 24px and scrolled. */}
-          <TabStrip ins={ins} L={L} style={tabStyle} selected="Colour" label="Editor sections"
+          <TabStrip ins={ins} L={L} selected="Colour" label="Editor sections"
             tabs={['Meta', 'Colour', 'Type', 'Layout']} />
 
           <div className="card stack-sm" {...ins('card')}>
@@ -224,19 +215,19 @@ export default function Shell({ onInspect, tabStyle, casing }) {
                 <span className="small" {...txt('body-sm')}>{n}</span>
                 {/* No colour fallback. A missing role must paint nothing and be
                     noticed, rather than a grey nobody chose. */}
-                <span className="swatch" {...ins(n)} style={{
-                  width: 44, height: 16, alignSelf: 'center',
-                  background: `var(--c-${n})`,
-                  borderRadius: 'var(--radius-sm)',
-                  border: '1px solid var(--c-border-subtle)',
-                }} />
+                {/* THE COLOUR IS THE ONLY THING LEFT INLINE, because it is the
+                    datum: this swatch IS that role. The shape moved to `.dmd
+                    .swatch`, which the document did not have before, so the
+                    chrome's bare `.swatch` was reaching in and the screen was
+                    restating the border and the radius over it. */}
+                <span className="swatch" {...ins(n)} style={{ background: `var(--c-${n})` }} />
               </div>
             ))}
           </div>
         </div>
 
         <div className="stack" style={{ flex: 1, minWidth: 0 }}>
-          <TabStrip ins={ins} L={L} style={tabStyle} selected="Dashboard" label="Preview surfaces" tabs={['Dashboard', 'Form', 'Settings']} />
+          <TabStrip ins={ins} L={L} selected="Dashboard" label="Preview surfaces" tabs={['Dashboard', 'Form', 'Settings']} />
           {/* The tiles wrap rather than clip. `.row` only wraps once the FRAME
               is narrow, and this pane is narrow inside a wide frame — the
               container is the wrong size to ask. */}

@@ -8,6 +8,9 @@ import { audit } from '../a11y/audit.js'
 import { Finding } from '../a11y/PanelAlerts.jsx'
 import { PREVIEW_CSS, responsiveCss, varsToStyle } from './tokens.js'
 import { buildCssVars } from '../state/derive.js'
+/* THE SAME NORMALISER THE SCREENS USED, so an unknown value still lands on the
+   default rather than on an attribute no rule matches. */
+import { stripStyle } from '../state/components.js'
 import { gradientCss } from '../color/modes.js'
 import CrossFade from '../ui/CrossFade.jsx'
 import { Strut } from '../ui/controls.jsx'
@@ -551,7 +554,17 @@ export default function Canvas({ onInspect, surface, setSurface, onOpenContrast,
             {/* `data-heading-align` rather than a prop: this one is answered
                 entirely in CSS, on children the screens never name. A prop
                 would have to reach every page header on every surface. */}
+            {/* AND `data-tab-style` JOINS IT, for the same reason and one more.
+                It used to reach the screens as a prop, and each screen turned
+                it into inline styles with a ternary: the strip's gap, padding
+                and bottom rule, and each item's weight, colour, radius and
+                shadow. Two screens carried that code and both restated what
+                `.nav-item` and `.row` already declare.
+                The stray check measured it: five findings on Record at 1280,
+                six duplicated properties each. A setting is not a reason to
+                write a second answer to the same question. */}
             <div className="dmd" data-heading-align={state.type?.headingAlign ?? 'last'}
+              data-tab-style={stripStyle(state.components?.tabStyle)}
               style={{ ...varsToStyle(vars), borderRadius: 12, border: '1px solid var(--bdr)' }}
               {...(onInspect ? inspectProps(role('bg', 'Page background · bg'), handleInspect) : {})}>
               {/* Every surface is inspectable, not just the gallery. */}
