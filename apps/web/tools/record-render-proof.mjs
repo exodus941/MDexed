@@ -28,9 +28,17 @@ if (!RENDER.length) {
   process.exit(1)
 }
 
-const unproven = process.argv.slice(2).filter(a => a && !a.startsWith('--'))
-if (!unproven.length) {
-  console.error('name the ids that are still unproven. An empty list would claim every check is proven.')
+const argv = process.argv.slice(2)
+const unproven = argv.filter(a => a && !a.startsWith('--'))
+/* ── AN EMPTY LIST IS AMBIGUOUS, SO SAYING "NONE" IS EXPLICIT ──
+ *
+ * A forgotten list and a complete set look identical on the command line, and
+ * the first would silently claim every check is proven. So the complete case
+ * is stated rather than inferred from an absence. It became correct code on
+ * 10 September 2026, which is when this guard started firing on it. */
+if (!unproven.length && !argv.includes('--none')) {
+  console.error('name the ids that are still unproven, or pass --none if every check is proven.')
+  console.error('An empty list on its own would claim the whole set silently.')
   process.exit(1)
 }
 
