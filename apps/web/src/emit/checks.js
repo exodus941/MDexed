@@ -3960,10 +3960,16 @@ export const CHECKS = [
       "   Measured once in a dev server: five sheets, three throwing on access and",
       "   two empty, zero rules read, and a confident report of zero findings. An",
       "   injected fault carrying five dead classes came back clean. */",
+      "/* AN EMPTY CSSRuleList IS TRUTHY, AND CSS NESTING GAVE EVERY STYLE RULE",
+      "   ONE. So `if (r.cssRules)` recursed into nothing for every plain rule and",
+      "   its selector was never collected. Measured on this browser: 0 rules read",
+      "   out of 970. The text parse below was carrying the whole check on its own",
+      "   and hid it. Ask for the LENGTH, and take a rule that has a selector as a",
+      "   rule rather than as a container. */",
       "const sels = []",
       "const collect = list => { for (const r of list) {",
-      "  if (r.cssRules) collect(r.cssRules)",
-      "  else if (r.selectorText) for (const one of r.selectorText.split(\",\")) sels.push(one.trim())",
+      "  if (r.selectorText) for (const one of r.selectorText.split(\",\")) sels.push(one.trim())",
+      "  if (r.cssRules && r.cssRules.length) collect(r.cssRules)",
       "} }",
       "for (const sheet of document.styleSheets) {",
       "  try { collect(sheet.cssRules) } catch (e) { /* read from the text below */ }",
@@ -4602,6 +4608,93 @@ export const CHECKS = [
       "  fail(name(c),",
       "    'this control holds ' + marks.length + ' marks at ' + sizes.map(round).join(', ') + 'px, a spread of ' + round(spread) + 'px. A mark takes its size from its OWN control and never from a neighbour: the published size is one value at every control size, so one control cannot carry two. Read the marks the control already has before adding one.')",
       "}",
+    ],
+  },
+  {
+    id: 'an-element-does-not-re-implement-its-own-class',
+    where: 'render',
+    line: 'No element overrides four or more properties its own class already declares.',
+    /* ── A STRAY IS A PRIMITIVE RE-IMPLEMENTED INLINE ──
+     *
+     * Their rule: audit a new screen for strays before calling it done, by
+     * query. One surface carried four, and the class-name guard cannot see any
+     * of them, because none is a bad NAME. Its own header says so: it cannot
+     * see a screen that uses the wrong legal class.
+     *
+     * THE COUNT OF INLINE DECLARATIONS IS THE WRONG QUESTION. Measured over
+     * 547 inline-styled elements on twelve surfaces: at four or more inline
+     * properties it reports a swatch's own colour, a chart column's height and
+     * a tooltip's position, all of which are DATA that cannot live in a class.
+     *
+     * SO ASK HOW MANY OF THEM THE ELEMENT'S OWN CLASS ALREADY SETS. That is a
+     * duplicate writer, and it is the shape of a re-implemented primitive.
+     * Measured at each bar: 1 gives 38, 2 gives 13, 3 gives 9, 4 gives 8, 6
+     * gives 4. Their decision, 10 September 2026: four.
+     *
+     * At four the list is a tab strip overriding its own row-gap and
+     * column-gap, four nav items painting a selected state, and three swatches
+     * setting a border and an alignment. Six loses the nav items, which sit at
+     * five. Three adds a caption's margin, which is a decision rather than a
+     * mistake.
+     *
+     * ONE CHECK, TWO RULES. The tab strip overriding its own gap is also the
+     * one-writer-for-one-gap rule.
+     *
+     * DATA IS EXEMPT BY ARITHMETIC RATHER THAN BY A LIST. A series stroke, an
+     * auto margin and a badge's position are one property each.
+     */
+    body: [
+      "/* THE PROPERTY IS THE KEY, so the question is asked once per property",
+      "   rather than once per element. Resolving a selector list per element per",
+      "   property took an eleven-surface sweep past thirty seconds once. */",
+      "const byProp = new Map()",
+      "let readRules = 0",
+      "const collect = list => { for (const r of list) {",
+      "  if (r.selectorText && r.style) {",
+      "    readRules++",
+      "    for (let i = 0; i < r.style.length; i++) {",
+      "      const p = r.style[i]",
+      "      if (!byProp.has(p)) byProp.set(p, [])",
+      "      byProp.get(p).push(r.selectorText)",
+      "    }",
+      "  }",
+      "  /* AN EMPTY CSSRuleList IS TRUTHY under CSS nesting, so ask its length. */",
+      "  if (r.cssRules && r.cssRules.length) collect(r.cssRules)",
+      "} }",
+      "for (const sheet of document.styleSheets) {",
+      "  try { collect(sheet.cssRules) } catch (e) { /* cross-origin, counted below */ }",
+      "}",
+      "/* A RUN THAT READ NO RULES IS NOT A CLEAN RESULT. */",
+      "if (readRules < 20) {",
+      "  fail('(the check itself)', 'read only ' + readRules + ' rules, so nothing was measured. A cross-origin sheet throws on cssRules access, and an empty CSSRuleList is truthy, so a walk that asks the wrong question reads nothing and reports clean.')",
+      "  return",
+      "}",
+      "const matched = new Map()",
+      "const declaresOn = (el, p) => {",
+      "  if (!byProp.has(p)) return false",
+      "  if (!matched.has(p)) {",
+      "    let s = new Set()",
+      "    try { s = new Set(Array.prototype.slice.call(document.querySelectorAll(byProp.get(p).join(',')))) } catch (e) { /* an unparsable list */ }",
+      "    matched.set(p, s)",
+      "  }",
+      "  return matched.get(p).has(el)",
+      "}",
+      "let asked = 0",
+      "for (const el of all('[style]')) {",
+      "  const st = el.style",
+      "  /* THE SCOPE ROOT CARRIES THE WHOLE TOKEN BLOCK, at 577 declarations on",
+      "     our own. It is not an element re-implementing a class. */",
+      "  if (st.length > 60) continue",
+      "  if (!visible(el)) continue",
+      "  asked++",
+      "  const dupes = []",
+      "  for (let i = 0; i < st.length; i++) { const p = st[i]; if (declaresOn(el, p)) dupes.push(p) }",
+      "  if (dupes.length < 4) continue",
+      "  fail(name(el),",
+      "    'this element sets ' + dupes.length + ' properties inline that a class on it already declares: ' + dupes.slice(0, 6).join(', ') + (dupes.length > 6 ? ' and more' : '') + '. That is the primitive re-implemented in the screen rather than used, so the class carries one answer and the element another. Move the difference into the class, or into a state the markup declares.')",
+      "}",
+      "if (!asked) note('nothing on this page carries an inline style, so no element was compared against its own classes')",
+      "else note(asked + ' inline-styled element(s) compared against the ' + readRules + ' rules that match them')",
     ],
   },
   {

@@ -115,6 +115,14 @@ const html = [
   /* A class that reaches its element only inside another box. On anything else
      it is a class that exists in the stylesheet and styles nothing here. */
   '  .parenty .scoped { color: ' + V.accent + ' }',
+  /* ── A CLASS WITH ENOUGH PROPERTIES TO BE RE-IMPLEMENTED ──
+     Its own class, used by BOTH twins, because a class carried by one case
+     only is dead in the other and that fires a different check. The bad twin
+     adds nothing new: it restates four of these inline, which is the stray. */
+  '  .chipish { display: inline-flex; align-items: center; box-sizing: border-box;',
+  '             height: 24px; line-height: 22px; padding: 0 8px; border-radius: 6px;',
+  '             background: ' + V.surface + '; color: ' + V.text + ';',
+  '             border: 1px solid ' + V.border + ' }',
   '</style></head><body>',
   '<h1>Fixture: the semantic rules</h1>',
   '<p class="lede">Six checks about what the markup declares, each injected once',
@@ -154,6 +162,16 @@ const html = [
     'A selection has to be found by the eye, not noticed once you are already looking. A fill equal to its ground is absent rather than subtle.',
     '<nav class="run"><a href="#p" class="navitem marked" aria-current="page">Chosen</a><a href="#q" class="navitem">Other</a><a href="#r" class="navitem">Third</a></nav>',
     '<nav class="run"><a href="#p" class="navitem pale" aria-current="page">Chosen</a><a href="#q" class="navitem">Other</a><a href="#r" class="navitem">Third</a></nav>'),
+
+  /* ── THE STRAY, AND THE TWO TWINS ARE PIXEL-IDENTICAL ──
+     That is the whole point of it. The bad twin restates four properties its
+     own class already declares, so it renders the same and carries a second
+     answer to the same question. A screen reads correct and the primitive is
+     re-implemented in it. */
+  pair('ok-stray', 'bad-stray', 'an element does not re-implement its own class',
+    'The two look the same. The second restates its class inline, so the class carries one answer and the element another, and the next change to the class reaches only one of them.',
+    '<span class="chipish">Draft</span>',
+    '<span class="chipish" style="height: 24px; line-height: 22px; padding: 0 8px; border-radius: 6px">Draft</span>'),
 
   '</body></html>',
 ].join('\n')

@@ -1,7 +1,7 @@
 {
   "measured": "2026-09-10",
   "how": "node tools/prove-render.mjs, then window.proveRender() at /fixtures/prove-render.html",
-  "declaredRenderChecks": 73,
+  "declaredRenderChecks": 74,
   "fixturePages": [
     "amount-edge.html",
     "arrange.html",
@@ -67,6 +67,7 @@
     "an-action-centres-on-its-heading-cap-band",
     "an-action-stands-clear-of-its-explanation",
     "an-amount-lines-up-on-its-end-edge",
+    "an-element-does-not-re-implement-its-own-class",
     "an-icon-only-control-is-square",
     "an-inline-box-has-no-size",
     "an-ornament-column-takes-its-content",
