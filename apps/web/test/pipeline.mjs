@@ -1757,8 +1757,24 @@ line('\n- prompt construction -')
   /* The three rules this surface exists to show, obeyed in the surface itself.
      A sample that renders a component wrongly is a specification that lies. */
   assert(/className="row row-wrap"/.test(shell), 'the title bar is a .row, which is baseline-aligned')
-  assert(/inset 0 -2px 0 var\(--c-accent/.test(shell), 'the selected tab is underlined by an inset shadow')
+  /* ── THE UNDERLINE MOVED INTO CSS, AND THE ASSERTION FOLLOWED IT ──
+   *
+   * This read the inset shadow off the SHELL, because both screens turned
+   * `tabStyle` into inline styles with a ternary. The scope carries
+   * `data-tab-style` now and the stylesheet reads it, which is the pattern
+   * `data-heading-align` already used on the same element.
+   *
+   * BOTH HALVES, or the repair is a blindfold. The rule has to exist where it
+   * now lives, and the shell has to have stopped restating it. */
+  const pvCss = fs.readFileSync(new URL('../src/preview/preview.css', import.meta.url), 'utf8')
+  const tabRule = (pvCss.match(/\.dmd\[data-tab-style="underline"\][^{]*\{[^}]*\}/g) || []).join(' ')
+  assert(tabRule.length > 40, `the underline rules were found in the stylesheet (${tabRule.length} bytes)`)
+  assert(/inset 0 -2px 0 var\(--c-accent/.test(tabRule),
+    'the selected tab is underlined by an inset shadow, in the stylesheet')
+  assert(!/inset 0 -2px 0 var\(--c-accent/.test(shell),
+    'and the shell no longer restates it inline')
   assert(!/borderBottom: '2px/.test(shell), 'no underline is built from a border')
+  assert(!/border-bottom:\s*2px/.test(tabRule), 'and none in the rule either')
   assert(/var\(--c-border-subtle\)/.test(shell), 'rules are drawn in border-subtle, not the control-outline weight')
   assert(/borderTop: i === 0 \? 0 :/.test(shell), 'row separators are drawn above, never below')
 
@@ -1771,7 +1787,17 @@ line('\n- prompt construction -')
   assert(stripStyle('pill') === 'pill', 'a pill strip stays a pill')
   assert(stripStyle('nonsense') === 'underline', 'an unknown treatment falls back rather than rendering nothing')
   assert(!/underRule/.test(shell), 'no strip in the shell is promoted by position')
-  assert(/stripStyle\(style\)/.test(shell), 'the shell asks stripStyle rather than restating the fallback')
+  /* ONE CALLER, AND IT IS WHERE THE ATTRIBUTE IS WRITTEN. The two screens each
+     asked `stripStyle` and each turned the answer into inline styles, so the
+     fallback lived in two places. The scope stamps it once now. */
+  assert(/data-tab-style=\{stripStyle\(/.test(canvas),
+    'the scope asks stripStyle once, where the attribute is written')
+  /* BLANK THE COMMENTS FIRST. The screen carries one saying it holds no such
+     import, so a scan of the raw text finds the name in the prose explaining
+     its absence. Blanked rather than deleted, so a line number still lands. */
+  const shellCode = shell.replace(/\/\*[\s\S]*?\*\//g, m => m.replace(/[^\n]/g, ' '))
+  assert(!/stripStyle/.test(shellCode),
+    'and no screen restates the fallback for itself')
 
   /* ── A NAV NEVER WRAPS, AND IT NEVER SCROLLS EITHER ──
    *
@@ -8876,6 +8902,284 @@ line('\n- the payload as a build guide -')
     assert(wrong.length === 0, wrong.length
       ? `the modal promises a count Apply does not produce — ${wrong.join('; ')}`
       : `every offered remedy applies the count its modal states (${offers.length} offers)`)
+  }
+}
+
+/* ── QUEUE ITEM 5 AND 14: EVERY APPEARANCE SETTING RENDERS EVERY VALUE ──
+ *
+ * A control that chooses an appearance renders that appearance. The recorded
+ * fault: the Tab Style card described the two styles in words and said the
+ * Shell preview shows it, so you chose a look by reading a sentence.
+ *
+ * Their decision, 10 September 2026: every appearance card renders every value
+ * it can write. That makes the second fault checkable without a press, because
+ * two specimens on screen can be compared. The numerals card had both values
+ * and they measured 64.81px each, since the sample was set in the mono face
+ * and a mono face already gives every digit one width.
+ *
+ * AND IT ANSWERS ITEM 14 AT THE SAME TIME. An option nobody can see is a
+ * decision the reader still has to make, so "offer the options that get picked"
+ * is the same assertion pointed at the same maps.
+ *
+ * A CONTINUOUS RANGE IS NOT AN ENUM. `CHROMA_LEVEL` is a min, a max and a step
+ * driving a slider, so it has no per-value card to render and is not in the
+ * list. */
+{
+  line('\n- every appearance setting renders every value -')
+  const { TAB_STYLES: TS, SELECTION_STYLES: SS, SELECTION_EDGES: SE } =
+    await import('../src/state/components.js')
+  const { GROUND_TINTS: GT } = await import('../src/color/ground.js')
+  const COMPONENTS_PANEL = fs.readFileSync(new URL('../src/panels/ComponentsPanel.jsx', import.meta.url), 'utf8')
+  const COLOR_PANEL = fs.readFileSync(new URL('../src/panels/ColorPanel.jsx', import.meta.url), 'utf8')
+
+  /* An APPEARANCE is a look, so each of its values needs a specimen. The card
+     is named with the map, the panel it sits in, and the component that draws
+     one value of it. A card that renders only the CURRENT value is the fault:
+     the reader then picks a look by reading a sentence. */
+  const CARDS = [
+    ['TAB_STYLES', TS, COMPONENTS_PANEL, 'TabStyleChoice'],
+    ['SELECTION_STYLES', SS, COMPONENTS_PANEL, 'SelectionChoice'],
+    ['GROUND_TINTS', GT, COLOR_PANEL, 'ChoiceCard'],
+  ]
+  let drawn = 0
+  const subset = []
+  for (const [name, map, src, specimen] of CARDS) {
+    const n = Object.keys(map).length
+    assert(n >= 2, `${name} offers ${n} values, so a card has something to compare`)
+    /* THE MAP ITSELF, NEVER A SUBSET. A `.filter` between the entries call and
+       the `.map` is how an option stops being offered while the card still
+       looks complete, which is the other half of this rule. */
+    const iter = new RegExp('Object\\.entries\\(' + name + '\\)\\s*\\.map\\(')
+    const whole = iter.test(src)
+    if (!whole) subset.push(name)
+    assert(whole, `${name} is mapped over whole, so every value it can write gets a specimen`)
+    /* AND THE MAPPED BODY MUST DRAW ONE. A map producing labels is a list of
+       names, which is the state the Tab Style card shipped in. */
+    const body = whole ? src.slice(src.search(iter)) : ''
+    const draws = body.slice(0, 600).includes(specimen)
+    assert(draws, `and each one renders through ${specimen}, rather than printing its label`)
+    if (whole && draws) drawn++
+  }
+  /* THE TWO RULES, STATED ONCE EACH, so a pairing has something stable to
+     name. A count read off the loop above says nothing on its own. */
+  assert(drawn === CARDS.length,
+    'a pointer is not a preview, so every appearance setting renders every value it can write')
+  assert(subset.length === 0,
+    'and every option a setting can write is offered on screen, so no choice is left to the reader')
+
+  /* ── A MAGNITUDE IS NOT AN ENUM, SO IT TAKES NO CARD ──
+   *
+   * `SELECTION_EDGES` is three named widths of one bar, and `CHROMA_LEVEL` is
+   * a min, a max and a step. Neither is a look with variants: the value is a
+   * number, and a slider is the control for a number. What the rule asks of
+   * them is that the chosen value reaches the live specimen, which is a
+   * different assertion from a specimen per value.
+   *
+   * Without this exclusion the rule above would demand three cards nobody
+   * wants, and the check would be firing on correct code. */
+  {
+    const steps = Object.keys(SE).length
+    assert(steps >= 2, `SELECTION_EDGES publishes ${steps} named widths`)
+    assert(/steps=\{edgeSteps\}/.test(COMPONENTS_PANEL),
+      'the edge width is a slider over its published steps, not a card per width')
+    assert(/edge=\{SELECTION_EDGES\[selectionEdge\(/.test(COMPONENTS_PANEL),
+      'and the chosen width reaches the selection specimen, so the slider is not a pointer')
+    const { CHROMA_LEVEL } = await import('../src/color/palette.js')
+    assert(CHROMA_LEVEL && typeof CHROMA_LEVEL.step === 'number',
+      'CHROMA_LEVEL is a range with a step, so it has no per-value card either')
+  }
+}
+
+/* ── QUEUE ITEM 10: THE CENTRING CHECKS READ AN INK UNION ──
+ *
+ * A burger is three spans inside a summary inside a details. The wrapper's
+ * centre read 1.19px out on a fault the eye reads as 2.81, because a text-less
+ * wrapper takes its baseline from its bottom margin edge.
+ *
+ * So a check that centres anything has to measure what PAINTS, never the box
+ * that holds it. `textRect` and `capBand` are the two helpers that answer it,
+ * and a centring body that reads neither is measuring a wrapper. */
+{
+  line('\n- a cap line and a baseline come from the ink -')
+  const { RENDER_CHECKS: RC } = await import('../src/emit/checks.js')
+  const VSRC = fs.readFileSync(new URL('../src/emit/verify.js', import.meta.url), 'utf8')
+
+  /* ── ONE SCORER, AND EVERY CALLER INHERITS IT ──
+   *
+   * `capBand` is the only place a cap line and a baseline are computed, so
+   * these three assertions cover every check that reads one. A second
+   * implementation drifts, and this is the reading that cost the burger. */
+  const band = VSRC.slice(VSRC.indexOf('function capBand'), VSRC.indexOf('function padded'))
+  assert(band.length > 100, `capBand was found in the emitter (${band.length} bytes)`)
+  assert(/const t = textRect\(el\)/.test(band) && /if \(!t\) return null/.test(band),
+    'it takes its rectangle from the element OWN text, and returns null when there is none')
+  assert(!/getBoundingClientRect/.test(band),
+    'never from a rectangle edge, which is where a text-less wrapper reports its baseline')
+  assert(/fontBoundingBoxAscent/.test(band) && /actualBoundingBoxAscent/.test(band),
+    'and both lines come from font metrics, which a rectangle cannot give you')
+
+  /* `textRect` walks direct TEXT NODES through a Range, so it measures ink.
+     Its own comment states the direct-only rule, which is a separate decision
+     recorded beside it. */
+  const tr = VSRC.slice(VSRC.indexOf('function textRect'), VSRC.indexOf('function hasWords'))
+  assert(/nodeType !== 3/.test(tr) && /createRange/.test(tr),
+    'textRect measures direct text nodes through a Range, so it is ink and not a box')
+
+  /* AND `rows()` HANDS EVERY ROW CHECK THAT SAME BAND. A row item's baseline
+     is `capBand`'s, so a check comparing baselines across a row inherits the
+     ink reading rather than repeating it. */
+  assert(/baseline: band \? band\.baseline : null/.test(VSRC),
+    'and a row item takes its baseline from that band, so every row check inherits it')
+
+  /* ── THEN EVERY BODY THAT COMPUTES ONE ITSELF ──
+   *
+   * `capBand` cannot read a rect, and a body that inlines the same arithmetic
+   * can. One does, correctly. So the question is asked of the ASSIGNMENT: a
+   * variable holding a cap line, a baseline or a text top must take it from
+   * font metrics, never from a rectangle edge alone.
+   *
+   * THAT IS THE RECORDED FAULT EXACTLY. A text-less wrapper reports its
+   * baseline at its bottom margin edge, so `bottom` reads as a baseline and
+   * the number comes out 1.19px where the eye reads 2.81.
+   *
+   * ASKED OF THE RIGHT-HAND SIDE, NOT THE NAME. A name list faults whatever
+   * shares a word: `bands = []` is a band of rows and `bl` is a border-left
+   * width, and neither reads a rectangle. Both stay silent because the test is
+   * what the value is made of. */
+  const INK_NAME = /^(cap|caps|band|bands|baseline|baselines|bl|base|top)$/i
+  const RECT_EDGE = /\.(top|bottom)\b|\[["']?(top|bottom)["']?\]/
+  const METRICS = /BoundingBoxAscent|capBand\(|\.baseline\b/
+  const edgeBand = (src, id) => {
+    const out = []
+    const bare = src.replace(/\/\*[\s\S]*?\*\//g, ' ')
+    for (const m of bare.matchAll(/(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*([^\n]*)/g)) {
+      if (!INK_NAME.test(m[1])) continue
+      if (!RECT_EDGE.test(m[2])) continue
+      if (METRICS.test(m[2])) continue
+      out.push(`${id}: ${m[1]} = ${m[2].trim().slice(0, 60)}`)
+    }
+    return out
+  }
+  const edged = RC.flatMap(c => edgeBand((c.body || []).join('\n'), c.id))
+  assert(edged.length === 0, edged.length
+    ? `these take a cap line or a baseline from a rectangle edge: ${edged.join('; ')}`
+    : `and no render body takes either from a rectangle edge, over ${RC.length} checks`)
+
+  /* AND THE SCAN IS PROVEN ON THE FAULT, because a scan that matches nothing
+     reports the same word as a clean tree. This is the wrapper reading: a
+     baseline taken from the box bottom, which is where a text-less wrapper
+     reports one. */
+  const injected = edgeBand(
+    'const r = boxOf(el)\nconst baseline = r.bottom\nfail(name(el), "off the baseline")',
+    'injected')
+  assert(injected.length === 1,
+    `the scan fires on a baseline taken from a box bottom (${injected.length} finding)`)
+  /* AND STAYS QUIET ON THE CORRECT VERSION OF THE SAME TWO LINES, or it is
+     faulting the arithmetic rather than the reading. */
+  const twin = edgeBand(
+    'const t = textRect(el)\nconst base = t.top + m.fontBoundingBoxAscent',
+    'twin')
+  assert(twin.length === 0,
+    `and stays quiet where the same edge is added to an ascent (${twin.length} findings)`)
+}
+
+/* ── QUEUE ITEM 11: INJECT THE FAULT IN EVERY SHAPE, NOT ONE ──
+ *
+ * A guard proven on a literal says nothing about a ternary. `grid-snap` needed
+ * three widenings in one session and printed clean through all three, because
+ * a length reaches the screen in more shapes than one matcher sees: a literal
+ * after the colon, a branch of a ternary, and an attribute on a drawing.
+ *
+ * The rules recorded those three as a table, and the SECOND row was a widening
+ * that never landed. A row in a table is a claim about code, so this runs the
+ * guard rather than reading it.
+ *
+ * ONE FILE PER SHAPE, so a matcher that sees two of the three names which one
+ * it missed. The guard walks a root it holds as a constant, so a copy is
+ * patched to a fixture tree and its own relative imports are rewritten to
+ * absolute file URLs. Nothing in the repo is touched.
+ *
+ * AND EACH SHAPE GETS A CORRECT TWIN. A guard that fires on every shape by
+ * firing on everything is the false-positive failure, which costs more than
+ * the miss. The twins hold the same three shapes at on-grid values. */
+{
+  line('\n- the grid guard fires on every shape a length arrives in -')
+  const os2 = await import('node:os')
+  const path2 = await import('node:path')
+  const { execFileSync: exec2 } = await import('node:child_process')
+  const { fileURLToPath: toPath2, pathToFileURL: toUrl2 } = await import('node:url')
+
+  const GUARD = toPath2(new URL('../../../tools/grid-snap.mjs', import.meta.url))
+  const guardSrc = fs.readFileSync(GUARD, 'utf8')
+  const guardBase = toUrl2(path2.dirname(GUARD) + path2.sep).href
+
+  /* 13 is off both grids: the space grid takes 4px multiples above 8, and the
+     type grid takes multiples of 2 below 24. 12 and 16 are on. */
+  const SHAPES = [
+    ['literal.jsx', 'export const A = <div style={{ gap: 13 }} />\n',
+      'export const A = <div style={{ gap: 12 }} />\n', /literal\.jsx/],
+    ['ternary.jsx', 'export const B = <div style={{ columnGap: dense ? 8 : 13 }} />\n',
+      'export const B = <div style={{ columnGap: dense ? 8 : 16 }} />\n', /CONDITIONAL, not rewritten/],
+    ['attribute.jsx', 'export const C = <svg width={13} height={13} viewBox="0 0 13 13" />\n',
+      'export const C = <svg width={12} height={12} viewBox="0 0 12 12" />\n', /ATTRIBUTE, not rewritten/],
+  ]
+
+  const build = (dir, pick) => {
+    fs.mkdirSync(path2.join(dir, 'src'), { recursive: true })
+    for (const s of SHAPES) fs.writeFileSync(path2.join(dir, 'src', s[0]), s[pick])
+    const root = dir.replace(/\\/g, '/') + '/'
+    let patched = guardSrc.replace(
+      /const ROOT = fileURLToPath\(new URL\('\.\.\/apps\/web\/', import\.meta\.url\)\)/,
+      'const ROOT = ' + JSON.stringify(root))
+    assert(patched !== guardSrc, 'grid-snap still states its root the way this proof patches it')
+    const before = patched
+    patched = patched.replace(/new URL\('(\.\.?\/[^']+)', import\.meta\.url\)/g,
+      (m, r) => JSON.stringify(new URL(r, guardBase).href))
+    assert(patched !== before, 'and still imports the grid the way this proof rewrites it')
+    const copy = path2.join(dir, 'grid-snap.mjs')
+    fs.writeFileSync(copy, patched)
+    try { return { out: exec2(process.execPath, [copy, '--check'], { encoding: 'utf8' }), code: 0 } }
+    catch (err) { return { out: String(err.stdout || '') + String(err.stderr || ''), code: err.status ?? 1 } }
+  }
+
+  const faulty = fs.mkdtempSync(path2.join(os2.tmpdir(), 'grid-shapes-bad-'))
+  const clean = fs.mkdtempSync(path2.join(os2.tmpdir(), 'grid-shapes-ok-'))
+  try {
+    const bad = build(faulty, 1)
+    assert(bad.code !== 0, `the guard refuses a tree holding all three faults (exit ${bad.code})`)
+    /* NAME THE FAILURE BRANCH IN PLAIN TEXT, because the coverage parser takes
+       the first quoted run after the message comma and a template literal
+       gives it nothing to store. A declared pairing then resolves to no
+       check, which is a rule reading as covered with nothing behind it. */
+    const blind = SHAPES.filter(s => !s[3].test(bad.out)).map(s => s[0])
+    assert(blind.length === 0, blind.length
+      ? 'the fault is injected in every shape and the guard is blind to one: ' + blind.join(', ')
+      : 'the fault is injected in every shape a length arrives in: a literal, a ternary branch and an attribute')
+    /* ── COUNT THE FINDINGS PER SHAPE, NOT THE TOTAL ──
+     *
+     * A matcher wide enough to report one value from two passes would satisfy
+     * the loop above, and a total cannot tell that apart. FOUR from three
+     * files, because an `<svg>` states two axes and both are off the grid.
+     * Getting that wrong is what this assertion caught first: the total read 4
+     * against the 3 I had written down. */
+    const per = [['literal.jsx', 1], ['CONDITIONAL, not rewritten', 1],
+      ['ATTRIBUTE, not rewritten', 2]]
+    for (const [mark, want] of per) {
+      const got = bad.out.split(mark).length - 1
+      assert(got === want, `${mark} is reported ${got} time(s) where ${want} is the fault written`)
+    }
+    assert(/\b4 value\(s\) off the grid in 3 of 3 file\(s\) read\b/.test(bad.out),
+      'four findings over three files read, so no shape is counted twice'
+      + (/\b4 value/.test(bad.out) ? '' : ` — got ${(bad.out.match(/\d+ value\(s\)[^\n]*/) || ['none'])[0]}`))
+
+    const ok = build(clean, 2)
+    assert(ok.code === 0, `and it stays quiet on the same three shapes on-grid (exit ${ok.code})`)
+    assert(/\b0 value\(s\) off the grid in 0 of 3 file\(s\) read\b/.test(ok.out),
+      'reading all three files and finding nothing, so the denominator is named'
+      + (/0 value/.test(ok.out) ? '' : ` — got ${(ok.out.match(/\d+ value\(s\)[^\n]*/) || ['none'])[0]}`))
+  } finally {
+    fs.rmSync(faulty, { recursive: true, force: true })
+    fs.rmSync(clean, { recursive: true, force: true })
   }
 }
 

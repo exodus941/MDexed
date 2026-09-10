@@ -102,7 +102,13 @@ const html = [
   /* A tick label is centred on the gridline it names. space-between
      distributes the label BOXES, so the ends sit half a line out: extend the
      column by half a line at each end and the centres land on the boundaries. */
-  '  .chart-ticked { display: flex; column-gap: var(--space-xs) }',
+  /* ── AND THAT OVERHANG LEAVES THE BOX, SO THE CONTAINER PAYS FOR IT ──
+     The column is extended half a line at each end, and that half line sits
+     outside the plot. Padding on the block axis absorbs exactly it, so the box
+     contains its own ink again. Half the TICK's line, 16px, is 8. The inline
+     axis stays at zero: the container owns that inset. */
+  '  .chart-ticked { display: flex; column-gap: var(--space-xs);',
+  '                  padding-block: 8px; padding-inline: 0 }',
   '  .chart-ticks { display: flex; flex-direction: column;',
   '                 justify-content: space-between; text-align: end;',
   '                 font-size: 12px; line-height: 16px;',
@@ -128,11 +134,14 @@ const html = [
   /* Without the half-line margin the end labels sit half a line off the
      boundaries they name. */
   '  #bad-tick .chart-ticks { margin-block: 0; height: 100px }',
+  /* THE OVERHANG LEFT THE BOX AND NOTHING ABSORBED IT. A card giving the
+     title group 12px of clearance then reads as 2.28. */
+  '  #bad-pad .chart-ticked { padding-block: 0 }',
   '</style></head><body>',
   '<h1>Fixture: the chart furniture rules</h1>',
-  '<p class="lede">Three checks about chart furniture, each injected once beside',
+  '<p class="lede">Four checks about chart furniture, each injected once beside',
   ' the correct form of the same shape. Every geometric check passes on all',
-  ' three faults, because the boxes exist and sit where the grid put them.</p>',
+  ' four faults, because the boxes exist and sit where the grid put them.</p>',
 
   pair('ok-area', 'bad-area', 'a declared line has area to paint in',
     'An absolutely positioned box with no inset takes its CONTENT, and a line layer has none. It measures a pixel by nothing and paints nothing, while every geometric check passes.',
@@ -146,6 +155,11 @@ const html = [
 
   pair('ok-tick', 'bad-tick', 'a tick label centres on its gridline',
     'space-between distributes the label BOXES, not their centres, so the ends sit half a line out. Extend the column by half a line at each end.',
+    ticks(),
+    ticks()),
+
+  pair('ok-pad', 'bad-pad', 'a tick column pads the block axis',
+    'The column is extended half a line at each end, and that half line leaves the plot. Padding on the block axis absorbs exactly the overhang, so a stated 12px of clearance is 12px rather than 2.28. Only where a column exists: a chart without one has no overhang.',
     ticks(),
     ticks()),
 

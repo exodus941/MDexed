@@ -3961,7 +3961,8 @@ export const CHECKS = [
       "   two empty, zero rules read, and a confident report of zero findings. An",
       "   injected fault carrying five dead classes came back clean. */",
       "/* AN EMPTY CSSRuleList IS TRUTHY, AND CSS NESTING GAVE EVERY STYLE RULE",
-      "   ONE. So `if (r.cssRules)` recursed into nothing for every plain rule and",
+      "   ONE. So a bare truth test on cssRules recursed into nothing for every",
+      "   plain rule and",
       "   its selector was never collected. Measured on this browser: 0 rules read",
       "   out of 970. The text parse below was carrying the whole check on its own",
       "   and hid it. Ask for the LENGTH, and take a rule that has a selector as a",
@@ -4611,6 +4612,315 @@ export const CHECKS = [
     ],
   },
   {
+    id: 'a-tick-column-pads-the-block-axis',
+    where: 'render',
+    line: 'A plot whose ticks run down its side pads both block edges by half a line, and one whose ticks run along the bottom pads neither.',
+    /* ── THE OVERHANG LEAVES THE BOX, SO THE CARD PAYS FOR IT ──
+     *
+     * A tick label is centred on the gridline it names, and `space-between`
+     * distributes the label BOXES rather than their centres. So the column is
+     * extended by half a line at each end, and that half line leaves the plot.
+     *
+     * Measured before the repair: a card gave the title group 12px of
+     * clearance and the reader saw 2.28.
+     *
+     * ASSERT THE SUM, NEVER EITHER FIGURE. The padding is half the plot's own
+     * line height, so a change to the leading moves both halves together and
+     * this still holds. Measured on the Charts surface: 9.72px against a
+     * 19.44px line, exact, on every plot with a side column.
+     *
+     * BOTH EDGES, because the column is extended at both ends. Their
+     * instruction, 10 September 2026: half a line above and below, otherwise
+     * it looks cramped. Measured: already 9.72 on each.
+     *
+     * ONLY WHERE THE COLUMN RUNS DOWN THE SIDE. A chart whose ticks sit along
+     * the bottom has no block overhang, and padding it is space nobody asked
+     * for. Measured: two such plots correctly declare 0.
+     *
+     * THE AXIS IS A PROPERTY, NEVER A CLASS. A side column has three or more
+     * distinct tops and shares one left edge. A bottom row is the reverse.
+     *
+     * ── ASK THE COLUMN FOR ITS BOX, NEVER A BOX FOR ITS COLUMN ──
+     *
+     * The first version selected every plot and searched INSIDE it for ticks.
+     * A tick column is a SIBLING of the plot rectangle in both shapes I could
+     * find: the app puts both inside `.chart`, and so does the fixture. So the
+     * search found nothing, every candidate was skipped, and the check
+     * reported that no plot carries a tick column. A no-op reads as a pass.
+     *
+     * AND THE LINE IS THE TICK'S, NOT THE CONTAINER'S. The padding is derived
+     * from the tick label's own font and leading, so reading the container's
+     * line height compares the repair against a number nothing wrote.
+     *
+     * ── AND A TICK COLUMN IS A SHAPE, NOT A CLASS NAME ──
+     *
+     * `[class*="tick"]` matched the COLUMN and the wrapper as well as the
+     * labels, because both carry the word. Grouped by parent, each container
+     * was a group of one, every group failed the three-label test, and the
+     * check reported that no chart carries a tick column.
+     *
+     * So a column is a direct child holding three or more visible TEXT LEAVES
+     * lined up on one axis. A leaf is what separates it from a legend, whose
+     * items each hold a dot and a word and so have element children of their
+     * own. Nothing in it reads a name but the chart itself.
+     */
+    body: [
+      "let asked = 0",
+      "for (const box of all('[class*=\"chart\"], [class*=\"plot\"]')) {",
+      "  for (const col of Array.prototype.slice.call(box.children)) {",
+      "    /* A TICK LABEL IS A LEAF CARRYING TEXT. A legend item holds a dot",
+      "       and a word, so it has element children and is not one of these. */",
+      "    const ticks = Array.prototype.slice.call(col.children)",
+      "      .filter(k => visible(k) && !k.children.length && (k.textContent || '').trim())",
+      "    if (ticks.length < 3 || ticks.length !== col.children.length) continue",
+      "    const tops = []",
+      "    const lefts = []",
+      "    for (const t of ticks) {",
+      "      const r = t.getBoundingClientRect()",
+      "      const a = Math.round(r.top); if (tops.indexOf(a) < 0) tops.push(a)",
+      "      const b = Math.round(r.left); if (lefts.indexOf(b) < 0) lefts.push(b)",
+      "    }",
+      "    const side = tops.length >= 3 && lefts.length <= 2",
+      "    const bottom = lefts.length >= 3 && tops.length <= 2",
+      "    if (!side && !bottom) continue",
+      "    const line = px(getComputedStyle(ticks[0]).lineHeight)",
+      "    if (!line) continue",
+      "    asked++",
+      "    const cs = getComputedStyle(box)",
+      "    const want = side ? line / 2 : 0",
+      "    const top = px(cs.paddingTop) || 0",
+      "    const bot = px(cs.paddingBottom) || 0",
+      "    if (Math.abs(top - want) < 1 && Math.abs(bot - want) < 1) continue",
+      "    fail(name(box),",
+      "      'this chart pads its block edges ' + round(top) + 'px and ' + round(bot) + 'px where ' + round(want) + 'px is wanted, which is ' + (side ? 'half the ' + round(line) + 'px line of its own tick labels' : 'nothing, because its ticks run along the bottom') + '. A tick label is centred on the gridline it names, so the column is extended half a line at EACH end and that half line leaves the plot. Padding on the block axis absorbs exactly the overhang: without it a stated 12px of clearance above the plot reads as 2.28.')",
+      "  }",
+      "}",
+      "if (!asked) note('no chart on this page carries a tick column, so nothing was measured')",
+      "else note(asked + ' tick column(s) measured against half their own line height')",
+    ],
+  },
+  {
+    id: 'a-row-carries-its-label-type',
+    where: 'render',
+    line: 'A row that lifts a mark into a cap band is set at the same type size as the label that band belongs to.',
+    /* ── THE BAND IS IN `em`, SO IT RESOLVES ON WHOEVER CARRIES THE TRANSFORM ──
+     *
+     * The cap band is stated as `0.75em`, and `em` resolves against the
+     * element the transform sits on. So a row left at the body size computes a
+     * 12px band for a 20px heading beside it, and the lift comes out wrong by
+     * the difference.
+     *
+     * Measured on the recorded fault: a dialog row shifted 4px where 2.5 was
+     * wanted.
+     *
+     * ASK ONLY WHERE A LIFT EXISTS. A row with no transform has no band to
+     * compute, so it has nothing to be wrong about. That is what keeps this
+     * quiet on the rows the rule is not about.
+     *
+     * Measured on the dialog, which is where it broke: 8 marks, 7 carrying a
+     * transform, 0 mismatched.
+     */
+    body: [
+      "let asked = 0",
+      "for (const m of all('svg, .icon')) {",
+      "  if (!visible(m)) continue",
+      "  const r = m.getBoundingClientRect()",
+      "  if (!r.width || !r.height) continue",
+      "  const row = m.parentElement",
+      "  if (!row) continue",
+      "  /* THE LIFT MAY SIT ON THE MARK OR ON ITS ROW, and either one resolves",
+      "     its em against the element it is written on. */",
+      "  const onMark = getComputedStyle(m).transform !== 'none'",
+      "  const onRow = getComputedStyle(row).transform !== 'none'",
+      "  if (!onMark && !onRow) continue",
+      "  const carrier = onMark ? m : row",
+      "  const label = Array.prototype.slice.call(row.children)",
+      "    .find(c => c !== m && (c.textContent || '').trim() && visible(c))",
+      "  if (!label) continue",
+      "  const bandSize = px(getComputedStyle(carrier).fontSize)",
+      "  const labelSize = px(getComputedStyle(label).fontSize)",
+      "  if (!bandSize || !labelSize) continue",
+      "  asked++",
+      "  if (Math.abs(bandSize - labelSize) < 0.5) continue",
+      "  fail(name(row),",
+      "    'the lift on this row computes its cap band at ' + round(bandSize) + 'px while the label it belongs to is ' + round(labelSize) + 'px. The band is stated in em, so it resolves against whichever element carries the transform, and a row left at another size shifts the mark by the difference. Put the label type on the element carrying the lift.')",
+      "}",
+      "if (!asked) note('no row on this page lifts a mark into a cap band, so nothing was measured')",
+      "else note(asked + ' lifted mark(s) measured against their own label type')",
+    ],
+  },
+  {
+    id: 'a-mark-taller-than-its-line-takes-its-own-correction',
+    where: 'render',
+    line: 'A mark taller than the line it sits in is centred on the label cap band, not scaled from the same formula as a small one.',
+    /* ── ONE FORMULA COVERS NEITHER ──
+     *
+     * A 14px icon inside a 22.6px line box overshoots the cap by 1.52px. A
+     * 32px avatar SETS the row's top edge instead, and it costs the whole
+     * distance from a text box's top to its cap top, measured 7.79px on the
+     * same card. So a single scaled correction is wrong for both.
+     *
+     * THE THRESHOLD IS ON THE MOVE, NEVER ON THE DIFFERENCE. Centring shifts a
+     * box by HALF the gap between its two overhangs, so a 1px difference asks
+     * for a 0.5px nudge and no repair is possible. Measured on our own
+     * avatars: 32px marks in a 21.84px line, 10 above the cap and 12 below the
+     * baseline, so 1.00px off centre and nothing to fix.
+     *
+     * THE BAND COMES FROM FONT METRICS, never from the line box. A text box
+     * carries leading and descender space the capitals never use, so the box
+     * centre sits below the band centre.
+     */
+    body: [
+      "let asked = 0",
+      "for (const m of all('svg, .icon, .avatar, .dot')) {",
+      "  if (!visible(m)) continue",
+      "  const mr = m.getBoundingClientRect()",
+      "  if (!mr.width || !mr.height) continue",
+      "  const row = m.parentElement",
+      "  if (!row) continue",
+      "  const line = px(getComputedStyle(row).lineHeight)",
+      "  if (!line || mr.height <= line) continue",
+      "  const label = Array.prototype.slice.call(row.children)",
+      "    .find(c => c !== m && (c.textContent || '').trim() && visible(c))",
+      "  if (!label) continue",
+      "  const band = capBand(label)",
+      "  if (!band) continue",
+      "  asked++",
+      "  const off = (mr.top + mr.bottom) / 2 - (band.cap + band.baseline) / 2",
+      "  /* A 1px DIFFERENCE ASKS FOR HALF A PIXEL, so the bar is two. */",
+      "  if (Math.abs(off) < 2) continue",
+      "  fail(name(m),",
+      "    'this mark is ' + round(mr.height) + 'px tall inside a ' + round(line) + 'px line, and its centre sits ' + round(off) + 'px from the cap band of the label beside it. A mark taller than its line SETS the row edge rather than overshooting the cap, so it costs the whole distance from the text box top to the cap top and takes its own correction. Compensate it from its own size token, never from the formula a small mark uses.')",
+      "}",
+      "if (!asked) note('no mark on this page is taller than the line it sits in, so nothing was measured')",
+      "else note(asked + ' oversized mark(s) measured against their label cap band')",
+    ],
+  },
+  {
+    id: 'a-menu-control-shares-the-title-row',
+    where: 'render',
+    line: 'The control that folds the navigation sits on the page title row, and where it is hidden whatever replaced it sits there instead.',
+    /* ── A CONTROL THAT FITS BESIDE THE TITLE STAYS BESIDE THE TITLE ──
+     *
+     * The recorded fault: a nav built as a sidebar that folds, verified as a
+     * fold and never re-read folded. Folded it was a labelled bar ABOVE the
+     * page title with 44px of nothing under it. Every check on that nav was
+     * green, because none knew what it was looking at.
+     *
+     * THREE BRANCHES, AND THE MIDDLE ONE IS WHERE THE FAULT SURVIVED. A check
+     * that only asks when the control is visible says nothing at any desktop
+     * width, which is exactly how it shipped. So an absent control hands the
+     * question to whatever took its place, which is their own rule: when a
+     * check reports that the thing it compares against is absent, ask what
+     * replaced it.
+     *
+     * AND A SURFACE WITH NO MENU AT ALL IS A NOTE, never a pass in silence.
+     *
+     * Measured after: the burger is 28x28 and shares the row at 296 and 480,
+     * and from 768 it is 0 by 0 with the rail open beside the content.
+     *
+     * ── PAIR EACH CONTROL WITH ITS OWN TITLE, NEVER WITH THE PAGE'S FIRST ──
+     *
+     * The first version took `all('h1, h2')[0]` as the title. That is right on
+     * an app surface, where the page title IS the first heading, and it fails
+     * on any page holding several header specimens: every fold control on the
+     * page is then compared against one heading at the top, and each one
+     * reports a distance nobody can act on.
+     *
+     * So walk up from the CONTROL, a bounded three levels, and take the first
+     * heading that ancestor holds. That is the title of the row this control
+     * is in. A selector list picking whichever matches first is a property of
+     * the markup being audited, so the levels are counted instead.
+     */
+    body: [
+      "const folds = all('details > summary, [class*=\"burger\"], [aria-label*=\"menu\" i]')",
+      "/* THE TITLE OF THIS CONTROL'S OWN ROW. Bounded, because an unbounded walk",
+      "   reaches the page heading and reports a distance nobody can act on. */",
+      "const titleFor = el => {",
+      "  let n = el.parentElement",
+      "  for (let i = 0; i < 3 && n; i++, n = n.parentElement) {",
+      "    const h = Array.prototype.slice.call(n.querySelectorAll('h1, h2, h3'))",
+      "      .filter(x => visible(x) && !el.contains(x) && !x.contains(el))[0]",
+      "    if (h) return h",
+      "  }",
+      "  return null",
+      "}",
+      "const overlaps = (a, b) => {",
+      "  const p = a.getBoundingClientRect(), q = b.getBoundingClientRect()",
+      "  return Math.min(p.bottom, q.bottom) - Math.max(p.top, q.top) > 0",
+      "}",
+      "const shown = folds.filter(f => { const r = f.getBoundingClientRect(); return visible(f) && r.width > 0 && r.height > 0 })",
+      "let asked = 0",
+      "if (shown.length) {",
+      "  for (const f of shown) {",
+      "    const title = titleFor(f)",
+      "    if (!title) continue",
+      "    asked++",
+      "    if (overlaps(f, title)) continue",
+      "    const r = f.getBoundingClientRect(), tb = title.getBoundingClientRect()",
+      "    fail(name(f),",
+      "      'this fold control sits off the title row: its box runs ' + round(r.top) + ' to ' + round(r.bottom) + ' and the title beside it runs ' + round(tb.top) + ' to ' + round(tb.bottom) + '. A control that fits beside the title stays beside it, and only when it does not fit does it become a burger, on that same row. On its own row above the heading it reads as a labelled bar with nothing under it.')",
+      "  }",
+      "  if (!asked) note(shown.length + ' fold control(s) here, none of them beside a heading, so nothing was measured')",
+      "} else if (folds.length) {",
+      "  /* THE CONTROL IS PRESENT AND HIDDEN, so the links took its place. Ask",
+      "     the same question of them rather than passing in silence. */",
+      "  const links = all('.nav-item, nav a[href]').filter(visible)",
+      "  const title = links.length ? titleFor(links[0]) : null",
+      "  if (!links.length) note('the fold control is hidden and nothing visible replaced it, so nothing was measured')",
+      "  else if (!title) note(links.length + ' navigation item(s) replaced the hidden control, and no heading sits beside them')",
+      "  else if (links.some(l => overlaps(l, title))) note(links.length + ' navigation item(s) replaced the hidden fold control, and one shares the title row')",
+      "  else fail(name(links[0]),",
+      "    'the fold control is hidden here and the ' + links.length + ' navigation items that replaced it sit off the title row. A report that the partner is absent is not a pass: when the thing a check compares against is gone, ask what took its place.')",
+      "} else {",
+      "  note('this page has no fold control at all, so the menu row is UNMEASURED here')",
+      "}",
+    ],
+  },
+  {
+    id: 'every-drawn-mark-can-be-edited',
+    where: 'render',
+    line: 'Every mark the document draws sits inside something the editor can reach, so it can be edited and specified.',
+    /* ── A MARK WITH NO ENTRY CANNOT BE EDITED OR SPECIFIED ──
+     *
+     * The burger had none, so clicking it in the preview offered the links it
+     * opens rather than the mark, and its three bars were 16 by 2 because
+     * somebody typed that.
+     *
+     * ASK WHETHER THE EDITOR CAN REACH IT, not whether a name is in a list. A
+     * source scan of mark classes reported five with no entry and every one
+     * was a SIDE or a SHAPE modifier: `icon-only`, `icon-left`, `icon-right`.
+     * That is the same tag-list failure this project has recorded before, and
+     * no selector can reach an individual glyph anyway.
+     *
+     * The inspect hook is the property that answers it exactly. A mark inside
+     * one is reachable, and a mark outside every one is a drawn thing with no
+     * entry.
+     *
+     * Measured after the burger got its entry: 28 component entries, and
+     * `nav-burger` among them.
+     */
+    body: [
+      "const hooks = all('[data-cmp]')",
+      "if (!hooks.length) { note('this page carries no inspect hook, so the editor reaches nothing here and the question does not apply') } else {",
+      "  let asked = 0",
+      "  for (const m of all('svg, .icon, .dot, .avatar')) {",
+      "    if (!visible(m)) continue",
+      "    const r = m.getBoundingClientRect()",
+      "    if (!r.width || !r.height) continue",
+      "    /* A CHART'S OWN GEOMETRY IS DATA, not a mark somebody places. */",
+      "    if (m.closest('[class*=\"chart\"], [class*=\"plot\"], [class*=\"spark\"]')) continue",
+      "    asked++",
+      "    if (m.closest('[data-cmp]')) continue",
+      "    fail(name(m),",
+      "      'this mark sits outside every inspect hook, so the editor cannot reach it and nothing can state its size. The burger was exactly this: its three bars were 16 by 2 because somebody typed that, and clicking it offered the links it opens rather than the mark. Give every drawn thing an entry.')",
+      "  }",
+      "  if (!asked) note('no mark outside a chart on this page, so nothing was measured')",
+      "  else note(asked + ' mark(s) checked against ' + hooks.length + ' inspect hook(s)')",
+      "}",
+    ],
+  },
+  {
     id: 'an-element-does-not-re-implement-its-own-class',
     where: 'render',
     line: 'No element overrides four or more properties its own class already declares.',
@@ -4680,7 +4990,7 @@ export const CHECKS = [
       "  return matched.get(p).has(el)",
       "}",
       "/* ── COUNT WHAT A PERSON WROTE, NEVER THE LONGHANDS IT EXPANDS TO ──",
-      "   `border: 1px solid X` reaches the style object as twelve longhands,",
+      "   A border shorthand reaches the style object as twelve longhands,",
       "   border-image among them, so one line scored twelve and a bar of four was",
       "   really a bar of one shorthand. Measured on our own swatch: 33 inline",
       "   longhands, 22 of them duplicated, from three things somebody typed.",
