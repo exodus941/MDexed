@@ -5,7 +5,9 @@
   "fixturePages": [
     "amount-edge.html",
     "charts.html",
+    "marks.html",
     "rowplane.html",
+    "rows.html",
     "spacing.html"
   ],
   "proven": [
@@ -13,18 +15,36 @@
     "a-chart-owes-a-name-or-says-it-is-decoration",
     "a-collapsed-row-still-costs-its-gap",
     "a-column-of-figures-takes-the-mono-face",
+    "a-control-holds-one-mark-size",
+    "a-fixed-height-control-centres-its-label",
+    "a-flexible-box-holds-its-own-label",
     "a-gridline-is-quieter-than-its-axis",
     "a-group-of-buttons-keeps-one-gap",
+    "a-lift-must-not-survive-a-wrap",
+    "a-mark-beside-words-names-its-side",
+    "a-mark-is-never-a-typed-glyph",
+    "a-mark-paints-the-size-its-component-publishes",
+    "a-mark-stays-inside-its-control",
     "a-plot-is-a-shape-not-a-height",
     "a-row-that-cannot-wrap-must-fit",
     "a-rule-sits-inside-its-gap",
     "a-separator-goes-above-each-item",
     "a-stripe-is-rhythm-and-a-selection-is-a-choice",
     "a-tab-strip-never-wraps-and-never-scrolls",
+    "a-text-less-wrapper-carries-the-cap-band-rule",
     "an-action-stands-clear-of-its-explanation",
     "an-amount-lines-up-on-its-end-edge",
+    "an-icon-only-control-is-square",
+    "an-inline-box-has-no-size",
     "card-actions-sit-on-the-bottom-edge",
+    "icon-on-the-cap-band",
+    "lone-mark-centres-on-its-box",
     "nav-folds",
-    "nothing-clipped-out-of-reach"
+    "nothing-clipped-out-of-reach",
+    "one-baseline-per-row",
+    "one-height-per-control-row",
+    "one-token-is-not-one-weight",
+    "target-floor-for-the-pointer",
+    "the-row-declares-the-baseline-too"
   ]
 }
