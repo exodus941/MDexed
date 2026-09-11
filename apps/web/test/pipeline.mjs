@@ -8372,9 +8372,9 @@ function hueHex(h) {
   /* ── THE COMMENT IS THE SUM, SO READ IT AND CHECK THE ARITHMETIC ──
    * A number with its derivation beside it is only honest while the two
    * agree. This is the pairing nothing was checking. */
-  const nums = (APP.match(/\+152\.7|-50\.9|=\s*\+50\.9|1570|1621/g) || [])
+  const nums = (APP.match(/\+152\.7|-50\.9|=\s*\+50\.9|1570|1621|\+20\.0|1641/g) || [])
   assert(nums.includes('1570') && nums.includes('1621'),
-    'and the comment states both the old threshold and the new one')
+    'and the comment states both the old threshold and the one it became')
   assert(nums.includes('+152.7'), 'the button it gained is priced (+152.7 including its gap)')
   assert(nums.filter(n => n === '-50.9').length === 2,
     `and both shortened labels give back the same amount (${nums.filter(n => n === '-50.9').length} of 2)`)
@@ -8383,9 +8383,27 @@ function hueHex(h) {
      fails on correct arithmetic. Compare with a tolerance under a pixel. */
   const sum = 1570 + 152.7 - 50.9 - 50.9
   assert(Math.abs(sum - 1620.9) < 0.01,
-    `the sum resolves to ${sum.toFixed(1)}, which is where the query sits`)
-  assert(px === 1620,
-    `the query is the last pixel below the measured need (${px} against 1621)`)
+    `the first sum resolves to ${sum.toFixed(1)}`)
+
+  /* ── AND THE THIRD MOVE, WHICH IS THE CHEVRON ──
+   * Load became a dropdown. A mark it did not carry before is width the row
+   * did not need before, so the threshold owes it 20px: the published 14px
+   * mark size plus the 6px gap the button already declares. Both halves are
+   * read off the control, so this stays a sum rather than a constant. */
+  assert(nums.includes('+20.0') && nums.includes('1641'),
+    'the chevron it gained is priced (+20.0) and the comment states the new threshold')
+  const sum2 = sum + 20
+  assert(Math.abs(sum2 - 1640.9) < 0.01,
+    `the second sum resolves to ${sum2.toFixed(1)}, which is where the query sits`)
+  assert(px === 1640,
+    `the query is the last pixel below the measured need (${px} against 1641)`)
+
+  /* THE CHEVRON'S TWO HALVES ARE THE CONTROL'S OWN NUMBERS, so a change to
+     either has to move this threshold with it. Read them back rather than
+     trusting the 20. */
+  assert(/<MenuChevron open=\{open\} \/>/.test(APP), 'the Load trigger carries the shared chevron')
+  assert(/width=\{14\} height=\{14\}/.test(APP.slice(APP.indexOf('const MenuChevron'))),
+    'and that chevron is the published 14px mark size')
 
   /* ── ONE BREAKPOINT PER QUESTION, MEASURED FROM THE THING IT GOVERNS ──
    * `MOBILE_Q` answers whether two panes coexist. It was also answering

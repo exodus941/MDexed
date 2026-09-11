@@ -1,7 +1,7 @@
 /* Application shell: header, macro bar, panel column, preview column.
    All document state lives in the store; this file only wires things together
    and owns cloud sync. */
-import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
+import { useState, useRef, useEffect, useMemo, useCallback, Fragment } from 'react'
 import { StoreProvider, useStore, VIEW_TAGS } from './state/store.jsx'
 import { createInitialState, MACROS, DEFAULT_MACROS, CONTRAST_PAIRS, pairFails, ALL_ROLES } from './state/schema.js'
 import { PRESETS, applyPreset } from './state/presets.js'
@@ -84,6 +84,33 @@ const SCALE_SNAP = 3
 const PRISTINE_DOC = JSON.stringify(createInitialState())
 const isPristineDoc = raw => raw === PRISTINE_DOC
 
+/* ── THE PREVIOUS DOCUMENT, READ IN ONE PLACE ──
+ *
+ * ONE SCORER, TWO CALLERS. The boot effect raises the restore toast from this,
+ * and the Load menu asks it every time it opens.
+ *
+ * The menu cannot read the toast's `restorable` state instead. That state is
+ * cleared when the toast withdraws after thirty seconds, so a menu keyed on it
+ * would offer the previous project for half a minute after a reload and never
+ * again. The document is still in localStorage the whole time, which is the
+ * gap this menu exists to close.
+ *
+ * Returns null for absent, unreadable or pristine. A pristine draft is the
+ * untouched starting document, and offering to restore one is offering to
+ * restore nothing. */
+const readPrevious = () => {
+  try {
+    const raw = localStorage.getItem(PREV_KEY)
+    if (!raw || isPristineDoc(raw)) return null
+    const at = Number(localStorage.getItem(PREV_AT_KEY))
+    return {
+      raw,
+      name: JSON.parse(raw)?.meta?.name?.trim() || 'Untitled',
+      at: Number.isFinite(at) && at > 0 ? at : null,
+    }
+  } catch { return null }
+}
+
 const getStoredToken = id => {
   try { return JSON.parse(localStorage.getItem(TOKEN_KEY) || '{}')[id] || null } catch { return null }
 }
@@ -124,6 +151,18 @@ const Save = () => (
 const I = p => <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">{p}</svg>
 const FilePlus = () => I(<><path d="M15 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V7Z" /><path d="M14 2v4a2 2 0 002 2h4" /><path d="M9 15h6" /><path d="M12 18v-6" /></>)
 const FolderOpen = () => I(<path d="m6 14 1.5-2.9A2 2 0 019.24 10H20a2 2 0 011.94 2.5l-1.54 6a2 2 0 01-1.95 1.5H4a2 2 0 01-2-2V5a2 2 0 012-2h3.9a2 2 0 011.69.9l.81 1.2a2 2 0 001.67.9H18a2 2 0 012 2v2" />)
+/* The two rows inside the Load menu.
+ *
+ * A PLAIN DOCUMENT, NOT `FilePlus`. That glyph carries a plus, which means
+ * new, and this row opens something that already exists. Same body, without
+ * the two strokes that make the plus.
+ *
+ * AND `Restore` IS THE TOAST'S OWN GLYPH, lifted out of it. The restore toast
+ * inlined this path at stroke 2.1 while every other mark in the header comes
+ * from `I` at 2. Two definitions of one glyph drift, and one of them was
+ * already a different weight from the set. */
+const FileDoc = () => I(<><path d="M15 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V7Z" /><path d="M14 2v4a2 2 0 002 2h4" /></>)
+const Restore = () => I(<><path d="M3 3v6h6" /><path d="M3.5 14a9 9 0 1 0 2.1-9.4L3 7" /></>)
 /* A wand, for the guided entry. The shaft runs corner to corner and the three
    sparks sit off it, so the glyph reads at 14px without the star colliding
    with the stick. */
@@ -164,7 +203,32 @@ const PROJECT_ACTIONS = [
      a first visit. Somebody who dismissed it had no way back to the guided
      path at all. */
   { id: 'newGuided', label: 'New (Guided)', Icon: Wand, hint: 'Answer eight questions and get a prompt for an agent' },
-  { id: 'loadProject', label: 'Load', Icon: FolderOpen, hint: 'Open a DESIGN.md you saved earlier' },
+  /* ── LOAD HAS TWO SOURCES, SO IT OPENS RATHER THAN ACTS ──
+   *
+   * Their instruction: a dropdown with a chevron, holding open-from-file and
+   * restore-previous. A file was the only route before, and the auto-saved
+   * previous document was reachable only from the boot toast, which withdraws
+   * after thirty seconds. After that it sat in localStorage with nothing on
+   * screen pointing at it.
+   *
+   * SHORT LABELS, for the reason the comment above already gives about New and
+   * Load. The word Project is in the menu that holds these and in the button
+   * that opens it, so repeating it in each row names nothing and spends width.
+   * "From a file" and "Restore previous", not "Open project from file" and
+   * "Restore previous project".
+   *
+   * An entry carrying `children` is a menu rather than an action, and both
+   * renderings below read that field rather than the id. */
+  {
+    id: 'loadProject',
+    label: 'Load',
+    Icon: FolderOpen,
+    hint: 'Open a saved file, or pick up the previous project',
+    children: [
+      { id: 'loadFromFile', label: 'From a file…', Icon: FileDoc, hint: 'Open a DESIGN.md you saved earlier' },
+      { id: 'restorePrevious', label: 'Restore previous', Icon: Restore, hint: 'Pick up the document this device had open last' },
+    ],
+  },
   /* "Save", not "Save to Device". The drive icon beside it already says
      where it goes, and the words were spending width on saying it twice. */
   { id: 'saveToDevice', label: 'Save', Icon: DriveDown, hint: 'Download a dated copy of this document' },
@@ -682,10 +746,21 @@ const MOBILE_Q = '(max-width: 767px)'
  * lets the project-name field collapse to nothing, which is the state this
  * threshold exists to prevent.
  *
+ * AND IT MOVED AGAIN, BY ONE CHEVRON. Load became a dropdown, so it carries a
+ * mark it did not have. Measured on the rendered button:
+ *
+ *   Load  88.0 -> 108.0   the 14px chevron plus the button's own 6px gap
+ *                         ------
+ *                         +20.0
+ *
+ * So 1621 becomes 1641. The chevron is the published 14px mark size and the
+ * gap is the one the button already declares, so both halves of that 20 are
+ * read off the control rather than chosen.
+ *
  * BAR_TRIM_Q: below this the wordmark, the build chip and the palette go too.
  * They are decoration next to a name you can edit and an action you can press.
  */
-const BAR_FULL_Q = '(max-width: 1620px)'
+const BAR_FULL_Q = '(max-width: 1640px)'
 const BAR_TRIM_Q = '(max-width: 1099px)'
 
 function useMedia (query) {
@@ -723,13 +798,213 @@ function useDismiss (open, close, ...refs) {
   }, [open])
 }
 
+/* ── ONE DROPDOWN PANEL, ONE ROW, TWO MENUS ──
+ *
+ * The Project menu drew these inline. The Load menu is the second dropdown in
+ * this header and would have been a second copy of a 232px panel, a 44px row
+ * and a chevron. Three numbers in two places drift, so they live here once.
+ *
+ * The row is 44px because that is the touch target this app requires of every
+ * other control, and the leading is that same 44 so one line centres itself
+ * without a flex box fighting the line box. */
+const MENU_PANEL = {
+  position: 'absolute', zIndex: 'var(--z-dropdown)',
+  background: 'var(--surf2)', border: '1px solid var(--bdr2)', borderRadius: 12,
+  boxShadow: '0 12px 32px var(--shade)', width: 232, padding: '6px',
+}
+
+/* A CHEVRON THAT TURNS, at the published 14px mark size.
+ *
+ * The Project trigger's own comment settles the size and it applies here: one
+ * control, one mark size, and 14 is what every button in this header uses.
+ * Stroke 2.5 rather than the set's 2, because a bare chevron at 14px reads
+ * thin beside a glyph with a body. That is the Project trigger's weight too,
+ * so the two agree. */
+const MenuChevron = ({ open, dir = 'down' }) => (
+  <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}
+    aria-hidden="true" style={{
+      color: 'var(--muted)', alignSelf: 'center', flexShrink: 0,
+      transform: open && dir === 'down' ? 'rotate(180deg)' : 'none',
+      transition: 'transform var(--t) var(--ease)',
+    }}>
+    {dir === 'down' ? <polyline points="6 9 12 15 18 9" /> : <polyline points="9 18 15 12 9 6" />}
+  </svg>
+)
+
+/* A row in either menu.
+ *
+ * `disabled` arrives as `aria-disabled` and never as the DOM property. The
+ * property takes the row out of the tab order, so a keyboard reader cannot
+ * find it to learn why it is off. Give both the same shape and let the colour
+ * say it. */
+const MenuRow = ({ Icon, label, hint, onClick, disabled, inset, trailing }) => (
+  <button onClick={disabled ? undefined : onClick} title={hint}
+    aria-disabled={disabled ? 'true' : undefined}
+    style={{
+      display: 'flex', alignItems: 'center', gap: 8, width: '100%',
+      minHeight: 44, padding: inset ? '0 12px 0 32px' : '0 12px', borderRadius: 8,
+      background: 'transparent', border: 0, cursor: disabled ? 'default' : 'pointer',
+      font: '400 13px/44px var(--sans)', textAlign: 'left',
+      color: disabled ? 'var(--dim)' : 'var(--text)',
+    }}
+    onPointerEnter={e => { if (!disabled) e.currentTarget.style.background = 'var(--surf3)' }}
+    onPointerLeave={e => { e.currentTarget.style.background = 'transparent' }}>
+    {Icon && <Icon />}
+    {label}
+    {trailing && <span style={{ marginLeft: 'auto', display: 'inline-flex' }}>{trailing}</span>}
+  </button>
+)
+
+/* The line under a row that names what it would restore, or why it cannot.
+ *
+ * A disabled row that only greys out is a row somebody clicks twice and then
+ * wonders about. It states the reason instead. */
+/* `followed` says whether another row comes after this note.
+ *
+ * ── 16 BELOW A FOLLOWING ROW, AND THE RATIO IS WHY ──
+ *
+ * The note belongs to the row above it, so it has to sit nearer that row than
+ * the next one. Measured on the ink rather than the boxes, because a menu row
+ * is a 44px slot and its text is centred in it: 15.00px from the row's own
+ * words down to the note, and 21.39px on to the next row. 1.43 to 1, against
+ * a bar of 2.
+ *
+ * TAKE THE OUTER GAP, NEVER THE INNER ONE. Tightening the 15 would mean
+ * pulling the note up under a centred label with a negative margin. The outer
+ * gap is the one with room, and 16 is on the spacing grid. Measured after:
+ * 15.00 inside against 31.39 between, which is 2.09.
+ *
+ * ── AND NOTHING BELOW WHEN NOTHING FOLLOWS ──
+ *
+ * ONE WRITER FOR ONE GAP. With no row after it the distance is the panel's own
+ * 6px inset, and a 16 here adds to that rather than replacing it. Measured
+ * with both: 24.39px of trailing space in the two-row panel, where the panel
+ * asked for 6. The 16 answers a question that panel does not have. */
+const MenuNote = ({ children, followed }) => (
+  <p style={{
+    font: '400 11px/1.4 var(--sans)', color: 'var(--dim)',
+    padding: followed ? '0 12px 16px' : '0 12px', margin: 0,
+  }}>{children}</p>
+)
+
+/* ── LOAD, AS A BUTTON THAT OPENS ──
+ *
+ * Their instruction: the Load button becomes a dropdown with a chevron and two
+ * options. This is the header rendering; the compact menu below opens the same
+ * two rows in place instead.
+ *
+ * It anchors to the BUTTON rather than to the header row, so the panel stays
+ * under the control whatever else is in that row and however the row wraps.
+ * `left: 0` for the same reason the Project menu uses `right: 0`: this one sits
+ * mid-row with space to its right, and that one is the last thing on the row.
+ *
+ * `previous` is read fresh every time the panel opens rather than held in
+ * state, because a save in another tab changes the answer and this costs one
+ * localStorage read. */
+function LoadMenu ({ action, onAction }) {
+  const [open, setOpen] = useState(false)
+  /* Where the panel sits, in viewport coordinates. See the note below. */
+  const [at, setAt] = useState(null)
+  const boxRef = useRef(null)
+  const btnRef = useRef(null)
+  useDismiss(open, () => setOpen(false), boxRef, btnRef)
+  const previous = open ? readPrevious() : null
+
+  /* ── THE PANEL IS `fixed`, BECAUSE THIS ROW CLIPS ──
+   *
+   * An absolutely positioned panel inside this button row is cut off. The row
+   * is `.no-bar`, which carries `overflow: auto hidden` so the actions can
+   * scroll sideways, and an absolute child is clipped by that. Measured on the
+   * first build: the panel laid out at 48..171 inside a row clipping at 6..42,
+   * so all 123px of it were invisible and unreachable.
+   *
+   * That is why `ProjectMenu` sits OUTSIDE this row, and its own comment says
+   * so. This control cannot: it belongs between New (Guided) and Save.
+   *
+   * `fixed` escapes an ancestor's overflow, and nothing above it establishes a
+   * containing block. Checked rather than assumed: no ancestor carries a
+   * transform, filter, perspective, contain or will-change, and a fixed panel
+   * pinned to the button's rect returned its own child from
+   * `elementFromPoint`.
+   *
+   * THE COST IS THAT THE COORDINATES GO STALE. `useDismiss` already closes on
+   * a wheel over a scroller and on an outside press. A resize or a scroll that
+   * arrives any other way needs closing too, or the panel hangs where the
+   * button used to be. */
+  useEffect(() => {
+    if (!open) return
+    const place = () => {
+      const r = btnRef.current?.getBoundingClientRect()
+      if (r) setAt({ top: r.bottom + 6, left: r.left })
+    }
+    place()
+    const shut = () => setOpen(false)
+    window.addEventListener('resize', shut)
+    /* Capture, so a scroll on any ancestor is heard and not just on window. */
+    window.addEventListener('scroll', shut, true)
+    return () => {
+      window.removeEventListener('resize', shut)
+      window.removeEventListener('scroll', shut, true)
+    }
+  }, [open])
+
+  return (
+    <span style={{ position: 'relative', flexShrink: 0 }}>
+      <button ref={btnRef} className="btn-ghost" onClick={() => setOpen(o => !o)}
+        title={action.hint} aria-expanded={open}
+        style={{
+          padding: BTN.lg, flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 6,
+          color: open ? 'var(--accent)' : undefined,
+        }}>
+        <action.Icon /><span className="lbl">{action.label}</span>
+        <MenuChevron open={open} />
+      </button>
+      {open && at && (
+        <div ref={boxRef} className="anim-pop"
+          style={{ ...MENU_PANEL, position: 'fixed', top: at.top, left: at.left }}>
+          {/* A FRAGMENT, NOT A DIV. A wrapper around each row and its note
+              generates a box, and the sweep then reads the pair as two stacked
+              children touching at 0.00px with no row-gap. Measured both ways
+              on the same panel: three findings with the wrappers, none with
+              the five original rows as direct children. The rows have to be
+              direct children to read as one run. */}
+          {action.children.map(c => {
+            const off = c.id === 'restorePrevious' && !previous
+            return (
+              <Fragment key={c.id}>
+                <MenuRow Icon={c.Icon} label={c.label} hint={c.hint} disabled={off}
+                  onClick={() => { setOpen(false); onAction(c.id) }} />
+                {c.id === 'restorePrevious' && (
+                  <MenuNote>{previous
+                    ? `“${previous.name}”${previous.at ? `, ${ago(previous.at)}` : ''}`
+                    : 'Nothing saved on this device yet'}</MenuNote>
+                )}
+              </Fragment>
+            )
+          })}
+        </div>
+      )}
+    </span>
+  )
+}
+
 /* The four document actions as a menu, for when the header has no room for
    them as buttons. Same list as the desktop header, from PROJECT_ACTIONS. */
 function ProjectMenu ({ items, onAction, projectId }) {
   const [open, setOpen] = useState(false)
+  /* WHICH NESTED MENU IS SHOWING, by id rather than a boolean, so a second
+     entry with children tomorrow needs no new state. */
+  const [expanded, setExpanded] = useState(null)
   const boxRef = useRef(null)
   const btnRef = useRef(null)
-  useDismiss(open, () => setOpen(false), boxRef, btnRef)
+  useDismiss(open, () => { setOpen(false); setExpanded(null) }, boxRef, btnRef)
+  /* READ IT HERE, NOT AS A PROP. It arrived as `previous={readPrevious()}`
+     from the header, which evaluates on the PARENT's render. Opening this menu
+     does not re-render the parent, so the answer was whatever it had been when
+     the header last drew. Proven by clearing the stored document and
+     reopening: the row stayed enabled and the note still named a project that
+     was no longer there. `LoadMenu` reads it on open and this now matches. */
+  const previous = open ? readPrevious() : null
 
   return (
     <div style={{ position: 'relative', flexShrink: 0 }}>
@@ -761,26 +1036,49 @@ function ProjectMenu ({ items, onAction, projectId }) {
           }}><polyline points="6 9 12 15 18 9" /></svg>
       </button>
       {open && (
-        <div ref={boxRef} className="anim-pop" style={{
-          position: 'absolute', top: 'calc(100% + 6px)', right: 0, zIndex: 'var(--z-dropdown)',
-          background: 'var(--surf2)', border: '1px solid var(--bdr2)', borderRadius: 12,
-          boxShadow: '0 12px 32px var(--shade)', width: 232, padding: '6px',
-        }}>
-          {items.map(a => (
-            <button key={a.id} onClick={() => { setOpen(false); onAction(a.id) }} title={a.hint}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 8, width: '100%',
-                /* 44px, the touch target this app requires of everyone else. */
-                minHeight: 44, padding: '0 12px', borderRadius: 8,
-                background: 'transparent', border: 0, cursor: 'pointer',
-                font: '400 13px/44px var(--sans)', color: 'var(--text)', textAlign: 'left',
-              }}
-              onPointerEnter={e => { e.currentTarget.style.background = 'var(--surf3)' }}
-              onPointerLeave={e => { e.currentTarget.style.background = 'transparent' }}>
-              <a.Icon />
-              {a.id === 'saveToCloud' && projectId ? 'Copy Share URL' : a.label}
-            </button>
-          ))}
+        <div ref={boxRef} className="anim-pop" style={{ ...MENU_PANEL, top: 'calc(100% + 6px)', right: 0 }}>
+          {items.map(a => {
+            /* ── AN ENTRY WITH CHILDREN OPENS IN PLACE, IT DOES NOT FLY OUT ──
+             *
+             * This menu exists because the header ran out of room, so it is on
+             * screen at exactly the widths where a flyout has nowhere to go. A
+             * 232px panel beside a 232px panel needs 470px and a rule for
+             * which side to flip to. Opening underneath needs neither.
+             *
+             * The rows are inset rather than bordered, and the parent's
+             * chevron turns, so the two read as belonging to it. */
+            if (a.children) return (
+              /* Fragments throughout, for the reason given in LoadMenu: a
+                 wrapper box makes the sweep read each pair as two touching
+                 blocks, and every row here belongs to one run. */
+              <Fragment key={a.id}>
+                <MenuRow Icon={a.Icon} label={a.label} hint={a.hint}
+                  onClick={() => setExpanded(e => (e === a.id ? null : a.id))}
+                  trailing={<MenuChevron open={expanded === a.id} />} />
+                {expanded === a.id && a.children.map(c => {
+                  const off = c.id === 'restorePrevious' && !previous
+                  return (
+                    <Fragment key={c.id}>
+                      <MenuRow Icon={c.Icon} label={c.label} hint={c.hint} inset disabled={off}
+                        onClick={() => { setOpen(false); setExpanded(null); onAction(c.id) }} />
+                      {c.id === 'restorePrevious' && (
+                        /* Save and Save to Cloud come after these, so this one
+                           owes the 2:1 clearance to the next row. */
+                        <MenuNote followed>{previous
+                          ? `“${previous.name}”${previous.at ? `, ${ago(previous.at)}` : ''}`
+                          : 'Nothing saved on this device yet'}</MenuNote>
+                      )}
+                    </Fragment>
+                  )
+                })}
+              </Fragment>
+            )
+            return (
+              <MenuRow key={a.id} Icon={a.Icon} hint={a.hint}
+                label={a.id === 'saveToCloud' && projectId ? 'Copy Share URL' : a.label}
+                onClick={() => { setOpen(false); setExpanded(null); onAction(a.id) }} />
+            )
+          })}
         </div>
       )}
     </div>
@@ -1092,11 +1390,7 @@ function RestoreToast({ offer, onRestore, onDismiss }) {
         width: 28, height: 28, borderRadius: '50%', flexShrink: 0, alignSelf: 'center',
         background: 'rgb(var(--success-rgb) / .16)', color: 'var(--success)',
       }}>
-        <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-          strokeWidth={2.1} strokeLinecap="round" strokeLinejoin="round">
-          <path d="M3 3v6h6" />
-          <path d="M3.5 14a9 9 0 1 0 2.1-9.4L3 7" />
-        </svg>
+        <Restore />
       </span>
       <div style={{ minWidth: 0 }}>
         <div style={{ fontSize: 12, color: 'var(--text)' }}>
@@ -1730,14 +2024,8 @@ function Shell() {
       if (!ms) setCasual('fork')
       else forkTimer.current = setTimeout(() => setCasual('fork'), FORK_DELAY)
 
-      const prev = localStorage.getItem(PREV_KEY)
-      if (!prev || isPristineDoc(prev)) return
-      const at = Number(localStorage.getItem(PREV_AT_KEY))
-      setRestorable({
-        raw: prev,
-        name: JSON.parse(prev)?.meta?.name?.trim() || 'Untitled',
-        at: Number.isFinite(at) && at > 0 ? at : null,
-      })
+      const prev = readPrevious()
+      if (prev) setRestorable(prev)
     } catch { /* corrupt draft — start fresh rather than crash */ }
     return () => clearTimeout(forkTimer.current)
   }, [])
@@ -1760,10 +2048,20 @@ function Shell() {
     setTimeout(() => { setLeaving(false); setCasual('off'); then?.() }, ms)
   }, [])
 
+  /* ── IT READS THE DOCUMENT, NOT THE TOAST'S STATE ──
+   *
+   * This used to open with `if (!restorable) return`, so it did nothing once
+   * the toast had withdrawn. That was fine while the toast was the only way to
+   * call it. The Load menu calls it too, and that menu is reachable for as long
+   * as the app is open, so it fell back to the stored document. */
   const restorePrevious = useCallback(() => {
-    if (!restorable) return
+    const offer = restorable ?? readPrevious()
+    if (!offer) {
+      setNotice({ tone: 'warn', text: 'No previous project is saved on this device.' })
+      return
+    }
     try {
-      const { state: migrated, warning } = migrate(JSON.parse(restorable.raw))
+      const { state: migrated, warning } = migrate(JSON.parse(offer.raw))
       load(migrated)
       if (warning) setNotice({ tone: 'warn', text: warning })
     } catch {
@@ -1883,7 +2181,11 @@ function Shell() {
     /* Straight to the questions, not to the fork. Somebody who picked this
        has already chosen the guided path, and the fork would ask again. */
     newGuided: () => setCasual('wizard'),
+    /* `loadProject` is the menu itself and never dispatches. Its two children
+       do. The id is kept so an older call site cannot silently do nothing. */
     loadProject: () => fileInput.current?.click(),
+    loadFromFile: () => fileInput.current?.click(),
+    restorePrevious,
     saveToDevice,
     saveToCloud: projectId ? copyShareUrl : saveToCloud,
   }[id]?.())
@@ -2261,6 +2563,12 @@ function Shell() {
                   style={{ padding: BTN.lg, flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 6, color: linkCopied ? 'var(--success)' : 'var(--muted)' }}>
                   <Copy /><span className="lbl">{linkCopied ? 'Link copied' : 'Copy share URL'}</span>
                 </button>
+              )
+              /* An entry with children opens rather than acts. Read the FIELD
+                 rather than the id, so a second such entry needs no change
+                 here. */
+              if (a.children) return (
+                <LoadMenu key={a.id} action={a} onAction={runProjectAction} />
               )
               return (
                 <button key={a.id} className={a.id === 'saveToCloud' ? 'btn-fill' : 'btn-ghost'}
