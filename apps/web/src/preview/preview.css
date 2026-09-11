@@ -2748,21 +2748,33 @@
  * none, there is no bar to clear and the column stays flush with its heading,
  * which is the whole point above. `:has()` makes that dynamic, so a table
  * gains the gutter the moment a row is marked and the column never staggers. */
-/* ── AND WHICH EDGE NEEDS A GUTTER IS A QUESTION ABOUT THE CARD ──
+/* ── AND THE SAME MISTAKE WAS MADE A SECOND TIME, ON THE SAME EDGE ──
  *
- * Both paragraphs above are right about a card that pads nothing. On a card
- * that pads 24px they double the inset, and three tables measured it: the
- * last column ink at 41px from the card border, the first at 25 or 33, and
- * the card margin at 25. Five other cards on that surface put their first
- * ink at 25. The table was the only one that did not.
+ * They reported the FIRST column sitting 33px from the card border where five
+ * other cards on that surface put their first ink at 25. That half is real and
+ * the bar rule below fixes it.
  *
- * So the container owns the inset, which is the rule a chart already obeys.
- * A padded card zeroes BOTH outer gutters and the columns sit on its margin.
- * `.card-bleed` keeps them, because there the cell edge IS the card edge. */
+ * I took the end edge with it, and zeroed that too, "so the two edges are
+ * equal". They caught it within the hour, twice, on two different tables:
+ * "right padding is still fucked".
+ *
+ * The paragraph above already said why. THE TWO EDGES ARE NOT THE SAME CASE.
+ * A start-aligned first cell with no start padding puts its text ON the
+ * content edge, where the heading above it sits, and it reads as planted. An
+ * end-aligned last cell with no end padding puts its digits on the far
+ * content edge with nothing beyond, and it reads as falling off. The card's
+ * own padding cannot stand in, because that padding is shared with everything
+ * else in the card and is not the column's gutter.
+ *
+ * Measured on the live page, both ways: the ink's right edge at 25 from the
+ * card border with the zero, and 41 with the gutter. The cell's own box ends
+ * at 25 in both.
+ *
+ * So the end keeps its gutter everywhere, and the two outer insets are
+ * DELIBERATELY unequal. The equal-edges rule is about a table whose container
+ * supplies no inset at all. */
 .dmd .table th:first-child, .dmd .table td:first-child { padding-inline-start: 0; }
-.dmd .card:not(.card-bleed) .table th:last-child,
-.dmd .card:not(.card-bleed) .table td:last-child { padding-inline-end: 0; }
-.dmd .card-bleed .table .act-col:last-child { padding-inline-end: var(--space-xs, 8px); }
+.dmd .table .act-col:last-child { padding-inline-end: var(--space-xs, 8px); }
 /* THE BAR GUTTER IS THE SAME QUESTION. On a bleed card the bar has nowhere to
  * go but inside the cell, so the whole column reserves it. On a padded card
  * it paints in the card's own inset, flush against the row's fill, and the

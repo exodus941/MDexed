@@ -2363,12 +2363,11 @@ line('\n- prompt construction -')
     ['a table cell has a horizontal gutter', ['commonest omission in a table']],
     ['ornament columns shrink, content columns do not grow', ['shrink the ornament columns']],
     ['a table keeps its two outer edges equal', ['always reads as a lean']],
-    /* WHICH EDGE NEEDS A GUTTER IS A QUESTION ABOUT THE CARD. The two rules
-       beside it hold for a card that pads nothing, and a padded card doubles
-       the inset. The app disobeyed a payload that was already right: measured,
-       the last column's ink at 41px from the card border where the margin is
-       25, on three padded cards. */
-    ['a padded card supplies the table its outer gutters', ['card-bleed', 'doubles the inset']],
+    /* A CARD HOLDING ONLY A TABLE PADS NOTHING AND SAYS SO, and the two outer
+       edges are not one case. Zeroing both was tried twice here and reported
+       both times: "right padding is still fucked". */
+    ['a card holding only a table takes the bleed variant', ['card-bleed', 'pads nothing, and it says so']],
+    ['the start edge and the end edge are not one case', ['not one case', 'reads as falling off']],
     ['the accent bar moves into the padded card\'s margin', ['one bar width out', 'detached tick']],
     ['one mechanism centres a label', ['is centring twice']],
     ['stripe and selection are one step apart', ['one step further']],
@@ -8516,34 +8515,39 @@ function hueHex(h) {
     /\.table (?:th|td):first-child/.test(b[1]) && !/:has\(/.test(b[1]))
   assert(startFlush.length === 1 && /padding-inline-start:\s*0/.test(startFlush[0][2]),
     `the first cell is flush, so its text lands on the heading margin (${startFlush.length} rule(s))`)
-  /* ── AND WHICH EDGE NEEDS A GUTTER IS A QUESTION ABOUT THE CARD ──
+  /* ── AND THIS ASSERTION HAS NOW BEEN WRITTEN AROUND THE SAME DEFECT TWICE ──
    *
-   * The assertion here used to read "no rule zeroes an outer END edge", from a
-   * run that measured 0.00px from the card's inner edge on four tables. On a
-   * card that pads nothing the inner edge IS the border, so that reading was a
-   * fault. On a card that pads 24px it is the margin, so the same reading was
-   * correct, and the two cases were one number.
+   * Version one read "both outer edges are zeroed, so the table cannot read as
+   * leaning", and it held the very declaration they reported the next day.
+   * Version two read "the end is not zeroed anywhere", which was right.
    *
-   * Measured on three padded cards at 1024: the last column ink stood 41px
-   * from the card border and the first at 25 or 33, against a card margin of
-   * 25. Five other cards on that surface put their first ink at 25 and the
-   * table was the only one that did not.
+   * Then I zeroed the end again, for symmetry, and rewrote this to demand it.
+   * They caught it within the hour, twice, on two tables: "right padding is
+   * still fucked".
    *
-   * So the container owns the inset, which is the rule a chart already obeys.
-   * A padded card zeroes both outer gutters and `.card-bleed` keeps them. */
+   * THE TWO EDGES ARE NOT THE SAME CASE. Measured on the live page both ways:
+   * the ink's right edge at 25 from the card border with the zero and 41 with
+   * the gutter, and the cell's own box at 25 in both. A start-aligned first
+   * cell reads as planted on the content edge. An end-aligned last cell reads
+   * as falling off it, and the card's own padding cannot stand in because it
+   * is shared with everything else in the card.
+   *
+   * So the start is zeroed, the end is not zeroed anywhere, and the two outer
+   * insets are deliberately unequal. The equal-edges rule is about a table
+   * whose container supplies no inset at all. */
   const endZero = cellRules.filter(b =>
     /\.table[^{]*(?:th|td):last-child/.test(b[1]) && /padding-inline-end:\s*0(?:px)?\s*[;}]/.test(b[2]))
-  assert(endZero.length > 0, 'the outer end edge is zeroed too, so both edges land on the card margin')
-  const unscopedEnd = endZero.filter(b => !/:not\(\.card-bleed\)/.test(b[1]))
-  assert(unscopedEnd.length === 0, unscopedEnd.length
-    ? `an end edge is zeroed with no card scope, so a bleed card puts its ink on the border — ${unscopedEnd.map(b => b[1].trim()).join('; ')}`
-    : 'and only where the card supplies the inset, never on a bleed card')
+  assert(endZero.length === 0, endZero.length
+    ? `an outer end edge is zeroed, so its ink lands on the container edge — ${endZero.map(b => b[1].trim()).join('; ')}`
+    : 'and no rule zeroes an outer END edge, where the ink sits at that end')
   const bleedPad = cellRules.find(b => /\.card-bleed\b/.test(b[1]) && /(?:^|[;\s])padding:/.test(b[2]))
   assert(!!bleedPad && /--cmp-card-bleed-padding/.test(bleedPad[2]),
     'a bleed card reads its own published padding, never the inline zero the two screens wrote')
-  const bleedEnd = cellRules.find(b => /\.card-bleed .table .act-col:last-child/.test(b[1]))
-  assert(!!bleedEnd && /padding-inline-end:\s*var\(--space-xs/.test(bleedEnd[2]),
-    'and a bleed card keeps the cell gutter, because there the cell edge IS the card edge')
+  /* The row-action column keeps a SMALLER gutter, from its own start padding,
+     so its button centres in a cell that shrinks to fit it. */
+  const actEnd = cellRules.find(b => /\.table \.act-col:last-child/.test(b[1]))
+  assert(!!actEnd && /padding-inline-end:\s*var\(--space-xs/.test(actEnd[2]),
+    'and a row-action column keeps its own smaller gutter, whatever card holds it')
   /* THE BAR GOES IN THE MARGIN ON A PADDED CARD, which is what frees the
      column. One bar width, so it sits FLUSH against the row's fill rather
      than floating off it. Measured on Gallery at 1024: bar 21 to 25 from the
