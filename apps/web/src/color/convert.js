@@ -64,6 +64,30 @@ export const inGamut = c => {
   return r >= -eps && r <= 1 + eps && g >= -eps && g <= 1 + eps && b >= -eps && b <= 1 + eps
 }
 
+/* ── THE MOST CHROMA sRGB HOLDS AT A LIGHTNESS AND A HUE ──
+ *
+ * ONE SCORER, THREE CALLERS. Two byte-identical copies of this already sat in
+ * `dataviz.js` and `palette.js`, and they had already drifted: one ran 24
+ * bisection steps and the other 20. A third copy was about to arrive for the
+ * accent tint.
+ *
+ * 24 steps over a 0.4 range resolves to 2e-8, which is far under a hex step,
+ * so the count is not a decision either caller needs to make.
+ *
+ * The ceiling is wildly uneven, which is the whole reason anything calls this.
+ * Measured at L 0.970: hue 270 holds 0.014 and hue 120 holds 0.096, a 7x
+ * spread. So a fixed chroma is a different colour at every hue, and at the
+ * weak end it is no colour at all. */
+export const maxChroma = (l, h) => {
+  let lo = 0, hi = 0.4
+  for (let i = 0; i < 24; i++) {
+    const mid = (lo + hi) / 2
+    if (inGamut(fromOklch({ l, c: mid, h }))) lo = mid
+    else hi = mid
+  }
+  return lo
+}
+
 export const withAlpha = (c, a) => ({ ...c, alpha: a })
 
 /* Convenience: hex in, hex out, through whichever model the UI is editing. */

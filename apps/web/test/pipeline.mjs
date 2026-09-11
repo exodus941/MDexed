@@ -4107,6 +4107,52 @@ line('\n- depth intensity -')
     `muted text clears AA on a hovered row (worst ${worstMutedOnHover.toFixed(2)}:1, bar 4.5)`)
   assert(worstStripe < 1.6,
     `a stripe is rhythm and a band is a boundary, so every stripe stays under the band (worst ${worstStripe.toFixed(2)}:1, bar 1.6)`)
+
+  /* ── A TINT CARRIES THE SAME AMOUNT OF ITS HUE AT EVERY HUE ──
+   *
+   * Their report, 11 September 2026: "i think the accent tint needs to have a
+   * rolling value depending on the hue, otherwise it's almost invisible in
+   * certain hues."
+   *
+   * Measured before: the light tint ran 0.005 to 0.020 of chroma over its
+   * ground round the hue circle, a 4.0x spread, and the dark one 0.003 to
+   * 0.009 at 3.0x. sRGB is why: at L 0.970 the ceiling is 0.014 at hue 270
+   * and 0.096 at hue 120, so the weak hues were already at 99% to 104% of it.
+   *
+   * THE SPREAD IS THE ASSERTION, NOT A VALUE. A tint's absolute chroma
+   * depends on the seed, so pinning one would fail on a palette nobody thinks
+   * is broken. What has to hold is that no hue is starved next to another.
+   * Measured after: light 2.1x and dark 1.2x. The bar is 2.5x, which is under
+   * both and well under the 3.0x and 4.0x this replaced. */
+  const { hexFrom: hexFromOk } = await import('../src/color/convert.js')
+  const overs = { light: [], dark: [] }
+  for (let h = 0; h < 360; h += 30) {
+    const st = structuredClone(createInitialState())
+    st.color.seeds = st.color.seeds.map(s => s.name === 'accent'
+      ? { ...s, hex: hexFromOk({ mode: "oklch", l: 0.54, c: 0.145, h }) } : s)
+    const dd = derive(st)
+    for (const mode of ['light', 'dark']) {
+      const t = toOklchObj(parseColorFor(dd.roles[mode]['accent-subtle']))
+      const g = toOklchObj(parseColorFor(dd.roles[mode].surface))
+      overs[mode].push({ h, over: t.c - g.c, lift: Math.abs(t.l - g.l) })
+    }
+  }
+  for (const mode of ['light', 'dark']) {
+    const set = overs[mode]
+    assert(set.length === 12, `${mode}: the whole hue circle is asked (${set.length} hues)`)
+    const lo = Math.min(...set.map(r => r.over)), hi = Math.max(...set.map(r => r.over))
+    assert(lo > 0.004,
+      `${mode}: no hue is left with no tint at all (weakest ${lo.toFixed(3)} of chroma over its ground)`)
+    assert(hi / lo < 2.5,
+      `${mode}: every hue carries about the same tint (${(hi / lo).toFixed(1)}x spread, ${lo.toFixed(3)} to ${hi.toFixed(3)}, bar 2.5x)`)
+    /* AND THE LIFT IS THE OTHER HALF. Reaching for chroma spends the
+       separation from the card, so the walk stops at the bar the audit holds.
+       A first version used a contrast floor instead and crossed the card
+       entirely: measured, a light tint at L 0.940 against a card at 0.940. */
+    const worstLift = Math.min(...set.map(r => r.lift))
+    assert(worstLift >= 0.02 - 1e-9,
+      `${mode}: and none of them flattens onto the card (worst lift ${worstLift.toFixed(4)}, bar 0.02)`)
+  }
   assert(closestOrder > 0,
     `a selection always stands further off the surface than the stripe (closest margin ${closestOrder.toFixed(2)})`)
   assert(widestGap < 1.5,
@@ -8548,6 +8594,27 @@ function hueHex(h) {
   const actEnd = cellRules.find(b => /\.table \.act-col:last-child/.test(b[1]))
   assert(!!actEnd && /padding-inline-end:\s*var\(--space-xs/.test(actEnd[2]),
     'and a row-action column keeps its own smaller gutter, whatever card holds it')
+  /* ── AND THE SELECTION CELL'S GUTTER GOES WITH THE BAR ──
+   *
+   * That cell's own padding is the bar plus the `lg` step, because a 16px
+   * checkbox at the small step reads as touching a 4px accent bar. On a padded
+   * card the bar paints in the card's margin, so the cell was paying for
+   * clearance it no longer needs: the mark 53px from the card border where the
+   * heading sat at 25 and every other cell at 41, with 28px of empty space
+   * between the bar and the box.
+   *
+   * ZERO WAS RENDERED AND REJECTED ON A MEASUREMENT. Three whole cards at 1:1
+   * through the real stylesheet: the mark at 53, 41 and 25, with the bar's
+   * right edge at 25 in all three. At 25 the gap to the box is 0.00 and both
+   * are the accent, which is the fusion the gutter exists to prevent. The
+   * ordinary cell padding gives 41 and a 16px gap. */
+  const selCellPad = cellRules.filter(b =>
+    /:not\(\.card-bleed\)[^{]*td:first-child/.test(b[1]) && /input\[type="checkbox"\]/.test(b[1]))
+  assert(selCellPad.length === 1, `a padded card gives the selection cell one padding rule (${selCellPad.length})`)
+  assert(/padding:\s*var\(--cmp-table-cell-padding/.test(selCellPad[0]?.[2] ?? ''),
+    'and it is the ordinary cell padding, because the bar is not in the cell there')
+  assert(!/--cmp-table-selection-cell-padding/.test(selCellPad[0]?.[2] ?? ''),
+    'never the bar gutter, which answers a bar inside the cell')
   /* THE BAR GOES IN THE MARGIN ON A PADDED CARD, which is what frees the
      column. One bar width, so it sits FLUSH against the row's fill rather
      than floating off it. Measured on Gallery at 1024: bar 21 to 25 from the

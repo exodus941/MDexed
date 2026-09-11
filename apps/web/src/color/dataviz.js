@@ -47,7 +47,7 @@
  * picture readable and the direct label makes it certain.
  */
 
-import { parseColor, toHex, toGamut, fromOklch, toOklchObj, inGamut } from './convert.js'
+import { parseColor, toHex, toGamut, fromOklch, toOklchObj, inGamut, maxChroma } from './convert.js'
 import { RAMP_STEPS } from './ramp.js'
 
 /**
@@ -196,15 +196,9 @@ export function oklabDistance(aHex, bHex) {
  * blue one. Taking a FRACTION of each hue's own ceiling gives eight colours
  * that read at the same strength.
  */
-function maxChroma(l, h) {
-  let lo = 0, hi = 0.4
-  for (let i = 0; i < 24; i++) {
-    const mid = (lo + hi) / 2
-    if (inGamut(fromOklch({ l, c: mid, h }))) lo = mid
-    else hi = mid
-  }
-  return lo
-}
+/* `maxChroma` lives in `convert.js`, beside `inGamut`. Two copies of it sat
+   here and in `palette.js`, at 24 and 20 bisection steps, which is a scorer
+   that had already drifted from itself. */
 
 /**
  * How saturated the brand is, as a fraction of what its own lightness allows.

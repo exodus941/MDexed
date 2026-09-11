@@ -1,7 +1,7 @@
 /* The single source of truth for concrete token values.
    Pure: state in, resolved tokens out. Both the preview and the file emitter
    read from here, which is what guarantees that what you see is what exports. */
-import { buildRamps, resolveRef, RAMP_STEPS, DARK_FLOOR } from '../color/ramp.js'
+import { buildRamps, resolveRef, solveTint, RAMP_STEPS, DARK_FLOOR } from '../color/ramp.js'
 import { gradientCss } from '../color/modes.js'
 import { buildDataviz } from '../color/dataviz.js'
 import { parseColor, toRgb255, withAlpha, hexFrom } from '../color/convert.js'
@@ -147,6 +147,29 @@ export function derive(state, opts = {}) {
       const ref = color.roles?.[role.name]?.[mode] ?? role[mode]
       const set = mode === 'dark' ? rampsDark : ramps
       roles[mode][role.name] = override ?? resolveRef(ref, set) ?? '#000000'
+    }
+  }
+
+  /* ── A SECOND PASS, FOR A ROLE THAT DEPENDS ON ANOTHER ROLE ──
+   *
+   * A tint has to know the ground it sits on, and a ground is a role rather
+   * than a ramp step. `resolveRef` is given the ramps and nothing else, so it
+   * cannot answer this and should not try.
+   *
+   * It stays ONE writer, because the role's own `solve` field is the only
+   * thing that reaches it. A typed override still wins, which is what an
+   * override is for: the pass skips any role the designer has pinned.
+   *
+   * The `light` and `dark` refs above are not dead. They set the starting
+   * lightness and the hue, and `solve` moves only the lightness and chroma
+   * from there. */
+  for (const role of ALL_ROLES) {
+    if (!role.solve) continue
+    for (const mode of ['light', 'dark']) {
+      if (color.roleOverrides?.[`${role.name}:${mode}`] != null) continue
+      const ground = roles[mode][role.solve.against]
+      if (!ground) continue
+      roles[mode][role.name] = solveTint(roles[mode][role.name], ground, role.solve)
     }
   }
 

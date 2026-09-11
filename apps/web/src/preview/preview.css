@@ -2874,6 +2874,28 @@
 .dmd .table:has(tbody td:first-child :is(input[type="checkbox"], .checkbox)) td:first-child {
   padding: var(--cmp-table-selection-cell-padding, var(--cmp-table-cell-padding, var(--space-sm, 12px) var(--space-md, 16px)));
 }
+/* ── AND ON A PADDED CARD THE BAR IS NOT IN THE CELL, SO THE GUTTER GOES ──
+ *
+ * The selection cell's own padding is the bar plus the `lg` step, because a
+ * 16px checkbox at the small step reads as touching a 4px accent bar. Both are
+ * the accent, so they fuse into one shape.
+ *
+ * That gutter answers a bar INSIDE the cell. On a padded card the bar paints
+ * in the card's margin instead, so the cell is paying for clearance it no
+ * longer needs. Measured: the mark 53px from the card border where the
+ * heading, the badge and every other cell sit at 25 or 41, and 28px of empty
+ * space between the bar and the box.
+ *
+ * The ordinary cell padding puts the mark at 41, level with the other cells,
+ * and keeps 16px between the bar and the box.
+ *
+ * ZERO WAS RENDERED AND REJECTED ON A MEASUREMENT. It puts the mark at 25,
+ * level with the heading, and the bar's right edge lands exactly on the box's
+ * left edge at 0px apart. That is the fusion this rule exists to prevent. */
+.dmd .card:not(.card-bleed) .table:has(tbody td:first-child :is(input[type="checkbox"], .checkbox)) th:first-child,
+.dmd .card:not(.card-bleed) .table:has(tbody td:first-child :is(input[type="checkbox"], .checkbox)) td:first-child {
+  padding: var(--cmp-table-cell-padding, var(--space-sm, 12px) var(--space-md, 16px));
+}
 /* ── THE EDGE OVERLAPS THE ROW RULE, NEVER SITS INSIDE IT ──
  *
  * An inset box-shadow paints inside the border box and the BORDER paints on

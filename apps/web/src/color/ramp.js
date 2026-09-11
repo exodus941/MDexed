@@ -2,7 +2,8 @@
    perceptually even rather than mathematically even. Three shape controls:
    a lightness curve, a chroma envelope, and a hue shift across the ramp
    (which is how you get warm shadows and cool highlights). */
-import { parseColor, toOklchObj, fromOklch, toGamut, toHex } from './convert.js'
+import { parseColor, toOklchObj, fromOklch, toGamut, toHex, maxChroma, hexFrom } from './convert.js'
+import { check } from './contrast.js'
 
 export const RAMP_STEPS = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950]
 
@@ -218,3 +219,96 @@ export function resolveRef(ref, ramps) {
   }
   return ramp?.steps?.[step] ?? null
 }
+
+/**
+ * A tint that carries the SAME amount of its hue whatever that hue is.
+ *
+ * ── THEIR REPORT, 11 SEPTEMBER 2026 ──
+ *
+ * "i think the accent tint needs to have a rolling value depending on the
+ * hue, otherwise it's almost invisible in certain hues."
+ *
+ * Measured, and they are right. A tint taken as a fixed ramp step carries
+ * whatever chroma sRGB happens to allow at that step's lightness, and that
+ * allowance is wildly uneven. At L 0.970 the ceiling is 0.014 at hue 270 and
+ * 0.096 at hue 120. So the light tint ran 0.005 to 0.020 over its ground, a
+ * 4x spread, and the dark one ran 0.003 to 0.009.
+ *
+ * The shipped accent is a blue at hue 251, which sits in the weak band.
+ *
+ * ── ROLLING THE CHROMA ALONE CANNOT WORK ──
+ *
+ * The weak hues are already AT the ceiling: 99% to 104% of it at hues 0, 30,
+ * 240, 270 and 300. Asking for more chroma there returns the same colour.
+ * That is the rule about a hue's lightness not being free, pointed at a near
+ * white rather than at a mid dark.
+ *
+ * ── SO THE LIGHTNESS ROLLS TOO, TOWARD THE GROUND ──
+ *
+ * The gamut opens as lightness leaves the extremes. A light tint sits above
+ * its card and a dark tint below it, so in BOTH modes the room is in the
+ * direction of the ground. One rule, no mode branch.
+ *
+ * ── AND THE LIFT IS WHAT STOPS IT ──
+ *
+ * Moving toward the ground spends the separation from it. Measured with the
+ * lightness free and nothing stopping it, at a flat 0.028 over the ground:
+ * six of twelve hues crossed the card entirely, turning a lighter tinted band
+ * into a darker one.
+ *
+ * SO THE BAR IS THE ONE THE AUDIT ALREADY HOLDS. The first version stopped at
+ * a contrast floor of 1.05 instead, which is a second currency for one
+ * question. It walked straight past the audit's own bar, and the audit fired
+ * on nine shipped configurations: `fill-flat:light:accent-subtle`. The check
+ * was right and the solve was wrong.
+ *
+ * `SUBTLE_FILL_LIFT` is that bar, in OKLCH lightness, read by both. A hue
+ * that still cannot reach the chroma target at the nearest allowed lightness
+ * keeps whatever its ceiling gives there.
+ *
+ * The HUE comes from the starting colour, so the ramp still decides which
+ * accent this is. Only its lightness and chroma move.
+ */
+export function solveTint (startHex, groundHex, { over, lift = SUBTLE_FILL_LIFT } = {}) {
+  const s = toOklchObj(parseColor(startHex))
+  const g = toOklchObj(parseColor(groundHex))
+  if (!s || !g || !Number.isFinite(over)) return startHex
+  const want = g.c + over
+  /* Toward the ground, which is where sRGB has room. Above a light card that
+     is downward and below a dark card it is upward. */
+  const dir = s.l > g.l ? -1 : 1
+  /* MEASURE THE HEX, NOT THE REQUEST. A target lightness of exactly
+     `ground + lift` round-trips through a hex and comes back under the bar:
+     measured, a solve aiming at L 0.960 produced 0.9590 against a 0.0200
+     bar, and the audit fired on it. So each candidate is rendered, read back,
+     and rejected on its OWN lift. */
+  const at = l => {
+    const hex = hexFrom({ mode: 'oklch', l, c: Math.min(want, maxChroma(l, s.h)), h: s.h })
+    const o = toOklchObj(parseColor(hex))
+    return { hex, c: o?.c ?? 0, lift: Math.abs((o?.l ?? 0) - g.l) }
+  }
+  let best = at(s.l)
+  for (let step = 0.002; step <= 0.12 + 1e-9; step += 0.002) {
+    const l = s.l + dir * step
+    if (l <= 0 || l >= 1) break
+    const cand = at(l)
+    if (cand.lift < lift) break
+    if (cand.c > best.c + 1e-4) best = cand
+    if (best.c >= want - 1e-4) break
+  }
+  return best.hex
+}
+
+/**
+ * The least lightness distance a tinted fill may sit from its ground.
+ *
+ * ONE BAR, TWO CALLERS. The a11y audit held this as its own constant and
+ * `solveTint` was given a contrast floor instead, which is a second currency
+ * for one question. The solve then walked past the audit's bar and the audit
+ * fired on nine shipped configurations: `fill-flat:light:accent-subtle`.
+ *
+ * Two hundredths of OKLCH lightness is the least that reads as a plane at
+ * all. Below it a tint is separated from its card by hue alone, which is what
+ * a reader called solarized.
+ */
+export const SUBTLE_FILL_LIFT = 0.02

@@ -29,6 +29,7 @@
 import { parseColor, toOklchObj, toHex, hexFrom, withAlpha } from '../color/convert.js'
 import { wcag, apca, check, flatten } from '../color/contrast.js'
 import { TEXT_ROLES, SURFACE_ROLES } from '../state/schema.js'
+import { SUBTLE_FILL_LIFT } from '../color/ramp.js'
 import { converter, filterDeficiencyDeuter, filterDeficiencyProt, differenceEuclidean } from 'culori'
 
 const rgb = converter('rgb')
@@ -1469,7 +1470,12 @@ function rowPlaneOrder (derived, mode) {
  * shipped light mode carries twice that.
  */
 const SUBTLE_FILLS = ['accent-subtle', 'success-subtle', 'warning-subtle', 'danger-subtle']
-const FILL_LIFT_MIN = 0.02
+/* ONE BAR, TWO CALLERS. `solveTint` places the accent tint and has to stop at
+   the same distance this check refuses below. It was given a contrast floor of
+   1.05 instead, which is a second currency for one question: the solve walked
+   past this bar and this check fired on nine shipped configurations. The
+   constant lives beside the solve now. */
+const FILL_LIFT_MIN = SUBTLE_FILL_LIFT
 
 function fillSitsOnItsGround (derived, mode) {
   const R = derived.roles?.[mode] ?? {}

@@ -207,7 +207,21 @@ export const ROLE_GROUPS = [
        * there: lift -0.0473 at chroma 0.0799. At high lightness the eye takes
        * far more chroma before it reads as a stain, which is why one value
        * cannot serve both modes. */
-      { name: 'accent-subtle',   desc: 'Tinted background',          light: 'accent.50',   dark: 'neutral.950~accent.500@0.1'  },
+      /* ── AND A TINT CARRIES THE SAME AMOUNT OF ITS HUE AT EVERY HUE ──
+         Their report, 11 September 2026: "i think the accent tint needs to
+         have a rolling value depending on the hue, otherwise it's almost
+         invisible in certain hues."
+         Measured: the light tint ran 0.005 to 0.020 of chroma over its ground
+         across the hue circle, a 4x spread, and the dark one 0.003 to 0.009.
+         sRGB is why. At L 0.970 the ceiling is 0.014 at hue 270 and 0.096 at
+         hue 120, and the weak hues were already sitting at 99% to 104% of it.
+         The shipped accent is a blue at hue 251, inside that weak band.
+         The refs stay, because they set the STARTING lightness and the hue.
+         `solve` then moves the lightness toward the ground, where sRGB has
+         room, until the hue can hold the target or the separation hits its
+         floor. `solveTint` in `ramp.js` carries the numbers and the reasoning. */
+      { name: 'accent-subtle',   desc: 'Tinted background',          light: 'accent.50',   dark: 'neutral.950~accent.500@0.1',
+        solve: { against: 'surface', over: 0.020 } },
       /* ── A FILLED SHAPE, AND `accent-subtle` CANNOT DRAW ONE ──
        *
        * `accent-subtle` is a GROUND: text sits on it and the words carry the

@@ -8,7 +8,7 @@
    Status colours are constrained to the hue bands people actually read as
    success, warning and danger — a "random" green success colour that lands on
    teal stops communicating. */
-import { fromOklch, toOklchObj, toGamut, toHex, parseColor, inGamut } from './convert.js'
+import { fromOklch, toOklchObj, toGamut, toHex, parseColor, inGamut, maxChroma } from './convert.js'
 
 /* ONE SOURCE FOR THE THRESHOLD. The audit decides what "reads as one colour"
    means, and the generator has to answer the same question the same way. A
@@ -174,15 +174,9 @@ const wrap = h => ((h % 360) + 360) % 360
  *   danger   h29    L 0.30-0.79        accent  h251   L 0.42-0.77
  *
  * A yellow must be light. That is a fact about sRGB, not a preference. */
-function maxChroma(l, h) {
-  let lo = 0, hi = 0.4
-  for (let i = 0; i < 20; i++) {
-    const mid = (lo + hi) / 2
-    if (inGamut(fromOklch({ l, c: mid, h }))) lo = mid
-    else hi = mid
-  }
-  return lo
-}
+/* `maxChroma` lives in `convert.js`, beside `inGamut`. This copy ran 20
+   bisection steps against the other one's 24, so the two disagreed in the
+   eighth decimal. Under a hex step, and still two answers to one question. */
 
 /**
  * The lightness band where hue `h` is STRONG, as a share of its own best.
