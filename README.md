@@ -15,7 +15,7 @@ Set a few seed colours and move five sliders. MDexed generates the colour scales
 
 The markdown is what an agent reads, and it is not the whole export. The payload also carries `tokens.css`, Sass, TypeScript, W3C design tokens, presets for Tailwind v3 and v4, two verifiers the agent can run on its own work, and every sample screen as standalone HTML in each theme you ship.
 
-A `DESIGN.md` is advice. An agent can read it and still write the wrong hex, and nothing catches that. The other files are the same values as working code. Import `tokens.css` and `var(--c-accent)` can only ever be your accent. A hardcoded colour then shows up in a diff instead of passing for correct.
+A `DESIGN.md` is advice, and prose cannot enforce itself. The other files are the same values as working code: import `tokens.css` and `var(--c-accent)` can only ever be your accent. A hardcoded colour then shows up in a diff instead of passing for correct, and `VERIFY.mjs` fails the build over it.
 
 Very special thanks to the incredible [ninienowrin](https://github.com/ninienowrin/) for taking the trouble to put together the first bones of the project based on my rambling near-incoherent descriptions of a hazy half-formed concept, and then forcing me to go neck-deep into hands-on vibe coding so that I could take it from there myself.
 
@@ -90,9 +90,7 @@ override. Everything below this section is about that door.
 
 **The editor is not a tool for beginners**. It exposes the parts of a design system that most tools hide, and it expects you to know what those parts do. If people call you a control freak, you are going to love it. If they do not, take the guided door and let an agent drive.
 
-**This is not a tool that makes designs from scratch**. It does not invent a look for you. It takes the decisions you make and carries them through every token, every component and every exported file.
-
-**Good output needs design knowledge and taste**. The tool checks contrast, target size and heading order. It cannot tell you that your type scale is dull or that your palette has no point of view. That part is yours, and it stays yours in the guided door too: the agent proposes, the audit measures, and you are the one who says it is right.
+**Good output needs design knowledge and taste**. The tool checks contrast, target size and heading order. It cannot tell you that your type scale is dull or that your palette has no point of view. That part is yours in both doors, and the guided one says so in writing: the prompt tells the agent to show you the result and ask whether it is right, change something, or start again, then wait for your answer.
 
 **It writes a complete design guideline for machines to follow**. The output covers every component and every style rule, as machine-readable files plus rendered examples. An agent reads it once and follows it exactly. You stop repeating the same corrections across prompts, and you stop paying tokens to do it.
 
@@ -100,7 +98,7 @@ override. Everything below this section is about that door.
 
 ## Quick Start
 
-Needs **Node 20+**.
+Needs **Node 20, or 22 and newer**. That is Vite 6's own range, `^18 || ^20 || >=22`, so an odd-numbered release is out.
 
 ```bash
 npm install
@@ -160,7 +158,7 @@ Project name, description, the five macro sliders, and **6 presets**: Studio, Wa
 Seeds feed the generated scales. Everything downstream reads from here.
 
 - **Palette generator**, inline. Lock the colours you like and press Generate. The rest re-roll around them. **7 harmonies**, free among them, **3 intensities**, and a chroma level on top of those. It works in OKLCH, so brightness stays even across a run. Status seeds stay inside the hue bands that still read as success, warning and danger.
-- **Scale generation**: **11 steps** per seed. Controls for the lightness curve, the chroma envelope and the hue shift across the ramp, which gives warm shadows and cool highlights. Your seed hex pins into its own scale and survives generation exactly.
+- **Scale generation**: **11 steps** per seed, shaped by **7 controls**. The lightest and darkest steps, the lightness curve, where the chroma peaks, the saturation, and a hue shift across the ramp that gives warm shadows and cool highlights. The seventh pins your seed hex into its own scale, so the exact brand colour is present rather than approximated.
 - **Ground tint**, which is the decision nobody offers: the neutral seed decides every surface and border, so it decides whether a page reads as a room with a coloured button in it or as a grey slab with a foreign hue stuck on. Three answers — the accent's own hue, a cool low chroma, or a cool vivid. It barely shows in light and decides everything in dark.
 - **Picker**: SV square, hue and alpha strips, **4 models** (HSB, HSL, RGB, OKLCH) over a hex field that is always there, an eyedropper where the browser has one, and gamut warnings.
 - **Gradients**: linear and radial. Stops reference seeds, roles or scale steps instead of frozen hex, so a gradient tracks the palette. Drag to reorder. One click reverses.
@@ -210,7 +208,7 @@ Elevation strategy: **shadow, border or tonal**. Layered two-part shadows take t
 
 ### Motion
 
-Duration scale, 125 / 250 / 500ms by default. Three personality presets. A **draggable cubic-bezier editor** with playback, and a reduced-motion policy.
+Duration scale: instant, then 125, 250 and 500ms by default. **3 personality presets**, snappy, smooth and bouncy. A **draggable cubic-bezier editor** with playback, and a reduced-motion policy.
 
 ### Components
 
@@ -218,7 +216,7 @@ Duration scale, 125 / 250 / 500ms by default. Three personality presets. A **dra
 
 Twelve of the 28 are chart types, because a chart is mostly furniture and no token stated an axis weight, a gridline colour, a bar gap, a line stroke, a marker size or an area fill. A builder charting anything invented all six.
 
-Every entry shows a **live sample** of itself beside its properties. The sample is inert and updates as you type. A modal or a table takes the full width above its controls. Everything else sits alongside, so the sample stays in view while you drag a slider.
+Every entry shows a **live sample** of itself beside its properties. The sample is inert and updates as you type. **7 components** stack above their controls at full width instead, because a 168px column misrepresents them rather than merely shrinking them: a modal, a table, a card, an alert, a textarea, a select and an input. A select is a value on the left and a mark on the right, and squeezing it into 118px makes the two collide, which is a picture of a control this system does not contain. Everything else sits alongside, so the sample stays in view while you drag a slider.
 
 **Composition** is separate from appearance and sits next to the component it governs. **5 components** have one: modal, alert, input, chart and table. A modal's covers alignment, icon placement, icon size, icon treatment, the title-to-body gap, the action arrangement and the close control. The surface re-renders as you change them. None of this fits the eight component properties in the spec, so it leaves as a settings table plus imperative rules. Elevation and motion take the same route. A setting that stops applying, such as icon size when there is no icon, disappears from both the panel and the file.
 
@@ -317,7 +315,7 @@ Three destinations, and they answer different questions.
 
 **Save does not write a `DESIGN.md`, and that is deliberate.** The spec allows a component exactly eight properties and has no way to record that a button has variants and sizes. Saving to that format dropped eight property kinds and flattened the component matrix into rows you could no longer edit as a matrix. `DESIGN.md` is a handoff format. The project file is a save format, it holds the editor's own state and no derived values, so a later change to the generators reaches an old save.
 
-**Save to Cloud** creates the project, puts the id in the URL, and keeps the edit token in this browser. Autosave then patches it, with a longer debounce than a local write. Open the link on a machine that has no token and the document is read-only, which the badge says in words. If the cloud copy moved since you loaded yours, the badge reads Conflict and nothing overwrites anything.
+**Save to Cloud** creates the project, puts the id in the URL, and keeps the edit token in this browser. Autosave then patches it, debounced at **1500ms** against **600ms** for a local write. Open the link on a machine that has no token and the document is read-only, which the badge says in words. If the cloud copy moved since you loaded yours, the badge reads Conflict and nothing overwrites anything.
 
 The status badge is a readout and not a control: On this device, Saving, In the cloud, Read-only, Conflict, Sync failed, Offline. It used to be a bordered pill that looked like every button beside it, so the obvious move was to click it.
 

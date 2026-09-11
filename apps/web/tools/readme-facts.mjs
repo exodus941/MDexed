@@ -77,11 +77,35 @@ export async function facts () {
   const models = (picker.match(/const MODELS = \[([^\]]*)\]/)?.[1] ?? '')
     .split(',').map(s => s.trim()).filter(Boolean)
 
+  /* The scale's shape fields, counted off the default object the panel edits.
+     Six sliders and the seed pin, which is a toggle. */
+  const shapeControls = Object.keys(schema.createInitialState().color.shape).length
+
+  /* Which samples take the full width. Private to the panel, so read as text. */
+  const cp = readFileSync(new URL('panels/ComponentsPanel.jsx', base), 'utf8')
+  const wideSamples = (cp.match(/const WIDE_SAMPLE = new Set\(\[([^\]]*)\]/)?.[1] ?? '')
+    .split(',').map(s => s.trim().replace(/'/g, '')).filter(Boolean)
+
+  /* Same shape: the motion personalities are private to the panel. */
+  const system = readFileSync(new URL('panels/system.jsx', base), 'utf8')
+  const presetBlock = system.slice(system.indexOf('const MOTION_PRESETS = {'))
+  const personalities = [...presetBlock.slice(0, presetBlock.indexOf('\n}'))
+    .matchAll(/^ {2}(\w+): \{$/gm)].map(m => m[1])
+
+  /* The Node floor belongs to Vite, so it is read out of Vite. */
+  const vite = JSON.parse(readFileSync(new URL('../../../node_modules/vite/package.json', base), 'utf8'))
+  const viteFloor = Number(vite.engines?.node?.match(/>=\s*(\d+)/)?.[1] ?? 0)
+
   /* The panel strip, read the same way and for the same reason. */
   const app = readFileSync(new URL('App.jsx', base), 'utf8')
   const tabBlock = app.slice(app.indexOf('const TABS = ['))
   const panels = [...tabBlock.slice(0, tabBlock.indexOf('\n]'))
     .matchAll(/\{\s*id:\s*'([a-z]+)'/g)].map(m => m[1])
+
+  /* The two autosave debounces, off the one ternary that sets them. */
+  const debounce = app.match(/persist\('auto'\)[\s\S]{0,80}?\},\s*projectId \? (\d+) : (\d+)\)/)
+  const cloudMs = Number(debounce?.[1] ?? 0)
+  const localMs = Number(debounce?.[2] ?? 0)
 
   const suite = readFileSync(new URL('../test/pipeline.mjs', base), 'utf8')
   const assertSites = (suite.match(/\bassert\(/g) || []).length
@@ -150,12 +174,29 @@ export async function facts () {
       re: /\| [\d,]+ assertion sites in (\d+) groups/, actual: groups },
     { label: 'guards in npm run check',
       re: /`npm run check` \| (\d+) guards/, actual: guards },
+    /* THE NODE FLOOR IS A DEPENDENCY'S DECISION, so it is read out of the
+       dependency. Stating it from memory is how a README sends somebody to
+       install a runtime the build then refuses. It said "Node 20+", which
+       includes the 21 Vite excludes. */
+    { label: 'the Node floor Vite states', re: /`\^18 \|\| \^20 \|\| >=(\d+)`/, actual: viteFloor },
+    { label: 'the fast motion duration', re: /instant, then (\d+), \d+ and \d+ms/,
+      actual: state.motion.durations.fast },
+    { label: 'the normal motion duration', re: /instant, then \d+, (\d+) and \d+ms/,
+      actual: state.motion.durations.normal },
+    { label: 'the slow motion duration', re: /instant, then \d+, \d+ and (\d+)ms/,
+      actual: state.motion.durations.slow },
+    { label: 'motion personalities', re: /\*\*(\d+) personality presets\*\*/, actual: personalities.length },
+    /* Both debounces, because the README's claim is the RELATIONSHIP and one
+       number alone cannot carry it. */
+    { label: 'the cloud autosave debounce', re: /debounced at \*\*(\d+)ms\*\* against/, actual: cloudMs },
+    { label: 'the local autosave debounce', re: /against \*\*(\d+)ms\*\* for a local write/, actual: localMs },
 
     /* ── The panels ── */
     { label: 'presets', re: /\*\*(\d+) presets\*\*/, actual: presets.PRESETS.length },
     { label: 'harmonies', re: /\*\*(\d+) harmonies\*\*/, actual: palette.HARMONIES.length },
     { label: 'generator intensities', re: /\*\*(\d+) intensities\*\*/, actual: palette.INTENSITIES.length },
     { label: 'ramp steps per seed', re: /\*\*(\d+) steps\*\* per seed/, actual: derive.RAMP_STEPS.length },
+    { label: 'scale shape controls', re: /shaped by \*\*(\d+) controls\*\*/, actual: shapeControls },
     { label: 'chart scales', re: /\*\*(\w+) chart scales\*\*/,
       actual: ['categorical', 'sequential', 'diverging'].filter(k => derived.dataviz?.[k]).length },
     { label: 'ground tints in the editor', re: /(\w+) answers — the accent/,
@@ -183,6 +224,11 @@ export async function facts () {
       actual: new Set(comps.COMPONENT_LIBRARY.flatMap(c => Object.keys(c.states ?? {}))).size },
     { label: 'components with a composition', re: /\*\*(\d+) components\*\* have one/,
       actual: layout.LAYOUT_COMPONENTS.length },
+    { label: 'components whose sample takes the full width',
+      re: /\*\*(\d+) components\*\* stack above their controls/, actual: wideSamples.length },
+    { label: 'and the README names each one',
+      re: /merely shrinking them: ([^.]+)\./, actual: wideSamples.length,
+      count: s => s.split(/,| and /).filter(x => x.trim()).length },
     { label: 'fields in the modal composition', re: /A modal's covers ([^.]+)\./,
       actual: layout.LAYOUT_COMPONENTS.find(c => c.name === 'modal').fields.length,
       count: s => s.split(/,| and /).filter(x => x.trim()).length },
