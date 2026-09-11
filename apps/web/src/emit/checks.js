@@ -4793,7 +4793,130 @@ export const CHECKS = [
       "else note(asked + ' lifted mark(s) measured against their own label type')",
     ],
   },
-  /* ── A MARK TALLER THAN ITS LINE: CUT ON 11 September 2026 ──
+  {
+    id: 'a-marks-row-starts-where-a-text-row-would',
+    where: 'render',
+    line: 'A card content row that leads with a mark starts its ink where a plain text row would, whether the mark is taller or shorter than the line.',
+    /* ── CUT, THEN REBUILT THE SAME DAY ──
+     *
+     * The record of the cut is kept below this entry. The first version
+     * measured the mark's CENTRING, which is the cap-band rule and already has
+     * a check, and it produced 82 findings on correct code over 156 runs.
+     *
+     * IT ALSO RECORDED THE WRONG REASON FOR STOPPING. It said canvas cannot
+     * stand in, because at 16px it returns an integer-rounded cap ascent. That
+     * is true AT THE RENDERED SIZE and false of canvas. Measured for this
+     * family: 0.75 at 12px and at 16px, 0.72 at 100px, 0.71875 at 400px and at
+     * 1000px. A pixel scan of the painted glyph returns 0.72000. The metric is
+     * available, and the earlier reading was taken at the one size where the
+     * rounding swamps it.
+     *
+     * ── THE QUESTION IS THE CLEARANCE, NEVER THE CENTRING ──
+     *
+     * The gap under a card heading is stated once and measures identically in
+     * every card. It does not LOOK identical, because a mark paints above the
+     * cap band its label sits in. So the rule is that whatever leads the row,
+     * the row's first ink lands where a plain text row's would.
+     *
+     * THE REFERENCE IS BUILT, NEVER STATED. A probe row carrying the label's
+     * own type is measured and removed, so this check restates neither the
+     * 0.72 cap factor nor the cap inset. Both live in the stylesheet, and a
+     * check quoting them could only ever catch the two disagreeing.
+     *
+     * Measured on Record at 1024 with both corrections removed: a plain text
+     * row puts its ink 5.92px below its own top, the 14px icon row 4.13 and
+     * the 32px avatar row 0.00. So the two rows need 1.79 and 5.92.
+     *
+     * ── AND IT FOUND TWO LIVE FAULTS ON ITS FIRST RUN ──
+     *
+     * The corrections are stated in `em` and sat on a row inheriting the
+     * card's 16px while its label paints at 14. And the cap inset was typed at
+     * 0.545em where the measurement is 0.4229. Shipped 1.24 and 8.72 against
+     * the 1.79 and 5.92 wanted. Repaired: 1.96 and 5.92, landing 0.16px past
+     * the reference and 0.01px short of it.
+     *
+     * ONE PIXEL, because that is the smallest move a person can see, and the
+     * rules already set that bar for a repair.
+     */
+    body: [
+      "let asked = 0",
+      "/* THE CAP RATIO, MEASURED WHERE THE ROUNDING DOES NOT SWAMP IT. Canvas",
+      "   reports whole pixels, so a 14px font gives an ascent of 10 and a ratio",
+      "   of 0.714. At 1000px the same family gives 0.71875. */",
+      "const REF = 1000",
+      "const ctx = document.createElement('canvas').getContext('2d')",
+      "const capRatioOf = function (cs) {",
+      "  ctx.font = cs.fontStyle + ' ' + cs.fontWeight + ' ' + REF + 'px ' + cs.fontFamily",
+      "  return ctx.measureText('H').actualBoundingBoxAscent / REF",
+      "}",
+      "const strutAt = function (host) {",
+      "  const s = document.createElement('span')",
+      "  s.style.cssText = 'display:inline-block;width:1px;height:1px;vertical-align:baseline'",
+      "  host.appendChild(s)",
+      "  const bottom = s.getBoundingClientRect().bottom",
+      "  s.remove()",
+      "  return bottom",
+      "}",
+      "for (const row of all('.dmd .card > :first-child + .row')) {",
+      "  if (!visible(row)) continue",
+      "  /* THE MARK MAY BE A GRANDCHILD. An inspector wraps each instance, so",
+      "     Record's icon sits inside a nested span and a child search finds it",
+      "     nowhere. That is the recorded wrapper fault, one level along. */",
+      "  const mark = row.querySelector('.avatar') || row.querySelector('svg')",
+      "  if (!mark || !visible(mark)) continue",
+      "  const mb = mark.getBoundingClientRect()",
+      "  if (!mb.width || !mb.height) continue",
+      "  /* THE LABEL IS THE MARK'S OWN TEXT SIBLING, never the row's first text.",
+      "     Record's icon row holds a caption at another size as a second child,",
+      "     and the band belongs to the run beside the mark. */",
+      "  const near = Array.prototype.slice.call((mark.parentElement || row).children)",
+      "    .filter(c => c !== mark && visible(c) && (c.textContent || '').trim())[0]",
+      "  const far = Array.prototype.slice.call(row.children)",
+      "    .filter(c => !c.contains(mark) && visible(c) && (c.textContent || '').trim())[0]",
+      "  const label = near || far",
+      "  if (!label) continue",
+      "  const ls = getComputedStyle(label)",
+      "  const size = px(ls.fontSize), lead = px(ls.lineHeight)",
+      "  if (!size || !lead) continue",
+      "  const capRatio = capRatioOf(ls)",
+      "  if (!(capRatio > 0.4) || !(capRatio < 0.95)) continue",
+      "  /* ── THE REFERENCE IS BUILT FROM THE LABEL'S TYPE, THEN REMOVED ──",
+      "     A 1px inline-block on the baseline puts its BOTTOM edge there, so the",
+      "     baseline needs no font metric at all. A probe left on the page would",
+      "     become one of the things this run measures. */",
+      "  const probe = document.createElement('div')",
+      "  probe.className = row.className",
+      "  probe.style.cssText = 'position:absolute;left:-99999px;top:0;padding:0;margin:0'",
+      "  const span = document.createElement('span')",
+      "  span.textContent = 'H'",
+      "  span.style.cssText = 'font:' + ls.fontStyle + ' ' + ls.fontWeight + ' ' + size",
+      "    + 'px/' + lead + 'px ' + ls.fontFamily",
+      "  probe.appendChild(span)",
+      "  ;(row.parentElement || row).appendChild(probe)",
+      "  const want = strutAt(span) - capRatio * size - probe.getBoundingClientRect().top",
+      "  probe.remove()",
+      "  if (!(want > 0)) continue",
+      "  asked++",
+      "  /* The row's FIRST ink is the mark's top or its label's cap top, whichever",
+      "     paints higher. A mark inside the line box does not set the edge. */",
+      "  const labelCapTop = strutAt(label) - capRatio * size",
+      "  const ink = Math.min(mb.top, labelCapTop) - row.getBoundingClientRect().top",
+      "  if (Math.abs(ink - want) <= 1) continue",
+      "  fail(name(row),",
+      "    'this row leads with a ' + round(mb.height) + 'px mark and starts its ink '",
+      "    + round(ink) + 'px below its own top, where a plain text row at the same '",
+      "    + round(size) + 'px type starts at ' + round(want) + '. The gap under a card '",
+      "    + 'heading is stated once, so a row starting its ink anywhere else reads '",
+      "    + 'tighter or looser than every other row in that card. A mark INSIDE the '",
+      "    + 'line box overshoots the cap by half the difference. A mark TALLER than it '",
+      "    + 'SETS the row edge and costs the whole cap inset, so the two need different '",
+      "    + 'corrections rather than one scaled.')",
+      "}",
+      "if (!asked) note('no card on this page opens with a row led by a mark, so nothing was measured')",
+      "else note(asked + ' mark-led card row(s) measured against a built text-row reference')",
+    ],
+  },
+  /* ── A MARK TALLER THAN ITS LINE: CUT ON 11 September 2026, REBUILT ABOVE ──
    *
    * Written, fixture-proven, and then measured over 156 runs. It produced
    * 82 findings on correct code, in two shapes, and every one was mine.

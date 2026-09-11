@@ -2020,6 +2020,26 @@
  * than the notes card beside it. Take the union of what paints, never the text
  * box. The correction is derived from the icon size and the cap height, so a
  * change to either carries. */
+/* ── AND THE `em` HAS TO BE THE LABEL'S, NOT THE ROW'S ──
+ *
+ * Both corrections below are stated in `em`, and `em` resolves against the
+ * element carrying the declaration. The row inherits the card's 16px while its
+ * label paints at 14, so the cap band came out 11.52px where 10.08 is wanted.
+ * That is the rule about a row carrying its label's type, and this pair of
+ * rules is the instance that broke it.
+ *
+ * Measured across twelve surfaces: two such rows exist, both on Record, both
+ * with a 14px label inside a 16px row. The row's gap is in px, so stating the
+ * type here moves no spacing.
+ *
+ * `0.72` is the cap height as a share of the font size. It is verified rather
+ * than assumed: canvas reports 0.71875 for this family at 1000px, and a pixel
+ * scan of the painted glyph reports 0.72000. Read at the RENDERED size it
+ * reports 0.75, because whole-pixel rounding dominates there. That reading is
+ * what made me record this rule as unprovable. */
+.dmd .card > :first-child + .row:is(:has(svg), :has(.avatar)) {
+  font-size: var(--font-body-sm-size, 14px);
+}
 .dmd .card > :first-child + .row:has(svg) {
   padding-top: calc((var(--icon-sm, 14px) - 0.72em) / 2);
 }
@@ -2031,8 +2051,30 @@
    same card: the avatar row read 16.97px where the paragraph beside it read
    24.76, a gap 7.79px tighter that no box measurement reports.
    `--text-cap-inset` is that distance, stated in em so it tracks the type
-   size: 7.79 over the 14.3px body-sm role is 0.545em. */
-.dmd { --text-cap-inset: 0.545em; }
+   size.
+
+   ── AND 0.545 WAS TOO BIG, MEASURED TWO WAYS ──
+
+   That figure came from comparing two rendered gaps, 16.97 against 24.76, on
+   a 14.3px role. Measured directly instead, with the corrections removed:
+
+     a baseline strut plus the verified cap ratio    0.4229em
+     the canvas ascent and descent metrics          0.4593em
+
+   Both are well under 0.545. Read at the label's 14px the typed value pays
+   7.63px, and as it actually rendered against the row's 16px it paid 8.72.
+   The row needs 5.92, which is where a plain text row puts its own first ink.
+
+   MEASURED WITH BOTH RULES OFF, on Record at 1024, from each row's own top:
+
+     a plain text row    first ink at 5.92     the reference
+     the icon row        mark top at 4.13      so it needs 1.79
+     the avatar row      mark top at 0.00      so it needs 5.92
+
+   The strut figure is the one taken with geometry alone, so it is the one
+   stated here. Measured after: the icon row 0.16px past the reference and the
+   avatar row 0.01px short, both under the whole pixel a repair needs. */
+.dmd { --text-cap-inset: 0.4229em; }
 .dmd .card > :first-child + .row:has(.avatar) {
   padding-top: var(--text-cap-inset);
 }

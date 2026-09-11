@@ -1,10 +1,11 @@
 {
-  "measured": "2026-09-10",
+  "measured": "2026-09-11",
   "how": "node tools/prove-render.mjs, then window.proveRender() at /fixtures/prove-render.html",
-  "declaredRenderChecks": 78,
+  "declaredRenderChecks": 79,
   "fixturePages": [
     "amount-edge.html",
     "arrange.html",
+    "capband.html",
     "chartfurniture.html",
     "charts.html",
     "gaps.html",
@@ -45,6 +46,7 @@
     "a-mark-paints-the-size-its-component-publishes",
     "a-mark-stays-inside-its-control",
     "a-marked-item-says-so",
+    "a-marks-row-starts-where-a-text-row-would",
     "a-menu-control-is-a-sibling-of-the-action-group",
     "a-menu-control-shares-the-title-row",
     "a-pair-dissolves-when-a-row-fits",
