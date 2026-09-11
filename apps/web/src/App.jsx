@@ -1007,8 +1007,28 @@ function TitleField({ name, onCommit, full = false }) {
 /* ── Restore offer ──
    Deliberately a toast and not a modal. Starting fresh is the common case and
    shouldn't need dismissing; the previous session is one click away for the
-   times it isn't. Stays until acted on rather than timing out — a restore you
-   missed because you were reading is worse than a toast that lingers. */
+   times it isn't.
+
+   IT WITHDRAWS AFTER THIRTY SECONDS, and this comment used to claim the
+   opposite: "stays until acted on rather than timing out". The timer below has
+   its own comment giving the reason it exists, so the two sat forty lines
+   apart contradicting each other. A file arguing with itself is the cheapest
+   tell there is, and this one cost a search for a button that had already
+   gone.
+
+   THE TIMER ONLY RUNS ONCE THE FORK MODAL IS GONE, because the toast is not
+   mounted beside it: the render is gated on `casual !== 'fork'`. So the two
+   routes back never compete. The modal carries the offer as a row with no
+   expiry, and the toast picks it up afterwards for thirty seconds.
+
+   Measured on the shipped build, sampling what is on screen rather than the
+   state: the reopen row was present at 3s and still present at 41s, and the
+   toast's Restore button never appeared while the modal was open.
+
+   AND `Load` IS A FILE PICKER, not a list of auto-saves. So once the toast has
+   withdrawn there is no visible route to the previous document. A RELOAD is
+   the route, because boot re-reads it and raises the offer again. Nothing is
+   lost, and nothing on screen says so either. */
 const ago = at => {
   if (!at) return null
   const mins = Math.round((Date.now() - at) / 60000)
