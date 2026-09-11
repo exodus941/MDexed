@@ -62,13 +62,13 @@
      slider that also turned the error colour green would be a different
      feature. They do change between themes, because a colour legible on a
      5%-lightness page is not legible on a 93% one. */
-  --accent:#ffb340;--success:#5aad80;--danger:#de5c5c;--warn:#d8a441;
+  --accent:#dc9055;--success:#5aad80;--danger:#de5c5c;--warn:#d8a441;
   /* The same four as bare channels, so a component can pick its own alpha:
      rgb(var(--accent-rgb) / .4). Sixty-five rgba() literals were spread
      across the panels, every one of them the dark theme's value, and every
      one of them wrong the moment a second theme existed. A triple is the only
      form that lets an arbitrary alpha stay theme-aware. */
-  --accent-rgb:255 179 64;--success-rgb:90 173 128;
+  --accent-rgb:220 144 85;--success-rgb:90 173 128;
   --danger-rgb:222 92 92;--warn-rgb:216 164 65;
   /* Which direction a wash goes. White lightens the dark theme; black darkens
      the light one. Anything using this reads as "slightly emphasised", not as
@@ -139,29 +139,33 @@
      own contrast module rather than by eye. The dark theme's
      values sit around 60-70% lightness and read as pastel smears here.
    *
-   * THE ACCENT IS A PAIR AT ONE HUE, AND THE LIGHT HALF IS SOLVED, NEVER
-   * PICKED. The accent is painted eight ways in this chrome, enumerated off
-   * the running app: a fill under a --bg label, words and a mark on its own
-   * .07 wash, a line on the panel, words and a mark on --surf2, and a slider
-   * thumb against its track and its panel. The light value is the lightest
-   * colour at the dark value's hue that clears all eight at the DIM end of
-   * the brightness slider, which is this theme's hard end.
+   * THE ACCENT IS PAINTED EIGHT WAYS HERE, enumerated off the running app: a
+   * fill under a --bg label, words and a mark on its own .07 wash, a line on
+   * the panel, words and a mark on --surf2, and a slider thumb against its
+   * track and its panel. Reading this file answers what MIGHT paint the
+   * accent. Only the DOM answers what does.
    *
-   * NO BRIGHT ORANGE CAN LIVE HERE. That ceiling sits at OKLCH L 0.49 to 0.50
-   * at EVERY orange hue. #ffb340 is L 0.820, #ffa640 is 0.797, #ff8800 is
-   * 0.744 and #ff4400 is 0.659, and each one fails all eight pairs. All 256
-   * of `#FFxx00` sit above L 0.628, so not one of them can clear either.
+   * NO BRIGHT VALUE CAN LIVE HERE, and the ceiling is measured rather than
+   * asserted. The lightest colour that clears all eight pairs sits at OKLCH
+   * L 0.49 to 0.50 at EVERY orange hue, from amber at 70 to red-orange at 40.
+   * #ffb340 is L 0.820, #ffa640 is 0.797, #ff8800 is 0.744 and #ff4400 is
+   * 0.659, and each one fails all eight. Every `#FFxx00` sits above L 0.628,
+   * all 256 of them, so not one can clear. Do not try a bright orange here.
    *
    * AND THE HUE IS NOT FREE EITHER, because L 0.50 is exactly where --danger
    * sits at 0.513. Lightness cannot separate the two, so hue does the whole
    * job. --danger is at hue 26, and the accent needs about 20 degrees of
    * clearance: a twin at hue 35 measures 9 degrees off it and reads as the
-   * same colour beside a Delete button.
+   * same colour beside a Delete button. So the DARK value's hue decides
+   * whether a legible light twin exists at all.
    *
-   * So the DARK value's hue decides whether a light twin exists at all.
-   * #ffb340 is hue 73, its twin is hue 72, and that is 46 degrees clear. */
-  --accent:#845500;--success:#2f7350;--danger:#b3312f;--warn:#8a6008;
-  --accent-rgb:132 85 0;--success-rgb:47 115 80;
+   * THIS VALUE FAILS 2 OF THE 8 AT THE DIM END OF THE SLIDER, and that is
+   * known rather than missed. The filled button's label reads 4.36:1 against
+   * a 4.5 bar and the slider thumb reads 2.83:1 against 3.0, both at --ui-b
+   * 67. It clears everything from 78 up. The comment above says each colour
+   * was solved on the 93% page, and the slider reaches 86%. */
+  --accent:#994f16;--success:#2f7350;--danger:#b3312f;--warn:#8a6008;
+  --accent-rgb:153 79 22;--success-rgb:47 115 80;
   --danger-rgb:179 49 47;--warn-rgb:138 96 8;
   --ink-rgb:0 0 0;
   --accent-wash:rgb(var(--accent-rgb) / .07);--accent-soft:rgb(var(--accent-rgb) / .12);
@@ -707,6 +711,40 @@ label.check input[type=checkbox]:not(.dmd *){flex-shrink:0;margin:0}
    both layouts render from one tree. */
 .entry-stack{display:flex;flex-direction:column;gap:12px}
 .entry-stack .entry-sample-slot{order:-1}
+
+/* ── The wizard's Light and Dark sample panes ──
+ *
+ * They sent a phone screenshot: the two panes sat side by side at about 375px
+ * and both cards were cut. "Renewal Due" broke mid-word and the Send Reminder
+ * label ran past its own pane.
+ *
+ * Every value here was inline in `casual/Sample.jsx`, and every comment in
+ * that file measures the panes at a modal width of 880 or 960. So the row had
+ * no threshold at all: two children at `flex: 1 1 0` shrink for ever and the
+ * card inside overflows. An inline style cannot hold a query, which is why
+ * the fault could not be fixed where it lived.
+ *
+ * THE THRESHOLD IS MEASURED BY SHRINKING THE REAL ROW, NEVER BY A SUM. At
+ * 375px of container width each pane comes out 182px, the heading's content
+ * box is 114px, and the single word "Renewal" needs 117px. Widening the real
+ * row a pixel at a time, it becomes usable at 381px. So the panes stack at
+ * 380px and below. The number is true of that word at the h3 size: a longer
+ * heading moves it, and `tools/fixture-samplepanes.mjs` re-derives it.
+ *
+ * IT IS A CONTAINER QUERY, because the question is about the sample's own
+ * column and not about the window. The block declares itself the container,
+ * rather than leaning on `main`, since the wizard also runs inside a modal
+ * that `main` does not contain.
+ *
+ * Stacked, each pane takes its own content height. `flex: 1 1 0` in a column
+ * would divide the HEIGHT between them and stretch the shorter one. */
+.sample-block{display:flex;flex-direction:column;min-width:0;container-type:inline-size}
+.sample-panes{display:flex;gap:12px;align-items:stretch;min-width:0}
+.sample-pane{flex:1 1 0;min-width:0;display:flex;flex-direction:column;gap:4px}
+@container (max-width:380px){
+  .sample-panes{flex-direction:column}
+  .sample-pane{flex:0 0 auto}
+}
 
 /* The stage a single component entry stands on.
    Its own recessed plane rather than the panel surface, so the sample reads

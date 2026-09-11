@@ -145,7 +145,9 @@ const SAMPLES = {
    the page it describes rather than on the editor's surface. */
 function Pane({ vars, mode, label, Body }) {
   return (
-    <div style={{ flex: '1 1 0', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
+    /* `.sample-pane` in theme.css, because these values need a container
+       query and an inline style cannot hold one. See the block there. */
+    <div className="sample-pane">
       {label && <span style={{ fontSize: 12, color: 'var(--dim)' }}>{label}</span>}
       <div className="dmd" data-theme={mode} style={{
         ...varsToStyle(vars),
@@ -248,15 +250,21 @@ export default function Sample({ which, answers }) {
   const twin = built.panes.length > 1
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+    <div className="sample-block">
       {/* The stylesheet is the preview's own, so the primitives below mean what
           they mean in the product. Scoped by `.dmd`, exactly as the pane is. */}
       <style>{PREVIEW_CSS}</style>
       {/* 12 between the panes against 4 from a label to its own pane: 3:1.
           At 8 it measured 2.0:1 and the sweep called the two panes one group,
           which is what a reader sees too — the "Dark" label read as belonging
-          to the light pane beside it. */}
-      <div style={{ display: 'flex', gap: PAD.label, alignItems: 'stretch', minWidth: 0 }}>
+          to the light pane beside it.
+
+          THE ROW STACKS AT 380px OF CONTAINER WIDTH, measured by shrinking it
+          rather than by adding up its parts. Side by side at 375 each pane is
+          182px and the word "Renewal" needs 117px in a 114px box, so the
+          heading breaks mid-word. The rule and the arithmetic are in
+          theme.css, because a query cannot live in an inline style. */}
+      <div className="sample-panes">
         {built.panes.map(p => (
           <Pane key={p.mode} vars={p.vars} mode={p.mode} Body={Body}
             label={twin ? (p.mode === 'light' ? 'Light' : 'Dark') : null} />

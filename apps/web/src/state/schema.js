@@ -755,9 +755,31 @@ export const createInitialState = () => ({
        *
        * The accent and the danger stay exactly as specified. Measured after:
        * strip spread 0.04 to 0.21, and the audit reports zero failures and
-       * zero warnings. */
+       * zero warnings.
+       *
+       * ── AND THE YELLOW MOVED AGAIN, TO AN AMBER ──
+       *
+       * Their instruction, 11 September 2026: use #ffb340 "instead of the
+       * shitty yellow". It sits inside both constraints the paragraph above
+       * establishes, so this is taste rather than another round of physics.
+       * The band is 62 to 92 and it is hue 73. Its strong zone at that hue is
+       * L 0.640 to 0.835 and it is L 0.820, at 100% of what sRGB holds there.
+       *
+       * #dfa200 was L 0.750 C 0.155 hue 81, so the change is 7 points lighter
+       * and 8 degrees warmer at the same chroma.
+       *
+       * A SEED IS NOT A ROLE, so the figure that matters is what the reader
+       * sees. Measured: the dark warning role comes out #ffb340 exactly, and
+       * the light one stays a dark brown on its own ramp step, #392300 against
+       * the old #362500. The audit reports 0 findings either way.
+       *
+       * That 0 is a real result rather than silence. Forcing a role override
+       * of warning onto the danger hex produces 3 failures, so the instrument
+       * speaks. Perturbing the SEED cannot collide anything, because warning
+       * and danger sit on different ramp steps and their lightness separates
+       * them whatever their hues do. */
       { id: 'sd-success', name: 'success', hex: '#00948e', desc: 'Confirmation' },
-      { id: 'sd-warning', name: 'warning', hex: '#dfa200', desc: 'Caution' },
+      { id: 'sd-warning', name: 'warning', hex: '#ffb340', desc: 'Caution' },
       { id: 'sd-danger',  name: 'danger',  hex: '#c13e2e', desc: 'Destructive and errors' },
     ],
     shape: { ...DEFAULT_SHAPE },
