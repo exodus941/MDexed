@@ -76,6 +76,21 @@ if ! node apps/web/tools/chrome-contrast-guard.mjs; then
   exit 1
 fi
 
+# ── 1h. The figures in the README. Blocking. ──
+# A rule that states a constant needs a check that reads that constant, and the
+# README stated 62 of them with nothing pointed at any. Measured when this
+# guard landed: it had said 28 semantic roles where the app has 32, 14
+# components where it has 28, 339 custom properties against 555, and 25 kB of
+# DESIGN.md against 175. Every one of those drifted in silence, and a reader
+# has no way to tell which halves of a document have rotted.
+# Proven by injection: 62 of 62 figures fire when broken one at a time, a
+# figure reworded out of the file fires, and an empty file fails every row.
+if ! node apps/web/tools/readme-facts-guard.mjs; then
+  echo
+  echo "pre-commit: a README figure no longer matches the code. Commit refused."
+  exit 1
+fi
+
 # A stylesheet is not the whole surface. React reads a bare number in a style
 # object as pixels, so `gap: 7` is a 7px gap no CSS file mentions and no CSS
 # guard can see. This ran once as a codemod and 650 values had already shipped
