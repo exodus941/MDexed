@@ -3701,6 +3701,35 @@ line('\n- depth intensity -')
     assert(Object.keys(SELECTION_STYLES).length === 3,
       `three selection treatments (${Object.keys(SELECTION_STYLES).join()})`)
     const pad = '{spacing.xs} {spacing.sm}'
+    /* ── A TREATMENT STATING THE SAME VALUE IN EVERY OPTION IS A SECOND WRITER ──
+     *
+     * All three used to name a hover, and all three named the SAME one. So the
+     * setting swapped nothing there, and the copy overwrote whatever each
+     * component's own entry said, which made that entry dead code.
+     *
+     * It cost a real fault. The table row's hover then read the PAGE's
+     * recessed plane while the row sits on a CARD: measured 1.485 against the
+     * surface where the selected row measured 1.153, and a reader reported the
+     * band as too dark to read. The nav item, whose ground IS the page, was
+     * correct at 1.288 the whole time.
+     *
+     * ASSERT THE SHAPE, NOT THE ABSENCE OF ONE NAME. A treatment states only
+     * the states it varies, so any property every option agrees on belongs to
+     * the component instead. */
+    const stateKeys = Object.values(SELECTION_STYLES).map(s => Object.keys(s.states).sort().join())
+    assert(new Set(stateKeys).size === 1,
+      `every treatment states the same set of states (${[...new Set(stateKeys)].join(' | ')})`)
+    const varies = k => new Set(Object.values(SELECTION_STYLES)
+      .map(s => JSON.stringify(s.states[k] ?? null))).size > 1
+    const inert = Object.keys(SELECTION_STYLES.tint.states).filter(k => !varies(k))
+    /* A PLAIN MESSAGE, because the coverage tool reads the first quoted run
+       after the comma and a pairing has to name it. The inert list goes in the
+       assertion below, where a template costs nothing. */
+    assert(inert.length === 0,
+      'no state is stated identically in all three, so a treatment never overwrites a component own entry')
+    assert(inert.length === 0, `and the inert list is empty (${inert.join(', ') || 'none'})`)
+    assert(Object.keys(SELECTION_STYLES.tint.states).includes('selected'),
+      'the selected row is what a reader is choosing between')
     for (const [name, spec] of Object.entries(SELECTION_STYLES)) {
       const props = selectedState(name, 'thin', pad)
       assert(!!props.boxShadow === !!spec.edge, `${name} draws an edge only when it says it does`)
