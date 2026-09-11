@@ -507,7 +507,11 @@ export const COMPONENT_LIBRARY = [
      * The values mirror `nav-item`, which is the point: one treatment for
      * every selected row, and each keeps its own inset. */
     states: {
-      hover:    { row: { backgroundColor: '{colors.bg-subtle}', textColor: '{colors.text}' } },
+      /* THE HOVER READS ITS OWN ROW PLANE, NEVER THE PAGE'S. It used to take
+         `bg-subtle`, which is two steps below a card: measured 1.485 against
+         the surface where the selected row measured 1.153, so a transient
+         state was louder than a chosen one. `row-hover` is the role. */
+      hover:    { row: { backgroundColor: '{colors.row-hover}', textColor: '{colors.text}' } },
       selected: { row: { backgroundColor: '{colors.surface-raised}', textColor: '{colors.text}' } },
     },
   },
@@ -700,13 +704,29 @@ export const SELECTION_EDGES = {
 
 export const DEFAULT_SELECTION_EDGE = 'thin'
 
+/* ── THE TREATMENT STATES THE SELECTED ROW AND NOTHING ELSE ──
+ *
+ * All three used to carry a hover as well, at `{colors.bg-subtle}`, and all
+ * three carried the SAME value. So the setting swapped nothing there, and the
+ * copy was a second writer: it overwrote whatever each component's own library
+ * entry said, which made that entry dead.
+ *
+ * It cost a real fault. The table row's hover then read the PAGE's recessed
+ * plane while the row sits on a CARD. Measured 1.485:1 against the surface
+ * where the selected row measured 1.153, so a band nobody asked for was 1.29
+ * times louder than the one they chose, and a reader reported it as too dark
+ * to read. The nav item, whose ground IS the page at `--c-bg`, was correct at
+ * 1.288 the whole time. One value, two grounds, one of them wrong.
+ *
+ * So the hover comes from each component's own entry now. A table row takes
+ * `row-hover` and a nav item keeps `bg-subtle`, and this object states only
+ * what a reader is choosing between. */
 export const SELECTION_STYLES = {
   tint: {
     label: 'Accent tint',
     desc: 'The fill carries the mark. An accent wash with an accent label.',
     edge: false,
     states: {
-      hover:    { _: { backgroundColor: '{colors.bg-subtle}', textColor: '{colors.text}' } },
       selected: { _: { backgroundColor: '{colors.accent-subtle}', textColor: '{colors.accent}' } },
     },
   },
@@ -715,7 +735,6 @@ export const SELECTION_STYLES = {
     desc: 'The lightness carries the mark. A raised surface with a full-strength label.',
     edge: false,
     states: {
-      hover:    { _: { backgroundColor: '{colors.bg-subtle}', textColor: '{colors.text}' } },
       selected: { _: { backgroundColor: '{colors.surface-raised}', textColor: '{colors.text}' } },
     },
   },
@@ -724,7 +743,6 @@ export const SELECTION_STYLES = {
     desc: 'A raised surface, a full-strength label, and an accent bar on the leading edge.',
     edge: true,
     states: {
-      hover:    { _: { backgroundColor: '{colors.bg-subtle}', textColor: '{colors.text}' } },
       selected: { _: { backgroundColor: '{colors.surface-raised}', textColor: '{colors.text}' } },
     },
   },
@@ -902,9 +920,11 @@ export function expandComponents(cfg = {}) {
       def = {
         ...rawDef,
         base: { ...rawDef.base, padding: gutterFor(selection, selectionEdgeWeight, rawDef.base?.padding) },
+        /* The hover stays with the library entry. The treatment states the
+           SELECTED row only, because all three named the same hover and each
+           component's ground is its own. */
         states: {
           ...rawDef.states,
-          hover: chosen.states.hover,
           selected: { _: selectedState(selection, selectionEdgeWeight) },
         },
       }
@@ -922,7 +942,6 @@ export function expandComponents(cfg = {}) {
         },
         states: {
           ...rawDef.states,
-          hover: { row: chosen.states.hover._ },
           /* Ruled: every row carries a bottom rule, so the bar cannot be an
              inset shadow. See selectedState. */
           selected: { row: selectedState(selection, tableSelectionEdgeWeight, { ruled: true }) },

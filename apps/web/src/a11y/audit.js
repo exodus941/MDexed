@@ -1382,6 +1382,47 @@ function rowPlaneOrder (derived, mode) {
     })
   }
 
+  /* ── AND A HOVER IS TRANSIENT, SO IT IS QUIETER THAN A CHOICE ──
+   *
+   * Nothing asked this, and the table shipped a hover louder than its own
+   * selection for as long as the plane existed. The table's hover row read
+   * `bg-subtle`, which is the PAGE's recessed plane: on the page that is the
+   * right step and a secondary button uses it at 1.288 against `bg`, and on a
+   * CARD the same role is two steps down. Measured 1.485 against the surface
+   * where the selected row measured 1.153, and a reader reported the band as
+   * too dark to read.
+   *
+   * THE ORDER IS THE RULE AND NO RATIO IS PINNED. Measured across the default
+   * and six presets in both modes after `row-hover` landed: stripe 1.03 to
+   * 1.07, hover 1.08 to 1.15, selected 1.15 to 1.23, order holding in all
+   * fourteen. A constant here would fail on a palette nobody thinks is
+   * broken, which this file already records for the stripe. */
+  const hover = R['row-hover']
+  const hoverStep = hover ? ratio(surface, hover) : null
+  if (hoverStep != null && hoverStep >= selectedStep) {
+    out.push({
+      req: 'colour', id: `rowplane:${mode}:hover-beats-choice`, level: WARN,
+      criterion: 'Practice', tab: 'roles', entry: 'row-hover', mode,
+      title: `A hovered row stands out more than a selected one in ${mode}`,
+      detail: `row-hover reads ${r2(hoverStep)}:1 against the surface and selected reads ${r2(selectedStep)}:1. A hover follows the pointer and a selection is a decision, so the band a reader did not ask for is louder than the one they chose.`,
+      fix: 'Put the hover between the stripe and the selection. It is feedback rather than state, so it never needs to reach the plane a chosen row sits on.',
+      measured: `hover ${r2(hoverStep)}:1, selected ${r2(selectedStep)}:1`,
+    })
+  }
+
+  /* AND THE OTHER SIDE OF IT: a hover under the stripe cannot be seen at all
+     on the rows that carry one, which is every other row. */
+  if (hoverStep != null && hoverStep <= stripeStep) {
+    out.push({
+      req: 'colour', id: `rowplane:${mode}:hover-under-stripe`, level: WARN,
+      criterion: 'Practice', tab: 'roles', entry: 'row-hover', mode,
+      title: `A hovered row is quieter than the stripe in ${mode}`,
+      detail: `row-hover reads ${r2(hoverStep)}:1 against the surface and row-stripe reads ${r2(stripeStep)}:1. On a striped table the hover then has nothing to say on every other row, which is the half of the rows a pointer lands on.`,
+      fix: 'Put the hover between the stripe and the selection, so it reads on a plain row and on a striped one.',
+      measured: `hover ${r2(hoverStep)}:1, stripe ${r2(stripeStep)}:1`,
+    })
+  }
+
   /* ── A SELECTED ROW IS NOT AN ACCENT TINT ──
    *
    * Their correction on sight: "omigod why baby blue for the selection". A

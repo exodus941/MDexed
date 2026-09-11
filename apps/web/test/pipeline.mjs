@@ -67,8 +67,14 @@ assert(derived.ramps.accent.anchor != null, `seed anchored at step ${derived.ram
  * is a ground for accent TEXT and quiet on purpose: measured 1.13:1 against
  * the card in light and 1.11:1 in dark, so the circle vanished in both modes.
  * A shape has no words to carry it, which is a different requirement, so it is
- * a different role. */
-assert(Object.keys(derived.roles.light).length === 31, `31 light roles (got ${Object.keys(derived.roles.light).length})`)
+ * a different role.
+ *
+ * 32 since `row-hover`. The table's hover row read `bg-subtle`, the PAGE's
+ * recessed plane, which is the right step on the page and two steps down on a
+ * card: measured 1.485 against the surface where the selected row measured
+ * 1.153. A transient state was louder than a chosen one, and one role cannot
+ * serve two grounds at one bar. */
+assert(Object.keys(derived.roles.light).length === 32, `32 light roles (got ${Object.keys(derived.roles.light).length})`)
 
 /* ── RTL GUIDANCE IS OPT-IN, AND THE REST IS DIRECTION-NEUTRAL ──
  *
@@ -2366,6 +2372,9 @@ line('\n- prompt construction -')
     ['the accent bar moves into the padded card\'s margin', ['one bar width out', 'detached tick']],
     ['one mechanism centres a label', ['is centring twice']],
     ['stripe and selection are one step apart', ['one step further']],
+    /* THE HOVER IS THE THIRD PLANE, and nothing asked about it until a reader
+       reported the band. The table had borrowed the PAGE's recessed plane. */
+    ['a hover sits between the stripe and the selection', ['a hover is transient', 'page\'s recessed plane']],
     ['a control is checked on every ground it sits on', ['not only the card']],
     ['moving what draws a seam can move the seam', ['the seam can simply move too']],
     ['a bordered cell is stretched, never centred', ['stretch any cell that carries a border']],
@@ -4034,6 +4043,7 @@ line('\n- depth intensity -')
   }
 
   let worstStripe = 0, closestOrder = Infinity, widestGap = 0, loudestSel = 0
+  let hoverRuns = 0, hoverOrder = Infinity, hoverOverStripe = Infinity, worstMutedOnHover = Infinity
   for (const p of PRESETS) {
     const s = p.patch()
     const d = derive(s)
@@ -4047,8 +4057,26 @@ line('\n- depth intensity -')
       const cs = toOklchObj(parseColorFor(R.selected)).c
       const cg = Math.max(toOklchObj(parseColorFor(R.surface)).c, toOklchObj(parseColorFor(R.bg)).c)
       loudestSel = Math.max(loudestSel, cs - cg)
+      /* THE HOVER IS THE THIRD PLANE, AND IT SITS BETWEEN THE OTHER TWO. The
+         table read `bg-subtle` before this, the PAGE's recessed plane, at
+         1.485 against the surface where the selection read 1.153. Only the
+         ORDER is asserted: a ratio pinned here fails on a palette nobody
+         thinks is broken, which this block already records for the stripe. */
+      const hov = ratioOf(R.surface, R['row-hover'])
+      hoverRuns++
+      hoverOrder = Math.min(hoverOrder, sel - hov)
+      hoverOverStripe = Math.min(hoverOverStripe, hov - stripe)
+      worstMutedOnHover = Math.min(worstMutedOnHover, ratioOf(R['text-muted'], R['row-hover']))
     }
   }
+  assert(hoverRuns === PRESETS.length * 2,
+    `every preset is asked in both modes (${hoverRuns} runs)`)
+  assert(hoverOrder > 0,
+    `a hover is transient, so a choice always stands further off the surface (closest margin ${hoverOrder.toFixed(3)})`)
+  assert(hoverOverStripe > 0,
+    `and it stands further off than the stripe, or it says nothing on every other row (closest margin ${hoverOverStripe.toFixed(3)})`)
+  assert(worstMutedOnHover >= 4.5,
+    `muted text clears AA on a hovered row (worst ${worstMutedOnHover.toFixed(2)}:1, bar 4.5)`)
   assert(worstStripe < 1.6,
     `a stripe is rhythm and a band is a boundary, so every stripe stays under the band (worst ${worstStripe.toFixed(2)}:1, bar 1.6)`)
   assert(closestOrder > 0,
@@ -4084,6 +4112,12 @@ line('\n- depth intensity -')
       'the baby-blue selection they rejected on sight'],
     ['selected', 'neutral.50~100@0.4', 'neutral.900', 'order',
       'a selection resolving to the surface it sits on'],
+    /* THE HOVER THE TABLE ACTUALLY SHIPPED. `bg-subtle` is neutral.200 in
+       light, which is what read 1.485 against the surface. */
+    ['row-hover', 'neutral.200', 'neutral.950~900@0.5', 'hover-beats-choice',
+      'the page plane the table borrowed, louder than its own selection'],
+    ['row-hover', 'neutral.50~100@0.3', 'neutral.900~950@0.1', 'hover-under-stripe',
+      'a hover quieter than the stripe, so half the rows show nothing'],
   ]
   for (const [role, light, dark, want, why] of FAULTS) {
     const s = put(role, light, dark)

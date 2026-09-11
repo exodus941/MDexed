@@ -69,6 +69,20 @@ export const ROLE_GROUPS = [
          existing colour — so the ref names the midpoint instead. It still
          follows the seed, which a typed hex would not. */
       { name: 'row-stripe',      desc: 'Every other row in a list',  light: 'neutral.50~100@0.25', dark: 'neutral.900~950@0.25' },
+      /* ── A HOVER IS TRANSIENT, SO IT IS QUIETER THAN A CHOICE ──
+         The table's hover row read `bg-subtle`, which is the PAGE's recessed
+         plane. On the page that is the right step and a secondary button uses
+         it: measured 1.288 against `bg`. On a CARD the same role is two steps
+         down, and it measured 1.485 against the surface while the selected row
+         measured 1.153. So a hover was 1.29 times louder than a row somebody
+         had chosen, and a reader reported the band as unreadable.
+         One role cannot serve two grounds at one bar, which this file already
+         records for `border`. So the row planes get their own third member.
+         The DISTANCE is what places it: less than the selection's and more
+         than the stripe's, which holds in both modes even though the stripe
+         steps the other way in light. Nothing here pins a ratio, because the
+         palette moves. The suite measures the order and the distance. */
+      { name: 'row-hover',       desc: 'The row under the pointer',  light: 'neutral.50~100@0.76', dark: 'neutral.900~950@0.6' },
     ],
   },
   {
@@ -395,6 +409,10 @@ export const CONTRAST_PAIRS = [
   { fg: 'text',         bg: 'selected',       label: 'Body on a selected row' },
   { fg: 'text-muted',   bg: 'selected',       label: 'Muted on a selected row' },
   { fg: 'text-muted',   bg: 'row-stripe',     label: 'Muted on a striped row' },
+  /* The hover plane is the darkest of the three in both modes, so it is the
+     one that decides whether muted text survives a pointer. Measured across
+     the default and six presets: 6.17 to 7.36:1. */
+  { fg: 'text-muted',   bg: 'row-hover',      label: 'Muted on a hovered row' },
   /* MEASURE A ROLE ON ITS WORST GROUND, and this row was the third instance of
      that miss. `bg-subtle` is the lowest-contrast ground `text` meets in
      light, at 8.31:1 on the default and 8.30 to 8.36 across the presets, and
