@@ -88,7 +88,7 @@ export default function Settings({ onInspect, casing, theme, mode, onToggleTheme
         </div>
 
       <div className="stack">
-        <div className="card" style={{ padding: 0, cursor: onInspect ? 'pointer' : undefined }} {...ins('card')}>
+        <div className="card card-bleed" style={{ cursor: onInspect ? 'pointer' : undefined }} {...ins('card')}>
           {rows.map(([title, desc, on], i) => (
             <div key={title} style={{
               display: 'flex', alignItems: 'center', gap: 'var(--space-md, 16px)',

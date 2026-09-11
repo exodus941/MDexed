@@ -173,7 +173,10 @@ export default function Index ({ onInspect, casing, layout }) {
         </div>
       </div>
 
-      <div className="card" {...ins('card')} style={{ padding: 0, overflow: 'hidden' }}>
+      {/* `card-bleed`, not an inline padding of zero. The table's own outer
+          gutters key off it, because a padded card gives them and this one
+          does not. */}
+      <div className="card card-bleed" {...ins('card')}>
         {/* The batch bar takes the toolbar's place while a selection exists. */}
         <div className="batch-bar" {...ins('card-overlay')}>
           {/* THE COUNT IS A READOUT, NOT A CONTROL.

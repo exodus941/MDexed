@@ -214,6 +214,19 @@
 .dmd .card-compact { padding: var(--cmp-card-compact-padding); }
 .dmd .card-roomy   { padding: var(--cmp-card-roomy-padding); }
 .dmd .card-flat { box-shadow: var(--cmp-card-flat-box-shadow, none); }
+/* A FULL-BLEED CARD OWNS NO INSET, SO ITS CONTENTS SUPPLY THEIR OWN.
+ *
+ * Two cards were written with an inline padding of zero: the Index table and
+ * the Settings switch list. Both are one pattern, and an inline value is the
+ * signal that a primitive is missing.
+ *
+ * It also answers a question a table cannot ask. A padded card gives its
+ * table both outer gutters, so a cell adding its own doubles the inset.
+ * Measured on three padded cards: the last column ink stood 41px from the
+ * card border where the card margin is 25. A bleed card gives none, so there
+ * the cell has to. No selector can ask an ancestor for its padding, so the
+ * card states which kind it is. */
+.dmd .card-bleed { padding: var(--cmp-card-bleed-padding, 0); overflow: hidden; }
 .dmd .card-overlay {
   box-shadow: var(--cmp-card-overlay-box-shadow, var(--shadow-overlay, none));
   background: var(--cmp-card-overlay-background-color, var(--c-surface-raised, #fff));
@@ -270,9 +283,21 @@
  * height and moves nothing in a row of cards. */
 .dmd .cols-2:has(> .card-overlay),
 .dmd .cols-3:has(> .card-overlay) { align-items: start; }
+/* ── A WELL IS A SURFACE, SO IT TAKES THE SURFACE RADIUS ──
+ *
+ * It read `--radius-md` while every card read `--radius-lg`. All three
+ * instances put it BESIDE a card rather than inside one: two as a sibling in
+ * the same stack, and one in a row of four labelled flat, raised, overlay,
+ * sunken. Measured on Settings at 1024: two siblings, both 790px wide, both
+ * at x 1103.13, one at 8px radius and one at 4px.
+ *
+ * So it reads the card's own published radius. A document that squares its
+ * cards squares its wells with them, which one raw scale step could not do.
+ * The fill is already a published role, `surface-sunken`, and only the corner
+ * was reaching past it. */
 .dmd .well {
   background: var(--c-surface-sunken, #f4f4f4);
-  border-radius: var(--radius-md, 4px);
+  border-radius: var(--cmp-card-rounded, var(--radius-lg, 8px));
   padding: var(--space-md, 16px);
 }
 
@@ -2723,10 +2748,27 @@
  * none, there is no bar to clear and the column stays flush with its heading,
  * which is the whole point above. `:has()` makes that dynamic, so a table
  * gains the gutter the moment a row is marked and the column never staggers. */
+/* ── AND WHICH EDGE NEEDS A GUTTER IS A QUESTION ABOUT THE CARD ──
+ *
+ * Both paragraphs above are right about a card that pads nothing. On a card
+ * that pads 24px they double the inset, and three tables measured it: the
+ * last column ink at 41px from the card border, the first at 25 or 33, and
+ * the card margin at 25. Five other cards on that surface put their first
+ * ink at 25. The table was the only one that did not.
+ *
+ * So the container owns the inset, which is the rule a chart already obeys.
+ * A padded card zeroes BOTH outer gutters and the columns sit on its margin.
+ * `.card-bleed` keeps them, because there the cell edge IS the card edge. */
 .dmd .table th:first-child, .dmd .table td:first-child { padding-inline-start: 0; }
-.dmd .table .act-col:last-child { padding-inline-end: var(--space-xs, 8px); }
-.dmd .table:has(tr.is-selected) th:first-child,
-.dmd .table:has(tr.is-selected) td:first-child {
+.dmd .card:not(.card-bleed) .table th:last-child,
+.dmd .card:not(.card-bleed) .table td:last-child { padding-inline-end: 0; }
+.dmd .card-bleed .table .act-col:last-child { padding-inline-end: var(--space-xs, 8px); }
+/* THE BAR GUTTER IS THE SAME QUESTION. On a bleed card the bar has nowhere to
+ * go but inside the cell, so the whole column reserves it. On a padded card
+ * it paints in the card's own inset, flush against the row's fill, and the
+ * column keeps the margin its heading sets. See the edge rule below. */
+.dmd .card-bleed .table:has(tr.is-selected) th:first-child,
+.dmd .card-bleed .table:has(tr.is-selected) td:first-child {
   padding-inline-start: calc(var(--cmp-table-row-selected-edge-width, 4px) + var(--space-2xs, 4px));
 }
 
@@ -2849,6 +2891,23 @@
   width: var(--cmp-table-row-selected-edge-width, 4px);
   background: var(--cmp-table-row-selected-edge-color, var(--c-accent, #b8422e));
   pointer-events: none;
+}
+/* ── ON A PADDED CARD THE BAR PAINTS IN THE MARGIN, NOT IN THE COLUMN ──
+ *
+ * A marker in the gutter is what a selected row wears everywhere, and it is
+ * also the only place it costs the column nothing. Inside the cell the text
+ * has to clear it, which put the first column 33px from the card border while
+ * five other cards on that surface put their first ink at 25.
+ *
+ * One bar width, so it sits FLUSH against the row's own fill rather than
+ * floating 4px off it as a detached tick. The pair then reads as one shape
+ * running from the bar's start edge to the row's end.
+ *
+ * It stays inside the card, because the offset is smaller than the padding it
+ * paints into: 4px out of 24. On a bleed card there is no margin to use, so
+ * that case keeps the reserved column gutter above. */
+.dmd .card:not(.card-bleed) .table tr.is-selected > td:first-child::before {
+  inset-inline-start: calc(-1 * var(--cmp-table-row-selected-edge-width, 4px));
 }
 /* The selected row outranks the stripe, which is a more specific selector. */
 .dmd .table-rows-zebra tbody tr.is-selected > td,

@@ -481,9 +481,23 @@ export default function Gallery({ onInspect, layout }) {
         {/* card-compact and card-roomy were declared variants emitting their own
             padding tokens, with no class consuming either and no instance here.
             Both render now, so the padding step is visible beside the default. */}
-        <div className="cols-2" style={{ marginBottom: 'var(--space-md, 16px)' }}>
+        {/* `bleed` is the third density step, and it is the one that needs its
+            own shape to say anything. A caption inside it would sit on the
+            border, because that is the whole point: the rows carry the padding
+            and they reach the card's edges. So the specimen is a run of rows,
+            which is what the variant exists for. */}
+        <div className="cols-3" style={{ marginBottom: 'var(--space-md, 16px)' }}>
           <div className="card card-compact" {...ins('card-compact')}><div className="caption" {...txt("caption", "text-muted")}>compact</div><p className="small" style={{ marginTop: 4 }} {...txt("body-sm")}>Tighter padding</p></div>
           <div className="card card-roomy" {...ins('card-roomy')}><div className="caption" {...txt("caption", "text-muted")}>roomy</div><p className="small" style={{ marginTop: 4 }} {...txt("body-sm")}>Looser padding</p></div>
+          <div className="card card-bleed" {...ins('card-bleed')}>
+            {['bleed', 'Rows reach the edge'].map((t, i) => (
+              <div key={t} style={{ padding: 'var(--space-md, 16px)',
+                borderTop: i === 0 ? 'none' : '1px solid var(--c-border-subtle, #eee)' }}>
+                <span className={i === 0 ? 'caption' : 'small'}
+                  {...txt(i === 0 ? 'caption' : 'body-sm', i === 0 ? 'text-muted' : undefined)}>{t}</span>
+              </div>
+            ))}
+          </div>
         </div>
         <div className="cols-4">
           <div className="card card-flat" {...ins('card-flat')}><div className="caption" {...txt("caption", "text-muted")}>flat</div><p className="small" style={{ marginTop: 4 }} {...txt("body-sm")}>Border only</p></div>

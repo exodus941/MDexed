@@ -2357,6 +2357,13 @@ line('\n- prompt construction -')
     ['a table cell has a horizontal gutter', ['commonest omission in a table']],
     ['ornament columns shrink, content columns do not grow', ['shrink the ornament columns']],
     ['a table keeps its two outer edges equal', ['always reads as a lean']],
+    /* WHICH EDGE NEEDS A GUTTER IS A QUESTION ABOUT THE CARD. The two rules
+       beside it hold for a card that pads nothing, and a padded card doubles
+       the inset. The app disobeyed a payload that was already right: measured,
+       the last column's ink at 41px from the card border where the margin is
+       25, on three padded cards. */
+    ['a padded card supplies the table its outer gutters', ['card-bleed', 'doubles the inset']],
+    ['the accent bar moves into the padded card\'s margin', ['one bar width out', 'detached tick']],
     ['one mechanism centres a label', ['is centring twice']],
     ['stripe and selection are one step apart', ['one step further']],
     ['a control is checked on every ground it sits on', ['not only the card']],
@@ -8446,11 +8453,43 @@ function hueHex(h) {
     /\.table (?:th|td):first-child/.test(b[1]) && !/:has\(/.test(b[1]))
   assert(startFlush.length === 1 && /padding-inline-start:\s*0/.test(startFlush[0][2]),
     `the first cell is flush, so its text lands on the heading margin (${startFlush.length} rule(s))`)
+  /* ── AND WHICH EDGE NEEDS A GUTTER IS A QUESTION ABOUT THE CARD ──
+   *
+   * The assertion here used to read "no rule zeroes an outer END edge", from a
+   * run that measured 0.00px from the card's inner edge on four tables. On a
+   * card that pads nothing the inner edge IS the border, so that reading was a
+   * fault. On a card that pads 24px it is the margin, so the same reading was
+   * correct, and the two cases were one number.
+   *
+   * Measured on three padded cards at 1024: the last column ink stood 41px
+   * from the card border and the first at 25 or 33, against a card margin of
+   * 25. Five other cards on that surface put their first ink at 25 and the
+   * table was the only one that did not.
+   *
+   * So the container owns the inset, which is the rule a chart already obeys.
+   * A padded card zeroes both outer gutters and `.card-bleed` keeps them. */
   const endZero = cellRules.filter(b =>
     /\.table[^{]*(?:th|td):last-child/.test(b[1]) && /padding-inline-end:\s*0(?:px)?\s*[;}]/.test(b[2]))
-  assert(endZero.length === 0, endZero.length
-    ? `an outer end edge is zeroed, so its ink lands on the container edge — ${endZero.map(b => b[1].trim()).join('; ')}`
-    : 'and no rule zeroes an outer END edge, where the ink sits at that end')
+  assert(endZero.length > 0, 'the outer end edge is zeroed too, so both edges land on the card margin')
+  const unscopedEnd = endZero.filter(b => !/:not\(\.card-bleed\)/.test(b[1]))
+  assert(unscopedEnd.length === 0, unscopedEnd.length
+    ? `an end edge is zeroed with no card scope, so a bleed card puts its ink on the border — ${unscopedEnd.map(b => b[1].trim()).join('; ')}`
+    : 'and only where the card supplies the inset, never on a bleed card')
+  const bleedPad = cellRules.find(b => /\.card-bleed\b/.test(b[1]) && /(?:^|[;\s])padding:/.test(b[2]))
+  assert(!!bleedPad && /--cmp-card-bleed-padding/.test(bleedPad[2]),
+    'a bleed card reads its own published padding, never the inline zero the two screens wrote')
+  const bleedEnd = cellRules.find(b => /\.card-bleed .table .act-col:last-child/.test(b[1]))
+  assert(!!bleedEnd && /padding-inline-end:\s*var\(--space-xs/.test(bleedEnd[2]),
+    'and a bleed card keeps the cell gutter, because there the cell edge IS the card edge')
+  /* THE BAR GOES IN THE MARGIN ON A PADDED CARD, which is what frees the
+     column. One bar width, so it sits FLUSH against the row's fill rather
+     than floating off it. Measured on Gallery at 1024: bar 21 to 25 from the
+     card border, row fill starting at 25, first column ink 25. */
+  const barOut = cellRules.find(b =>
+    /:not\(\.card-bleed\)[^{]*tr\.is-selected[^{]*td:first-child::before/.test(b[1]))
+  assert(!!barOut, 'a padded card paints the bar in its own inset')
+  assert(/inset-inline-start:\s*calc\(-1 \* var\(--cmp-table-row-selected-edge-width/.test(barOut?.[2] ?? ''),
+    'at exactly one bar width out, so the bar and the row read as one shape')
   /* ── THE BAR GUTTER GOES IN THE BASE, NOT ON THE SELECTED ROW ──
    * The first version gave the selected row alone the bar's 4px, and its own
    * check caught it in one run: the content started 4.0px further in than the
@@ -8460,8 +8499,30 @@ function hueHex(h) {
   assert(!!gutter, 'a table carrying a selection reserves the bar gutter')
   assert(/calc\(var\(--cmp-table-row-selected-edge-width[^)]*\)\s*\+/.test(gutter?.[2] ?? ''),
     'as the bar width plus a step, so the bar never sits against the label')
+  assert(/\.card-bleed\b/.test(gutter?.[1] ?? ''),
+    'on a bleed card only, because a padded card has a margin to paint the bar into')
   assert(!/tr\.is-selected\s*>\s*td:first-child\s*\{[^}]*padding-inline-start/.test(bare),
     'and no rule pads the selected row alone, which is what staggered the column')
+
+  /* ── A WELL IS A SURFACE, SO IT TAKES THE SURFACE RADIUS ──
+   *
+   * It read `--radius-md` while every card read `--radius-lg`. All three
+   * instances sit BESIDE a card rather than inside one: two as siblings in one
+   * stack, and one in a row of four labelled flat, raised, overlay, sunken.
+   * Measured on Settings at 1024: two siblings, both 790px wide, both at
+   * x 1103.13, one at 8px radius and one at 4px.
+   *
+   * It reads the CARD'S published token, so a document that squares its cards
+   * squares its wells with them. A raw scale step cannot follow that. */
+  const well = cellRules.find(b => /\.dmd \.well\b/.test(b[1]) && /background/.test(b[2]))
+  assert(!!well, 'the well rule is found')
+  const cardSurface = cellRules.find(b => /\.dmd \.card\b/.test(b[1]) && /border-radius/.test(b[2]))
+  const cardRadius = (cardSurface?.[2] ?? '').match(/border-radius:\s*([^;]+)/)?.[1].trim()
+  const wellRadius = (well?.[2] ?? '').match(/border-radius:\s*([^;]+)/)?.[1].trim()
+  assert(!!cardRadius && wellRadius === cardRadius,
+    `the well takes the card's own radius (well ${wellRadius}, card ${cardRadius})`)
+  assert(/--cmp-card-rounded/.test(wellRadius ?? ''),
+    'through the published token, never a raw scale step')
 
   line('\n- a card action row covers the line it takes -')
   const pairRule = bare.slice(bare.indexOf('@container dmd-card'))

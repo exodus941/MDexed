@@ -367,9 +367,22 @@ export const COMPONENT_LIBRARY = [
       rounded: '{rounded.lg}', padding: '{spacing.lg}', boxShadow: '{elevation.raised}',
       backgroundImage: 'none',
     },
+    /* ── AND `bleed` IS A DENSITY STEP OF ZERO, WHICH IS A DIFFERENT KIND ──
+     *
+     * A card holding a table or a list of rows pads nothing: the header fill,
+     * the row rules and a selected row's bar all run to its edges. Two screens
+     * wrote that inline, which is the signal that a primitive is missing.
+     *
+     * Publishing it answers a question the table cannot ask. A padded card
+     * gives its table both outer gutters, so a cell adding its own doubles the
+     * inset: measured on three padded cards, the last column ink stood 41px
+     * from the card border where the card margin is 25. No selector can ask an
+     * ancestor for its padding, so the card states which kind it is and the
+     * table's own gutters key off the name. */
     variants: {
       compact: { padding: '{spacing.md}' },
       roomy:   { padding: '{spacing.xl}' },
+      bleed:   { padding: '0' },
       flat:    { boxShadow: 'none' },
       overlay: { backgroundColor: '{colors.surface-raised}', boxShadow: '{elevation.overlay}' },
     },
@@ -992,6 +1005,7 @@ export const CLASS_BRIDGE = {
   'card': '`.card`',
   'card-compact': '`.card.card-compact`',
   'card-roomy': '`.card.card-roomy`',
+  'card-bleed': '`.card.card-bleed`, which holds a table or a run of rows',
   'card-flat': '`.card.card-flat`',
   'card-overlay': '`.card.card-overlay`',
   'modal': '`.modal`',
