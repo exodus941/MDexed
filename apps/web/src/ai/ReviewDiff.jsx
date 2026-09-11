@@ -15,7 +15,10 @@ export default function ReviewDiff({ before, after, streaming, error, onAccept, 
 
   return (
     <div style={{
-      marginTop: 8, background: 'var(--surf2)', border: '1px solid rgba(220,144,85,.35)',
+      /* READ THE TRIPLE, NEVER THE CHANNELS. This was the dark theme's accent
+         typed out, so the light theme painted it too. Same fault theme.css
+         records for sixty-five other literals. */
+      marginTop: 8, background: 'var(--surf2)', border: '1px solid rgb(var(--accent-rgb) / .35)',
       borderRadius: 8, overflow: 'hidden',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderBottom: '1px solid var(--bdr)' }}>

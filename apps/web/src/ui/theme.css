@@ -62,24 +62,28 @@
      slider that also turned the error colour green would be a different
      feature. They do change between themes, because a colour legible on a
      5%-lightness page is not legible on a 93% one. */
-  --accent:#dc9055;--success:#5aad80;--danger:#de5c5c;--warn:#d8a441;
+  --accent:#ffb340;--success:#5aad80;--danger:#de5c5c;--warn:#d8a441;
   /* The same four as bare channels, so a component can pick its own alpha:
      rgb(var(--accent-rgb) / .4). Sixty-five rgba() literals were spread
      across the panels, every one of them the dark theme's value, and every
      one of them wrong the moment a second theme existed. A triple is the only
      form that lets an arbitrary alpha stay theme-aware. */
-  --accent-rgb:220 144 85;--success-rgb:90 173 128;
+  --accent-rgb:255 179 64;--success-rgb:90 173 128;
   --danger-rgb:222 92 92;--warn-rgb:216 164 65;
   /* Which direction a wash goes. White lightens the dark theme; black darkens
      the light one. Anything using this reads as "slightly emphasised", not as
      "slightly white". */
   --ink-rgb:255 255 255;
-  /* Tints of those, for hovers and soft fills. */
-  --accent-wash:rgba(220,144,85,.07);--accent-soft:rgba(220,144,85,.13);
-  --accent-line:rgba(220,144,85,.28);--accent-ring:rgba(220,144,85,.55);
-  --success-soft:rgba(90,173,128,.13);--danger-soft:rgba(222,92,92,.15);
-  --hover-wash:rgba(255,255,255,.08);--grey-wash:rgba(127,127,127,.16);
-  --thumb-ring:rgba(255,255,255,.55);
+  /* Tints of those, for hovers and soft fills. Each READS the triple above
+     rather than restating its channels, so a semantic colour has exactly two
+     writers per theme: the hex and the triple. Written out, it had six, and
+     changing one meant finding all six. The ALPHA stays here, because the
+     alpha is the decision this line is making. */
+  --accent-wash:rgb(var(--accent-rgb) / .07);--accent-soft:rgb(var(--accent-rgb) / .13);
+  --accent-line:rgb(var(--accent-rgb) / .28);--accent-ring:rgb(var(--accent-rgb) / .55);
+  --success-soft:rgb(var(--success-rgb) / .13);--danger-soft:rgb(var(--danger-rgb) / .15);
+  --hover-wash:rgb(var(--ink-rgb) / .08);--grey-wash:rgba(127,127,127,.16);
+  --thumb-ring:rgb(var(--ink-rgb) / .55);
   --shade:rgba(0,0,0,.35);--track-shade:rgba(0,0,0,.22);
 
   --display:'Plus Jakarta Sans',system-ui,sans-serif;--sans:'Plus Jakarta Sans',system-ui,sans-serif;--mono:'JetBrains Mono',monospace;
@@ -133,17 +137,41 @@
 
   /* Darkened until each clears 4.5:1 on the 93% page, checked with this app's
      own contrast module rather than by eye. The dark theme's
-     values sit around 60-70% lightness and read as pastel smears here. */
-  --accent:#994f16;--success:#2f7350;--danger:#b3312f;--warn:#8a6008;
-  --accent-rgb:153 79 22;--success-rgb:47 115 80;
+     values sit around 60-70% lightness and read as pastel smears here.
+   *
+   * THE ACCENT IS A PAIR AT ONE HUE, AND THE LIGHT HALF IS SOLVED, NEVER
+   * PICKED. The accent is painted eight ways in this chrome, enumerated off
+   * the running app: a fill under a --bg label, words and a mark on its own
+   * .07 wash, a line on the panel, words and a mark on --surf2, and a slider
+   * thumb against its track and its panel. The light value is the lightest
+   * colour at the dark value's hue that clears all eight at the DIM end of
+   * the brightness slider, which is this theme's hard end.
+   *
+   * NO BRIGHT ORANGE CAN LIVE HERE. That ceiling sits at OKLCH L 0.49 to 0.50
+   * at EVERY orange hue. #ffb340 is L 0.820, #ffa640 is 0.797, #ff8800 is
+   * 0.744 and #ff4400 is 0.659, and each one fails all eight pairs. All 256
+   * of `#FFxx00` sit above L 0.628, so not one of them can clear either.
+   *
+   * AND THE HUE IS NOT FREE EITHER, because L 0.50 is exactly where --danger
+   * sits at 0.513. Lightness cannot separate the two, so hue does the whole
+   * job. --danger is at hue 26, and the accent needs about 20 degrees of
+   * clearance: a twin at hue 35 measures 9 degrees off it and reads as the
+   * same colour beside a Delete button.
+   *
+   * So the DARK value's hue decides whether a light twin exists at all.
+   * #ffb340 is hue 73, its twin is hue 72, and that is 46 degrees clear. */
+  --accent:#845500;--success:#2f7350;--danger:#b3312f;--warn:#8a6008;
+  --accent-rgb:132 85 0;--success-rgb:47 115 80;
   --danger-rgb:179 49 47;--warn-rgb:138 96 8;
   --ink-rgb:0 0 0;
-  --accent-wash:rgba(153,79,22,.07);--accent-soft:rgba(153,79,22,.12);
-  --accent-line:rgba(153,79,22,.32);--accent-ring:rgba(153,79,22,.55);
-  --success-soft:rgba(47,115,80,.12);--danger-soft:rgba(179,49,47,.12);
-  /* Hovers darken on paper rather than lightening. */
-  --hover-wash:rgba(0,0,0,.05);--grey-wash:rgba(0,0,0,.08);
-  --thumb-ring:rgba(0,0,0,.35);
+  --accent-wash:rgb(var(--accent-rgb) / .07);--accent-soft:rgb(var(--accent-rgb) / .12);
+  --accent-line:rgb(var(--accent-rgb) / .32);--accent-ring:rgb(var(--accent-rgb) / .55);
+  --success-soft:rgb(var(--success-rgb) / .12);--danger-soft:rgb(var(--danger-rgb) / .12);
+  /* Hovers darken on paper rather than lightening. The alphas are lower than
+     the dark theme's on purpose: black over paper reads harder than white
+     over ink at the same strength. */
+  --hover-wash:rgb(var(--ink-rgb) / .05);--grey-wash:rgba(0,0,0,.08);
+  --thumb-ring:rgb(var(--ink-rgb) / .35);
   --shade:rgba(0,0,0,.18);--track-shade:rgba(0,0,0,.07);
   color-scheme:light;
 }
