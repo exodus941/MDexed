@@ -60,6 +60,20 @@ if ! node apps/web/tools/token-reader-guard.mjs; then
   exit 1
 fi
 
+# ── 1g. The chrome's own accent. Blocking. ──
+# Nothing guarded this. The a11y audit reads the DOCUMENT's roles, and the
+# chrome is a separate class set, so the editor's own accent could fail AA in
+# either theme and no run would say so. Five candidate colours were measured
+# by hand before this existed.
+# It pins the shipped pair to its measured figures, re-derives the light
+# ceiling the rule states, asks all 256 of `#FFxx00`, and checks that hue is
+# the only thing separating a passing twin from --danger.
+if ! node apps/web/tools/chrome-accent-guard.mjs; then
+  echo
+  echo "pre-commit: chrome accent guard failed. Commit refused."
+  exit 1
+fi
+
 # A stylesheet is not the whole surface. React reads a bare number in a style
 # object as pixels, so `gap: 7` is a 7px gap no CSS file mentions and no CSS
 # guard can see. This ran once as a codemod and 650 values had already shipped
