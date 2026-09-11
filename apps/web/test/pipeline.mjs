@@ -9219,5 +9219,193 @@ line('\n- the payload as a build guide -')
   }
 }
 
+/* ── THE THREE RULES THAT COMPARE ONE RUN AGAINST ANOTHER ──
+ *
+ * They sat in the audit's checkable list while every other rule gained a
+ * check, and the reason is structural. A render check sees one surface, at one
+ * width, with one pointer. These three are DIFFERENCES between two of those:
+ *
+ *   Squeezing is not responding             narrowest against widest
+ *   Three transitions were doing no work    below a breakpoint against at it
+ *   Grow the box, not the glyph             a fine run against a coarse one
+ *
+ * RUN THE FUNCTIONS, DO NOT READ THEM. A guard's own record is not evidence,
+ * so each comparison is pulled out of the shipped driver and pointed at a
+ * synthetic pair. One scorer, two callers: the browser calls these same
+ * functions through `window.matrix`.
+ *
+ * AND EACH GETS BOTH DIRECTIONS. A fixture proves a check fires. Only the
+ * correct pair proves it stays quiet, and that is the half that cost 95
+ * findings on 11 September 2026 when two new checks shipped fixture-proven. */
+{
+  line('\n- the cross-run comparisons -')
+  const MSRC = fs.readFileSync(new URL('../public/verify-matrix.js', import.meta.url), 'utf8')
+  const pull = name => {
+    const m = MSRC.match(new RegExp('function ' + name + ' \\([\\s\\S]*?\\n\\}'))
+    assert(!!m, `the driver declares ${name}`)
+    return m ? new Function('return (' + m[0] + ')')() : null
+  }
+  const squeezed = pull('squeezed')
+  const inertBreakpoint = pull('inertBreakpoint')
+  const boxGrewMarkDidNot = pull('boxGrewMarkDidNot')
+
+  /* ── A. A SURFACE REARRANGES RATHER THAN SQUEEZING ──
+   *
+   * A three-column grid that becomes three 55px slivers has not adapted. The
+   * question is the SURFACE, never one container: a single-column stack is
+   * correct to look identical at every width, so a per-container form would
+   * fault every correct container on the page. */
+  if (squeezed) {
+    const wideA = { arrange: { 'div.grid#1': 'grid|row|nowrap|c3|r1|l1', 'div.stack#1': 'flex|column|nowrap|c0|r0|l3' } }
+    /* THE SQUEEZE: identical arrangement at both ends. Only the track SIZES
+       moved, and the driver counts tracks for exactly this reason. */
+    const squeeze = { arrange: { 'div.grid#1': 'grid|row|nowrap|c3|r1|l1', 'div.stack#1': 'flex|column|nowrap|c0|r0|l3' } }
+    /* THE RESPONSE: the grid became one column. */
+    const respond = { arrange: { 'div.grid#1': 'grid|row|nowrap|c1|r3|l3', 'div.stack#1': 'flex|column|nowrap|c0|r0|l3' } }
+    assert(squeezed(squeeze, wideA).moved === 0,
+      'a surface whose every container is arranged identically at both ends has squeezed')
+    assert(squeezed(respond, wideA).moved === 1,
+      'and one that rearranged a container is quiet, naming how many moved')
+    /* A WRAP IS A REARRANGEMENT WITH NO DECLARATION BEHIND IT, so the line
+       count is part of the key. Without it a flex row that wrapped reads as
+       unchanged, which is the commonest correct response there is. */
+    const wrapped = { arrange: { 'div.grid#1': 'grid|row|nowrap|c3|r1|l2', 'div.stack#1': 'flex|column|nowrap|c0|r0|l3' } }
+    assert(squeezed(wrapped, wideA).moved === 1,
+      'and a row that WRAPPED counts as moved, because nothing declared it')
+    /* A RUN THAT COMPARED NOTHING IS NOT A PASS. */
+    assert(squeezed({ arrange: {} }, wideA).asked === 0,
+      'and a pair with no container in common says it measured nothing')
+  }
+
+  /* ── B. A BREAKPOINT THAT CHANGES NOTHING IS A THRESHOLD TO DELETE ──
+   *
+   * Three transitions here were measured doing no work: the control never left
+   * the title's line and the title never wrapped for it. Asked ACROSS every
+   * surface, because one threshold may move one surface and leave eleven
+   * alone. Per surface it would report eleven correct surfaces per real
+   * breakpoint. */
+  if (inertBreakpoint) {
+    const flat = { arrange: { 'div.head#1': 'flex|row|nowrap|c0|r0|l1' } }
+    const bent = { arrange: { 'div.head#1': 'flex|row|wrap|c0|r0|l2' } }
+    assert(inertBreakpoint({ Record: flat, Charts: flat }, { Record: flat, Charts: flat }).changed === 0,
+      'a breakpoint across which no surface moves is doing no work')
+    assert(inertBreakpoint({ Record: flat, Charts: flat }, { Record: bent, Charts: flat }).changed === 1,
+      'and ONE surface moving is enough, because a threshold need not move them all')
+    assert(inertBreakpoint({ Record: flat }, { Charts: flat }).asked === 0,
+      'and a pair sharing no surface says it measured nothing')
+  }
+
+  /* ── C. GROW THE BOX, NOT THE GLYPH ──
+   *
+   * Both halves, or the check passes the fault it is named after. A box that
+   * grew while its mark grew with it is the glyph-scaling fault. A box that
+   * stayed while its mark stayed is the unpromoted control, which is how 16
+   * controls sat under the floor on twelve surfaces that had passed on a mouse
+   * for weeks. */
+  if (boxGrewMarkDidNot) {
+    const fine = { boxes: { 'button.btn#1': 28 }, marks: { 'svg.icon#1': 14 } }
+    const right = { boxes: { 'button.btn#1': 44 }, marks: { 'svg.icon#1': 14 } }
+    const unpromoted = { boxes: { 'button.btn#1': 28 }, marks: { 'svg.icon#1': 14 } }
+    const glyphGrew = { boxes: { 'button.btn#1': 44 }, marks: { 'svg.icon#1': 22 } }
+    /* A STATED WIDTH DEFEATING `aspect-ratio: 1` GAVE 28x44, and the smaller
+       side is what a finger presses. */
+    const oblong = { boxes: { 'button.btn#1': 28 }, marks: { 'svg.icon#1': 14 } }
+    const ok = boxGrewMarkDidNot(fine, right, 44)
+    assert(ok.small === 0 && ok.grownMarks === 0,
+      'the box grew to the floor and the mark did not move')
+    assert(ok.boxesAsked === 1 && ok.marksAsked === 1,
+      'and it says how many it asked, so a pair with nothing in common cannot read as clean')
+    assert(boxGrewMarkDidNot(fine, unpromoted, 44).small === 1,
+      'and a control left at its mouse size is a finding')
+    assert(boxGrewMarkDidNot(fine, glyphGrew, 44).grownMarks === 1,
+      'and a mark that grew with its box is a finding, which is the fault the rule is named after')
+    assert(boxGrewMarkDidNot(fine, oblong, 44).small === 1,
+      'and the SMALLER side is what is measured, so 28x44 does not read as clean')
+    /* AND QUIET ON A MOUSE FLOOR, or the same function cannot serve both runs. */
+    assert(boxGrewMarkDidNot(fine, fine, 24).small === 0,
+      'and a 28px control clears the mouse floor, so one function serves both pointers')
+  }
+
+  /* ── THE WIRING, BECAUSE A SCORER NOTHING CALLS IS NO CHECK ──
+   *
+   * Each has to be reachable from the browser and called by the driver, or it
+   * proves a function nobody runs. */
+  for (const [what, re] of [
+    ['the driver takes a snapshot per run', /A\.snaps\[surface\]\[width\] = snapshot\(g\.root\)/],
+    ['before verify presses anything', /BEFORE verify\(\), because one check presses/],
+    ['the report asks the squeeze question', /squeezedRatherThanResponded/],
+    ['the report asks every declared breakpoint', /breakpointsDoingNoWork/],
+    ['and the pointer pair is a second caller', /function comparePointers/],
+    ['every comparison is reachable from the page', /snapshot, squeezed, inertBreakpoint, boxGrewMarkDidNot, comparePointers/],
+  ]) assert(re.test(MSRC), what)
+
+  /* A TRACK COUNT, NEVER THE TRACK SIZES. `grid-template-columns` computes to
+     used pixels, so comparing the strings calls a squeeze a rearrangement. */
+  assert(/function snapTracks/.test(MSRC) && /split\(\/\\s\+\/\)\.length/.test(MSRC),
+    'and a grid is compared by its track COUNT, because the sizes move with the width')
+
+  /* ── AND THE SUBJECT IS THE STYLESHEET'S OWN THRESHOLD ──
+   *
+   * The first run walked the document's breakpoint scale and reported `xl` and
+   * `2xl` as inert. Both readings were true and the SUBJECT was wrong: those
+   * are published tokens for somebody else's build, and deleting them on the
+   * preview's failure to demonstrate them would break a reader. */
+  assert(/thresholdsTheStylesheetStates/.test(MSRC),
+    'the threshold list is read off the served stylesheet, never off the document scale')
+  assert(/< 100000/.test(MSRC),
+    'and a substitution sentinel is not a threshold, because an unsubstituted rule never matches')
+  assert(/thresholdsNoPairStraddles/.test(MSRC),
+    'and a threshold no swept pair straddles is UNMEASURED rather than clean')
+}
+
+/* ── THE TWO FAULTS THE CROSS-POINTER RUN FOUND ON ITS FIRST PASS ──
+ *
+ * Both are in the textarea, and both are shapes this project has recorded
+ * before pointed at other controls. A fix with no check is a fix the next edit
+ * removes, so each gets one here.
+ */
+{
+  line('\n- the textarea keeps its own height -')
+  const PV = fs.readFileSync(new URL('../src/preview/preview.css', import.meta.url), 'utf8')
+  const bare = PV.replace(/\/\*[\s\S]*?\*\//g, m => m.replace(/[^\n]/g, ' '))
+
+  /* ── A FLOOR MUST NOT BE A CEILING ──
+   *
+   * The touch block named `textarea.input` beside the one-line fields and
+   * wrote a bare 44px. Both rules weigh (0,2,1) on that compound, so ORDER
+   * decided and the component's own 88px token was dead at a coarse pointer.
+   * Nothing bound, because three rows happen to exceed both numbers, so it was
+   * a published value nothing reads rather than a visible fault. */
+  const floorRules = bare.match(/\.dmd textarea\.input\s*\{[^}]*min-height[^}]*\}/g) || []
+  assert(floorRules.length >= 1,
+    `the textarea states a minimum height (${floorRules.length} rule(s))`)
+  const bareFloor = floorRules.filter(r => /min-height:\s*var\(--target-min/.test(r))
+  assert(bareFloor.length === 0, bareFloor.length
+    ? 'the touch floor states a bare minimum on the textarea, so its own 88px token is dead by order alone'
+    : 'and no rule hands it the touch floor alone, which would beat its own token by order')
+  assert(/min-height:\s*max\(var\(--cmp-textarea-min-height[^)]*\)[^;]*var\(--target-min/.test(bare),
+    'the promotion reads max(its own minimum, the floor), so the component decides the ordinary case')
+
+  /* ── AND ITS LEADING IS THE ONE THAT DECIDES A NUMBER ──
+   *
+   * Sixteen components state a height, so their line box only has to sit
+   * inside it. A textarea states `height: auto` and three rows, so its box IS
+   * its leading. With none stated it fell to the UA's `normal`: measured 88px
+   * on a mouse against 83px at a coarse pointer, because emulating a touch
+   * device swaps the user agent and resolves `normal` differently. */
+  const typeBlock = (bare.match(/\.dmd textarea\.input\s*\{[^}]*font-size[^}]*\}/g) || []).join(' ')
+  assert(typeBlock.length > 40, `the textarea states its type (${typeBlock.length} bytes)`)
+  assert(/line-height:\s*var\(/.test(typeBlock),
+    'and it states a leading, because a box with no stated height is decided by its leading')
+  /* THE ROLE ALREADY CARRIES THE ANSWER, so the fallback reads that rather
+     than a number somebody typed. */
+  assert(/line-height:\s*var\(--cmp-textarea-leading,\s*var\(--font-body-sm-leading/.test(typeBlock),
+    'and the fallback is the role the entry declares, never a typed value')
+  const { COMPONENT_LIBRARY: LIB } = await import('../src/state/components.js')
+  const ta = LIB.find(c => c.name === 'textarea')
+  assert(!!ta && ta.base.typography === 'body-sm',
+    `and that role is the one the entry declares (${ta ? ta.base.typography : 'no entry'})`)
+}
+
 line(`\n${failures === 0 ? 'ALL PASS' : `${failures} FAILURE(S)`}\n`)
 process.exit(failures ? 1 : 0)

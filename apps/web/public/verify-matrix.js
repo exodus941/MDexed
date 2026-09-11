@@ -186,6 +186,171 @@ const ground = () => {
   return f ? getComputedStyle(f).backgroundColor : 'none'
 }
 
+/* ── THREE RULES COMPARE ONE RUN AGAINST ANOTHER, SO NO verify() CAN ASK THEM ──
+ *
+ * A render check sees one surface at one width with one pointer. These three
+ * are differences BETWEEN two of those, and that is why all three sat in the
+ * audit's checkable list while every other rule got a check:
+ *
+ *   Squeezing is not responding          narrowest against widest
+ *   Three transitions were doing no work below a breakpoint against at it
+ *   Grow the box, not the glyph          a fine run against a coarse one
+ *
+ * So each run records a SNAPSHOT, and the comparisons are pure functions over
+ * two of them. One scorer, two callers: the suite pulls these same functions
+ * out of this file and proves each on a synthetic pair.
+ *
+ * KEYED BY NAME, NEVER BY INDEX. A set gains and loses members between widths,
+ * so position 2 at 320 and position 2 at 1024 are two different objects. That
+ * is the fault the width report already records, and it is the same here.
+ */
+function snapKey (seen, el) {
+  const cls = (el.getAttribute && el.getAttribute('class')) || ''
+  const base = el.tagName.toLowerCase()
+    + (cls ? '.' + cls.trim().split(/\s+/).slice(0, 2).join('.') : '')
+  seen[base] = (seen[base] || 0) + 1
+  return base + '#' + seen[base]
+}
+
+/* HOW MANY VERTICAL BANDS ITS CHILDREN OCCUPY. A flex row that WRAPPED has
+   rearranged without changing a single declaration, so the declarations alone
+   cannot answer whether a layout moved. Band by ink OVERLAP rather than by
+   distinct tops: a button whose mark sits 3px above its label has two tops and
+   one line. */
+function snapLines (el) {
+  const kids = Array.prototype.slice.call(el.children)
+    .map(k => k.getBoundingClientRect())
+    .filter(r => r.width > 0 && r.height > 0)
+    .sort((a, b) => a.top - b.top)
+  let lines = 0
+  let edge = -Infinity
+  for (const r of kids) {
+    if (r.top >= edge) { lines++; edge = r.bottom }
+    else edge = Math.max(edge, r.bottom)
+  }
+  return lines
+}
+
+/* A TRACK COUNT, NEVER THE TRACK SIZES. `grid-template-columns` computes to
+   used pixels, so `repeat(3, 1fr)` reads as "300px 300px 300px" at 1024 and
+   "55px 55px 55px" at 296. Comparing those strings calls a SQUEEZE a
+   rearrangement, which is the exact fault this check exists to find. */
+function snapTracks (v) {
+  if (!v || v === 'none') return 0
+  return v.trim().split(/\s+/).length
+}
+
+function snapshot (root) {
+  const seen = {}
+  const arrange = {}
+  const boxes = {}
+  const marks = {}
+  for (const el of Array.prototype.slice.call(root.querySelectorAll('*'))) {
+    if (!el.getClientRects || !el.getClientRects().length) continue
+    const cs = getComputedStyle(el)
+    if (cs.visibility === 'hidden' || cs.display === 'none' || cs.opacity === '0') continue
+    const r = el.getBoundingClientRect()
+    if (!r.width || !r.height) continue
+    const k = snapKey(seen, el)
+    /* A CONTAINER IS WHAT CAN REARRANGE, and two children is the fewest that
+       can sit two ways. */
+    if (/flex|grid/.test(cs.display) && el.children.length >= 2) {
+      arrange[k] = cs.display + '|' + cs.flexDirection + '|' + cs.flexWrap
+        + '|c' + snapTracks(cs.gridTemplateColumns)
+        + '|r' + snapTracks(cs.gridTemplateRows)
+        + '|l' + snapLines(el)
+    }
+    /* A CONTROL'S TARGET IS AS SMALL AS ITS SMALLER SIDE, which is the reading
+       that let 28x44 pass for as long as it did. */
+    if (el.matches('button, a[href], input, select, textarea, [role="button"], .btn, .nav-item, .tab')) {
+      boxes[k] = Math.round(Math.min(r.width, r.height) * 100) / 100
+    }
+    /* A MARK IS THE THING THAT MUST NOT MOVE. */
+    if (el.matches('svg, .icon')) {
+      marks[k] = Math.round(Math.min(r.width, r.height) * 100) / 100
+    }
+  }
+  return { arrange, boxes, marks }
+}
+
+/* ── A. SQUEEZING IS NOT RESPONDING ──
+ *
+ * Asked of the SURFACE, never of one container. A single-column stack is
+ * correct to look identical at every width, so a per-container form would
+ * fault every correct container on the page. A surface whose every container
+ * is arranged identically at its narrowest and its widest has not responded at
+ * all, and that claim cannot fire on a surface that did.
+ */
+function squeezed (narrow, wide) {
+  const keys = Object.keys(narrow.arrange).filter(k => k in wide.arrange)
+  if (!keys.length) return { asked: 0, moved: 0, why: 'no container in both snapshots' }
+  const moved = keys.filter(k => narrow.arrange[k] !== wide.arrange[k])
+  return { asked: keys.length, moved: moved.length, examples: moved.slice(0, 3) }
+}
+
+/* ── B. A BREAKPOINT THAT CHANGES NOTHING IS A THRESHOLD TO DELETE ──
+ *
+ * Three transitions in this project were measured doing no work: the control
+ * never left the title's line and the title never wrapped for it. So compare
+ * the snapshot just BELOW a declared width against the one AT it.
+ *
+ * ACROSS EVERY SURFACE, because one breakpoint may move one surface and leave
+ * eleven alone. Asked per surface it would report eleven correct surfaces for
+ * every real threshold.
+ */
+function inertBreakpoint (below, at) {
+  const names = Object.keys(below)
+  let asked = 0
+  const changed = []
+  for (const s of names) {
+    if (!at[s]) continue
+    asked++
+    const a = below[s], b = at[s]
+    for (const k of Object.keys(a.arrange)) {
+      if (k in b.arrange && a.arrange[k] !== b.arrange[k]) { changed.push(s + ' ' + k); break }
+    }
+  }
+  return { asked, changed: changed.length, examples: changed.slice(0, 3) }
+}
+
+/* ── C. GROW THE BOX, NOT THE GLYPH ──
+ *
+ * 40px for a finger, 24px for a mouse, and the ICON does not change. Two ways
+ * this has broken here: a stated width defeating `aspect-ratio: 1`, so the
+ * height went to 44 and the width stayed 28; and a touch promotion resizing a
+ * button and leaving its mark at 10px.
+ *
+ * SO BOTH HALVES, or the check passes the fault it is named after. A box that
+ * grew while its mark grew with it is the glyph-scaling fault. A box that
+ * stayed while its mark stayed is the unpromoted control.
+ */
+function boxGrewMarkDidNot (fine, coarse, floor) {
+  const small = []
+  const grownMarks = []
+  let boxesAsked = 0
+  let marksAsked = 0
+  for (const k of Object.keys(fine.boxes)) {
+    if (!(k in coarse.boxes)) continue
+    boxesAsked++
+    /* AT OR ABOVE THE FLOOR, and never smaller than it was on a mouse. */
+    if (coarse.boxes[k] < floor - 0.5 || coarse.boxes[k] < fine.boxes[k] - 0.5) {
+      small.push(k + ' ' + fine.boxes[k] + ' to ' + coarse.boxes[k])
+    }
+  }
+  for (const k of Object.keys(fine.marks)) {
+    if (!(k in coarse.marks)) continue
+    marksAsked++
+    if (Math.abs(coarse.marks[k] - fine.marks[k]) > 0.5) {
+      grownMarks.push(k + ' ' + fine.marks[k] + ' to ' + coarse.marks[k])
+    }
+  }
+  return {
+    boxesAsked, marksAsked,
+    small: small.length, grownMarks: grownMarks.length,
+    examples: small.slice(0, 3).concat(grownMarks.slice(0, 3)),
+  }
+}
+
 let acc = null
 
 function run (surfaces, widths, only) {
@@ -211,6 +376,9 @@ function run (surfaces, widths, only) {
      * verify call. Measured when this shipped: 20 of the render checks spoke
      * and the rest said nothing over twelve surfaces. */
     spoke: new Set(), ranAny: new Set(),
+    /* ONE SNAPSHOT PER RUN, keyed surface then width, so the three cross-run
+       rules have two readings to compare rather than one. */
+    snaps: {},
   }
   const A = acc
   A.promise = (async () => {
@@ -256,6 +424,11 @@ function run (surfaces, widths, only) {
           A.runs++
           if (!g.landed) { A.notLanded.push(g.why); continue }
           if (!g.rested) A.notRested.push(surface + '@' + width)
+          /* BEFORE verify(), because one check presses the theme control and
+             the press re-renders the tree it measured. A snapshot taken after
+             that is a snapshot of another state. */
+          if (!A.snaps[surface]) A.snaps[surface] = {}
+          A.snaps[surface][width] = snapshot(g.root)
           const v = await window.verify(g.root)
           /* An OLDER verifier returns no coverage, and a driver that assumed
              one would crash rather than say so. */
@@ -321,15 +494,141 @@ function report (limit) {
   } else {
     out.coverage = 'the verifier returned none, so the silent set is UNMEASURED'
   }
+  /* ── THE TWO CROSS-RUN RULES THIS HALF CAN ANSWER ──
+   *
+   * The pointer one needs the OTHER half's snapshots, so it lives in
+   * `comparePointers` and a reader passes both accumulators. These two are
+   * answerable inside one run.
+   *
+   * A RUN THAT MEASURED NOTHING SAYS SO. With one width there is no pair, and
+   * silence there would read as a surface that rearranged. */
+  const surfaces = Object.keys(A.snaps)
+  if (surfaces.length) {
+    const widths = (A.snaps[surfaces[0]] && Object.keys(A.snaps[surfaces[0]]).map(Number).sort((a, b) => a - b)) || []
+    if (widths.length < 2) {
+      out.rearranged = 'one width was measured, so no surface could be compared against itself'
+    } else {
+      const lo = widths[0], hi = widths[widths.length - 1]
+      const flat = []
+      let asked = 0
+      for (const s of surfaces) {
+        const a = A.snaps[s][lo], b = A.snaps[s][hi]
+        if (!a || !b) continue
+        asked++
+        const q = squeezed(a, b)
+        if (!q.moved) flat.push(s + ' (' + q.asked + ' containers identical at ' + lo + ' and ' + hi + ')')
+      }
+      out.rearranged = asked + ' surface(s) compared at ' + lo + ' against ' + hi
+      if (flat.length) out.squeezedRatherThanResponded = flat
+    }
+    /* ── ASK THE THRESHOLD THE STYLESHEET DECLARES, NOT THE TOKEN THE
+       DOCUMENT PUBLISHES ──
+     *
+     * The first version walked the document's own breakpoint scale and
+     * reported `xl` at 1280 and `2xl` at 1536 as doing no work. Both readings
+     * were true and the SUBJECT was wrong. Those are published tokens whose
+     * consumer is somebody else's build, and the preview stylesheet reads
+     * neither. So the check faulted a published scale for the preview's own
+     * failure to demonstrate it, and acting on it would delete two steps a
+     * reader's build may depend on.
+     *
+     * A threshold the STYLESHEET declares is ours, and it has to earn its
+     * place. Read them off the served CSS rather than keeping a list, so a
+     * threshold added tomorrow joins without being remembered.
+     *
+     * SEVERAL THRESHOLDS CAN SHARE ONE INTERVAL, and the sweep cannot tell
+     * them apart: 384, 400, 430 and 460 all sit between 320 and 480. So the
+     * finding names the interval and every threshold inside it, rather than
+     * claiming to know which one was inert. */
+    const stated = []
+    for (const sh of Array.prototype.slice.call(document.styleSheets)) {
+      let rules = null
+      try { rules = sh.cssRules } catch (e) { continue }
+      const walk = list => {
+        for (const r of Array.prototype.slice.call(list || [])) {
+          if (r.conditionText) {
+            const m = /(?:max|min)-width:\s*(\d+)px/.exec(r.conditionText)
+            /* A SENTINEL IS NOT A THRESHOLD. The build substitutes real
+               numbers, so a 999901 left in a sheet is an unsubstituted rule
+               that never matches, and a separate check owns that. */
+            if (m && +m[1] < 100000 && stated.indexOf(+m[1]) < 0) stated.push(+m[1])
+          }
+          if (r.cssRules && r.cssRules.length) walk(r.cssRules)
+        }
+      }
+      walk(rules)
+    }
+    stated.sort((a, b) => a - b)
+    const inert = []
+    let bpAsked = 0
+    for (let i = 1; i < widths.length; i++) {
+      const lo = widths[i - 1], hi = widths[i]
+      /* A max-width threshold at T separates T from T+1, so an interval
+         straddles it when lo <= T < hi. */
+      const inside = stated.filter(t => t >= lo && t < hi)
+      if (!inside.length) continue
+      const a = {}, b = {}
+      for (const s of surfaces) {
+        if (A.snaps[s][lo]) a[s] = A.snaps[s][lo]
+        if (A.snaps[s][hi]) b[s] = A.snaps[s][hi]
+      }
+      if (!Object.keys(a).length || !Object.keys(b).length) continue
+      bpAsked++
+      const r = inertBreakpoint(a, b)
+      if (!r.changed) {
+        inert.push(lo + ' to ' + hi + ' holds ' + inside.join(', ')
+          + ' and nothing moved on ' + r.asked + ' surfaces')
+      }
+    }
+    out.thresholdsTheStylesheetStates = stated.length
+    out.intervalsMeasured = bpAsked
+    if (inert.length) out.breakpointsDoingNoWork = inert
+    /* AND A THRESHOLD NO INTERVAL STRADDLES IS UNMEASURED, NEVER CLEAN. */
+    const unswept = stated.filter(t => {
+      for (let i = 1; i < widths.length; i++) if (t >= widths[i - 1] && t < widths[i]) return false
+      return true
+    })
+    if (unswept.length) out.thresholdsNoPairStraddles = unswept
+  } else {
+    out.rearranged = 'no snapshot was taken, so the cross-width rules are UNMEASURED'
+  }
+
   const n = limit || 20
   out.sample = A.rows.slice(0, n).map(r => r.s + '@' + r.w + ' ' + r.check + ' ' + r.where + ' :: ' + r.msg)
   if (A.rows.length > n) out.sample.push('+ ' + (A.rows.length - n) + ' more not listed')
   return out
 }
 
+/* ── AND THE POINTER RULE NEEDS BOTH HALVES ──
+ *
+ * One run measures one pointer, which is the whole reason the coarse case went
+ * unmeasured for weeks. So this takes two accumulators and says which surfaces
+ * and widths it could pair. A pair it could not find is named rather than
+ * skipped: an unpaired width reads exactly like a clean one.
+ */
+function comparePointers (fineSnaps, coarseSnaps, floor) {
+  const out = { paired: 0, findings: [], unpaired: [] }
+  for (const s of Object.keys(fineSnaps)) {
+    for (const w of Object.keys(fineSnaps[s])) {
+      const c = coarseSnaps[s] && coarseSnaps[s][w]
+      if (!c) { out.unpaired.push(s + '@' + w); continue }
+      out.paired++
+      const r = boxGrewMarkDidNot(fineSnaps[s][w], c, floor)
+      if (r.small || r.grownMarks) {
+        out.findings.push(s + '@' + w + ': ' + r.small + ' control(s) under the floor, '
+          + r.grownMarks + ' mark(s) that changed size — ' + r.examples.join('; '))
+      }
+    }
+  }
+  return out
+}
+
 const probe = (surfaces, widths, only) => run(surfaces, widths, only)
 
 window.matrix = { learn, go, run, probe, report,
+  /* The cross-run half, exported so a reader can pair two halves by hand and
+     so the suite can call the same functions it proves. */
+  snapshot, squeezed, inertBreakpoint, boxGrewMarkDidNot, comparePointers,
   get acc () { return acc }, SURFACES, WIDTHS, DECLARED, IDMAP }
 console.log('verify-matrix loaded. await matrix.learn() then matrix.run(), matrix.report()')
 

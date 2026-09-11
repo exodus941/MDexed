@@ -1159,11 +1159,28 @@
   letter-spacing: var(--cmp-table-header-tracking, inherit);
   font-size: var(--cmp-table-header-font-size, inherit);
 }
+/* ── AND THE TEXTAREA IS THE ONE COMPONENT WHOSE LEADING DECIDES A NUMBER ──
+ *
+ * Every `--cmp-*` type block here states family, size, weight and tracking,
+ * and none states a leading. For sixteen of them that costs nothing: they
+ * state a HEIGHT, so the box is decided and the line box only has to sit
+ * inside it.
+ *
+ * A textarea states `height: auto` and three rows. So its box IS its leading,
+ * and with none stated it fell to the UA's `normal`, which the FONT decides.
+ * Measured on 11 September 2026, comparing a fine run against a coarse one:
+ * 88px against 83px for the same control, because emulating a touch device
+ * swaps the user agent and a different family in the stack resolves `normal`
+ * differently. Neither number was chosen by anyone.
+ *
+ * The role already carries the answer. The entry declares `typography:
+ * body-sm`, so the fallback reads that role's leading rather than a number. */
 .dmd textarea.input {
   font-family: var(--cmp-textarea-font-family, inherit);
   font-weight: var(--cmp-textarea-font-weight, inherit);
   letter-spacing: var(--cmp-textarea-tracking, inherit);
   font-size: var(--cmp-textarea-font-size, inherit);
+  line-height: var(--cmp-textarea-leading, var(--font-body-sm-leading, 1.58));
 }
 .dmd .tooltip {
   font-family: var(--cmp-tooltip-font-family, inherit);
@@ -1798,11 +1815,29 @@
      stated width was the thing that broke it: see the icon-only block. */
   .dmd .input,
   .dmd select.input,
-  .dmd textarea.input,
   .dmd .select-trigger,
   .dmd .nav-item,
   .dmd .tab {
     min-height: var(--target-min, 44px);
+  }
+  /* ── A FLOOR MUST NOT BE A CEILING, AND HERE IT WAS ──
+   *
+   * A textarea states its own minimum at 88px, three rows rather than one
+   * line. This block named it beside the one-line fields and wrote a bare 44,
+   * and both rules weigh (0,2,1) on `.dmd textarea.input`, so ORDER decided.
+   * This one comes later, so the component's 88px token was dead at a coarse
+   * pointer: a published value nothing reads.
+   *
+   * Nothing bound today, because three rows of text happen to exceed both
+   * numbers. A one-row textarea, or a smaller type scale, and the control
+   * loses 44px of its own stated height with nothing reporting it.
+   *
+   * `max` is the same repair the button height and the tab-select parity both
+   * took: the component decides the ordinary case and the floor decides the
+   * touch one. Found on 11 September 2026 by the cross-pointer comparison, on
+   * its first real run. */
+  .dmd textarea.input {
+    min-height: max(var(--cmp-textarea-min-height, 88px), var(--target-min, 44px));
   }
   /* A WRAPPER THAT PINS A CONTROL TO A LINE BOX HAS TO LET GO OF IT.
      The alert's action sits in a box one line tall, so its button centres on
