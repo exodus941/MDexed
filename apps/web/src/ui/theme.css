@@ -135,9 +135,39 @@
   --preview:hsl(var(--ui-h) 14% calc(81% + var(--b) * 9%));
   --preview-bdr:hsl(var(--ui-h) 12% calc(73% + var(--b) * 9%));
 
-  /* Darkened until each clears 4.5:1 on the 93% page, checked with this app's
-     own contrast module rather than by eye. The dark theme's
-     values sit around 60-70% lightness and read as pastel smears here.
+  /* Darkened until each clears 4.5:1, checked with this app's own contrast
+     module rather than by eye. The dark theme's values sit around 60-70%
+     lightness and read as pastel smears here.
+   *
+   * AGAINST ITS OWN SOFT TINT, NOT AGAINST THE PAGE. The first round solved
+   * these on the 93% page, which is where each one reads HIGHEST. Every one of
+   * them paints words on a wash of ITSELF, and that is the ground each reads
+   * lowest on. Nothing asked, so success read 4.29 and warn 4.31 at the
+   * default brightness, and 3.88 and 3.91 at the dim end.
+   *
+   * AND THE HEAVIEST WASH IS THE ONE TO SOLVE AGAINST. `--success-soft` is
+   * .12 here, App.jsx types .16, and the shared alert types .10. --warn has no
+   * soft token at all: App.jsx types .14. Solving at the token's .12 would
+   * have under-darkened both.
+   *
+   * So success moved 4.1 lightness points, warn 3.7 and danger 1.1, each at
+   * its own exact hue: 158, 78 and 26. Measured after, over every alpha a
+   * component types and all three slider positions: 0 failing pairs. Each
+   * wash went to 1.25, 1.21 and 1.20 against its panel, on the 1.20 a shape
+   * needs. The worst hue gap held at 25 degrees, so nothing flattened.
+   *
+   * DANGER CAME OUT OF THE SAME PASS AND WAS NEARLY MISSED. An earlier probe
+   * of the live chrome reported 0 danger sites, so I skipped it. It has two:
+   * Canvas.jsx paints danger words on a .12 wash, and so does
+   * `.btn-confirm-yes:hover`. It read 4.32 at the dim end.
+   *
+   * AND THE BORDER ON THOSE CHIPS DOES NOT HELP. An edge makes the FILL
+   * findable against the panel. That is a different pair from the words on
+   * that fill, which is the one failing.
+   *
+   * THINNING THE TINT INSTEAD WAS MEASURED AND REFUSED. It clears the words
+   * at .045 and .03, and the wash then reads 1.04 against its panel. That
+   * trades one failure for another: the chip fill goes absent.
    *
    * THE ACCENT IS PAINTED EIGHT WAYS HERE, enumerated off the running app: a
    * fill under a --bg label, words and a mark on its own .07 wash, a line on
@@ -164,9 +194,9 @@
    * a 4.5 bar and the slider thumb reads 2.83:1 against 3.0, both at --ui-b
    * 67. It clears everything from 78 up. The comment above says each colour
    * was solved on the 93% page, and the slider reaches 86%. */
-  --accent:#994f16;--success:#2f7350;--danger:#b3312f;--warn:#8a6008;
-  --accent-rgb:153 79 22;--success-rgb:47 115 80;
-  --danger-rgb:179 49 47;--warn-rgb:138 96 8;
+  --accent:#994f16;--success:#236745;--danger:#af2d2c;--warn:#7d5600;
+  --accent-rgb:153 79 22;--success-rgb:35 103 69;
+  --danger-rgb:175 45 44;--warn-rgb:125 86 0;
   --ink-rgb:0 0 0;
   --accent-wash:rgb(var(--accent-rgb) / .07);--accent-soft:rgb(var(--accent-rgb) / .12);
   --accent-line:rgb(var(--accent-rgb) / .32);--accent-ring:rgb(var(--accent-rgb) / .55);
