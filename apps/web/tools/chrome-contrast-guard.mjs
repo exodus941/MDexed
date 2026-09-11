@@ -1,11 +1,16 @@
-/* ── THE CHROME ACCENT AGAINST EVERY GROUND IT PAINTS ON ──
+/* ── THE CHROME'S OWN COLOURS AGAINST EVERY GROUND THEY PAINT ON ──
  *
- * Nothing guarded this. The a11y audit reads the DOCUMENT's roles, and the
- * chrome is a separate class set, so the editor's own accent could fail AA in
- * either theme and no run would say so. I measured it by hand across five
- * candidate colours before this existed.
+ * Nothing guarded these. The a11y audit reads the DOCUMENT's roles, and the
+ * chrome is a separate class set, so the editor's own accent and status
+ * colours could fail AA in either theme and no run would say so. I measured
+ * the accent by hand across five candidate colours before this existed.
  *
- * WHAT IT ASKS, in three parts:
+ * AND THE STATUS HALF FOUND A FAULT ON ITS FIRST RUN, which is what a guard
+ * is for. The dark danger red read 3.76 against 4.5 on a .12 wash of itself.
+ * The light half had just been repaired by hand and I had not thought to ask
+ * the dark one.
+ *
+ * WHAT IT ASKS, in four parts:
  *
  *  1. THE SHIPPED PAIR, pinned to the figures it measures today. A drift in
  *     either direction reports. The light value fails 2 of its 8 pairs at the
@@ -29,7 +34,7 @@
  * and nothing uses cost a false finding once: `--surf3` reported the light
  * accent at 4.36:1, and the accent never paints words there.
  *
- * Run:  node tools/chrome-accent-guard.mjs
+ * Run:  node tools/chrome-contrast-guard.mjs
  */
 import fs from 'node:fs'
 import path from 'node:path'
@@ -241,13 +246,97 @@ else {
     + rows.map(r => r.h + ' is ' + f2(r.dh) + ' off, dL ' + f2(r.dl)).join('  |  '))
 }
 
-console.log('chrome accent guard')
+/* ── 4. THE STATUS ROLES ON WASHES OF THEMSELVES ──
+ *
+ * The accent was guarded and these were not, so the same fault sat in three
+ * more roles. Each one paints words on a tint of its own hex, and that is the
+ * ground it reads LOWEST on. All three were solved on the page, which is where
+ * each reads highest, and the comment beside them said so. Measured before the
+ * repair: success 4.07, warn 4.11 and danger 4.55 at the default, and 3.88,
+ * 3.91 and 4.32 at the dim end.
+ *
+ * THE HEAVIEST ALPHA BINDS, NOT THE TOKEN'S. `--success-soft` is .12 while
+ * App.jsx types .16 and the shared alert types .10. `--warn` has no soft token
+ * at all and App.jsx types .14. So the alphas are enumerated here rather than
+ * read off the token, and a component reaching for a heavier one has to add it.
+ *
+ * THE BAR IS THE WORDS, NOT THE WASH. A border on the chip makes the fill
+ * findable against the panel, which is a different pair. Four washes read 1.15
+ * to 1.19 and every one of those sites carries a .30 to .35 edge.
+ *
+ * AND A MARK ON A WASH IS NOT WORDS ON A WASH. My first version asked 4.5:1 of
+ * every site and reported dark `--success` at 4.42 on its .16 wash. That site
+ * is a restore glyph: a span whose only child is an svg at `currentColor`. A
+ * mark's bar is 3:1, so 4.42 passes and the finding was my own noise. The
+ * heaviest washes here are all marks, which is why nobody had noticed.
+ *
+ * SO EACH SITE CARRIES ITS OWN BAR AND ITS OWN THEMES, enumerated by reading
+ * what each one renders. A tag list would approve whatever nobody thought of,
+ * so a NEW wash has to be added here, and the alphas are deliberately not read
+ * off the tokens. */
+const STATUS = [
+  /* role, alpha, bar, themes, where */
+  ['success', 0.16, 3.0, ['light', 'dark'], 'App.jsx restore glyph, an svg mark'],
+  ['success', 0.13, 3.0, ['dark'], '.btn-confirm-no:hover, an svg mark'],
+  ['success', 0.12, 3.0, ['light'], '.btn-confirm-no:hover, an svg mark'],
+  ['success', 0.10, 4.5, ['light', 'dark'], 'the shared alert tone and Canvas, words'],
+  ['warn', 0.14, 4.5, ['light'], 'App.jsx theme toggle, words, light only'],
+  ['warn', 0.10, 4.5, ['light', 'dark'], 'the shared alert tone, words'],
+  ['danger', 0.15, 3.0, ['dark'], '.btn-confirm-yes:hover, an svg mark'],
+  ['danger', 0.12, 4.5, ['light', 'dark'], 'Canvas.jsx, mono words'],
+  ['danger', 0.10, 4.5, ['light', 'dark'], 'the shared alert tone, words'],
+]
+const statusWorst = {}
+for (const [token, a, bar, modes, where] of STATUS) {
+  for (const mode of modes) {
+    const block = mode === 'light' ? LIGHT : ROOT
+    const G = L[mode]
+    const role = decl(block, token)
+    if (!role) { fail('no --' + token + ' declared for ' + mode); continue }
+    if (!G) continue
+    for (const f of [0, 1 / 3, 1]) {
+      for (const panel of ['surf', 'surf2']) {
+        const r = check(role, flat(role, a, G[panel](f))).ratio
+        const k = mode + ' --' + token
+        if (!statusWorst[k] || r / bar < statusWorst[k].rel) {
+          statusWorst[k] = { role, r, bar, rel: r / bar, at: panel + ' .' + String(a).slice(2) + ' at --b ' + f3(f) }
+        }
+        if (r < bar) {
+          fail(mode + ' --' + token + ' ' + role + ': reads ' + f2(r) + ' against ' + f2(bar)
+            + ' on its own .' + String(a).slice(2) + ' wash over ' + panel + ' at --b ' + f3(f)
+            + '.  ' + where + '.  A role\'s worst ground is a wash of itself.')
+        }
+      }
+    }
+  }
+}
+/* AND STRAIGHT ON THE PANEL, which is the easier ground and still a pair. */
+for (const token of ['success', 'warn', 'danger']) {
+  for (const [mode, block] of [['light', LIGHT], ['dark', ROOT]]) {
+    const role = decl(block, token), G = L[mode]
+    if (!role || !G) continue
+    for (const f of [0, 1 / 3, 1]) for (const panel of ['surf', 'surf2']) {
+      const r = check(role, G[panel](f)).ratio
+      if (r < 4.5) {
+        fail(mode + ' --' + token + ' ' + role + ': words read ' + f2(r)
+          + ' straight on ' + panel + ' at --b ' + f3(f) + '.')
+      }
+    }
+  }
+}
+for (const [k, v] of Object.entries(statusWorst)) {
+  notes.push('  ' + pad(k, 17) + pad(v.role, 10) + 'worst on its own wash '
+    + f2(v.r) + ' vs ' + f2(v.bar) + '  (' + v.at + ')')
+}
+
+console.log('chrome contrast guard')
 for (const n of notes) console.log(n)
 if (problems.length) {
   console.log('\n' + problems.length + ' problem(s):')
   for (const p of problems) console.log('  - ' + p)
   process.exit(1)
 }
-console.log('\nPASS - the shipped pair matches its pinned figures, the light ceiling')
+console.log('\nPASS - the accent pair matches its pinned figures, the light ceiling')
 console.log('       holds at L 0.49-0.50 across 5 hues, 0 of 256 #FFxx00 clear,')
-console.log('       and hue is the only thing separating a twin from --danger.')
+console.log('       hue is the only thing separating a twin from --danger, and')
+console.log('       every status role clears 4.5:1 on a wash of itself.')

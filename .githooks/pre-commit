@@ -60,17 +60,19 @@ if ! node apps/web/tools/token-reader-guard.mjs; then
   exit 1
 fi
 
-# ── 1g. The chrome's own accent. Blocking. ──
-# Nothing guarded this. The a11y audit reads the DOCUMENT's roles, and the
-# chrome is a separate class set, so the editor's own accent could fail AA in
-# either theme and no run would say so. Five candidate colours were measured
-# by hand before this existed.
-# It pins the shipped pair to its measured figures, re-derives the light
-# ceiling the rule states, asks all 256 of `#FFxx00`, and checks that hue is
-# the only thing separating a passing twin from --danger.
-if ! node apps/web/tools/chrome-accent-guard.mjs; then
+# ── 1g. The chrome's own colours. Blocking. ──
+# Nothing guarded these. The a11y audit reads the DOCUMENT's roles, and the
+# chrome is a separate class set, so the editor's own accent and status
+# colours could fail AA in either theme and no run would say so. Five
+# candidate accents were measured by hand before this existed.
+# It pins the accent pair to its measured figures, re-derives the light
+# ceiling the rule states, asks all 256 of `#FFxx00`, checks that hue is the
+# only thing separating a passing twin from --danger, and asks every status
+# role against a wash of ITSELF, which is the ground each reads lowest on.
+# That last half found the dark danger red failing on its first run.
+if ! node apps/web/tools/chrome-contrast-guard.mjs; then
   echo
-  echo "pre-commit: chrome accent guard failed. Commit refused."
+  echo "pre-commit: chrome contrast guard failed. Commit refused."
   exit 1
 fi
 

@@ -62,14 +62,33 @@
      slider that also turned the error colour green would be a different
      feature. They do change between themes, because a colour legible on a
      5%-lightness page is not legible on a 93% one. */
-  --accent:#dc9055;--success:#5aad80;--danger:#de5c5c;--warn:#d8a441;
+  /* ── AND THE SAME FAULT SAT IN THE DARK DANGER RED ──
+   *
+   * Found by the chrome contrast guard on its first run, after the light half
+   * was repaired. `--danger` paints words on a .12 wash of itself in
+   * Canvas.jsx and a .10 wash in the shared alert, and in dark that wash
+   * LIGHTENS the ground toward the ink. Same mechanism as the light theme,
+   * opposite direction, and the hard end is the BRIGHTEST slider position
+   * rather than the dimmest.
+   *
+   * Measured before: 4.44, 4.22, 4.10 and 3.76 on the .12 wash across the
+   * slider, and 4.32 straight on --surf2 at the top of it. So #de5c5c went to
+   * #f16d6b, +5.3 lightness points at its exact hue of 23 and chroma 0.163.
+   * That is the least that clears, and the worst pair now sits exactly on its
+   * bar. The set's worst hue gap holds at 23 degrees on accent against warn,
+   * and a --bg label on a danger fill reads 6.94.
+   *
+   * SUCCESS AND WARN NEEDED NOTHING HERE. Their heaviest washes are marks
+   * rather than words, at a 3:1 bar, and they clear 4.89 and 5.78 on the .10
+   * the alert types. */
+  --accent:#dc9055;--success:#5aad80;--danger:#f16d6b;--warn:#d8a441;
   /* The same four as bare channels, so a component can pick its own alpha:
      rgb(var(--accent-rgb) / .4). Sixty-five rgba() literals were spread
      across the panels, every one of them the dark theme's value, and every
      one of them wrong the moment a second theme existed. A triple is the only
      form that lets an arbitrary alpha stay theme-aware. */
   --accent-rgb:220 144 85;--success-rgb:90 173 128;
-  --danger-rgb:222 92 92;--warn-rgb:216 164 65;
+  --danger-rgb:241 109 107;--warn-rgb:216 164 65;
   /* Which direction a wash goes. White lightens the dark theme; black darkens
      the light one. Anything using this reads as "slightly emphasised", not as
      "slightly white". */
