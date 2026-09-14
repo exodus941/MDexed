@@ -24,6 +24,7 @@ import { tokensCss } from '../src/emit/tokens.js'
 import { agentContract, checklistBytes, checklistLines, CONTRACT_MAX_LINES, CONTRACT_MAX_BYTES } from '../src/emit/agents.js'
 import { payloadTextFiles, REQUIRED_FILES, EXAMPLE_PREFIX, HTML_EXAMPLES_MODES, exampleFilename, exampleModes } from '../src/emit/payload.js'
 import { serializeProject, parseProject, projectFilename } from '../src/emit/project.js'
+import { today, nextBuild } from '../src/state/build.js'
 import { diffWords, diffStats } from '../src/ai/diff.js'
 import { contextFor, refinePrompt, draftPrompt, systemPrompt } from '../src/ai/prompts.js'
 import { PROSE_SECTIONS, TEXT_ROLES, SURFACE_ROLES, ALL_ROLES } from '../src/state/schema.js'
@@ -2535,8 +2536,26 @@ line('\n- project file -')
   assert(!parseProject('not json').ok, 'a non-JSON file is refused')
   assert(!parseProject(JSON.stringify({ format: 'mdexed-project', formatVersion: 99, state: {} })).ok,
     'a newer format version is refused rather than half-loaded')
-  assert(/^[a-z0-9-]+-\d{8}-\d{4}\.mdexed\.json$/.test(projectFilename('My Design System!!', new Date(2026, 7, 8, 3, 4))),
-    `filename is slugged and sortable (${projectFilename('My Design System!!', new Date(2026, 7, 8, 3, 4))})`)
+  const stamped = projectFilename('My Design System!!', new Date(2026, 7, 8, 3, 4))
+  assert(/^[a-z0-9-]+-\d{6}-\d{4}\.mdexed\.json$/.test(stamped),
+    `filename is slugged and sortable (${stamped})`)
+  /* ── ONE DATE FORMAT FOR THE WHOLE APP ──
+   *
+   * Their call, 14 September 2026: two digits of year, because the century is
+   * not the case worth spending them on. This filename was the last four-digit
+   * stamp, against a build number that has been YYMMDD since it shipped.
+   *
+   * Asserted as the SAME SIX DIGITS the build id uses, never as a literal. Two
+   * implementations of one date is what let them disagree. */
+  assert(stamped.includes(`-${today(new Date(2026, 7, 8))}-`),
+    `the stamp is the build number's own date (${today(new Date(2026, 7, 8))})`)
+  assert(!/-20\d{6}-/.test(stamped), 'and no four-digit year survives in it')
+  /* AND THE BUILD ID ITSELF WAS UNGUARDED, which is how a second format
+     arrives. Nothing in the suite read it before today. */
+  const build = nextBuild('alpha', new Date(2026, 7, 8))
+  assert(/^\d{6}-\d+$/.test(build), `a build id is YYMMDD plus a counter (${build})`)
+  assert(build.startsWith(today(new Date(2026, 7, 8))),
+    'so both stamps in the app read one date, from one function')
 }
 
 /* ── THE SHIPPED VERIFIERS ────────────────────────────────────────────────

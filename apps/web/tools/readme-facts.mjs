@@ -59,6 +59,7 @@ export async function facts () {
   const state = schema.createInitialState()
   const derived = derive.derive(state)
   const lightOnly = { ...state, color: { ...state.color, theme: 'light' } }
+  const { today } = await load('state/build.js')
   const md = designmd.fileText(state, derived)
   const mdBytes = Buffer.byteLength(md, 'utf8')
 
@@ -256,6 +257,14 @@ export async function facts () {
       actual: Object.keys(derive.buildCssVars(derived, 'light')).length },
 
     /* ── Export ── */
+    /* THE FILENAME SHAPE IS A STATED CONSTANT TOO. The README said
+       YYYYMMDD-HHMM while the build id has always been YYMMDD, so it
+       described a format the app no longer writes. Counted as digits, because
+       the letters are a template rather than a number. */
+    { label: 'digits of date in the save filename', re: /`name-(Y+)MMDD-HHMM\.mdexed\.json`/,
+      actual: today(new Date()).length - 4, count: s => s.length },
+    { label: 'digits of time in the save filename', re: /`name-Y+MMDD-(H+MM)\.mdexed\.json`/,
+      actual: 4, count: s => s.length },
     { label: 'payload files, in the saving table', re: /A zip of (\d+) files/, actual: textFiles + examples },
     { label: 'payload files', re: /that is \*\*(\d+) files\*\*/, actual: textFiles + examples },
     { label: 'payload text files', re: /\*\*\d+ files\*\*: (\d+) text files/, actual: textFiles },

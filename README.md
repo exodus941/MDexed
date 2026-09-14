@@ -112,7 +112,7 @@ Open <http://localhost:5173>. Vite proxies `/api` to the Worker on 8787.
 | --- | --- |
 | `npm run dev` | Both servers |
 | `npm run dev:web` / `npm run dev:api` | One server at a time |
-| `npm test` | 1,133 assertion sites in 104 groups, over the pure layer |
+| `npm test` | 1,137 assertion sites in 104 groups, over the pure layer |
 | `npm run check` | 11 guards: syntax, scope, primitives, strays, the pixel grid, the audit's remedies, prompt drift, component gaps, render proofs, the figures in this file, rule coverage |
 | `npm run build` | Production build |
 | `npm run db:migrate:local` | Apply migrations locally |
@@ -309,7 +309,7 @@ Three destinations, and they answer different questions.
 
 | Action | Writes | For |
 | --- | --- | --- |
-| Save | `name-YYYYMMDD-HHMM.mdexed.json` on your device | Reopening it here later |
+| Save | `name-YYMMDD-HHMM.mdexed.json` on your device | Reopening it here later |
 | Save to Cloud | A project at `/p/:id`, then a share link | Another machine, or another person |
 | Export Payload | A zip of 36 files | Handing the system to an agent or a developer |
 

@@ -16,6 +16,7 @@
  * file stays small and a later change to the generators reaches old saves.
  */
 import { migrate } from '../state/migrate.js'
+import { today } from '../state/build.js'
 
 export const PROJECT_FORMAT = 'mdexed-project'
 export const PROJECT_EXT = '.mdexed.json'
@@ -67,10 +68,27 @@ export function parseProject (text) {
 }
 
 /* Sortable, so repeated saves sit in the order they were made when a folder is
-   sorted by name. Anything friendlier to read sorts wrongly at a month roll. */
+   sorted by name. Anything friendlier to read sorts wrongly at a month roll.
+ *
+ * ── TWO DIGITS OF YEAR, AND ONE WRITER FOR IT ──
+ *
+ * Their call, 14 September 2026: *"i think we can shave off two digits off the
+ * version number by using YY instead of YYYY. i doubt the next century's
+ * coming anytime soon."*
+ *
+ * It also ends a disagreement inside the app. The build number has been
+ * `YYMMDD-N` since it replaced `alpha`, and this filename was the one date
+ * stamp still carrying four. Two formats for one question is how a reader
+ * learns to check which one they are looking at.
+ *
+ * So it reads `today()` rather than repeating the arithmetic. A second
+ * implementation is what let the two drift in the first place.
+ *
+ * The sort survives, because it is the same six digits either way inside a
+ * century. It breaks at 99 to 00, which is the trade they named. */
 export function projectFilename (name, at = new Date()) {
   const p = n => String(n).padStart(2, '0')
-  const date = `${at.getFullYear()}${p(at.getMonth() + 1)}${p(at.getDate())}`
+  const date = today(at)
   const time = `${p(at.getHours())}${p(at.getMinutes())}`
   const slug = String(name || '').trim().toLowerCase()
     .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'design-system'
