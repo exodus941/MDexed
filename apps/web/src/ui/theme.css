@@ -805,6 +805,41 @@ label.check input[type=checkbox]:not(.dmd *){flex-shrink:0;margin:0}
   background:var(--preview);border:1px solid var(--preview-bdr);
   overflow:hidden}
 .entry-sample>*{max-width:100%}
+/* ── A QUERY CONTAINER IS OUT OF INTRINSIC SIZING, SO A SHRINK-TO-FIT SAMPLE
+   OF ONE COLLAPSES TO ITS PADDING ──
+
+   `preview.css` gives every `.card` and `.modal` `container-type: inline-size`,
+   so an action row inside one can ask about the card rather than the app. That
+   containment also stops the contents contributing to the inline size.
+
+   On a real surface the card takes a width from its grid track, so it costs
+   nothing. In this frame the card is a shrink-to-fit flex item, and its width
+   came out as its own padding plus its borders. Measured: 50px for the base
+   entry, against a 122.3px min-content, with "Card title" on two lines and the
+   supporting line one word per line. `card-bleed` has no padding, so it
+   rendered 2px, which is two borders and nothing else.
+
+   7 entries, all six card variants and the modal: 2, 34, 50, 50, 50, 50 and
+   66px. The user found it in the panel.
+
+   So the sample states its width. It cannot be derived here, and every other
+   fix moves the query the containment exists for.
+
+   AND THE WIDTH GOES ON THE FLEX ITEM, WHICH IS THE WRAPPER. Written on the
+   card it read 100% of a 50px parent and changed nothing, because the wrapper
+   is the shrink-to-fit item and the card only fills it. Measured after the
+   first attempt: 50px, unmoved, with the rule live in the sheet.
+
+   `:has` scopes it to the frames that hold a contained box, so a button, a
+   badge and a chip keep their own width.
+
+   AND THE FRAME'S OWN CENTRING GOES INERT WHEN THE WRAPPER FILLS IT. The
+   frame centres its ITEM, and the item is now the full slot, so the card sat
+   at the start of it: 260px of card at the left of a 593px wrapper. The card
+   takes the auto margin, which is the one thing that can centre a block
+   inside a box it does not fill. */
+.entry-sample:has(.card,.modal)>*{width:100%}
+.entry-sample .card,.entry-sample .modal{margin-inline:auto}
 
 /* 24px, not the 21 its icon and padding produced. A close button is the one
    control on a modal that everybody uses and nobody looks at, so it is the

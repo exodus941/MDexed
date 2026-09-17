@@ -107,7 +107,11 @@ function markup({ base, variant, size, state, cls, style, label, tabStyle, entry
       return (
         <div className={`card card-overlay ${cls}`} style={{ maxWidth: 260, ...style }}>
           <strong style={{ fontSize: 'var(--font-h5-size)' }}>Confirm</strong>
-          <p className="small muted" style={{ margin: '4px 0 12px' }}>This cannot be undone.</p>
+          {/* 16, not 12. An action stands clear of the text that explains it by
+              16px, and at the container's own step it reads as one more line of
+              the paragraph. The sweep could not see it while the sample was
+              50px wide, because the two buttons wrapped. */}
+          <p className="small muted" style={{ margin: '4px 0 16px' }}>This cannot be undone.</p>
           <span className="row"><button className="btn btn-primary btn-sm">Confirm</button><button className="btn btn-ghost btn-sm">Cancel</button></span>
         </div>
       )
