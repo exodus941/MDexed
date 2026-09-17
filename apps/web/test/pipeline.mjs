@@ -3580,7 +3580,13 @@ line('\n- project file -')
          `--cmp-tab-icon-size` and no tab anywhere carried a mark, so the value
          had no instance. */
       ['never-correct-a-glyph', /(\d+) icon call site/, 82],
-      ['an-overhang-asks-its-host', /(\d+) overhang inset/, 2],
+      /* 2 until 17 September 2026, then 4. `.hit-floor` in the chrome gives
+         the Components group header's checkbox and disclosure button their
+         reach: the boxes measured 16 x 16 and 685 x 21 against a 24px mouse
+         floor, and growing them cost the panel 3px of height. The rule states
+         both axes, so the class carries an `inset-block` and an
+         `inset-inline`, which is two insets rather than one. */
+      ['an-overhang-asks-its-host', /(\d+) overhang inset/, 4],
       ['a-subtraction-asks-about-the-parent', /out of (\d+) such/, 64],
     ]
     for (const [id, shape, want] of OVER_SOURCE) {

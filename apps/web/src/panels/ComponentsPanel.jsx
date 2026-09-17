@@ -485,9 +485,16 @@ function ComponentBlock({ def, cfg, layout, onSetLayout, onToggle, onSet, onRese
       transition: 'border-color var(--t) var(--ease)',
     }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, padding: '8px 12px' }}>
-        <input type="checkbox" checked={enabled} onChange={e => onToggle(def.name, e.target.checked)}
-          style={{ width: 16, height: 16, accentColor: 'var(--accent)', padding: 0, flexShrink: 0, alignSelf: 'center' }} />
-        <button onClick={() => setOpen(o => !o)} disabled={!enabled}
+        {/* THE REACH GOES ON A WRAPPER, because a pseudo-element does not
+            generate on a default-appearance checkbox. The box stays 16, which
+            is the size this system publishes, and the target measures 24.
+            `hit-floor` is in theme.css with the arithmetic. */}
+        <span className="hit-floor" style={{ display: 'inline-flex', flexShrink: 0, alignSelf: 'center' }}>
+          <input type="checkbox" checked={enabled} onChange={e => onToggle(def.name, e.target.checked)}
+            aria-label={`Include ${def.label} in the system`}
+            style={{ width: 16, height: 16, accentColor: 'var(--accent)', padding: 0, flexShrink: 0, display: 'block' }} />
+        </span>
+        <button onClick={() => setOpen(o => !o)} disabled={!enabled} className="hit-floor"
           style={{ flex: 1, display: 'flex', alignItems: 'baseline', gap: 8, background: 'none', border: 'none', cursor: enabled ? 'pointer' : 'default', color: 'var(--text)', textAlign: 'left', padding: 0, fontFamily: 'var(--sans)', minWidth: 0 }}>
           <span style={{ fontSize: 14, flex: 1 }}>{def.label}</span>
           {/* Findings live inside the entry cards, which a collapsed component

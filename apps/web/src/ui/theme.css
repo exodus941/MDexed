@@ -1016,3 +1016,33 @@ body svg:not(.dmd svg):not(.entry-sample svg),
 body svg:not(.dmd svg):not(.entry-sample svg) * {
   vector-effect: non-scaling-stroke;
 }
+
+/* ── A CONTROL UNDER THE MOUSE FLOOR REACHES IT, IT DOES NOT GROW ──
+ *
+ * Their decision, 17 September 2026, from a rendered comparison: put the reach
+ * on both and leave the drawn boxes alone.
+ *
+ * Two controls in the Components panel sat under the 24px mouse floor. The
+ * group disclosure button measured 685 x 21, short by 3px on height. Its
+ * enable checkbox measured 16 x 16, short by 8 on both axes. Neither carried
+ * an overhang, so a finger or a pointer had 21px and 16px to land in.
+ *
+ * GROWING THE BOXES WAS THE OTHER OPTION AND IT COSTS LAYOUT. Measured: the
+ * header row 37 to 40, the card 39 to 42, the panel 889 to 892. A 24px
+ * checkbox also contradicts the 16px box this system publishes.
+ *
+ * So the reach is an absolutely placed `::after` at a negative inset. It is
+ * out of flow, so it costs no layout, and `100%` resolves against the element,
+ * so one rule serves any control size. `min()` against zero stops it, or a
+ * control already past the floor gets a positive inset and shrinks its own
+ * target.
+ *
+ * SCOPED OUT OF THE PREVIEW. The hosted document publishes its own floor on
+ * its own scope, and a chrome rule reaching a specimen is a fault this file
+ * has already paid for once with `.swatch`. */
+.hit-floor:not(.dmd *){position:relative}
+.hit-floor:not(.dmd *)::after{
+  content:'';position:absolute;
+  inset-block:min(0px,calc((100% - var(--hit-floor,24px)) / 2));
+  inset-inline:min(0px,calc((100% - var(--hit-floor,24px)) / 2));
+}
