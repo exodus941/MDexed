@@ -1,0 +1,43 @@
+#!/bin/sh
+# ── THIS FOLDER PUSHES AS exodus941 AND NOTHING ELSE ──
+#
+# Two GitHub accounts share this machine's gh keyring, exodus941 and
+# abhijitasad. Another agent drives abhijitasad from a different folder, and
+# `gh auth switch` flips the ACTIVE account for every repo at once. A remote URL
+# with no user in it asks for whichever account is active, so one switch
+# elsewhere would send this folder's pushes out under the wrong name.
+#
+# So every URL here names exodus941, which makes the credential helper hand
+# back that account's token whatever is active. This hook refuses a push
+# whose URL lost that name, and a commit whose author is anybody else.
+#
+# Git passes the remote name in $1 and the URL in $2.
+
+url="$2"
+want="exodus941"
+
+case "$url" in
+  https://"$want"@github.com/*) ;;
+  *)
+    echo "pre-push: refused. $url does not name $want." >&2
+    echo "pre-push: this folder pushes as $want only." >&2
+    exit 1 ;;
+esac
+
+# Every commit this push NEW to the remotes must be authored and committed by
+# exodus941. History already pushed carries 3 commits by ninienowrin and 6
+# merged on github.com, so only the commits no remote holds yet are asked.
+zero=0000000000000000000000000000000000000000
+while read -r local_ref local_sha remote_ref remote_sha; do
+  [ "$local_sha" = "$zero" ] && continue
+  bad=$(git log --format='%H %ae %ce' "$local_sha" --not --remotes 2>/dev/null \
+    | grep -v -E " [^ ]*\+?$want@users\.noreply\.github\.com [^ ]*\+?$want@users\.noreply\.github\.com$" \
+    | head -3)
+  if [ -n "$bad" ]; then
+    echo "pre-push: refused. Commits not by $want:" >&2
+    echo "$bad" >&2
+    exit 1
+  fi
+done
+
+exit 0
