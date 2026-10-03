@@ -73,6 +73,13 @@ for (const label of [...INTERFACE.panels, ...INTERFACE.surfaces, ...INTERFACE.re
   if (!text.includes(label)) fail.push(`INTERFACE names "${label}" and the prompt never prints it`)
 }
 
+/* Every "Where" cell names a panel, and that panel must be one the app shows.
+   A renamed tab would otherwise send the agent to a panel that is not there. */
+for (const [key, where] of Object.entries(INTERFACE.where)) {
+  const panel = where.split(' panel')[0]
+  if (!INTERFACE.panels.includes(panel)) fail.push(`where.${key} names a "${panel}" panel and the app has none`)
+}
+
 /* The guardrail numbers come from the audit. If either moves, the prompt is
    telling the agent to avoid the wrong thresholds. */
 const audit = read('../src/a11y/audit.js')
@@ -80,8 +87,8 @@ const hue = audit.match(/worst\s*<\s*([\d.]+)/)
 const light = audit.match(/dl\s*<\s*([\d.]+)/)
 if (!hue || !light) fail.push('could not read the colour-blind thresholds out of audit.js')
 else {
-  if (Number(hue[1]) !== GUARDRAIL.hueFloor)
-    fail.push(`the prompt states a hue floor of ${GUARDRAIL.hueFloor} and the audit uses ${hue[1]}`)
+  if (Number(hue[1]) !== GUARDRAIL.simulatedFloor)
+    fail.push(`the prompt states a simulated-distance floor of ${GUARDRAIL.simulatedFloor} and the audit uses ${hue[1]}`)
   if (Number(light[1]) !== GUARDRAIL.lightnessFloor)
     fail.push(`the prompt states a lightness floor of ${GUARDRAIL.lightnessFloor} and the audit uses ${light[1]}`)
 }

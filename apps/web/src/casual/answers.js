@@ -145,9 +145,13 @@ export const GROUNDS = [
     note: 'A blue room. The strongest separation from the accent.' },
 ]
 
-/* Six, not three. A system with six brand colours is a choice somebody can
-   defend, and refusing the sixth is us deciding for them. */
-export const BRAND_MAX = 6
+/* Three, one per seed that takes a brand colour, in the order `applyAnswers`
+   writes them. It was six, and colours four to six landed on nothing.
+
+   ONE LIST. The wizard labels each swatch from it and the prompt names each
+   slot from it, so the two cannot disagree about where a colour goes. */
+export const BRAND_SLOTS = ['Accent', 'Success', 'Warning']
+export const BRAND_MAX = BRAND_SLOTS.length
 
 export const BLANK = {
   building: '',
@@ -187,6 +191,20 @@ export const STEPS = [
   { id: 'more',      title: 'More Choices',   sample: 'more' },
   { id: 'prompt',    title: 'Your Prompt',    sample: null },
 ]
+
+/* ── A PAGE WITH NOTHING TO DECIDE IS NOT SHOWN ──
+ *
+ * With a brand colour set, the first one IS the accent, and the hue range fed
+ * nothing: not the sample, and not the app, which has no control that reads a
+ * range. They clicked through the palettes, nothing moved, and reported the
+ * selector broken. It was doing exactly nothing, correctly.
+ *
+ * Their decision, 3 October 2026: skip the page. A pure function so the suite
+ * can ask it. The wizard's step index stays safe because only the Colours page
+ * changes the brand list, and it sits before the page that goes. */
+export function stepsFor(a) {
+  return STEPS.filter(s => !(s.id === 'palette' && (a.brand || []).filter(Boolean).length))
+}
 
 const find = (list, id) => list.find(x => x.id === id) ?? list[0]
 

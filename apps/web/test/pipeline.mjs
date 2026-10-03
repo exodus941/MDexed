@@ -3638,7 +3638,11 @@ line('\n- depth intensity -')
   }
   const { buildPrompt } = await import('../src/casual/prompt.js')
   const base = createInitialState()
-  const depthLine = a => buildPrompt(a).split('\n').find(l => l.startsWith('- Depth'))
+  /* The settings are a table now, so a test reads a CELL by its row name. */
+  const cell = (a, name) => {
+    const r = buildPrompt(a).split('\n').find(l => l.startsWith(`| ${name} |`))
+    return r ? r.split('|').map(s => s.trim()).filter(Boolean) : null
+  }
 
   /* ── ONE DECISION, ONE FIELD, AND ONE FULL STOP ──
    *
@@ -3653,18 +3657,47 @@ line('\n- depth intensity -')
    * shipped "The first is the accent..". Only one of the two branches did,
    * which is how a doubled stop survives every reading of the output. */
   {
-    const withBrand = buildPrompt({ ...BLANK, palette: 'green', brand: ['#1b5e4a'] })
-    const without = buildPrompt({ ...BLANK, palette: 'green', brand: [] })
-    const paletteOf = p => p.split('\n').find(l => l.startsWith('- Palette')) ?? ''
-    assert(!/Start from/.test(paletteOf(withBrand)),
-      'a given brand colour leaves the palette bullet naming no seed of its own')
-    assert(/the brand colour below/.test(paletteOf(withBrand)),
-      'and the palette bullet says where the accent does come from')
-    assert(/Start from #[0-9a-f]{6}\.$/.test(paletteOf(without)),
-      `with no brand colour the palette bullet names the seed — ${paletteOf(without)}`)
-    for (const [label, p] of [['with a brand colour', withBrand], ['without one', without]]) {
-      const doubled = p.match(/[a-z0-9)]\.\.(\s|$)/g) ?? []
-      assert(doubled.length === 0, `${label}, no bullet ends in two full stops (${doubled.join(', ')})`)
+    const { BRAND_SLOTS, BRAND_MAX, stepsFor, PALETTES } = await import('../src/casual/answers.js')
+    const green = PALETTES.find(p => p.id === 'green')
+    const withBrand = { ...BLANK, palette: 'green', brand: ['#1b5e4a'] }
+    const without = { ...BLANK, palette: 'green', brand: [] }
+
+    /* ── A BRAND COLOUR DECIDES THE ACCENT, SO THE RANGE IS NOT ASKED ──
+       Their report, 3 October 2026: with brand colours set, the palette
+       selector moved nothing. It fed nothing, so the page now drops out and
+       the prompt names no range for an agent to weigh against the brand. */
+    assert(!stepsFor(withBrand).some(s => s.id === 'palette'), 'a brand colour skips the palette page')
+    assert(stepsFor(without).some(s => s.id === 'palette'), 'and with none the palette page stays')
+    assert(cell(withBrand, 'Accent seed')?.[1].startsWith('#1b5e4a'), `the brand colour is the accent (${cell(withBrand, 'Accent seed')})`)
+    assert(!buildPrompt(withBrand).includes(green.hue), 'and no hue range reaches the prompt beside it')
+    assert(cell(without, 'Accent seed')?.[1].includes(green.seed) && cell(without, 'Accent seed')[1].includes(green.hue),
+      `with no brand colour the accent row names the seed and the range (${cell(without, 'Accent seed')})`)
+
+    /* EVERY BRAND COLOUR NAMES ITS SEED, in the order `applyAnswers` writes
+       them, and no colour exists past the last seed that takes one. */
+    assert(BRAND_MAX === 3 && BRAND_SLOTS.join() === 'Accent,Success,Warning', `three slots (${BRAND_SLOTS})`)
+    const three = { ...BLANK, brand: ['#111111', '#222222', '#333333', '#444444'] }
+    const st3 = applyAnswers(base, three)
+    for (const [i, slot] of BRAND_SLOTS.entries()) {
+      const c = cell(three, `${slot} seed`)
+      const seed = st3.color.seeds.find(s => s.name === slot.toLowerCase())?.hex
+      assert(c?.[1].startsWith(three.brand[i]) && seed === three.brand[i],
+        `${slot}: the prompt and the preview put brand colour ${i + 1} on the same seed (${c?.[1]}, ${seed})`)
+    }
+    assert(!buildPrompt(three).includes('#444444'), 'a fourth colour reaches neither the prompt nor a seed')
+
+    /* NEVER MOVE A BRAND COLOUR. Their decision, and it names the repair too. */
+    assert(/do not apply a repair that moves one of them/.test(buildPrompt(withBrand)), 'the prompt forbids a repair that moves a brand colour')
+    assert(!/stay exact/.test(buildPrompt(without)), 'and says nothing of brand colours when there are none')
+
+    /* THE BRIEF DOES NOT CONTRADICT ITSELF. Six agents of six caught "export
+       first" offered as a way to show the result, under a rule to export only
+       on the user's go. */
+    assert(!/export first/i.test(buildPrompt(withBrand)), 'showing the result never means exporting first')
+
+    for (const [label, a] of [['with a brand colour', withBrand], ['without one', without]]) {
+      const doubled = buildPrompt(a).match(/[a-z0-9)]\.\.(\s|$)/g) ?? []
+      assert(doubled.length === 0, `${label}, no line ends in two full stops (${doubled.join(', ')})`)
     }
   }
 
@@ -3944,23 +3977,22 @@ line('\n- depth intensity -')
     for (const i of INTENSITIES) {
       const a = { ...BLANK, depth: sep, intensity: i.id }
       const st = applyAnswers(base, a)
-      const l = depthLine(a)
-      assert(l.includes(`depth macro to ${st.macros.depth}`),
-        `${sep}/${i.id}: the prompt names the macro the preview used (${l})`)
-      assert(l.includes(st.components.overrides['card.borderColor']),
-        `${sep}/${i.id}: the prompt names the edge the preview used (${l})`)
-      /* A PERCENTAGE ONLY MEANS SOMETHING WHERE THERE IS A MACRO TO SET. For a
-         shadow the intensity IS a depth step and the number is actionable. For
-         a border there is no macro at all: the intensity picks a step on the
-         neutral ramp, which the same line already names as a colour. This
-         asserted the number on every strategy, so a reader was sent hunting for
-         a 33% control the editor does not have. `answers.js` says so in its own
-         comment, four lines from the value. */
-      if (sep === 'shadow') {
-        assert(l.includes(`${i.pct}%`), `${sep}/${i.id}: the prompt states the percentage`)
-      } else {
-        assert(!l.includes('%'), `${sep}/${i.id}: the prompt states no percentage, because a border has no macro`)
-      }
+      const depth = cell(a, 'Depth'), edge = cell(a, 'Card border colour')
+      assert(depth?.[1] === String(st.macros.depth),
+        `${sep}/${i.id}: the prompt names the macro the preview used (${depth})`)
+      assert(edge?.[1] === st.components.overrides['card.borderColor'],
+        `${sep}/${i.id}: the prompt names the edge the preview used (${edge})`)
+      /* NO PERCENTAGE, ON EITHER ANSWER. It used to state one for a shadow, as
+         the intensity behind the depth step. Three agents of three then went
+         looking for a separate 66% control the editor does not have. The
+         number they can set is the multiplier, and the table names it. */
+      assert(!depth.join(' ').includes('%'), `${sep}/${i.id}: the depth row states no percentage (${depth})`)
+      /* AND THE NUMBER HAS TO FIT THE CONTROL. Heavy wrote 3 while the Depth
+         multiplier stopped at 2, so the agent was asked for a value the app
+         clamps. Their decision, 3 October 2026: the limit went to 3. */
+      const depthMacro = (await import('../src/state/schema.js')).MACROS.find(m => m.key === 'depth')
+      assert(st.macros.depth >= depthMacro.min && st.macros.depth <= depthMacro.max,
+        `${sep}/${i.id}: depth ${st.macros.depth} sits inside the control's ${depthMacro.min} to ${depthMacro.max}`)
     }
   }
 

@@ -492,7 +492,11 @@ export const MACROS = [
   { key: 'roundness', label: 'Roundness',  desc: 'Multiplies every corner radius',  min: 0,    max: 4,    step: 0.01 },
   /* Not a pixel value: it scales a shadow's offset, blur *and* opacity
      together, so a percentage of the designed baseline is the honest unit. */
-  { key: 'depth',     label: 'Depth',      desc: 'Shadow strength — scales offset, blur and opacity together. 100% is the designed baseline; 0% removes shadows entirely.', min: 0, max: 2, step: 0.01 },
+  { key: 'depth',     label: 'Depth',      desc: 'Shadow strength — scales offset, blur and opacity together. 100% is the designed baseline; 0% removes shadows entirely.', min: 0, max: 3, step: 0.01 },
+  /* 3, not 2. Guided mode's Heavy shadow writes 3, and it asks the agent to
+     set exactly that here. At 2 the control clamped it, so no agent could
+     carry out the instruction. Their decision, 3 October 2026: raise the limit
+     rather than rescale the four steps, so every wizard choice keeps its look. */
   /* Bottoms out at 0, which zeroes every duration — a legitimate choice for a
      system that wants no motion at all, not just less of it. */
   /* Bottoms out at 0 (no motion at all) and tops out at 5×, which puts the

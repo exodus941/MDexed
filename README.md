@@ -34,19 +34,21 @@ describes.
 Eight questions, one page each. **Seven** of them draw a live sample of your
 answers above the question, in both themes if you ship both. The first asks
 what you are building, which nothing can draw. The ninth page is the output.
+Give a brand colour and the Palette page drops out, because your colour
+already decides the accent.
 
 | Page | Asks | Options |
 | --- | --- | --- |
 | What Are You Building? | One line, and you can skip it | free text |
 | Light, Dark, or Both? | Which themes ship | 3 |
-| Your Colours | Your own hexes, first one is the accent | up to 6 |
-| Palette | The hue family, if you gave no colours | 6 |
+| Your Colours | Accent, success, warning, in that order: first one is the accent | up to 3 |
+| Palette | The hue family, asked only if you gave no colours | 6 |
 | The Ground | What every surface is tinted with | 3 |
 | Type | A display and body pairing | 5 |
 | Tightness | Density | 4 |
 | More Choices | Corner shape, card edges, lift | 3 / 2 / 4 |
 
-**The wizard writes no document.** Its output is about 630 words of text. You
+**The wizard writes no document.** Its output is about 560 words of text. You
 copy that, or save it as `.md` or `.txt`, and paste it into anything that can
 open a web page. The agent then drives `mdexed.vercel.app` itself: it sets the
 seeds, reads the app's own audit, shows you the result and exports the package.
@@ -60,7 +62,9 @@ The prompt carries six things and nothing else.
 
 1. The URL, and the instruction to open it.
 2. Your line about what you are building.
-3. The answers, as hue ranges and named values.
+3. The answers, as a table: each setting, its value, and the panel and
+   control that hold it. Your brand colours are marked as exact, and the agent
+   may not move them to pass the audit.
 4. Enough of the interface to navigate it: where the panels are, where the two
    readouts are, which button exports.
 5. The one warning class worth naming in advance. Three role pairs have to stay
@@ -70,10 +74,9 @@ The prompt carries six things and nothing else.
    Fix a warning if the fix costs nothing. Never apply a repair that raises the
    total.
 
-It names no token and no field. Those belong to the schema, and the schema
-moves. A guard compares the panel and surface names in the prompt against the
-running app on every check, so the prompt cannot tell an agent to click a tab
-that has been renamed.
+A guard compares every panel and surface the prompt names against the app on
+every check, so the prompt cannot send an agent to a tab that has been
+renamed.
 
 **A sample is a stylistic representation, not the output.** The wizard says so
 under every one of them. Your later answers and the audit both move those
@@ -112,7 +115,7 @@ Open <http://localhost:5173>. Vite proxies `/api` to the Worker on 8787.
 | --- | --- |
 | `npm run dev` | Both servers |
 | `npm run dev:web` / `npm run dev:api` | One server at a time |
-| `npm test` | 1,137 assertion sites in 104 groups, over the pure layer |
+| `npm test` | 1,145 assertion sites in 104 groups, over the pure layer |
 | `npm run check` | 11 guards: syntax, scope, primitives, strays, the pixel grid, the audit's remedies, prompt drift, component gaps, render proofs, the figures in this file, rule coverage |
 | `npm run build` | Production build |
 | `npm run db:migrate:local` | Apply migrations locally |

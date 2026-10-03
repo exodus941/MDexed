@@ -36,7 +36,8 @@
  * Every number and label below was read out of the running app rather than
  * remembered. See `readInterface` at the foot of this file.
  */
-import { resolve, cardEdge } from './answers.js'
+import { resolve, cardEdge, BRAND_SLOTS } from './answers.js'
+import { GROUND_TINTS } from '../color/ground.js'
 
 export const MDEXED_URL = 'https://mdexed.vercel.app'
 
@@ -56,6 +57,20 @@ export const INTERFACE = {
   readouts: ['Contrast OK', 'No warnings'],
   exportButton: 'Export Payload',
   undoButton: 'Undo',
+  /* WHERE EACH SETTING LIVES. Six agents out of six had to guess the panel for
+     the multipliers, the card and the theme, and three different guesses came
+     back for the theme alone. Read off the source on 3 October 2026. */
+  where: {
+    seeds: 'Colour panel → Seeds',
+    ground: 'Colour panel → Ground Tint',
+    type: 'Type panel',
+    multipliers: 'Meta/Global panel → Multipliers',
+    card: 'Components panel → Card',
+    theme: 'Roles panel → "Themes this system ships"',
+  },
+  /* The wizard says "Both" and the app's control says "Light and dark". An
+     agent looking for "Both" finds no such option. */
+  themeLabel: { light: 'Light only', dark: 'Dark only', both: 'Light and dark' },
 }
 
 /* ── THE ONE WARNING CLASS WORTH NAMING ──
@@ -67,119 +82,124 @@ export const INTERFACE = {
  *
  * Naming the thresholds lets the agent avoid it while choosing. Discovering it
  * afterwards costs a repair pass, and the repair is a lightness change that
- * moves a colour the user picked. */
+ * moves a colour the user picked.
+ *
+ * THE FIRST NUMBER IS NOT A HUE. This was called `hueFloor` and the prompt said
+ * "0.09 apart in hue". The audit compares the two colours AFTER simulating
+ * red-green colour blindness, as a distance in Oklab. Five agents of six asked
+ * what unit 0.09 was in, and none could have found out from the old wording. */
 export const GUARDRAIL = {
   pairs: ['success and danger', 'success and warning', 'accent and danger'],
-  hueFloor: 0.09,
+  simulatedFloor: 0.09,
   lightnessFloor: 0.12,
 }
 
 const bullet = (s) => `- ${s}`
+const row = (...cells) => `| ${cells.join(' | ')} |`
 
 export function buildPrompt(answers) {
   const a = resolve(answers)
-  /* Every colour they gave, in order. The first anchors the accent and the
-     rest land on the other seeds. Naming a count as well as the list, because
-     an agent reading six hexes needs to know none of them is optional. */
-  /* NO TRAILING STOP. `bullet()` writes one, and this branch used to carry its
-     own, so the prompt shipped "The first is the accent..". The other branch
-     never did, which is how a doubled stop survives a reading: only one of two
-     paths shows it. Both branches now end mid-sentence and the bullet closes
-     them. */
-  const brand = a.brand.length
-    ? `${a.brand.length} given, use them all: ${a.brand.join(', ')}. The first is the accent`
-    : 'none given, so choose inside the hue range above'
+  const W = INTERFACE.where
+
+  /* ── A TABLE, BECAUSE IT WAS MEASURED AGAINST PROSE ──
+   *
+   * An A/B test on 3 October 2026 gave the same brief, written two ways, to six
+   * fresh agents. Both versions scored 16 of 16 on the settings and the steps.
+   * The table was 35% shorter. And every agent reading the prose split one
+   * choice into settings nobody asked for, such as a "Friendly" type preset
+   * and a separate "66%" intensity control. No agent reading the table did.
+   *
+   * Every row names its control and its panel, because all six agents had
+   * to guess the panels the old wording left out. */
+  const settings = [
+    row('Setting', 'Value', 'Where'),
+    row('---', '---', '---'),
+  ]
+  if (a.brand.length) {
+    /* EACH BRAND COLOUR NAMES ITS SEED. The old line said "use them all" and
+       named a role for the first only. Six agents of six had to guess where the
+       other two went. `applyAnswers` writes them in this order. */
+    a.brand.forEach((hex, i) => {
+      settings.push(row(`${BRAND_SLOTS[i]} seed`, `${hex} (my brand colour, exact)`, `${W.seeds} → ${BRAND_SLOTS[i].toLowerCase()}`))
+    })
+  } else {
+    /* The range is stated only when it decides something. With a brand colour
+       the wizard skips the palette page, so no range reaches the prompt. The
+       old prompt named both, and six agents of six asked which one wins. */
+    settings.push(row('Accent seed', `${a.palette.seed}, or another hex inside ${a.palette.hue} (${a.palette.label})`, `${W.seeds} → accent`))
+  }
+  settings.push(
+    row('Ground Tint', GROUND_TINTS[a.ground.tint]?.label ?? a.ground.label, W.ground),
+    row('Display font', a.type.display, W.type),
+    row('Body font', a.type.body, W.type),
+    row('Mono font', a.type.mono, W.type),
+    row('Density', String(a.tightness.density), W.multipliers),
+    row('Roundness', String(a.shape.roundness), W.multipliers),
+    row('Depth', String(a.depth.id === 'shadow' ? a.intensity.depth : 0), W.multipliers),
+    /* ONE FIELD, NAMED BY THE APP'S OWN KEY. The old line explained that a
+       border's intensity "IS that colour", and still sent three agents of three
+       hunting for a separate intensity control. */
+    row('Card border colour', cardEdge(a), `${W.card} → borderColor`),
+  )
+  /* THE ROUND SHAPE CAPS THE CARD, and the prompt never said so. The wizard
+     preview painted a 20px card that no agent could know to build. */
+  if (a.shape.cardRounded) settings.push(row('Card corner radius', a.shape.cardRounded, `${W.card} → rounded`))
+  settings.push(row('Themes this system ships', INTERFACE.themeLabel[a.theme.id], W.theme))
+
+  /* ── NEVER MOVE A BRAND COLOUR ──
+   *
+   * Their decision, 3 October 2026. The audit's repair for a red-green clash
+   * moves the SECOND colour of the pair to another ramp step. For success and
+   * warning that second colour can be a brand colour, so the rule has to name
+   * the repair as well as the seed. */
+  const brandRule = a.brand.length
+    ? [
+        '',
+        'My brand colours stay exact. Do not edit their seeds, and do not apply a repair that moves one of them.',
+        'If a pair clashes and both of its colours are mine, stop and ask me.',
+      ]
+    : []
 
   const lines = [
-    'Build me a design system.',
+    '# Task',
+    `Build me a design system in the editor at ${MDEXED_URL}. Drive it in a browser you can control.`,
+    'Steps: set the values below → clear the audit → show me → export on my go.',
+    'Rules: change values only through the app\'s controls. No CSS. No page scripts.',
     '',
-    `Open ${MDEXED_URL} in a browser you can drive. It is a design-system editor.`,
-    'You will set it up, check its own audit, show me the result, and export a',
-    'package. Do not write any CSS yourself.',
+    '# Product',
+    a.building || '(not stated: ask me before you start)',
     '',
-    '## What I am building',
+    '# Settings',
+    'Set the seeds before the Ground Tint, because one tint follows the accent.',
     '',
-    a.building || '(not stated — ask me before you start)',
+    ...settings,
+    ...brandRule,
     '',
-    '## What I chose',
+    '# Screen map',
+    bullet(`Left: the editor. Panel strip: ${INTERFACE.panels.join(', ')}. Start in Colour.`),
+    bullet(`Right: the live preview. The preview has ${INTERFACE.surfaces.length} surfaces: ${INTERFACE.surfaces.join(', ')}.`),
+    bullet(`Top right: two readouts, "${INTERFACE.readouts[0]}" and "${INTERFACE.readouts[1]}". Click one to list its findings. Each finding gives the fault, the remedy, and a button that jumps to the control.`),
+    bullet(`"${INTERFACE.undoButton}" reverses one step exactly. "${INTERFACE.exportButton}" writes the package. Use it last.`),
     '',
-    /* TWO INSTRUCTIONS NAMED ONE VALUE. This bullet always said "Start from
-       #0d7a70", and the brand bullet below says "the first is the accent" with
-       a different hex. Nothing said which wins, so a compliant reader could
-       set the accent to either. One decision gets one field: the palette seed
-       is the fallback for when nobody gave a colour, so it is stated only
-       then. The hue range is the palette's own answer and always belongs. */
-    bullet(a.brand.length
-      ? `Palette: ${a.palette.label}. Hue range ${a.palette.hue}. The accent comes from the brand colour below, not from this range.`
-      : `Palette: ${a.palette.label}. Hue range ${a.palette.hue}. Start from ${a.palette.seed}.`),
-    /* The ground is a SEED, so the bullet names the control that writes it
-       rather than a hex. A hex here would go stale the moment the accent
-       moves, because the accent-hue tint reads the accent's own hue. */
-    bullet(`Ground: ${a.ground.label}. Pick it under Ground Tint in the Colour panel, which writes the neutral seed.`),
-    bullet(`Brand colours: ${brand}.`),
-    bullet(`Type: ${a.type.label}. ${a.type.display} for display, ${a.type.body} for body, ${a.type.mono} for mono.`),
-    bullet(`Tightness: ${a.tightness.label}. Set the density macro to ${a.tightness.density}.`),
-    bullet(`Shape: ${a.shape.label}. Set the roundness macro to ${a.shape.roundness}.`),
-    /* ONE BULLET, BOTH ANSWERS. The separator and its strength are one
-       decision to a reader, and splitting them into two lines invites an agent
-       to set the macro from one and the edge from the other. Every number here
-       comes from `applyAnswers`, so the prompt cannot ask for a card the
-       preview did not paint. */
-    /* A PERCENTAGE THE READER CANNOT ACT ON IS WORSE THAN SILENT. For a
-       shadow the intensity IS a depth step, and the prompt names it. For a
-       border there is no macro at all: the intensity picks a step on the
-       neutral ramp, which the same line already names as a colour. A reader
-       sent hunting for a 33% control finds none, because none exists.
-       `answers.js` says so in its own comment, four lines from the value. */
-    bullet(a.depth.id === 'shadow'
-      ? `Depth: ${a.depth.label}, intensity ${a.intensity.label.toLowerCase()} (${a.intensity.pct}%). Set the depth macro to ${a.intensity.depth}, and the card's border colour to ${cardEdge(a)}.`
-      : `Depth: ${a.depth.label}, intensity ${a.intensity.label.toLowerCase()}. Set the depth macro to 0, and the card's border colour to ${cardEdge(a)}. A border has no macro: its intensity IS that colour, which is a step on the neutral ramp rather than an opacity.`),
-    bullet(`Theme: ${a.theme.label}.`),
+    '# Colour-blindness check',
+    `Pairs: ${GUARDRAIL.pairs.join('; ')}.`,
+    `A pair FAILS when both are true: simulated for red-green colour blindness, the two colours are under ${GUARDRAIL.simulatedFloor} apart in Oklab distance; and their OKLCH lightness (0 to 1) differs by under ${GUARDRAIL.lightnessFloor}.`,
+    `Under ${GUARDRAIL.simulatedFloor} with enough lightness is a WARNING.`,
+    `→ Keep each pair at least ${GUARDRAIL.lightnessFloor} apart in lightness, and the check cannot fail.`,
     '',
-    '## The screen',
+    '# Audit outcomes',
+    bullet('Both readouts clean: go to "Show me".'),
+    bullet('Failures: fix every one. Readout → remedy → jump button.'),
+    bullet('Warnings only: fix a warning when the fix is free. Free means the failure and warning totals do not rise, and no value in the Settings table changes. Tell me about every warning you leave.'),
+    bullet('A repair previews its failure count before and after. If the count rises, do not apply it. Tell me instead.'),
     '',
-    'Two columns. The editor is on the left, a live preview on the right.',
+    '# Show me, then wait',
+    'You cannot judge a screen, so leave the browser tab open and tell me which preview surface to look at.',
+    'Ask me one question with three answers: it is right / change something / start again. Wait for my answer. Do not export yet.',
     '',
-    bullet(`The editor's panels, in a strip along the top: ${INTERFACE.panels.join(', ')}. Colour holds the seeds every scale is generated from, so it is where you start.`),
-    bullet(`The preview has ${INTERFACE.surfaces.length} surfaces, also as a strip: ${INTERFACE.surfaces.join(', ')}. They are real screens, not swatch sheets.`),
-    bullet(`Two readouts sit at the top right and are the app's verdict on your work: "${INTERFACE.readouts[0]}" and "${INTERFACE.readouts[1]}". Click either one to open the panel that lists what it found. Each finding names the fault, the remedy, and has a button that jumps to the control.`),
-    bullet(`"${INTERFACE.undoButton}" reverses one step and restores the state exactly.`),
-    bullet(`"${INTERFACE.exportButton}" writes the package. That is the last thing you do.`),
-    '',
-    'Change values through the controls. Do not edit the page with script.',
-    '',
-    '## The one thing to get right while choosing',
-    '',
-    `Three role pairs must stay apart for red-green vision: ${GUARDRAIL.pairs.join('; ')}.`,
-    `The audit simulates deuteranopia and protanopia. A pair fails when it is under`,
-    `${GUARDRAIL.hueFloor} apart in hue AND under ${GUARDRAIL.lightnessFloor} apart in lightness. Under the hue`,
-    'floor alone is a warning. So separate them on LIGHTNESS, not only on hue,',
-    'and you will not meet this at all.',
-    '',
-    '## What to do with the verdict',
-    '',
-    bullet('Both readouts clean: go on to the preview.'),
-    bullet('Failures: fix every one. Click the readout, read the remedy, use the jump button.'),
-    bullet('Warnings only: fix them if the fix costs nothing. Tell me about any you leave.'),
-    bullet('A repair offers a preview before it changes anything, and it shows the failure count before and after. If a repair raises the total, do not apply it. Tell me instead.'),
-    '',
-    '## Show me before you export',
-    '',
-    'You cannot render a screen, so do one of these:',
-    '',
-    bullet('Point me at the browser tab you already have open, and tell me which preview surface to look at.'),
-    bullet('Or export first and open one of the EXAMPLE pages the package ships.'),
-    '',
-    'Then ask me one question with three answers: it is right, change something,',
-    'or start again. Wait for my answer.',
-    '',
-    '## Export',
-    '',
-    `On my go, click "${INTERFACE.exportButton}" and tell me where the file landed.`,
-    'Then print a second prompt I can give to whoever builds the product. Keep it',
-    'short: where the package is, the instruction to read its AGENTS.md before',
-    'anything else, and a blank line labelled "your notes" for me to fill in.',
-    'Do not summarise the package in that prompt. It opens with a map of itself.',
+    '# Export, on my go',
+    `1. Click "${INTERFACE.exportButton}". Tell me where the file landed.`,
+    '2. Print a short second prompt for whoever builds the product: where the package is, the instruction to read its AGENTS.md before anything else, and a blank line labelled "your notes". Do not summarise the package. It opens with a map of itself.',
   ]
   return lines.join('\n')
 }

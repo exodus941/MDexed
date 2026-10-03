@@ -17,7 +17,7 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { PAD, BTN, MODAL_BTN, CloseButton, Collapsible, useCloseOnEscape } from '../ui/controls.jsx'
-import { PALETTES, GROUNDS, TYPE_PAIRINGS, TIGHTNESS, SHAPES, DEPTHS, INTENSITIES, THEMES, BLANK, STEPS, BRAND_MAX } from './answers.js'
+import { PALETTES, GROUNDS, TYPE_PAIRINGS, TIGHTNESS, SHAPES, DEPTHS, INTENSITIES, THEMES, BLANK, STEPS, BRAND_MAX, BRAND_SLOTS, stepsFor } from './answers.js'
 import { buildPrompt, promptFilename, MDEXED_URL } from './prompt.js'
 import { IconSend, IconUser, IconFolder, IconPlus } from '../preview/icons.jsx'
 import CrossFade from '../ui/CrossFade.jsx'
@@ -187,11 +187,13 @@ export function LaunchFork({ onGuided, onHandsOn, onRestore, restorableName, lea
 /* ── THE WIZARD ── */
 export default function CasualWizard({ onClose, onBack, leaving }) {
   useCloseOnEscape(onClose, !leaving)
-  /* Derived from the page list, never typed. The footer used a literal 2, so
-     adding a page would have hidden Next on the one before the last. */
-  const LAST = STEPS.length - 1
   const [step, setStep] = useState(0)
   const [a, setA] = useState(BLANK)
+  /* The palette page drops out once a brand colour is set. See `stepsFor`. */
+  const steps = useMemo(() => stepsFor(a), [a.brand.length])
+  /* Derived from the page list, never typed. The footer used a literal 2, so
+     adding a page would have hidden Next on the one before the last. */
+  const LAST = steps.length - 1
   const set = (k, v) => setA(prev => ({ ...prev, [k]: v }))
   const prompt = useMemo(() => buildPrompt(a), [a])
   /* 'idle' | 'done' | 'manual'. A boolean could not distinguish copied from
@@ -265,10 +267,10 @@ export default function CasualWizard({ onClose, onBack, leaving }) {
         <div style={{ display: 'flex', alignItems: 'baseline', gap: PAD.gap,
           padding: `${PANEL_Y}px ${PANEL_X}px`, borderBottom: '1px solid var(--bdr)' }}>
           <h2 id="wiz-title" style={{ margin: 0, flex: 1, fontFamily: 'var(--display)', fontSize: 18, fontWeight: 700, color: 'var(--text)' }}>
-            {STEPS[step].title}
+            {steps[step].title}
           </h2>
           <span style={{ fontSize: 12, color: 'var(--dim)', fontVariantNumeric: 'tabular-nums' }}>
-            {step + 1} of {STEPS.length}
+            {step + 1} of {steps.length}
           </span>
           <CloseButton onClick={onClose} label="Close" size={11} />
         </div>
@@ -284,7 +286,7 @@ export default function CasualWizard({ onClose, onBack, leaving }) {
               Below the choices it was the last thing on the page, so a reader
               clicked, then hunted downward for the result. Above them the
               result is already in view when the click lands. */}
-          <Sample which={STEPS[step].sample} answers={a} />
+          <Sample which={steps[step].sample} answers={a} />
 
           {/* ── ONE ASPECT, ITS CHOICES, ITS SAMPLE ──
 
@@ -293,7 +295,7 @@ export default function CasualWizard({ onClose, onBack, leaving }) {
               second column for the sample would take that away. Stacked, both
               get the full width and the sample lands where the eye goes after
               a click. */}
-          {STEPS[step].id === 'building' && (
+          {steps[step].id === 'building' && (
             <Field label="What You’re Building"
               note="One line is enough, and you can skip it. Leave it empty and the agent asks you before it starts.">
               <input ref={firstField} className="input" value={a.building}
@@ -307,59 +309,48 @@ export default function CasualWizard({ onClose, onBack, leaving }) {
             </Field>
           )}
 
-          {STEPS[step].id === 'theme' && (
+          {steps[step].id === 'theme' && (
             <Field label="Themes"
               note="Both ships a light block, a dark one, and a visible toggle. Every later preview then shows you two panes.">
               <Choices options={THEMES} value={a.theme} onChange={v => set('theme', v)} columns={3} />
             </Field>
           )}
 
-          {STEPS[step].id === 'colours' && (
+          {steps[step].id === 'colours' && (
             <Field label="Brand Colours"
-              note="Up to six. Skip this and the agent chooses inside the hue range you pick next. Anything you add here anchors the palette."
+              note="Up to three: your accent, your success colour and your warning colour, in that order. Skip this and you pick a hue range on the next page instead."
             >
               <BrandColours value={a.brand} onChange={v => set('brand', v)} />
             </Field>
           )}
 
-          {/* ── SAY WHAT THE PREVIEW IS DOING, OR THE CONTROL LOOKS BROKEN ──
-            *
-            * A brand colour ANCHORS the accent, which the previous page says in
-            * those words. So with one set, picking Warm here leaves the sample
-            * green and nothing on the page explains it. They found exactly that:
-            * Warm selected, a green Primary button, and no reason given.
-            *
-            * The prompt has always been honest about it — "The accent comes from
-            * the brand colour below, not from this range." The page was the half
-            * that stayed silent. `applyAnswers` is correct and unchanged. */}
-          {STEPS[step].id === 'palette' && (
-            <Field label="Hue Range"
-              note={a.brand.length
-                ? `A range, not a swatch. Your brand ${a.brand.length > 1 ? 'colours anchor' : 'colour anchors'} the accent, so the sample keeps ${a.brand.length > 1 ? 'them' : 'it'}. This range is what the agent picks the REST of the palette from.`
-                : 'A range, not a swatch. The agent picks inside it.'}>
+          {/* Shown only with no brand colour, so the range always decides the
+              accent here. With one set, the page is skipped: see `steps`. */}
+          {steps[step].id === 'palette' && (
+            <Field label="Hue Range" note="A range, not a swatch. The agent picks your accent inside it.">
               <Choices options={PALETTES} value={a.palette} onChange={v => set('palette', v)} columns={2} />
             </Field>
           )}
 
-          {STEPS[step].id === 'ground' && (
+          {steps[step].id === 'ground' && (
             <Field label="Ground Tint" note="What every surface and border is made of. Barely visible in light, decisive in dark.">
               <Choices options={GROUNDS} value={a.ground} onChange={v => set('ground', v)} columns={1} />
             </Field>
           )}
 
-          {STEPS[step].id === 'type' && (
+          {steps[step].id === 'type' && (
             <Field label="Pairing" note="A pairing, not a font list.">
               <Choices options={TYPE_PAIRINGS} value={a.type} onChange={v => set('type', v)} columns={2} />
             </Field>
           )}
 
-          {STEPS[step].id === 'tightness' && (
+          {steps[step].id === 'tightness' && (
             <Field label="Spacing" note="How much room everything gets. One number, multiplying every step on the scale.">
               <Choices options={TIGHTNESS} value={a.tightness} onChange={v => set('tightness', v)} columns={2} />
             </Field>
           )}
 
-          {STEPS[step].id === 'more' && (
+          {steps[step].id === 'more' && (
             <>
               <Field label="Shape">
                 <Choices options={SHAPES} value={a.shape} onChange={v => set('shape', v)} columns={3} />
@@ -384,7 +375,7 @@ export default function CasualWizard({ onClose, onBack, leaving }) {
             </>
           )}
 
-          {STEPS[step].id === 'prompt' && (
+          {steps[step].id === 'prompt' && (
             <>
               {/* ── SAY IT LOUDLY, ONCE ──
 
@@ -479,7 +470,11 @@ export default function CasualWizard({ onClose, onBack, leaving }) {
  * a product that ships one. It also cannot do what theirs does: no model
  * switch, no OKLCH, no eyedropper.
  *
- * SIX, NOT THREE. Their words: if they want to go crazy, let us not stop them.
+ * THREE, BECAUSE THREE SEEDS TAKE ONE. It said six, on their earlier words:
+ * if they want to go crazy, let us not stop them. Only the accent, success and
+ * warning seeds take a brand colour, so colours four to six went nowhere and
+ * the prompt told the agent to "use them all". Their decision, 3 October 2026:
+ * cap at three, and label each with its slot.
  *
  * The swatch states its own size. `.swatch` in the chrome sets no dimensions,
  * so a `span` carrying only a background collapses to nothing, which is the
@@ -515,13 +510,17 @@ function BrandColours({ value, onChange }) {
           return (
             <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
               <button onClick={() => setOpen(on ? null : i)}
-                aria-label={`Colour ${i + 1}, ${hex}`} aria-expanded={on}
+                aria-label={`${BRAND_SLOTS[i]} colour, ${hex}`} aria-expanded={on}
                 style={{
                   width: SWATCH, height: SWATCH, padding: 0, cursor: 'pointer',
                   borderRadius: 8, background: hex,
                   border: `2px solid ${on ? 'var(--accent)' : 'rgb(0 0 0 / .2)'}`,
                   font: 'inherit',
                 }} />
+              {/* THE SLOT IS PART OF THE ANSWER. Each colour lands on one seed,
+                  so the page names it rather than leaving the order to be
+                  guessed. One list, shared with the prompt: `BRAND_SLOTS`. */}
+              <span style={{ fontSize: 12, color: 'var(--text)' }}>{BRAND_SLOTS[i]}</span>
               <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--dim)' }}>
                 {hex.replace('#', '')}
               </span>
