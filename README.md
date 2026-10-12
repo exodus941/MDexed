@@ -364,7 +364,7 @@ Every render check has been broken on purpose on a fixture page, and a guard ref
 
 The HTML examples carry the same stylesheet the preview uses, container queries included. A developer opens the same page you saw. Every value sits in a `:root` block rather than baked into rules.
 
-A default document emits about **175 kB** of `DESIGN.md`. It opens with a map of itself, computed from the assembled text rather than written by hand: **29,900 words** across **10 sections**, which of them are read in full, which are looked up as you build, and what share of the file each one is. **Components is 58%** of it and a lookup table. A reader who does not know that reads it linearly, or gives up inside it.
+A default document emits about **175 kB** of `DESIGN.md`. It opens with a map of itself, computed from the assembled text rather than written by hand: **30,100 words** across **10 sections**, which of them are read in full, which are looked up as you build, and what share of the file each one is. **Components is 58%** of it and a lookup table. A reader who does not know that reads it linearly, or gives up inside it.
 
 ### Import Reference
 
