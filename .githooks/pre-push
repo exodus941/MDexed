@@ -16,6 +16,19 @@
 url="$2"
 want="exodus941"
 
+# If the machine's active account moved, put it back. The URL already keeps this
+# push on the right account, but a `gh` command run from here follows the active
+# one. A failed switch warns and does not block, because the URL still holds.
+if command -v gh >/dev/null 2>&1; then
+  if ! gh auth status --active --hostname github.com </dev/null 2>&1 | grep -q "account $want "; then
+    if gh auth switch --hostname github.com --user "$want" </dev/null >/dev/null 2>&1; then
+      echo "pre-push: the active GitHub account was not $want. Switched back." >&2
+    else
+      echo "pre-push: could not switch the active GitHub account to $want." >&2
+    fi
+  fi
+fi
+
 case "$url" in
   https://"$want"@github.com/*) ;;
   *)
